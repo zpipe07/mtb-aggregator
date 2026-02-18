@@ -1,0 +1,16 @@
+{
+  "name": "mtb-aggregator",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Mountain bike deals aggregator",
+  "scripts": {
+    "dev": "make dev",
+    "db:up": "make db-up",
+    "db:down": "make db-down",
+    "db:migrate": "make db-migrate"
+  },
+  "packageManager": "pnpm@9.14.2",
+  "engines": {
+    "node": ">=20"
+  }
+}

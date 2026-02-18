@@ -1,0 +1,61 @@
+.PHONY: dev db-up db-down db-migrate db-up-local db-migrate-local scrape build-all install
+
+# Ensure Make can find docker (Docker Desktop CLI locations)
+export PATH := /Applications/Docker.app/Contents/Resources/bin:/usr/local/bin:/opt/homebrew/bin:$(PATH)
+
+# Use "docker compose" (v2) or "docker-compose" (v1) - override if needed
+DOCKER_COMPOSE ?= docker compose
+
+# Database connection for local Postgres (override if needed: make db-migrate-local DB_USER=myuser)
+DB_NAME ?= mtb_deals
+DB_USER ?= $(shell whoami)
+
+# Start all services for local development
+dev:
+	@echo "Starting development environment..."
+	@echo "  - Database: make db-up (Docker) or make db-up-local (local Postgres)"
+	@echo "  - Scraper: pnpm --filter @mtb-aggregator/scraper run dev"
+	@echo "  - API: cd apps/api && go run main.go"
+	@echo ""
+	@echo "Run 'make db-up' or 'make db-up-local' first, then start scraper and api in separate terminals."
+
+# Start PostgreSQL via Docker (requires Docker)
+db-up:
+	$(DOCKER_COMPOSE) up -d db
+	@echo "Waiting for Postgres to be ready..."
+	@sleep 3
+	@echo "Database is up. Run 'make db-migrate' to apply schema."
+
+# Stop PostgreSQL (Docker)
+db-down:
+	$(DOCKER_COMPOSE) down
+
+# Apply database schema via Docker (requires make db-up first)
+db-migrate:
+	@cat packages/shared/schema.sql | $(DOCKER_COMPOSE) exec -T db psql -U mtb -d mtb_deals -f - || \
+		(echo "Error: Run 'make db-up' first to start the database."; exit 1)
+
+# Use local Postgres (no Docker) - ensure Postgres is running (e.g. brew services start postgresql)
+db-up-local:
+	@echo "Using local Postgres. Ensure it's running (e.g. brew services start postgresql)"
+	@createdb $(DB_NAME) 2>/dev/null || echo "Database '$(DB_NAME)' may already exist."
+	@echo "Run 'make db-migrate-local' to apply schema."
+
+# Apply schema to local Postgres
+db-migrate-local:
+	@psql -d $(DB_NAME) -f packages/shared/schema.sql
+	@echo "Schema applied. Connection: postgres://$(DB_USER)@localhost:5432/$(DB_NAME)"
+
+# Run scraper manually (for testing)
+scrape:
+	pnpm --filter @mtb-aggregator/scraper run dev
+
+# Build all apps
+build-all:
+	pnpm --filter @mtb-aggregator/scraper run build
+	cd apps/api && go build -o ../../dist/api .
+
+# Install all dependencies
+install:
+	pnpm install
+	cd apps/api && go mod download

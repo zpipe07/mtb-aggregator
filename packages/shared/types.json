@@ -1,0 +1,15 @@
+{
+  "ScrapeResult": {
+    "store_sku": "string",
+    "product_name": "string",
+    "current_price": "number",
+    "original_price": "number | null",
+    "product_url": "string",
+    "image_url": "string | null",
+    "is_in_stock": "boolean"
+  },
+  "ScrapeRequest": {
+    "url": "string",
+    "store": "jensonusa | backcountry"
+  }
+}

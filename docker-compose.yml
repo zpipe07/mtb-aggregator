@@ -1,0 +1,43 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: mtb
+      POSTGRES_PASSWORD: mtb
+      POSTGRES_DB: mtb_deals
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mtb -d mtb_deals"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  scraper:
+    build:
+      context: .
+      dockerfile: apps/scraper/Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    ports:
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+      scraper:
+        condition: service_started
+    environment:
+      - DATABASE_URL=postgres://mtb:mtb@db:5432/mtb_deals
+      - SCRAPER_SERVICE_URL=http://scraper:3000
+
+volumes:
+  postgres_data:
