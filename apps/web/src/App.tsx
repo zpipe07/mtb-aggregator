@@ -26,7 +26,7 @@ function App() {
     if (minDiscount) params.min_discount = parseFloat(minDiscount) || undefined;
     fetchDeals(params)
       .then((data) => {
-        setDeals(data);
+        setDeals(Array.isArray(data) ? data : []);
         setLoading(false);
       })
       .catch((e) => {
@@ -35,7 +35,7 @@ function App() {
       });
   }, [storeFilter, minDiscount]);
 
-  const sortedDeals = [...deals].sort((a, b) => {
+  const sortedDeals = (Array.isArray(deals) ? deals : []).slice().sort((a, b) => {
     switch (sort) {
       case "discount":
         return (b.discount_pct ?? 0) - (a.discount_pct ?? 0);

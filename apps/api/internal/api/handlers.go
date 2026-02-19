@@ -52,6 +52,11 @@ func (h *Handlers) GetDeals(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Ensure we always return [] not null when empty
+	if deals == nil {
+		deals = []db.Deal{}
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(deals)
 }

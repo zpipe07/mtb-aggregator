@@ -20,6 +20,9 @@ todos:
   - id: phase-6-polish
     content: "Phase 6: Backcountry parser, error screenshots, health status"
     status: pending
+  - id: phase-7-tests
+    content: "Phase 7: Automated tests (API, web, scraper)"
+    status: pending
 isProject: false
 ---
 
@@ -298,6 +301,35 @@ Store in `parsers/config.json` or per-parser constants:
 
 ---
 
+## Phase 7: Automated Tests
+
+**Goal:** Add test coverage for API, web app, and scraper to catch regressions.
+
+### 7.1 Go API Tests
+
+- Unit tests for handlers (mock DB)
+- Integration tests for `GET /deals`, `GET /stores` with test DB or SQLite
+- Use `httptest` for HTTP handler tests
+
+### 7.2 React Web Tests
+
+- Vitest + React Testing Library
+- Component tests for DealCard, filters, sorting
+- Mock API responses with MSW or fetch mock
+
+### 7.3 Scraper Tests
+
+- Unit tests for parsers with fixture HTML (no live scraping)
+- Validate parser output against Zod schema
+- Optional: smoke test against real URL (skipped in CI by default)
+
+### 7.4 CI Integration
+
+- Add `make test` or `pnpm test` at root to run all suites
+- GitHub Actions or similar: run tests on push/PR
+
+---
+
 ## Implementation Order
 
 | Phase | Tasks                                                   | Dependency |
@@ -308,6 +340,7 @@ Store in `parsers/config.json` or per-parser constants:
 | 4     | Go REST API                                             | Phase 3    |
 | 5     | React frontend                                          | Phase 4    |
 | 6     | Second parser (Backcountry), error screenshots, /status | Phase 5    |
+| 7     | Automated tests (API, web, scraper), CI                 | Phase 6    |
 
 ---
 
