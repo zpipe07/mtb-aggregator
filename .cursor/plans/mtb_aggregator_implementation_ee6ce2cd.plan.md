@@ -283,15 +283,15 @@ Store in `parsers/config.json` or per-parser constants:
 
 ## Phase 6: Reliability & Polish
 
-### 6.1 Error Snapshots
+### 6.1 Error Snapshots (done)
 
-- Scraper saves screenshot to `logs/{store}_{timestamp}.png` on selector failure
+- Scraper saves screenshot to `logs/{store}-error-{timestamp}.png` on failure (implemented in JensonUSA parser)
 - Optional: upload to S3 for production
 
-### 6.2 Health Dashboard
+### 6.2 Health Dashboard (done)
 
-- `GET /status` returns `{ stores: [{ name, last_scraped, success }], scraper_reachable: bool }`
-- Simple status page or integrate into existing UI
+- `GET /status` returns `{ stores: [{ name, deal_count, last_scraped, success }], scraper_reachable: bool }`
+- Status bar integrated below header: scraper online/offline, per-store last scraped + deal count
 
 ### 6.3 Proxy Readiness
 

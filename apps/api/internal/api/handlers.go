@@ -123,9 +123,10 @@ func (h *Handlers) GetStatus(w http.ResponseWriter, r *http.Request) {
 	}
 
 	type storeStatus struct {
-		Name         string `json:"name"`
-		DealCount    int    `json:"deal_count"`
-		LastScraped  string `json:"last_scraped"`
+		Name        string `json:"name"`
+		DealCount   int    `json:"deal_count"`
+		LastScraped string `json:"last_scraped"`
+		Success     bool   `json:"success"`
 	}
 	var storeStatuses []storeStatus
 	for _, s := range stores {
@@ -133,6 +134,7 @@ func (h *Handlers) GetStatus(w http.ResponseWriter, r *http.Request) {
 			Name:        s.Name,
 			DealCount:   s.DealCount,
 			LastScraped: s.LastScraped,
+			Success:     s.LastScraped != "",
 		})
 	}
 

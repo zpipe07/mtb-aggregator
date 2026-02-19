@@ -53,3 +53,21 @@ export async function fetchStores(): Promise<Store[]> {
   if (!res.ok) throw new Error("Failed to fetch stores");
   return res.json();
 }
+
+export interface StoreStatus {
+  name: string;
+  deal_count: number;
+  last_scraped: string;
+  success: boolean;
+}
+
+export interface Status {
+  stores: StoreStatus[];
+  scraper_reachable: boolean;
+}
+
+export async function fetchStatus(): Promise<Status> {
+  const res = await fetch(`${API_BASE}/status`);
+  if (!res.ok) throw new Error("Failed to fetch status");
+  return res.json();
+}
