@@ -1,0 +1,65 @@
+package scraper
+
+import (
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"net/http"
+	"time"
+)
+
+// ScrapeResult matches the scraper's JSON response
+type ScrapeResult struct {
+	StoreSKU      string   `json:"store_sku"`
+	ProductName   string   `json:"product_name"`
+	CurrentPrice  float64  `json:"current_price"`
+	OriginalPrice *float64 `json:"original_price"`
+	ProductURL    string   `json:"product_url"`
+	ImageURL      *string  `json:"image_url"`
+	IsInStock     bool     `json:"is_in_stock"`
+}
+
+// ScrapeRequest is sent to the scraper
+type ScrapeRequest struct {
+	URL   string `json:"url"`
+	Store string `json:"store"`
+}
+
+type Client struct {
+	baseURL    string
+	httpClient *http.Client
+}
+
+func NewClient(baseURL string) *Client {
+	return &Client{
+		baseURL: baseURL,
+		httpClient: &http.Client{
+			Timeout: 120 * time.Second,
+		},
+	}
+}
+
+func (c *Client) Scrape(url, store string) ([]ScrapeResult, error) {
+	reqBody := ScrapeRequest{URL: url, Store: store}
+	jsonBody, err := json.Marshal(reqBody)
+	if err != nil {
+		return nil, fmt.Errorf("marshal request: %w", err)
+	}
+
+	resp, err := c.httpClient.Post(c.baseURL+"/scrape", "application/json", bytes.NewReader(jsonBody))
+	if err != nil {
+		return nil, fmt.Errorf("scrape request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("scraper returned status %d", resp.StatusCode)
+	}
+
+	var results []ScrapeResult
+	if err := json.NewDecoder(resp.Body).Decode(&results); err != nil {
+		return nil, fmt.Errorf("decode response: %w", err)
+	}
+
+	return results, nil
+}

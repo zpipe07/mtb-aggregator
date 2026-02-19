@@ -7,8 +7,10 @@ CREATE TABLE IF NOT EXISTS stores (
   name VARCHAR(100) NOT NULL,
   base_url VARCHAR(255) NOT NULL,
   scrape_url VARCHAR(500) NOT NULL,
+  store_type VARCHAR(50) NOT NULL DEFAULT 'jensonusa',
   affiliate_network VARCHAR(50),
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE (name)
 );
 
 -- Individual deal listings from each store
@@ -50,3 +52,6 @@ CREATE TABLE IF NOT EXISTS scraped_raw_data (
   raw_content TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+-- Migrations for existing databases (run after initial schema)
+ALTER TABLE stores ADD COLUMN IF NOT EXISTS store_type VARCHAR(50) DEFAULT 'jensonusa';

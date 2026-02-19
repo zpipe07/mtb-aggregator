@@ -10,10 +10,10 @@ todos:
     status: completed
   - id: phase-3-scheduler
     content: "Phase 3: Go scheduler with cron, HTTP client, validation, persistence"
-    status: pending
+    status: completed
   - id: phase-4-api
     content: "Phase 4: Go REST API (GET /deals, /stores, /status)"
-    status: pending
+    status: completed
   - id: phase-5-frontend
     content: "Phase 5: React frontend with deals list and filters"
     status: pending

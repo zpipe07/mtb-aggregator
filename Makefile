@@ -1,4 +1,4 @@
-.PHONY: dev db-up db-down db-migrate db-up-local db-migrate-local scrape build-all install
+.PHONY: dev db-up db-down db-migrate db-seed db-up-local db-migrate-local scrape scrape-now build-all install
 
 # Ensure Make can find docker (Docker Desktop CLI locations)
 export PATH := /Applications/Docker.app/Contents/Resources/bin:/usr/local/bin:/opt/homebrew/bin:$(PATH)
@@ -34,6 +34,12 @@ db-down:
 db-migrate:
 	@cat packages/shared/schema.sql | $(DOCKER_COMPOSE) exec -T db psql -U mtb -d mtb_deals -f - || \
 		(echo "Error: Run 'make db-up' first to start the database."; exit 1)
+	@echo "Run 'make db-seed' to seed stores."
+
+# Seed stores (Docker) - run after db-migrate
+db-seed:
+	@cat packages/shared/seed.sql | $(DOCKER_COMPOSE) exec -T db psql -U mtb -d mtb_deals -f - || \
+		(echo "Error: Run 'make db-up' and 'make db-migrate' first."; exit 1)
 
 # Use local Postgres (no Docker) - ensure Postgres is running (e.g. brew services start postgresql)
 db-up-local:
@@ -44,11 +50,16 @@ db-up-local:
 # Apply schema to local Postgres
 db-migrate-local:
 	@psql -d $(DB_NAME) -f packages/shared/schema.sql
-	@echo "Schema applied. Connection: postgres://$(DB_USER)@localhost:5432/$(DB_NAME)"
+	@psql -d $(DB_NAME) -f packages/shared/seed.sql
+	@echo "Schema and seed applied. Connection: postgres://$(DB_USER)@localhost:5432/$(DB_NAME)"
 
 # Run scraper manually (for testing)
 scrape:
 	pnpm --filter @mtb-aggregator/scraper run dev
+
+# Trigger scrape job manually (requires API running)
+scrape-now:
+	@curl -s -X POST http://localhost:8080/scrape-now
 
 # Build all apps
 build-all:

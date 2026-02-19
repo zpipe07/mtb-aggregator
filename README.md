@@ -28,12 +28,13 @@ make install
 make db-up        # Docker - requires Docker installed
 make db-up-local  # Local Postgres - requires PostgreSQL installed (e.g. brew install postgresql)
 
-# Apply database schema
+# Apply database schema and seed stores
 make db-migrate       # If using Docker
-make db-migrate-local # If using local Postgres
+make db-seed          # Seed stores (Docker)
+make db-migrate-local # If using local Postgres (includes seed)
 ```
 
-**Without Docker:** If you have PostgreSQL installed locally (e.g. via Homebrew), use `make db-up-local` and `make db-migrate-local`. The API will connect via `postgres://$(whoami)@localhost:5432/mtb_deals`.
+**Without Docker:** If you have PostgreSQL installed locally (e.g. via Homebrew), use `make db-up-local` and `make db-migrate-local`. Set `DATABASE_URL=postgres://$(whoami)@localhost:5432/mtb_deals` when running the API.
 
 ### Development
 
@@ -44,9 +45,27 @@ make db-up
 # Terminal 2: Run scraper
 pnpm --filter @mtb-aggregator/scraper run dev
 
-# Terminal 3: Run API
+# Terminal 3: Run API (scheduler + health)
 cd apps/api && go run main.go
 ```
+
+### Trigger a scrape manually
+
+```bash
+# With API running:
+curl -X POST http://localhost:8080/scrape-now
+# Or: make scrape-now
+```
+
+### API Endpoints
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /deals` | List deals (`?store=`, `?min_discount=`, `?limit=`, `?offset=`) |
+| `GET /deals/:id` | Single deal by ID |
+| `GET /stores` | List stores with deal counts |
+| `GET /status` | Health: last scrape per store, scraper reachable |
+| `POST /scrape-now` | Trigger scrape job |
 
 ### Testing the Scraper
 
@@ -87,6 +106,8 @@ mtb-aggregator/
 | `make db-up-local` | Use local Postgres (no Docker) |
 | `make db-down` | Stop PostgreSQL (Docker)      |
 | `make db-migrate` | Apply schema (Docker)      |
-| `make db-migrate-local` | Apply schema (local)   |
+| `make db-seed` | Seed stores (Docker)        |
+| `make db-migrate-local` | Apply schema + seed (local) |
+| `make scrape-now` | Trigger scrape (API must be running) |
 | `make dev`     | Start db (see dev workflow)  |
 | `make build-all` | Build scraper + API          |
