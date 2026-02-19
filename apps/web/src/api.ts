@@ -12,7 +12,7 @@ export interface Deal {
   affiliate_url?: string;
   image_url?: string;
   brand?: string;
-  category?: string;
+  category_path?: string[];
   is_in_stock: boolean;
   discount_pct?: number;
   last_scraped: string;

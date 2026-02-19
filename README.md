@@ -61,15 +61,28 @@ curl -X POST http://localhost:8080/scrape-now
 # Or: make scrape-now
 ```
 
+### Trigger enrichment manually
+
+Enrichment visits product detail pages to extract category from breadcrumbs. Requires API and scraper running.
+
+```bash
+make enrich-now
+# Or: curl -X POST http://localhost:8080/enrich-now
+```
+
+Runs up to 50 listings per batch. Enrichment also runs nightly at 2am (configurable via `ENRICH_CRON_SPEC`).
+
 ### API Endpoints
 
 | Endpoint | Description |
 |----------|-------------|
-| `GET /deals` | List deals (`?store=`, `?min_discount=`, `?limit=`, `?offset=`) |
+| `GET /deals` | List deals (`?store=`, `?brand=`, `?min_discount=`, `?limit=`, `?offset=`) |
 | `GET /deals/:id` | Single deal by ID |
 | `GET /stores` | List stores with deal counts |
 | `GET /status` | Health: last scrape per store, scraper reachable |
+| `GET /brands` | List distinct brands |
 | `POST /scrape-now` | Trigger scrape job |
+| `POST /enrich-now` | Trigger enrichment job (PDP category extraction) |
 
 ### Testing the Scraper
 

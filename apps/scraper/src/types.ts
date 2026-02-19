@@ -8,7 +8,7 @@ export const ScrapeResultSchema = z.object({
   product_url: z.string().url(),
   image_url: z.string().url().nullable(),
   brand: z.string().nullable(),
-  category: z.string().nullable(),
+  category_path: z.array(z.string()).nullable(),
   is_in_stock: z.boolean(),
 });
 
@@ -20,3 +20,10 @@ export const ScrapeRequestSchema = z.object({
 });
 
 export type ScrapeRequest = z.infer<typeof ScrapeRequestSchema>;
+
+export const EnrichRequestSchema = z.object({
+  url: z.string().url(),
+  store: z.enum(["jensonusa", "backcountry"]),
+});
+
+export type EnrichRequest = z.infer<typeof EnrichRequestSchema>;

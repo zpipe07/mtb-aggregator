@@ -1,8 +1,8 @@
 import express from "express";
 import { mkdir, writeFile } from "fs/promises";
 import { join } from "path";
-import { getParser } from "./parsers/index.js";
-import { ScrapeRequestSchema, ScrapeResultSchema } from "./types.js";
+import { getParser, getEnricher } from "./parsers/index.js";
+import { ScrapeRequestSchema, ScrapeResultSchema, EnrichRequestSchema } from "./types.js";
 
 const app = express();
 app.use(express.json());
@@ -74,6 +74,47 @@ app.post("/scrape", async (req, res) => {
 
 app.get("/health", (_req, res) => {
   res.json({ status: "ok" });
+});
+
+app.post("/enrich", async (req, res) => {
+  const parseResult = EnrichRequestSchema.safeParse(req.body);
+  if (!parseResult.success) {
+    return res.status(400).json({
+      error: "Invalid request",
+      details: parseResult.error.flatten(),
+    });
+  }
+
+  const { url, store } = parseResult.data;
+  const enricher = getEnricher(store);
+
+  if (!enricher) {
+    return res.status(400).json({
+      error: `Unknown store: ${store}. Supported: jensonusa`,
+    });
+  }
+
+  try {
+    const result = await enricher(url);
+    return res.json(result);
+  } catch (err) {
+    console.error("Enrich error:", err);
+    try {
+      await mkdir(LOGS_DIR, { recursive: true });
+      const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+      const logPath = join(LOGS_DIR, `enrich-error-${store}-${timestamp}.txt`);
+      await writeFile(
+        logPath,
+        `Error: ${err instanceof Error ? err.message : String(err)}\n\nStack: ${err instanceof Error ? err.stack : ""}`
+      );
+    } catch (logErr) {
+      console.error("Failed to write error log:", logErr);
+    }
+    return res.status(500).json({
+      error: "Enrich failed",
+      message: err instanceof Error ? err.message : String(err),
+    });
+  }
 });
 
 // Debug: capture page HTML for selector development (set DEBUG=1)

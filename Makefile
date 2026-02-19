@@ -61,6 +61,10 @@ scrape:
 scrape-now:
 	@curl -s -X POST http://localhost:8080/scrape-now
 
+# Trigger enrichment job manually (requires API and scraper running)
+enrich-now:
+	@curl -s -X POST http://localhost:8080/enrich-now
+
 # Build all apps
 build-all:
 	pnpm --filter @mtb-aggregator/scraper run build

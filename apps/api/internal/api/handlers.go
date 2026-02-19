@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 	"strconv"
 
@@ -44,6 +45,7 @@ func (h *Handlers) GetDeals(w http.ResponseWriter, r *http.Request) {
 
 	deals, err := h.DB.GetDeals(r.Context(), params)
 	if err != nil {
+		log.Printf("[api] GetDeals error: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}

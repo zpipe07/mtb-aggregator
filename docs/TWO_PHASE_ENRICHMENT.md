@@ -9,11 +9,12 @@ For data that requires visiting product detail pages (PDPs)—e.g. full category
 - Fast, low risk of rate limiting
 - Runs on cron (e.g. every 4 hours)
 
-## Phase 2: PDP Enrichment (Future)
+## Phase 2: PDP Enrichment (Implemented)
 
 - Separate job that visits product detail pages
-- Extracts: full category, specs, description, or other PDP-only data
-- Runs on a different schedule (e.g. nightly) or on-demand
+- Extracts: category from breadcrumbs (JensonUSA)
+- Runs nightly at 2am (`ENRICH_CRON_SPEC`) or on-demand via `POST /enrich-now`
+- Batch size: 50 per run; re-enriches listings older than 7 days
 
 ### Design Considerations
 
@@ -45,10 +46,9 @@ For data that requires visiting product detail pages (PDPs)—e.g. full category
 - If one PDP fails, log and continue; don’t fail the whole batch
 - Store `last_enriched_at` only on success
 
-### Implementation Order
+### Current Implementation
 
-1. Add `last_enriched_at` and PDP columns to schema
-2. Add `enrichJensonUSAPage` (or equivalent) to scraper
-3. Add enrichment job to Go scheduler (or separate cron)
-4. Add `POST /enrich-now` for manual trigger
-5. Extend API and frontend to expose enriched fields
+- **Schema:** `last_enriched_at`, `category` on `store_listings`
+- **Scraper:** `POST /enrich` with `{ url, store }` — extracts breadcrumb category
+- **API:** `POST /enrich-now`; enrichment cron at 2am
+- **Breadcrumb selectors:** `nav[aria-label="Breadcrumb"]`, `.breadcrumb`, JSON-LD BreadcrumbList

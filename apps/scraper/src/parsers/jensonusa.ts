@@ -2,7 +2,11 @@ import { mkdir } from "fs/promises";
 import { join } from "path";
 import { chromium } from "playwright";
 import type { ScrapeResult } from "../types.js";
-import { USER_AGENT, SCRAPE_DELAY_MS } from "../config.js";
+import { USER_AGENT, SCRAPE_DELAY_MS, ENRICH_DELAY_MS } from "../config.js";
+
+export interface EnrichResult {
+  category_path: string[] | null;
+}
 
 const BASE_URL = "https://www.jensonusa.com";
 const LOGS_DIR = process.env.SCREENSHOT_DIR ?? join(process.cwd(), "logs");
@@ -79,9 +83,10 @@ export async function scrapeJensonUSA(url: string): Promise<ScrapeResult[]> {
           }
           if (!originalPrice && dto.originalPrice) originalPrice = dto.originalPrice.amount;
           const brand = dto.brand && typeof dto.brand === 'string' ? dto.brand.trim() : null;
-          const category = deriveCategory(dto.catalogNodeCodes, brand);
+          const cat = deriveCategory(dto.catalogNodeCodes, brand);
+          const category_path = cat ? [cat] : null;
           if (currentPrice && currentPrice > 0 && currentPrice < 100000) {
-            results.push({ sku, name, url, currentPrice, originalPrice, imageUrl, brand, category });
+            results.push({ sku, name, url, currentPrice, originalPrice, imageUrl, brand, category_path });
           }
         } catch (e) { continue; }
       }
@@ -109,7 +114,7 @@ export async function scrapeJensonUSA(url: string): Promise<ScrapeResult[]> {
           const img = container ? container.querySelector("img") : null;
           const imageUrl = img ? img.src : null;
           if (currentPrice && currentPrice > 0 && currentPrice < 100000) {
-            results.push({ sku: pathClean, name, url: href, currentPrice, originalPrice, imageUrl, brand: null, category: null });
+            results.push({ sku: pathClean, name, url: href, currentPrice, originalPrice, imageUrl, brand: null, category_path: null });
           }
         }
       }
@@ -126,7 +131,7 @@ export async function scrapeJensonUSA(url: string): Promise<ScrapeResult[]> {
       originalPrice: number | null;
       imageUrl: string | null;
       brand: string | null;
-      category: string | null;
+      category_path: string[] | null;
     }>;
 
     const results: ScrapeResult[] = rawResults.map((r) => ({
@@ -137,7 +142,7 @@ export async function scrapeJensonUSA(url: string): Promise<ScrapeResult[]> {
       product_url: r.url,
       image_url: r.imageUrl,
       brand: r.brand ?? null,
-      category: r.category ?? null,
+      category_path: r.category_path ?? null,
       is_in_stock: true,
     }));
 
@@ -169,4 +174,79 @@ function deduplicateBySku(results: ScrapeResult[]): ScrapeResult[] {
     seen.add(r.store_sku);
     return true;
   });
+}
+
+/** Extract category from PDP breadcrumbs. JensonUSA uses breadcrumb links. */
+export async function enrichJensonUSA(productUrl: string): Promise<EnrichResult> {
+  const browser = await chromium.launch({
+    headless: true,
+    args: ["--no-sandbox", "--disable-setuid-sandbox"],
+  });
+
+  try {
+    const context = await browser.newContext({
+      userAgent: USER_AGENT,
+      viewport: { width: 1280, height: 720 },
+    });
+
+    const page = await context.newPage();
+    await page.goto(productUrl, { waitUntil: "load", timeout: 60000 });
+    await new Promise((r) => setTimeout(r, 3000));
+
+    const extractBreadcrumb = `
+      (function() {
+        var items = [];
+        var sel = 'nav[aria-label="Breadcrumb"] a, nav[aria-label="breadcrumb"] a, .breadcrumb a, .breadcrumbs a, [class*="breadcrumb"] a, ol[class*="breadcrumb"] li a';
+        var links = document.querySelectorAll(sel);
+        if (links.length === 0) {
+          var scripts = document.querySelectorAll('script[type="application/ld+json"]');
+          for (var i = 0; i < scripts.length; i++) {
+            try {
+              var json = JSON.parse(scripts[i].textContent || '{}');
+              if (json['@type'] === 'BreadcrumbList' && json.itemListElement) {
+                for (var j = 0; j < json.itemListElement.length; j++) {
+                  var el = json.itemListElement[j];
+                  var name = el.name || (el.item && el.item.name);
+                  if (name) items.push(name);
+                }
+                break;
+              }
+            } catch (e) {}
+          }
+        } else {
+          for (var k = 0; k < links.length; k++) {
+            var t = (links[k].textContent || '').trim();
+            if (t) items.push(t);
+          }
+        }
+        if (items.length < 2) return null;
+        items = items.slice(0, -1);
+        if (items[0] && /^home$/i.test(items[0])) items = items.slice(1);
+        return items.length > 0 ? items : null;
+      })()
+    `;
+
+    const category_path = (await page.evaluate(extractBreadcrumb)) as string[] | null;
+
+    await new Promise((r) => setTimeout(r, ENRICH_DELAY_MS));
+
+    return { category_path };
+  } catch (err) {
+    try {
+      const context = browser.contexts()[0];
+      const page = context?.pages()[0];
+      if (page) {
+        await mkdir(LOGS_DIR, { recursive: true });
+        const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+        const screenshotPath = join(LOGS_DIR, `jensonusa-enrich-error-${timestamp}.png`);
+        await page.screenshot({ path: screenshotPath });
+        console.error("Enrich screenshot saved to", screenshotPath);
+      }
+    } catch (screenshotErr) {
+      console.error("Failed to save screenshot:", screenshotErr);
+    }
+    throw err;
+  } finally {
+    await browser.close();
+  }
 }

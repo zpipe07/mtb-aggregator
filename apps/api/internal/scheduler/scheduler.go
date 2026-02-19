@@ -10,6 +10,8 @@ import (
 	"github.com/robfig/cron/v3"
 )
 
+const enrichBatchSize = 50
+
 type Scheduler struct {
 	cron    *cron.Cron
 	db      *db.DB
@@ -82,7 +84,7 @@ func (s *Scheduler) scrapeStore(ctx context.Context, store db.Store) {
 			ProductURL:    r.ProductURL,
 			ImageURL:      r.ImageURL,
 			Brand:         r.Brand,
-			Category:      r.Category,
+			CategoryPath:  r.CategoryPath,
 			IsInStock:     r.IsInStock,
 		}
 
@@ -100,6 +102,44 @@ func (s *Scheduler) scrapeStore(ctx context.Context, store db.Store) {
 	}
 
 	log.Printf("[scheduler] %s: saved %d listings", store.Name, validCount)
+}
+
+func (s *Scheduler) RunEnrichmentJob() {
+	ctx := context.Background()
+
+	listings, err := s.db.GetListingsNeedingEnrichment(ctx, enrichBatchSize)
+	if err != nil {
+		log.Printf("[enrichment] failed to get listings: %v", err)
+		return
+	}
+
+	if len(listings) == 0 {
+		log.Printf("[enrichment] no listings need enrichment")
+		return
+	}
+
+	log.Printf("[enrichment] enriching %d listings", len(listings))
+
+	successCount := 0
+	for _, l := range listings {
+		result, err := s.scraper.Enrich(l.ProductURL, l.StoreType)
+		if err != nil {
+			log.Printf("[enrichment] failed for listing %d: %v", l.ID, err)
+			continue
+		}
+
+		if err := s.db.UpdateListingEnrichment(ctx, l.ID, result.CategoryPath); err != nil {
+			log.Printf("[enrichment] failed to update listing %d: %v", l.ID, err)
+			continue
+		}
+
+		successCount++
+		if len(result.CategoryPath) > 0 {
+			log.Printf("[enrichment] listing %d: category_path=%v", l.ID, result.CategoryPath)
+		}
+	}
+
+	log.Printf("[enrichment] enriched %d/%d listings", successCount, len(listings))
 }
 
 func (s *Scheduler) validateListing(r scraper.ScrapeResult) bool {
@@ -121,7 +161,14 @@ func (s *Scheduler) validateListing(r scraper.ScrapeResult) bool {
 func (s *Scheduler) Start(spec string) {
 	s.cron.AddFunc(spec, s.RunScrapeJob)
 	s.cron.Start()
-	log.Printf("[scheduler] started with spec %s", spec)
+	log.Printf("[scheduler] started scrape cron with spec %s", spec)
+}
+
+func (s *Scheduler) StartEnrichment(spec string) {
+	if spec != "" {
+		s.cron.AddFunc(spec, s.RunEnrichmentJob)
+		log.Printf("[scheduler] started enrichment cron with spec %s", spec)
+	}
 }
 
 func (s *Scheduler) Stop() {

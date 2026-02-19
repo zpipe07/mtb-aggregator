@@ -39,6 +39,13 @@ func main() {
 	}
 	sched.Start(cronSpec)
 
+	// Enrichment cron: nightly at 2am (configurable via ENRICH_CRON_SPEC, empty = disabled)
+	enrichCronSpec := os.Getenv("ENRICH_CRON_SPEC")
+	if enrichCronSpec == "" {
+		enrichCronSpec = "0 2 * * *"
+	}
+	sched.StartEnrichment(enrichCronSpec)
+
 	// Manual trigger for testing: POST /scrape-now
 	http.HandleFunc("/scrape-now", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
@@ -46,6 +53,17 @@ func main() {
 			return
 		}
 		sched.RunScrapeJob()
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{"status":"ok"}`))
+	})
+
+	// Manual trigger for enrichment: POST /enrich-now
+	http.HandleFunc("/enrich-now", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		sched.RunEnrichmentJob()
 		w.Header().Set("Content-Type", "application/json")
 		w.Write([]byte(`{"status":"ok"}`))
 	})

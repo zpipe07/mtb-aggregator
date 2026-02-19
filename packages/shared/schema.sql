@@ -25,7 +25,8 @@ CREATE TABLE IF NOT EXISTS store_listings (
   affiliate_url TEXT,
   image_url TEXT,
   brand VARCHAR(100),
-  category VARCHAR(200),
+  category_path TEXT[],
+  last_enriched_at TIMESTAMP WITH TIME ZONE,
   is_in_stock BOOLEAN DEFAULT true,
   last_scraped TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -58,4 +59,13 @@ CREATE TABLE IF NOT EXISTS scraped_raw_data (
 -- Migrations for existing databases (run after initial schema)
 ALTER TABLE stores ADD COLUMN IF NOT EXISTS store_type VARCHAR(50) DEFAULT 'jensonusa';
 ALTER TABLE store_listings ADD COLUMN IF NOT EXISTS brand VARCHAR(100);
-ALTER TABLE store_listings ADD COLUMN IF NOT EXISTS category VARCHAR(200);
+ALTER TABLE store_listings ADD COLUMN IF NOT EXISTS category_path TEXT[];
+ALTER TABLE store_listings ADD COLUMN IF NOT EXISTS last_enriched_at TIMESTAMP WITH TIME ZONE;
+-- Migrate category string to category_path array, then drop category
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'store_listings' AND column_name = 'category') THEN
+    UPDATE store_listings SET category_path = string_to_array(trim(category), ' > ') WHERE category IS NOT NULL AND category != '' AND (category_path IS NULL OR category_path = '{}');
+    ALTER TABLE store_listings DROP COLUMN IF EXISTS category;
+  END IF;
+END $$;

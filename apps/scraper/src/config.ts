@@ -3,6 +3,8 @@ export const USER_AGENT =
 
 export const SCRAPE_DELAY_MS = Number(process.env.SCRAPE_DELAY_MS) || 5000;
 
+export const ENRICH_DELAY_MS = Number(process.env.ENRICH_DELAY_MS) || 5000;
+
 export const STORE_SELECTORS: Record<
   string,
   {

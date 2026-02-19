@@ -16,15 +16,20 @@ type ScrapeResult struct {
 	OriginalPrice *float64 `json:"original_price"`
 	ProductURL    string   `json:"product_url"`
 	ImageURL      *string  `json:"image_url"`
-	Brand         *string  `json:"brand"`
-	Category      *string  `json:"category"`
-	IsInStock     bool     `json:"is_in_stock"`
+	Brand         *string   `json:"brand"`
+	CategoryPath  []string  `json:"category_path"`
+	IsInStock     bool      `json:"is_in_stock"`
 }
 
 // ScrapeRequest is sent to the scraper
 type ScrapeRequest struct {
 	URL   string `json:"url"`
 	Store string `json:"store"`
+}
+
+// EnrichResult from POST /enrich
+type EnrichResult struct {
+	CategoryPath []string `json:"category_path"`
 }
 
 type Client struct {
@@ -64,4 +69,29 @@ func (c *Client) Scrape(url, store string) ([]ScrapeResult, error) {
 	}
 
 	return results, nil
+}
+
+func (c *Client) Enrich(productURL, store string) (*EnrichResult, error) {
+	reqBody := map[string]string{"url": productURL, "store": store}
+	jsonBody, err := json.Marshal(reqBody)
+	if err != nil {
+		return nil, fmt.Errorf("marshal request: %w", err)
+	}
+
+	resp, err := c.httpClient.Post(c.baseURL+"/enrich", "application/json", bytes.NewReader(jsonBody))
+	if err != nil {
+		return nil, fmt.Errorf("enrich request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("scraper returned status %d", resp.StatusCode)
+	}
+
+	var result EnrichResult
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("decode response: %w", err)
+	}
+
+	return &result, nil
 }

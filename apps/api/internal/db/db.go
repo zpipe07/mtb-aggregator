@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/lib/pq"
 )
 
 type Store struct {
@@ -24,7 +26,7 @@ type Listing struct {
 	ProductURL    string
 	ImageURL      *string
 	Brand         *string
-	Category      *string
+	CategoryPath  []string
 	IsInStock     bool
 }
 
@@ -85,7 +87,7 @@ func (db *DB) GetLastPrice(ctx context.Context, storeID int, storeSKU string) (f
 func (db *DB) UpsertListing(ctx context.Context, listing Listing) (int, error) {
 	var id int
 	err := db.pool.QueryRow(ctx, `
-		INSERT INTO store_listings (store_id, store_sku, product_name, current_price, original_price, product_url, image_url, brand, category, is_in_stock, last_scraped)
+		INSERT INTO store_listings (store_id, store_sku, product_name, current_price, original_price, product_url, image_url, brand, category_path, is_in_stock, last_scraped)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())
 		ON CONFLICT (store_id, store_sku) DO UPDATE SET
 			product_name = EXCLUDED.product_name,
@@ -94,12 +96,12 @@ func (db *DB) UpsertListing(ctx context.Context, listing Listing) (int, error) {
 			product_url = EXCLUDED.product_url,
 			image_url = EXCLUDED.image_url,
 			brand = EXCLUDED.brand,
-			category = EXCLUDED.category,
+			category_path = EXCLUDED.category_path,
 			is_in_stock = EXCLUDED.is_in_stock,
 			last_scraped = NOW()
 		RETURNING id
 	`, listing.StoreID, listing.StoreSKU, listing.ProductName, listing.CurrentPrice, listing.OriginalPrice,
-		listing.ProductURL, listing.ImageURL, listing.Brand, listing.Category, listing.IsInStock).Scan(&id)
+		listing.ProductURL, listing.ImageURL, listing.Brand, pq.Array(listing.CategoryPath), listing.IsInStock).Scan(&id)
 	return id, err
 }
 
@@ -122,9 +124,9 @@ type Deal struct {
 	ProductURL    string   `json:"product_url"`
 	AffiliateURL  *string  `json:"affiliate_url,omitempty"`
 	ImageURL      *string  `json:"image_url,omitempty"`
-	Brand         *string  `json:"brand,omitempty"`
-	Category      *string  `json:"category,omitempty"`
-	IsInStock     bool     `json:"is_in_stock"`
+	Brand         *string   `json:"brand,omitempty"`
+	CategoryPath  []string  `json:"category_path,omitempty"`
+	IsInStock     bool      `json:"is_in_stock"`
 	DiscountPct   *float64 `json:"discount_pct,omitempty"`
 	LastScraped   string   `json:"last_scraped"`
 }
@@ -146,7 +148,7 @@ func (db *DB) GetDeals(ctx context.Context, params GetDealsParams) ([]Deal, erro
 
 	query := `
 		SELECT l.id, l.store_id, s.name, l.store_sku, l.product_name, l.current_price, l.original_price,
-			l.product_url, l.affiliate_url, l.image_url, l.brand, l.category, l.is_in_stock, l.last_scraped::text
+			l.product_url, l.affiliate_url, l.image_url, l.brand, COALESCE(l.category_path, '{}'), l.is_in_stock, l.last_scraped::text
 		FROM store_listings l
 		JOIN stores s ON s.id = l.store_id
 		WHERE 1=1
@@ -188,10 +190,12 @@ func (db *DB) GetDeals(ctx context.Context, params GetDealsParams) ([]Deal, erro
 	for rows.Next() {
 		var d Deal
 		var lastScraped []byte
+		var cp pgtype.FlatArray[string]
 		if err := rows.Scan(&d.ID, &d.StoreID, &d.StoreName, &d.StoreSKU, &d.ProductName, &d.CurrentPrice, &d.OriginalPrice,
-			&d.ProductURL, &d.AffiliateURL, &d.ImageURL, &d.Brand, &d.Category, &d.IsInStock, &lastScraped); err != nil {
+			&d.ProductURL, &d.AffiliateURL, &d.ImageURL, &d.Brand, &cp, &d.IsInStock, &lastScraped); err != nil {
 			return nil, err
 		}
+		d.CategoryPath = cp
 		d.LastScraped = string(lastScraped)
 		if d.OriginalPrice != nil && *d.OriginalPrice > 0 {
 			pct := (1 - d.CurrentPrice/(*d.OriginalPrice)) * 100
@@ -205,17 +209,19 @@ func (db *DB) GetDeals(ctx context.Context, params GetDealsParams) ([]Deal, erro
 func (db *DB) GetDealByID(ctx context.Context, id int) (*Deal, error) {
 	var d Deal
 	var lastScraped []byte
+	var cp pgtype.FlatArray[string]
 	err := db.pool.QueryRow(ctx, `
 		SELECT l.id, l.store_id, s.name, l.store_sku, l.product_name, l.current_price, l.original_price,
-			l.product_url, l.affiliate_url, l.image_url, l.brand, l.category, l.is_in_stock, l.last_scraped::text
+			l.product_url, l.affiliate_url, l.image_url, l.brand, COALESCE(l.category_path, '{}'), l.is_in_stock, l.last_scraped::text
 		FROM store_listings l
 		JOIN stores s ON s.id = l.store_id
 		WHERE l.id = $1
 	`, id).Scan(&d.ID, &d.StoreID, &d.StoreName, &d.StoreSKU, &d.ProductName, &d.CurrentPrice, &d.OriginalPrice,
-		&d.ProductURL, &d.AffiliateURL, &d.ImageURL, &d.Brand, &d.Category, &d.IsInStock, &lastScraped)
+		&d.ProductURL, &d.AffiliateURL, &d.ImageURL, &d.Brand, &cp, &d.IsInStock, &lastScraped)
 	if err != nil {
 		return nil, err
 	}
+	d.CategoryPath = cp
 	d.LastScraped = string(lastScraped)
 	if d.OriginalPrice != nil && *d.OriginalPrice > 0 {
 		pct := (1 - d.CurrentPrice/(*d.OriginalPrice)) * 100
@@ -283,4 +289,51 @@ func (db *DB) GetBrands(ctx context.Context) ([]string, error) {
 		brands = append(brands, b)
 	}
 	return brands, rows.Err()
+}
+
+// ListingForEnrichment is a listing that needs PDP enrichment
+type ListingForEnrichment struct {
+	ID         int
+	StoreID    int
+	StoreType  string
+	ProductURL string
+}
+
+func (db *DB) GetListingsNeedingEnrichment(ctx context.Context, limit int) ([]ListingForEnrichment, error) {
+	if limit <= 0 {
+		limit = 50
+	}
+	rows, err := db.pool.Query(ctx, `
+		SELECT l.id, l.store_id, COALESCE(s.store_type, 'jensonusa'), l.product_url
+		FROM store_listings l
+		JOIN stores s ON s.id = l.store_id
+		WHERE l.product_url IS NOT NULL AND l.product_url != ''
+		  AND (l.last_enriched_at IS NULL OR l.last_enriched_at < NOW() - INTERVAL '7 days')
+		  AND s.store_type = 'jensonusa'
+		ORDER BY l.last_enriched_at NULLS FIRST, l.last_scraped DESC
+		LIMIT $1
+	`, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var listings []ListingForEnrichment
+	for rows.Next() {
+		var l ListingForEnrichment
+		if err := rows.Scan(&l.ID, &l.StoreID, &l.StoreType, &l.ProductURL); err != nil {
+			return nil, err
+		}
+		listings = append(listings, l)
+	}
+	return listings, rows.Err()
+}
+
+func (db *DB) UpdateListingEnrichment(ctx context.Context, id int, categoryPath []string) error {
+	_, err := db.pool.Exec(ctx, `
+		UPDATE store_listings
+		SET category_path = $1, last_enriched_at = NOW()
+		WHERE id = $2
+	`, pq.Array(categoryPath), id)
+	return err
 }

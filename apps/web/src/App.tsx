@@ -1,5 +1,12 @@
 import { useEffect, useState } from "react";
-import { fetchDeals, fetchStores, fetchBrands, fetchStatus, type Deal, type Store } from "./api";
+import {
+  fetchDeals,
+  fetchStores,
+  fetchBrands,
+  fetchStatus,
+  type Deal,
+  type Store,
+} from "./api";
 
 type SortOption = "newest" | "discount" | "price_asc" | "price_desc";
 
@@ -13,7 +20,9 @@ function App() {
   const [minDiscount, setMinDiscount] = useState<string>("");
   const [sort, setSort] = useState<SortOption>("newest");
   const [brands, setBrands] = useState<string[]>([]);
-  const [status, setStatus] = useState<Awaited<ReturnType<typeof fetchStatus>> | null>(null);
+  const [status, setStatus] = useState<Awaited<
+    ReturnType<typeof fetchStatus>
+  > | null>(null);
 
   useEffect(() => {
     fetchStores()
@@ -51,24 +60,33 @@ function App() {
       });
   }, [storeFilter, brandFilter, minDiscount]);
 
-  const sortedDeals = (Array.isArray(deals) ? deals : []).slice().sort((a, b) => {
-    switch (sort) {
-      case "discount":
-        return (b.discount_pct ?? 0) - (a.discount_pct ?? 0);
-      case "price_asc":
-        return a.current_price - b.current_price;
-      case "price_desc":
-        return b.current_price - a.current_price;
-      default:
-        return new Date(b.last_scraped).getTime() - new Date(a.last_scraped).getTime();
-    }
-  });
+  const sortedDeals = (Array.isArray(deals) ? deals : [])
+    .slice()
+    .sort((a, b) => {
+      switch (sort) {
+        case "discount":
+          return (b.discount_pct ?? 0) - (a.discount_pct ?? 0);
+        case "price_asc":
+          return a.current_price - b.current_price;
+        case "price_desc":
+          return b.current_price - a.current_price;
+        default:
+          return (
+            new Date(b.last_scraped).getTime() -
+            new Date(a.last_scraped).getTime()
+          );
+      }
+    });
 
   return (
     <div className="min-h-screen bg-stone-100">
       <header className="bg-stone-800 text-white py-6 px-6">
-        <h1 className="text-2xl font-bold tracking-tight">MTB Deal Aggregator</h1>
-        <p className="text-stone-400 mt-1">Mountain bike deals from top retailers</p>
+        <h1 className="text-2xl font-bold tracking-tight">
+          MTB Deal Aggregator
+        </h1>
+        <p className="text-stone-400 mt-1">
+          Mountain bike deals from top retailers
+        </p>
       </header>
 
       {status && (
@@ -77,14 +95,21 @@ function App() {
             <div className="flex items-center gap-2">
               <span
                 className={`inline-block w-2 h-2 rounded-full ${status.scraper_reachable ? "bg-green-600" : "bg-red-500"}`}
-                title={status.scraper_reachable ? "Scraper reachable" : "Scraper offline"}
+                title={
+                  status.scraper_reachable
+                    ? "Scraper reachable"
+                    : "Scraper offline"
+                }
               />
               <span className="text-stone-700">
                 Scraper {status.scraper_reachable ? "online" : "offline"}
               </span>
             </div>
             {status.stores.map((s) => (
-              <div key={s.name} className="flex items-center gap-2 text-stone-600">
+              <div
+                key={s.name}
+                className="flex items-center gap-2 text-stone-600"
+              >
                 <span
                   className={`inline-block w-2 h-2 rounded-full ${s.success ? "bg-green-600" : "bg-amber-500"}`}
                   title={s.success ? "Has scraped data" : "No data yet"}
@@ -105,7 +130,9 @@ function App() {
       <main className="max-w-6xl mx-auto px-6 py-8">
         <div className="flex flex-wrap gap-4 mb-6">
           <div>
-            <label className="block text-sm font-medium text-stone-600 mb-1">Store</label>
+            <label className="block text-sm font-medium text-stone-600 mb-1">
+              Store
+            </label>
             <select
               value={storeFilter}
               onChange={(e) => setStoreFilter(e.target.value)}
@@ -120,7 +147,9 @@ function App() {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-stone-600 mb-1">Brand</label>
+            <label className="block text-sm font-medium text-stone-600 mb-1">
+              Brand
+            </label>
             <select
               value={brandFilter}
               onChange={(e) => setBrandFilter(e.target.value)}
@@ -135,7 +164,9 @@ function App() {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-stone-600 mb-1">Min discount %</label>
+            <label className="block text-sm font-medium text-stone-600 mb-1">
+              Min discount %
+            </label>
             <input
               type="number"
               min="0"
@@ -147,7 +178,9 @@ function App() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-stone-600 mb-1">Sort by</label>
+            <label className="block text-sm font-medium text-stone-600 mb-1">
+              Sort by
+            </label>
             <select
               value={sort}
               onChange={(e) => setSort(e.target.value as SortOption)}
@@ -168,7 +201,9 @@ function App() {
         )}
 
         {loading ? (
-          <div className="text-stone-500 py-12 text-center">Loading deals...</div>
+          <div className="text-stone-500 py-12 text-center">
+            Loading deals...
+          </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {sortedDeals.map((deal) => (
@@ -178,7 +213,9 @@ function App() {
         )}
 
         {!loading && !error && sortedDeals.length === 0 && (
-          <div className="text-stone-500 py-12 text-center">No deals found.</div>
+          <div className="text-stone-500 py-12 text-center">
+            No deals found.
+          </div>
         )}
       </main>
     </div>
@@ -187,7 +224,8 @@ function App() {
 
 function DealCard({ deal }: { deal: Deal }) {
   const viewUrl = deal.affiliate_url || deal.product_url;
-  const discountPct = deal.discount_pct != null ? Math.round(deal.discount_pct) : null;
+  const discountPct =
+    deal.discount_pct != null ? Math.round(deal.discount_pct) : null;
 
   return (
     <article className="bg-white rounded-xl shadow-sm border border-stone-200 overflow-hidden hover:shadow-md transition-shadow">
@@ -218,18 +256,24 @@ function DealCard({ deal }: { deal: Deal }) {
             {deal.brand}
           </span>
         )}
-        <h2 className="font-medium text-stone-900 line-clamp-2 min-h-[2.5rem]">
+        <h2 className="font-medium text-stone-900 line-clamp-2">
           {deal.product_name}
         </h2>
+        {deal.category_path && deal.category_path.length > 0 && (
+          <p className="text-xs text-stone-500 mt-1">
+            {deal.category_path[deal.category_path.length - 1]}
+          </p>
+        )}
         <div className="mt-2 flex items-baseline gap-2">
           <span className="text-lg font-bold text-stone-900">
             ${deal.current_price.toFixed(2)}
           </span>
-          {deal.original_price != null && deal.original_price > deal.current_price && (
-            <span className="text-sm text-stone-500 line-through">
-              ${deal.original_price.toFixed(2)}
-            </span>
-          )}
+          {deal.original_price != null &&
+            deal.original_price > deal.current_price && (
+              <span className="text-sm text-stone-500 line-through">
+                ${deal.original_price.toFixed(2)}
+              </span>
+            )}
         </div>
         <a
           href={viewUrl}
