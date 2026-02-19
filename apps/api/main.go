@@ -54,6 +54,7 @@ func main() {
 	http.HandleFunc("/deals", handlers.DealsHandler)
 	http.HandleFunc("/deals/", handlers.DealsHandler)
 	http.HandleFunc("/stores", handlers.GetStores)
+	http.HandleFunc("/brands", handlers.GetBrands)
 	http.HandleFunc("/status", handlers.GetStatus)
 
 	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {

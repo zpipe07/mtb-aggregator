@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { fetchDeals, fetchStores, fetchStatus, type Deal, type Store } from "./api";
+import { fetchDeals, fetchStores, fetchBrands, fetchStatus, type Deal, type Store } from "./api";
 
 type SortOption = "newest" | "discount" | "price_asc" | "price_desc";
 
@@ -9,8 +9,10 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [storeFilter, setStoreFilter] = useState<string>("");
+  const [brandFilter, setBrandFilter] = useState<string>("");
   const [minDiscount, setMinDiscount] = useState<string>("");
   const [sort, setSort] = useState<SortOption>("newest");
+  const [brands, setBrands] = useState<string[]>([]);
   const [status, setStatus] = useState<Awaited<ReturnType<typeof fetchStatus>> | null>(null);
 
   useEffect(() => {
@@ -26,10 +28,17 @@ function App() {
   }, []);
 
   useEffect(() => {
+    fetchBrands()
+      .then(setBrands)
+      .catch(() => setBrands([]));
+  }, []);
+
+  useEffect(() => {
     setLoading(true);
     setError(null);
     const params: Parameters<typeof fetchDeals>[0] = { limit: 100 };
     if (storeFilter) params.store = storeFilter;
+    if (brandFilter) params.brand = brandFilter;
     if (minDiscount) params.min_discount = parseFloat(minDiscount) || undefined;
     fetchDeals(params)
       .then((data) => {
@@ -40,7 +49,7 @@ function App() {
         setError(String(e));
         setLoading(false);
       });
-  }, [storeFilter, minDiscount]);
+  }, [storeFilter, brandFilter, minDiscount]);
 
   const sortedDeals = (Array.isArray(deals) ? deals : []).slice().sort((a, b) => {
     switch (sort) {
@@ -106,6 +115,21 @@ function App() {
               {stores.map((s) => (
                 <option key={s.id} value={s.name}>
                   {s.name} ({s.deal_count})
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-stone-600 mb-1">Brand</label>
+            <select
+              value={brandFilter}
+              onChange={(e) => setBrandFilter(e.target.value)}
+              className="rounded-lg border border-stone-300 px-3 py-2 bg-white text-stone-800"
+            >
+              <option value="">All brands</option>
+              {brands.map((b) => (
+                <option key={b} value={b}>
+                  {b}
                 </option>
               ))}
             </select>
@@ -189,6 +213,11 @@ function DealCard({ deal }: { deal: Deal }) {
         </span>
       </div>
       <div className="p-4">
+        {deal.brand && (
+          <span className="text-xs font-medium text-stone-500 uppercase tracking-wide">
+            {deal.brand}
+          </span>
+        )}
         <h2 className="font-medium text-stone-900 line-clamp-2 min-h-[2.5rem]">
           {deal.product_name}
         </h2>

@@ -23,6 +23,9 @@ func (h *Handlers) GetDeals(w http.ResponseWriter, r *http.Request) {
 	if s := r.URL.Query().Get("store"); s != "" {
 		params.StoreName = s
 	}
+	if s := r.URL.Query().Get("brand"); s != "" {
+		params.Brand = s
+	}
 	if s := r.URL.Query().Get("min_discount"); s != "" {
 		if f, err := strconv.ParseFloat(s, 64); err == nil {
 			params.MinDiscount = &f
@@ -102,6 +105,22 @@ func (h *Handlers) GetStores(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(stores)
+}
+
+func (h *Handlers) GetBrands(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	brands, err := h.DB.GetBrands(r.Context())
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(brands)
 }
 
 func (h *Handlers) GetStatus(w http.ResponseWriter, r *http.Request) {

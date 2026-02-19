@@ -75,12 +75,14 @@ func (s *Scheduler) scrapeStore(ctx context.Context, store db.Store) {
 
 		listing := db.Listing{
 			StoreID:       store.ID,
-			StoreSKU:     r.StoreSKU,
+			StoreSKU:      r.StoreSKU,
 			ProductName:   r.ProductName,
 			CurrentPrice:  r.CurrentPrice,
 			OriginalPrice: r.OriginalPrice,
 			ProductURL:    r.ProductURL,
 			ImageURL:      r.ImageURL,
+			Brand:         r.Brand,
+			Category:      r.Category,
 			IsInStock:     r.IsInStock,
 		}
 

@@ -29,11 +29,24 @@ export async function scrapeJensonUSA(url: string): Promise<ScrapeResult[]> {
     await new Promise((r) => setTimeout(r, SCRAPE_DELAY_MS));
 
     // Use string to avoid tsx/transpiler adding __name or other helpers that break in browser context
-    // JensonUSA uses data-product-result-dto with JSON: { name, url, code, selectedVariant: { listPrice: { amount } } }
+    // JensonUSA uses data-product-result-dto with JSON: { name, url, code, brand, catalogNodeCodes, selectedVariant: { listPrice: { amount } } }
     const extractScript = `
       const parsePriceFromText = (text) => {
         const m = (text || '').replace(/,/g, '').match(/\\$?([\\d.]+)/);
         return m ? parseFloat(m[1]) : null;
+      };
+      const deriveCategory = (codes, brand) => {
+        if (!codes || !Array.isArray(codes)) return null;
+        const brandLower = (brand || '').toLowerCase();
+        for (const c of codes) {
+          if (!c || typeof c !== 'string') continue;
+          if (c.toLowerCase() === brandLower) continue;
+          if (c.toLowerCase().includes('sale')) continue;
+          if (/^\\d{8,}$/.test(c) || /^C\\d{7}$/.test(c)) continue;
+          var seg = c.split('-')[0];
+          if (seg && seg.length > 2) return seg;
+        }
+        return null;
       };
       const results = [];
       const baseUrl = "https://www.jensonusa.com";
@@ -65,8 +78,10 @@ export async function scrapeJensonUSA(url: string): Promise<ScrapeResult[]> {
             originalPrice = dto.selectedVariant.originalPrice.amount;
           }
           if (!originalPrice && dto.originalPrice) originalPrice = dto.originalPrice.amount;
+          const brand = dto.brand && typeof dto.brand === 'string' ? dto.brand.trim() : null;
+          const category = deriveCategory(dto.catalogNodeCodes, brand);
           if (currentPrice && currentPrice > 0 && currentPrice < 100000) {
-            results.push({ sku, name, url, currentPrice, originalPrice, imageUrl });
+            results.push({ sku, name, url, currentPrice, originalPrice, imageUrl, brand, category });
           }
         } catch (e) { continue; }
       }
@@ -94,7 +109,7 @@ export async function scrapeJensonUSA(url: string): Promise<ScrapeResult[]> {
           const img = container ? container.querySelector("img") : null;
           const imageUrl = img ? img.src : null;
           if (currentPrice && currentPrice > 0 && currentPrice < 100000) {
-            results.push({ sku: pathClean, name, url: href, currentPrice, originalPrice, imageUrl });
+            results.push({ sku: pathClean, name, url: href, currentPrice, originalPrice, imageUrl, brand: null, category: null });
           }
         }
       }
@@ -110,6 +125,8 @@ export async function scrapeJensonUSA(url: string): Promise<ScrapeResult[]> {
       currentPrice: number | null;
       originalPrice: number | null;
       imageUrl: string | null;
+      brand: string | null;
+      category: string | null;
     }>;
 
     const results: ScrapeResult[] = rawResults.map((r) => ({
@@ -119,6 +136,8 @@ export async function scrapeJensonUSA(url: string): Promise<ScrapeResult[]> {
       original_price: r.originalPrice,
       product_url: r.url,
       image_url: r.imageUrl,
+      brand: r.brand ?? null,
+      category: r.category ?? null,
       is_in_stock: true,
     }));
 

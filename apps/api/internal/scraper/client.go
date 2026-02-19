@@ -16,6 +16,8 @@ type ScrapeResult struct {
 	OriginalPrice *float64 `json:"original_price"`
 	ProductURL    string   `json:"product_url"`
 	ImageURL      *string  `json:"image_url"`
+	Brand         *string  `json:"brand"`
+	Category      *string  `json:"category"`
 	IsInStock     bool     `json:"is_in_stock"`
 }
 

@@ -24,6 +24,8 @@ CREATE TABLE IF NOT EXISTS store_listings (
   product_url TEXT NOT NULL,
   affiliate_url TEXT,
   image_url TEXT,
+  brand VARCHAR(100),
+  category VARCHAR(200),
   is_in_stock BOOLEAN DEFAULT true,
   last_scraped TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -55,3 +57,5 @@ CREATE TABLE IF NOT EXISTS scraped_raw_data (
 
 -- Migrations for existing databases (run after initial schema)
 ALTER TABLE stores ADD COLUMN IF NOT EXISTS store_type VARCHAR(50) DEFAULT 'jensonusa';
+ALTER TABLE store_listings ADD COLUMN IF NOT EXISTS brand VARCHAR(100);
+ALTER TABLE store_listings ADD COLUMN IF NOT EXISTS category VARCHAR(200);

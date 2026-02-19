@@ -16,14 +16,16 @@ type Store struct {
 }
 
 type Listing struct {
-	StoreID      int
-	StoreSKU     string
-	ProductName  string
-	CurrentPrice float64
+	StoreID       int
+	StoreSKU      string
+	ProductName   string
+	CurrentPrice  float64
 	OriginalPrice *float64
-	ProductURL   string
-	ImageURL     *string
-	IsInStock    bool
+	ProductURL    string
+	ImageURL      *string
+	Brand         *string
+	Category      *string
+	IsInStock     bool
 }
 
 type DB struct {
@@ -83,19 +85,21 @@ func (db *DB) GetLastPrice(ctx context.Context, storeID int, storeSKU string) (f
 func (db *DB) UpsertListing(ctx context.Context, listing Listing) (int, error) {
 	var id int
 	err := db.pool.QueryRow(ctx, `
-		INSERT INTO store_listings (store_id, store_sku, product_name, current_price, original_price, product_url, image_url, is_in_stock, last_scraped)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
+		INSERT INTO store_listings (store_id, store_sku, product_name, current_price, original_price, product_url, image_url, brand, category, is_in_stock, last_scraped)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())
 		ON CONFLICT (store_id, store_sku) DO UPDATE SET
 			product_name = EXCLUDED.product_name,
 			current_price = EXCLUDED.current_price,
 			original_price = EXCLUDED.original_price,
 			product_url = EXCLUDED.product_url,
 			image_url = EXCLUDED.image_url,
+			brand = EXCLUDED.brand,
+			category = EXCLUDED.category,
 			is_in_stock = EXCLUDED.is_in_stock,
 			last_scraped = NOW()
 		RETURNING id
 	`, listing.StoreID, listing.StoreSKU, listing.ProductName, listing.CurrentPrice, listing.OriginalPrice,
-		listing.ProductURL, listing.ImageURL, listing.IsInStock).Scan(&id)
+		listing.ProductURL, listing.ImageURL, listing.Brand, listing.Category, listing.IsInStock).Scan(&id)
 	return id, err
 }
 
@@ -118,6 +122,8 @@ type Deal struct {
 	ProductURL    string   `json:"product_url"`
 	AffiliateURL  *string  `json:"affiliate_url,omitempty"`
 	ImageURL      *string  `json:"image_url,omitempty"`
+	Brand         *string  `json:"brand,omitempty"`
+	Category      *string  `json:"category,omitempty"`
 	IsInStock     bool     `json:"is_in_stock"`
 	DiscountPct   *float64 `json:"discount_pct,omitempty"`
 	LastScraped   string   `json:"last_scraped"`
@@ -127,6 +133,7 @@ type Deal struct {
 type GetDealsParams struct {
 	StoreID     *int
 	StoreName   string
+	Brand       string
 	MinDiscount *float64
 	Limit       int
 	Offset      int
@@ -139,7 +146,7 @@ func (db *DB) GetDeals(ctx context.Context, params GetDealsParams) ([]Deal, erro
 
 	query := `
 		SELECT l.id, l.store_id, s.name, l.store_sku, l.product_name, l.current_price, l.original_price,
-			l.product_url, l.affiliate_url, l.image_url, l.is_in_stock, l.last_scraped::text
+			l.product_url, l.affiliate_url, l.image_url, l.brand, l.category, l.is_in_stock, l.last_scraped::text
 		FROM store_listings l
 		JOIN stores s ON s.id = l.store_id
 		WHERE 1=1
@@ -155,6 +162,11 @@ func (db *DB) GetDeals(ctx context.Context, params GetDealsParams) ([]Deal, erro
 	if params.StoreName != "" {
 		query += fmt.Sprintf(" AND s.name ILIKE $%d", argNum)
 		args = append(args, params.StoreName)
+		argNum++
+	}
+	if params.Brand != "" {
+		query += fmt.Sprintf(" AND l.brand ILIKE $%d", argNum)
+		args = append(args, params.Brand)
 		argNum++
 	}
 	if params.MinDiscount != nil && *params.MinDiscount > 0 {
@@ -177,7 +189,7 @@ func (db *DB) GetDeals(ctx context.Context, params GetDealsParams) ([]Deal, erro
 		var d Deal
 		var lastScraped []byte
 		if err := rows.Scan(&d.ID, &d.StoreID, &d.StoreName, &d.StoreSKU, &d.ProductName, &d.CurrentPrice, &d.OriginalPrice,
-			&d.ProductURL, &d.AffiliateURL, &d.ImageURL, &d.IsInStock, &lastScraped); err != nil {
+			&d.ProductURL, &d.AffiliateURL, &d.ImageURL, &d.Brand, &d.Category, &d.IsInStock, &lastScraped); err != nil {
 			return nil, err
 		}
 		d.LastScraped = string(lastScraped)
@@ -195,12 +207,12 @@ func (db *DB) GetDealByID(ctx context.Context, id int) (*Deal, error) {
 	var lastScraped []byte
 	err := db.pool.QueryRow(ctx, `
 		SELECT l.id, l.store_id, s.name, l.store_sku, l.product_name, l.current_price, l.original_price,
-			l.product_url, l.affiliate_url, l.image_url, l.is_in_stock, l.last_scraped::text
+			l.product_url, l.affiliate_url, l.image_url, l.brand, l.category, l.is_in_stock, l.last_scraped::text
 		FROM store_listings l
 		JOIN stores s ON s.id = l.store_id
 		WHERE l.id = $1
 	`, id).Scan(&d.ID, &d.StoreID, &d.StoreName, &d.StoreSKU, &d.ProductName, &d.CurrentPrice, &d.OriginalPrice,
-		&d.ProductURL, &d.AffiliateURL, &d.ImageURL, &d.IsInStock, &lastScraped)
+		&d.ProductURL, &d.AffiliateURL, &d.ImageURL, &d.Brand, &d.Category, &d.IsInStock, &lastScraped)
 	if err != nil {
 		return nil, err
 	}
@@ -249,4 +261,26 @@ func (db *DB) GetStoresWithCounts(ctx context.Context) ([]StoreWithCount, error)
 		stores = append(stores, s)
 	}
 	return stores, rows.Err()
+}
+
+func (db *DB) GetBrands(ctx context.Context) ([]string, error) {
+	rows, err := db.pool.Query(ctx, `
+		SELECT DISTINCT brand FROM store_listings
+		WHERE brand IS NOT NULL AND brand != ''
+		ORDER BY brand
+	`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var brands []string
+	for rows.Next() {
+		var b string
+		if err := rows.Scan(&b); err != nil {
+			return nil, err
+		}
+		brands = append(brands, b)
+	}
+	return brands, rows.Err()
 }

@@ -11,6 +11,8 @@ export interface Deal {
   product_url: string;
   affiliate_url?: string;
   image_url?: string;
+  brand?: string;
+  category?: string;
   is_in_stock: boolean;
   discount_pct?: number;
   last_scraped: string;
@@ -26,12 +28,14 @@ export interface Store {
 
 export async function fetchDeals(params?: {
   store?: string;
+  brand?: string;
   min_discount?: number;
   limit?: number;
   offset?: number;
 }): Promise<Deal[]> {
   const search = new URLSearchParams();
   if (params?.store) search.set("store", params.store);
+  if (params?.brand) search.set("brand", params.brand);
   if (params?.min_discount != null) search.set("min_discount", String(params.min_discount));
   if (params?.limit != null) search.set("limit", String(params.limit));
   if (params?.offset != null) search.set("offset", String(params.offset));
@@ -51,6 +55,12 @@ export async function fetchDeal(id: number): Promise<Deal> {
 export async function fetchStores(): Promise<Store[]> {
   const res = await fetch(`${API_BASE}/stores`);
   if (!res.ok) throw new Error("Failed to fetch stores");
+  return res.json();
+}
+
+export async function fetchBrands(): Promise<string[]> {
+  const res = await fetch(`${API_BASE}/brands`);
+  if (!res.ok) throw new Error("Failed to fetch brands");
   return res.json();
 }
 

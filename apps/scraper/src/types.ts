@@ -7,6 +7,8 @@ export const ScrapeResultSchema = z.object({
   original_price: z.number().positive().nullable(),
   product_url: z.string().url(),
   image_url: z.string().url().nullable(),
+  brand: z.string().nullable(),
+  category: z.string().nullable(),
   is_in_stock: z.boolean(),
 });
 
