@@ -41,11 +41,20 @@ make db-migrate-local # If using local Postgres
 # Terminal 1: Keep database running
 make db-up
 
-# Terminal 2: Run scraper (placeholder for Phase 2)
+# Terminal 2: Run scraper
 pnpm --filter @mtb-aggregator/scraper run dev
 
 # Terminal 3: Run API
 cd apps/api && go run main.go
+```
+
+### Testing the Scraper
+
+```bash
+# Start the scraper first, then:
+curl -X POST http://localhost:3000/scrape \
+  -H "Content-Type: application/json" \
+  -d '{"url": "https://www.jensonusa.com/clearance", "store": "jensonusa"}'
 ```
 
 ### Docker

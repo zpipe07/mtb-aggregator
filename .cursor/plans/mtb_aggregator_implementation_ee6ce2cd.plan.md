@@ -7,7 +7,7 @@ todos:
     status: completed
   - id: phase-2-scraper
     content: "Phase 2: Node scraper with POST /scrape, JensonUSA parser"
-    status: pending
+    status: completed
   - id: phase-3-scheduler
     content: "Phase 3: Go scheduler with cron, HTTP client, validation, persistence"
     status: pending

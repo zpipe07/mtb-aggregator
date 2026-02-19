@@ -21,7 +21,7 @@ apps/api/api
 .DS_Store
 Thumbs.db
 
-# Logs
+# Logs and scraper debug output
 logs/
 *.log
 npm-debug.log*

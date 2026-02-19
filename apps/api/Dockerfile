@@ -2,8 +2,8 @@ FROM golang:1.22-alpine AS builder
 
 WORKDIR /app
 
-# Copy go mod files
-COPY apps/api/go.mod apps/api/go.sum ./
+# Copy go mod files (go.sum may not exist for stdlib-only modules)
+COPY apps/api/go.mod ./
 RUN go mod download
 
 # Copy source
