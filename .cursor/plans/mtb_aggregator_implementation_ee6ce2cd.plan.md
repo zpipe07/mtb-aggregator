@@ -16,7 +16,7 @@ todos:
     status: completed
   - id: phase-5-frontend
     content: "Phase 5: React frontend with deals list and filters"
-    status: pending
+    status: completed
   - id: phase-6-polish
     content: "Phase 6: Backcountry parser, error screenshots, health status"
     status: pending

@@ -47,7 +47,11 @@ pnpm --filter @mtb-aggregator/scraper run dev
 
 # Terminal 3: Run API (scheduler + health)
 cd apps/api && go run main.go
+
+# Terminal 4: Run web app
+pnpm --filter @mtb-aggregator/web run dev
 ```
+Then open http://localhost:5173
 
 ### Trigger a scrape manually
 
@@ -109,5 +113,6 @@ mtb-aggregator/
 | `make db-seed` | Seed stores (Docker)        |
 | `make db-migrate-local` | Apply schema + seed (local) |
 | `make scrape-now` | Trigger scrape (API must be running) |
+| `pnpm --filter @mtb-aggregator/web run dev` | Start React dev server |
 | `make dev`     | Start db (see dev workflow)  |
 | `make build-all` | Build scraper + API          |
