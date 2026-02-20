@@ -11,6 +11,21 @@ export interface EnrichResult {
 const BASE_URL = "https://www.jensonusa.com";
 const LOGS_DIR = process.env.SCREENSHOT_DIR ?? join(process.cwd(), "logs");
 
+const MAX_PAGES = 20; // Safety limit
+
+/** Build next page URL by incrementing the pn (page number) param. JensonUSA uses pn, zero-indexed: pn=0 is page 1. */
+function buildNextPageUrl(currentUrl: string): string | null {
+  if (!currentUrl.includes("jensonusa.com/clearance")) return null;
+  try {
+    const u = new URL(currentUrl);
+    const pn = parseInt(u.searchParams.get("pn") || "0", 10);
+    u.searchParams.set("pn", String(pn + 1));
+    return u.toString();
+  } catch {
+    return null;
+  }
+}
+
 export async function scrapeJensonUSA(url: string): Promise<ScrapeResult[]> {
   const browser = await chromium.launch({
     headless: true,
@@ -24,17 +39,30 @@ export async function scrapeJensonUSA(url: string): Promise<ScrapeResult[]> {
     });
 
     const page = await context.newPage();
-    await page.goto(url, { waitUntil: "load", timeout: 60000 });
 
-    // Wait for dynamic content (products often load via JS after initial render)
-    await new Promise((r) => setTimeout(r, 8000));
+    // Use ps=100 for clearance to get more items per page (fewer page requests)
+    let currentUrl = url;
+    if (url.includes("jensonusa.com/clearance") && !url.includes("ps=")) {
+      currentUrl = url.includes("?") ? `${url}&ps=100` : `${url}?ps=100`;
+    }
 
-    // Polite delay before scraping
-    await new Promise((r) => setTimeout(r, SCRAPE_DELAY_MS));
+    const allResults: ScrapeResult[] = [];
+    let pageNum = 0;
 
-    // Use string to avoid tsx/transpiler adding __name or other helpers that break in browser context
-    // JensonUSA uses data-product-result-dto with JSON: { name, url, code, brand, catalogNodeCodes, selectedVariant: { listPrice: { amount } } }
-    const extractScript = `
+    while (pageNum < MAX_PAGES) {
+      pageNum++;
+      console.log(`[scraper] JensonUSA page ${pageNum}: fetching ${currentUrl}`);
+      await page.goto(currentUrl, { waitUntil: "load", timeout: 60000 });
+
+      // Wait for dynamic content (products often load via JS after initial render)
+      await new Promise((r) => setTimeout(r, 8000));
+
+      // Polite delay before scraping
+      await new Promise((r) => setTimeout(r, SCRAPE_DELAY_MS));
+
+      // Use string to avoid tsx/transpiler adding __name or other helpers that break in browser context
+      // JensonUSA uses data-product-result-dto with JSON: { name, url, code, brand, catalogNodeCodes, selectedVariant: { listPrice: { amount } } }
+      const extractScript = `
       const parsePriceFromText = (text) => {
         const m = (text || '').replace(/,/g, '').match(/\\$?([\\d.]+)/);
         return m ? parseFloat(m[1]) : null;
@@ -76,7 +104,8 @@ export async function scrapeJensonUSA(url: string): Promise<ScrapeResult[]> {
           }
           const container = card.closest(".list-item") || card;
           const img = container.querySelector("img");
-          const imageUrl = img ? img.src : null;
+          let imageUrl = (dto.selectedVariant && dto.selectedVariant.imageUrl) || dto.imageUrl || (img ? img.src : null);
+          if (imageUrl && imageUrl.startsWith("data:")) imageUrl = null;
           let originalPrice = null;
           if (dto.selectedVariant && dto.selectedVariant.originalPrice) {
             originalPrice = dto.selectedVariant.originalPrice.amount;
@@ -112,28 +141,32 @@ export async function scrapeJensonUSA(url: string): Promise<ScrapeResult[]> {
           const msrpMatch = containerText.match(/MSRP\\s*\\$[\\d,]+\\.?\\d*/);
           const originalPrice = msrpMatch ? parsePriceFromText(msrpMatch[0]) : null;
           const img = container ? container.querySelector("img") : null;
-          const imageUrl = img ? img.src : null;
+          let imageUrl = img ? img.src : null;
+          if (imageUrl && imageUrl.startsWith("data:")) imageUrl = null;
           if (currentPrice && currentPrice > 0 && currentPrice < 100000) {
             results.push({ sku: pathClean, name, url: href, currentPrice, originalPrice, imageUrl, brand: null, category_path: null });
           }
         }
       }
-      return results;
+      return { results: results };
     `;
 
-    const rawResults = (await page.evaluate(
+    const extracted = (await page.evaluate(
       `(function() { ${extractScript} })()`
-    )) as Array<{
-      sku: string;
-      name: string;
-      url: string;
-      currentPrice: number | null;
-      originalPrice: number | null;
-      imageUrl: string | null;
-      brand: string | null;
-      category_path: string[] | null;
-    }>;
+    )) as {
+      results: Array<{
+        sku: string;
+        name: string;
+        url: string;
+        currentPrice: number | null;
+        originalPrice: number | null;
+        imageUrl: string | null;
+        brand: string | null;
+        category_path: string[] | null;
+      }>;
+    };
 
+    const rawResults = extracted.results;
     const results: ScrapeResult[] = rawResults.map((r) => ({
       store_sku: r.sku,
       product_name: r.name,
@@ -146,7 +179,21 @@ export async function scrapeJensonUSA(url: string): Promise<ScrapeResult[]> {
       is_in_stock: true,
     }));
 
-    return deduplicateBySku(results);
+      allResults.push(...results);
+      const nextUrl = buildNextPageUrl(currentUrl);
+      console.log(`[scraper] JensonUSA page ${pageNum}: got ${results.length} listings, nextPageUrl=${nextUrl ?? "none"}, total=${allResults.length}`);
+
+      if (results.length >= 48 && nextUrl) {
+        currentUrl = nextUrl;
+        await new Promise((r) => setTimeout(r, SCRAPE_DELAY_MS));
+      } else {
+        break;
+      }
+    }
+
+    const deduped = deduplicateBySku(allResults);
+    console.log(`[scraper] JensonUSA done: ${deduped.length} listings after dedup`);
+    return deduped;
   } catch (err) {
     try {
       const context = browser.contexts()[0];

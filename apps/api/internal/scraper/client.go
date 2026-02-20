@@ -41,7 +41,8 @@ func NewClient(baseURL string) *Client {
 	return &Client{
 		baseURL: baseURL,
 		httpClient: &http.Client{
-			Timeout: 120 * time.Second,
+			// Scrape can take 10+ min for multi-page clearance (9 pages × ~60s load + delays)
+			Timeout: 15 * time.Minute,
 		},
 	}
 }

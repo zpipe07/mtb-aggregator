@@ -20,6 +20,7 @@ app.post("/scrape", async (req, res) => {
   }
 
   const { url, store } = parseResult.data;
+  console.log(`[scraper] scrape started: store=${store} url=${url}`);
   const parser = getParser(store);
 
   if (!parser) {
@@ -47,6 +48,7 @@ app.post("/scrape", async (req, res) => {
       console.warn("Validation warnings:", errors.slice(0, 5));
     }
 
+    console.log(`[scraper] scrape completed: store=${store} count=${validated.length}`);
     return res.json(validated);
   } catch (err) {
     console.error("Scrape error:", err);
@@ -86,6 +88,7 @@ app.post("/enrich", async (req, res) => {
   }
 
   const { url, store } = parseResult.data;
+  console.log(`[scraper] enrich started: store=${store} url=${url}`);
   const enricher = getEnricher(store);
 
   if (!enricher) {
@@ -96,6 +99,7 @@ app.post("/enrich", async (req, res) => {
 
   try {
     const result = await enricher(url);
+    console.log(`[scraper] enrich completed: store=${store}`);
     return res.json(result);
   } catch (err) {
     console.error("Enrich error:", err);

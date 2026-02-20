@@ -57,13 +57,14 @@ func main() {
 		w.Write([]byte(`{"status":"ok"}`))
 	})
 
-	// Manual trigger for enrichment: POST /enrich-now
+	// Manual trigger for enrichment: POST /enrich-now (add ?force=1 to re-enrich all)
 	http.HandleFunc("/enrich-now", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 			return
 		}
-		sched.RunEnrichmentJob()
+		force := r.URL.Query().Get("force") == "1"
+		sched.RunEnrichmentJob(force)
 		w.Header().Set("Content-Type", "application/json")
 		w.Write([]byte(`{"status":"ok"}`))
 	})

@@ -62,8 +62,9 @@ scrape-now:
 	@curl -s -X POST http://localhost:8080/scrape-now
 
 # Trigger enrichment job manually (requires API and scraper running)
+# Add force=1 to re-enrich all listings: make enrich-now FORCE=1
 enrich-now:
-	@curl -s -X POST http://localhost:8080/enrich-now
+	@curl -s -X POST "http://localhost:8080/enrich-now$(if $(FORCE),?force=1,)"
 
 # Build all apps
 build-all:

@@ -84,7 +84,7 @@ func (s *Scheduler) scrapeStore(ctx context.Context, store db.Store) {
 			ProductURL:    r.ProductURL,
 			ImageURL:      r.ImageURL,
 			Brand:         r.Brand,
-			CategoryPath:  r.CategoryPath,
+			CategoryPath:  nil, // Only enrichment populates category_path; listing heuristic is unreliable
 			IsInStock:     r.IsInStock,
 		}
 
@@ -104,10 +104,10 @@ func (s *Scheduler) scrapeStore(ctx context.Context, store db.Store) {
 	log.Printf("[scheduler] %s: saved %d listings", store.Name, validCount)
 }
 
-func (s *Scheduler) RunEnrichmentJob() {
+func (s *Scheduler) RunEnrichmentJob(force bool) {
 	ctx := context.Background()
 
-	listings, err := s.db.GetListingsNeedingEnrichment(ctx, enrichBatchSize)
+	listings, err := s.db.GetListingsNeedingEnrichment(ctx, enrichBatchSize, force)
 	if err != nil {
 		log.Printf("[enrichment] failed to get listings: %v", err)
 		return
@@ -166,7 +166,7 @@ func (s *Scheduler) Start(spec string) {
 
 func (s *Scheduler) StartEnrichment(spec string) {
 	if spec != "" {
-		s.cron.AddFunc(spec, s.RunEnrichmentJob)
+		s.cron.AddFunc(spec, func() { s.RunEnrichmentJob(false) })
 		log.Printf("[scheduler] started enrichment cron with spec %s", spec)
 	}
 }

@@ -96,7 +96,6 @@ func (db *DB) UpsertListing(ctx context.Context, listing Listing) (int, error) {
 			product_url = EXCLUDED.product_url,
 			image_url = EXCLUDED.image_url,
 			brand = EXCLUDED.brand,
-			category_path = EXCLUDED.category_path,
 			is_in_stock = EXCLUDED.is_in_stock,
 			last_scraped = NOW()
 		RETURNING id
@@ -299,20 +298,25 @@ type ListingForEnrichment struct {
 	ProductURL string
 }
 
-func (db *DB) GetListingsNeedingEnrichment(ctx context.Context, limit int) ([]ListingForEnrichment, error) {
+func (db *DB) GetListingsNeedingEnrichment(ctx context.Context, limit int, force bool) ([]ListingForEnrichment, error) {
 	if limit <= 0 {
 		limit = 50
 	}
-	rows, err := db.pool.Query(ctx, `
+	query := `
 		SELECT l.id, l.store_id, COALESCE(s.store_type, 'jensonusa'), l.product_url
 		FROM store_listings l
 		JOIN stores s ON s.id = l.store_id
 		WHERE l.product_url IS NOT NULL AND l.product_url != ''
-		  AND (l.last_enriched_at IS NULL OR l.last_enriched_at < NOW() - INTERVAL '7 days')
 		  AND s.store_type = 'jensonusa'
+	`
+	if !force {
+		query += ` AND (l.last_enriched_at IS NULL OR l.last_enriched_at < NOW() - INTERVAL '7 days')`
+	}
+	query += `
 		ORDER BY l.last_enriched_at NULLS FIRST, l.last_scraped DESC
 		LIMIT $1
-	`, limit)
+	`
+	rows, err := db.pool.Query(ctx, query, limit)
 	if err != nil {
 		return nil, err
 	}
