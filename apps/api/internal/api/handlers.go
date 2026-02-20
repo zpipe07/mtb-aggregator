@@ -27,6 +27,9 @@ func (h *Handlers) GetDeals(w http.ResponseWriter, r *http.Request) {
 	if s := r.URL.Query().Get("brand"); s != "" {
 		params.Brand = s
 	}
+	if s := r.URL.Query().Get("category"); s != "" {
+		params.Category = s
+	}
 	if s := r.URL.Query().Get("min_discount"); s != "" {
 		if f, err := strconv.ParseFloat(s, 64); err == nil {
 			params.MinDiscount = &f
@@ -123,6 +126,23 @@ func (h *Handlers) GetBrands(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(brands)
+}
+
+func (h *Handlers) GetCategories(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	categories, err := h.DB.GetCategories(r.Context())
+	if err != nil {
+		log.Printf("[api] GetCategories error: %v", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(categories)
 }
 
 func (h *Handlers) GetStatus(w http.ResponseWriter, r *http.Request) {

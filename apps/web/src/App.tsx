@@ -3,6 +3,7 @@ import {
   fetchDeals,
   fetchStores,
   fetchBrands,
+  fetchCategories,
   fetchStatus,
   type Deal,
   type Store,
@@ -17,9 +18,11 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const [storeFilter, setStoreFilter] = useState<string>("");
   const [brandFilter, setBrandFilter] = useState<string>("");
+  const [categoryFilter, setCategoryFilter] = useState<string>("");
   const [minDiscount, setMinDiscount] = useState<string>("");
   const [sort, setSort] = useState<SortOption>("newest");
   const [brands, setBrands] = useState<string[]>([]);
+  const [categories, setCategories] = useState<string[]>([]);
   const [status, setStatus] = useState<Awaited<
     ReturnType<typeof fetchStatus>
   > | null>(null);
@@ -43,11 +46,18 @@ function App() {
   }, []);
 
   useEffect(() => {
+    fetchCategories()
+      .then(setCategories)
+      .catch(() => setCategories([]));
+  }, []);
+
+  useEffect(() => {
     setLoading(true);
     setError(null);
     const params: Parameters<typeof fetchDeals>[0] = { limit: 100 };
     if (storeFilter) params.store = storeFilter;
     if (brandFilter) params.brand = brandFilter;
+    if (categoryFilter) params.category = categoryFilter;
     if (minDiscount) params.min_discount = parseFloat(minDiscount) || undefined;
     fetchDeals(params)
       .then((data) => {
@@ -58,7 +68,7 @@ function App() {
         setError(String(e));
         setLoading(false);
       });
-  }, [storeFilter, brandFilter, minDiscount]);
+  }, [storeFilter, brandFilter, categoryFilter, minDiscount]);
 
   const sortedDeals = (Array.isArray(deals) ? deals : [])
     .slice()
@@ -159,6 +169,23 @@ function App() {
               {brands.map((b) => (
                 <option key={b} value={b}>
                   {b}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-stone-600 mb-1">
+              Category
+            </label>
+            <select
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+              className="rounded-lg border border-stone-300 px-3 py-2 bg-white text-stone-800"
+            >
+              <option value="">All categories</option>
+              {categories.map((c) => (
+                <option key={c} value={c}>
+                  {c}
                 </option>
               ))}
             </select>

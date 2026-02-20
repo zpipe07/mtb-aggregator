@@ -29,6 +29,7 @@ export interface Store {
 export async function fetchDeals(params?: {
   store?: string;
   brand?: string;
+  category?: string;
   min_discount?: number;
   limit?: number;
   offset?: number;
@@ -36,6 +37,7 @@ export async function fetchDeals(params?: {
   const search = new URLSearchParams();
   if (params?.store) search.set("store", params.store);
   if (params?.brand) search.set("brand", params.brand);
+  if (params?.category) search.set("category", params.category);
   if (params?.min_discount != null) search.set("min_discount", String(params.min_discount));
   if (params?.limit != null) search.set("limit", String(params.limit));
   if (params?.offset != null) search.set("offset", String(params.offset));
@@ -61,6 +63,12 @@ export async function fetchStores(): Promise<Store[]> {
 export async function fetchBrands(): Promise<string[]> {
   const res = await fetch(`${API_BASE}/brands`);
   if (!res.ok) throw new Error("Failed to fetch brands");
+  return res.json();
+}
+
+export async function fetchCategories(): Promise<string[]> {
+  const res = await fetch(`${API_BASE}/categories`);
+  if (!res.ok) throw new Error("Failed to fetch categories");
   return res.json();
 }
 

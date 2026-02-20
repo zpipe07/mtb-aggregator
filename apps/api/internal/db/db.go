@@ -135,6 +135,7 @@ type GetDealsParams struct {
 	StoreID     *int
 	StoreName   string
 	Brand       string
+	Category    string
 	MinDiscount *float64
 	Limit       int
 	Offset      int
@@ -168,6 +169,11 @@ func (db *DB) GetDeals(ctx context.Context, params GetDealsParams) ([]Deal, erro
 	if params.Brand != "" {
 		query += fmt.Sprintf(" AND l.brand ILIKE $%d", argNum)
 		args = append(args, params.Brand)
+		argNum++
+	}
+	if params.Category != "" {
+		query += fmt.Sprintf(" AND EXISTS (SELECT 1 FROM unnest(COALESCE(l.category_path, '{}')) AS c WHERE c ILIKE $%d)", argNum)
+		args = append(args, params.Category)
 		argNum++
 	}
 	if params.MinDiscount != nil && *params.MinDiscount > 0 {
@@ -288,6 +294,29 @@ func (db *DB) GetBrands(ctx context.Context) ([]string, error) {
 		brands = append(brands, b)
 	}
 	return brands, rows.Err()
+}
+
+func (db *DB) GetCategories(ctx context.Context) ([]string, error) {
+	rows, err := db.pool.Query(ctx, `
+		SELECT DISTINCT c
+		FROM store_listings, unnest(COALESCE(category_path, '{}')) AS c
+		WHERE c IS NOT NULL AND c != ''
+		ORDER BY c
+	`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var categories []string
+	for rows.Next() {
+		var cat string
+		if err := rows.Scan(&cat); err != nil {
+			return nil, err
+		}
+		categories = append(categories, cat)
+	}
+	return categories, rows.Err()
 }
 
 // ListingForEnrichment is a listing that needs PDP enrichment
