@@ -2,14 +2,22 @@ import type { Store } from "../api";
 import { FilterSelect } from "./FilterSelect";
 import { FilterInput } from "./FilterInput";
 
-export type SortOption = "newest" | "discount" | "price_asc" | "price_desc";
+export type SortOption = "newest" | "discount" | "price_asc" | "price_desc" | "relevance";
 
-const SORT_OPTIONS: { value: SortOption; label: string }[] = [
+const BASE_SORT_OPTIONS: { value: SortOption; label: string }[] = [
   { value: "newest", label: "Newest" },
   { value: "discount", label: "Highest discount" },
   { value: "price_asc", label: "Price: low to high" },
   { value: "price_desc", label: "Price: high to low" },
 ];
+
+function getSortOptions(hasSearchQuery: boolean): { value: SortOption; label: string }[] {
+  if (!hasSearchQuery) return BASE_SORT_OPTIONS;
+  return [
+    { value: "relevance", label: "Relevance" },
+    ...BASE_SORT_OPTIONS,
+  ];
+}
 
 type DealFiltersProps = {
   stores: Store[];
@@ -20,6 +28,7 @@ type DealFiltersProps = {
   categoryFilter: string;
   minDiscount: string;
   sort: SortOption;
+  searchQuery?: string;
   onStoreChange: (value: string) => void;
   onBrandChange: (value: string) => void;
   onCategoryChange: (value: string) => void;
@@ -36,12 +45,14 @@ export function DealFilters({
   categoryFilter,
   minDiscount,
   sort,
+  searchQuery = "",
   onStoreChange,
   onBrandChange,
   onCategoryChange,
   onMinDiscountChange,
   onSortChange,
 }: DealFiltersProps) {
+  const sortOptions = getSortOptions(searchQuery.trim() !== "");
   const storeOptions = [
     { value: "", label: "All stores" },
     ...(stores ?? []).map((s) => ({ value: s.name, label: `${s.name} (${s.deal_count})` })),
@@ -89,7 +100,7 @@ export function DealFilters({
         label="Sort by"
         value={sort}
         onChange={onSortChange}
-        options={SORT_OPTIONS}
+        options={sortOptions}
       />
     </div>
   );

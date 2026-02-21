@@ -26,27 +26,44 @@ export interface Store {
   last_scraped: string;
 }
 
+export interface DealListResponse {
+  deals: Deal[];
+  total_count: number;
+}
+
+const DEFAULT_PAGE_SIZE = 24;
+
 export async function fetchDeals(params?: {
   store?: string;
   brand?: string;
   category?: string;
   min_discount?: number;
+  q?: string;
+  sort?: string;
   limit?: number;
   offset?: number;
-}): Promise<Deal[]> {
+}): Promise<DealListResponse> {
   const search = new URLSearchParams();
   if (params?.store) search.set("store", params.store);
   if (params?.brand) search.set("brand", params.brand);
   if (params?.category) search.set("category", params.category);
   if (params?.min_discount != null) search.set("min_discount", String(params.min_discount));
+  if (params?.q) search.set("q", params.q);
+  if (params?.sort) search.set("sort", params.sort);
   if (params?.limit != null) search.set("limit", String(params.limit));
   if (params?.offset != null) search.set("offset", String(params.offset));
   const qs = search.toString();
   const url = `${API_BASE}/deals${qs ? `?${qs}` : ""}`;
   const res = await fetch(url);
   if (!res.ok) throw new Error("Failed to fetch deals");
-  return res.json();
+  const data = await res.json();
+  return {
+    deals: Array.isArray(data.deals) ? data.deals : [],
+    total_count: typeof data.total_count === "number" ? data.total_count : 0,
+  };
 }
+
+export { DEFAULT_PAGE_SIZE };
 
 export async function fetchDeal(id: number): Promise<Deal> {
   const res = await fetch(`${API_BASE}/deals/${id}`);

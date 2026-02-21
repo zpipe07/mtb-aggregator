@@ -130,25 +130,42 @@ type Deal struct {
 	LastScraped   string   `json:"last_scraped"`
 }
 
-// GetDealsParams for filtering
+// GetDealsParams for filtering, search, and sort
 type GetDealsParams struct {
 	StoreID     *int
 	StoreName   string
 	Brand       string
 	Category    string
 	MinDiscount *float64
+	Search      string   // full-text search query (q)
+	Sort        string   // newest, discount, price_asc, price_desc, relevance
 	Limit       int
 	Offset      int
 }
 
-func (db *DB) GetDeals(ctx context.Context, params GetDealsParams) ([]Deal, error) {
+// GetDealsResult includes deals and total count for pagination
+type GetDealsResult struct {
+	Deals      []Deal
+	TotalCount int
+}
+
+func (db *DB) GetDeals(ctx context.Context, params GetDealsParams) (*GetDealsResult, error) {
 	if params.Limit <= 0 {
 		params.Limit = 50
+	}
+	// Normalize sort: default newest; relevance only valid when Search is set
+	sort := params.Sort
+	if sort == "" {
+		sort = "newest"
+	}
+	if params.Search == "" && sort == "relevance" {
+		sort = "newest"
 	}
 
 	query := `
 		SELECT l.id, l.store_id, s.name, l.store_sku, l.product_name, l.current_price, l.original_price,
-			l.product_url, l.affiliate_url, l.image_url, l.brand, COALESCE(l.category_path, '{}'), l.is_in_stock, l.last_scraped::text
+			l.product_url, l.affiliate_url, l.image_url, l.brand, COALESCE(l.category_path, '{}'), l.is_in_stock, l.last_scraped::text,
+			COUNT(*) OVER() AS total_count
 		FROM store_listings l
 		JOIN stores s ON s.id = l.store_id
 		WHERE 1=1
@@ -181,8 +198,29 @@ func (db *DB) GetDeals(ctx context.Context, params GetDealsParams) ([]Deal, erro
 		args = append(args, *params.MinDiscount)
 		argNum++
 	}
+	if params.Search != "" {
+		query += fmt.Sprintf(" AND l.search_vector @@ plainto_tsquery('english', $%d)", argNum)
+		args = append(args, params.Search)
+		argNum++
+	}
 
-	query += fmt.Sprintf(" ORDER BY l.last_scraped DESC LIMIT $%d OFFSET $%d", argNum, argNum+1)
+	// ORDER BY
+	switch sort {
+	case "relevance":
+		query += fmt.Sprintf(" ORDER BY ts_rank(l.search_vector, plainto_tsquery('english', $%d)) DESC", argNum)
+		args = append(args, params.Search)
+		argNum++
+	case "discount":
+		query += ` ORDER BY (CASE WHEN l.original_price IS NOT NULL AND l.original_price > 0 AND l.current_price < l.original_price THEN (1 - l.current_price / l.original_price) * 100 ELSE 0 END) DESC NULLS LAST`
+	case "price_asc":
+		query += " ORDER BY l.current_price ASC"
+	case "price_desc":
+		query += " ORDER BY l.current_price DESC"
+	default:
+		query += " ORDER BY l.last_scraped DESC"
+	}
+
+	query += fmt.Sprintf(" LIMIT $%d OFFSET $%d", argNum, argNum+1)
 	args = append(args, params.Limit, params.Offset)
 
 	rows, err := db.pool.Query(ctx, query, args...)
@@ -192,12 +230,13 @@ func (db *DB) GetDeals(ctx context.Context, params GetDealsParams) ([]Deal, erro
 	defer rows.Close()
 
 	var deals []Deal
+	var totalCount int
 	for rows.Next() {
 		var d Deal
 		var lastScraped []byte
 		var cp pgtype.FlatArray[string]
 		if err := rows.Scan(&d.ID, &d.StoreID, &d.StoreName, &d.StoreSKU, &d.ProductName, &d.CurrentPrice, &d.OriginalPrice,
-			&d.ProductURL, &d.AffiliateURL, &d.ImageURL, &d.Brand, &cp, &d.IsInStock, &lastScraped); err != nil {
+			&d.ProductURL, &d.AffiliateURL, &d.ImageURL, &d.Brand, &cp, &d.IsInStock, &lastScraped, &totalCount); err != nil {
 			return nil, err
 		}
 		d.CategoryPath = cp
@@ -210,7 +249,10 @@ func (db *DB) GetDeals(ctx context.Context, params GetDealsParams) ([]Deal, erro
 		}
 		deals = append(deals, d)
 	}
-	return deals, rows.Err()
+	if deals == nil {
+		deals = []Deal{}
+	}
+	return &GetDealsResult{Deals: deals, TotalCount: totalCount}, rows.Err()
 }
 
 func (db *DB) GetDealByID(ctx context.Context, id int) (*Deal, error) {

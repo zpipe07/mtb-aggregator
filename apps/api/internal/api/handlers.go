@@ -35,6 +35,12 @@ func (h *Handlers) GetDeals(w http.ResponseWriter, r *http.Request) {
 			params.MinDiscount = &f
 		}
 	}
+	if s := r.URL.Query().Get("q"); s != "" {
+		params.Search = s
+	}
+	if s := r.URL.Query().Get("sort"); s != "" {
+		params.Sort = s
+	}
 	if s := r.URL.Query().Get("limit"); s != "" {
 		if n, err := strconv.Atoi(s); err == nil && n > 0 {
 			params.Limit = n
@@ -46,13 +52,14 @@ func (h *Handlers) GetDeals(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	deals, err := h.DB.GetDeals(r.Context(), params)
+	result, err := h.DB.GetDeals(r.Context(), params)
 	if err != nil {
 		log.Printf("[api] GetDeals error: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
+	deals := result.Deals
 	// Use affiliate_url if set, else product_url for "View Deal" link
 	for i := range deals {
 		if deals[i].AffiliateURL == nil || *deals[i].AffiliateURL == "" {
@@ -60,13 +67,11 @@ func (h *Handlers) GetDeals(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Ensure we always return [] not null when empty
-	if deals == nil {
-		deals = []db.Deal{}
-	}
-
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(deals)
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"deals":       deals,
+		"total_count": result.TotalCount,
+	})
 }
 
 func (h *Handlers) GetDealByID(w http.ResponseWriter, r *http.Request) {

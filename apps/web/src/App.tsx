@@ -5,14 +5,17 @@ import {
   fetchBrands,
   fetchCategories,
   fetchStatus,
+  DEFAULT_PAGE_SIZE,
   type Deal,
   type Store,
 } from "./api";
 import {
   AppHeader,
   StatusBar,
+  SearchBar,
   DealFilters,
   DealGrid,
+  Pagination,
   ErrorMessage,
   LoadingState,
   EmptyState,
@@ -21,14 +24,17 @@ import {
 
 function App() {
   const [deals, setDeals] = useState<Deal[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
   const [stores, setStores] = useState<Store[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
   const [storeFilter, setStoreFilter] = useState("");
   const [brandFilter, setBrandFilter] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
   const [minDiscount, setMinDiscount] = useState("");
   const [sort, setSort] = useState<SortOption>("newest");
+  const [offset, setOffset] = useState(0);
   const [brands, setBrands] = useState<string[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
   const [status, setStatus] = useState<Awaited<
@@ -62,39 +68,31 @@ function App() {
   useEffect(() => {
     setLoading(true);
     setError(null);
-    const params: Parameters<typeof fetchDeals>[0] = { limit: 100 };
-    if (storeFilter) params.store = storeFilter;
-    if (brandFilter) params.brand = brandFilter;
-    if (categoryFilter) params.category = categoryFilter;
-    if (minDiscount) params.min_discount = parseFloat(minDiscount) || undefined;
+    const params = {
+      limit: DEFAULT_PAGE_SIZE,
+      offset,
+      store: storeFilter || undefined,
+      brand: brandFilter || undefined,
+      category: categoryFilter || undefined,
+      min_discount: minDiscount ? parseFloat(minDiscount) || undefined : undefined,
+      q: searchQuery.trim() || undefined,
+      sort,
+    };
     fetchDeals(params)
       .then((data) => {
-        setDeals(Array.isArray(data) ? data : []);
+        setDeals(data.deals);
+        setTotalCount(data.total_count);
         setLoading(false);
       })
       .catch((e) => {
         setError(String(e));
         setLoading(false);
       });
-  }, [storeFilter, brandFilter, categoryFilter, minDiscount]);
+  }, [searchQuery, storeFilter, brandFilter, categoryFilter, minDiscount, sort, offset]);
 
-  const sortedDeals = (Array.isArray(deals) ? deals : [])
-    .slice()
-    .sort((a, b) => {
-      switch (sort) {
-        case "discount":
-          return (b.discount_pct ?? 0) - (a.discount_pct ?? 0);
-        case "price_asc":
-          return a.current_price - b.current_price;
-        case "price_desc":
-          return b.current_price - a.current_price;
-        default:
-          return (
-            new Date(b.last_scraped).getTime() -
-            new Date(a.last_scraped).getTime()
-          );
-      }
-    });
+  useEffect(() => {
+    if (searchQuery.trim() === "" && sort === "relevance") setSort("newest");
+  }, [searchQuery, sort]);
 
   return (
     <div className="min-h-screen bg-stone-100">
@@ -103,6 +101,16 @@ function App() {
       {status && <StatusBar status={status} />}
 
       <main className="max-w-6xl mx-auto px-6 py-8">
+        <div className="mb-6">
+          <SearchBar
+            value={searchQuery}
+            onChange={(q) => {
+              setSearchQuery(q);
+              setOffset(0);
+            }}
+          />
+        </div>
+
         <DealFilters
           stores={stores}
           brands={brands}
@@ -112,22 +120,55 @@ function App() {
           categoryFilter={categoryFilter}
           minDiscount={minDiscount}
           sort={sort}
-          onStoreChange={setStoreFilter}
-          onBrandChange={setBrandFilter}
-          onCategoryChange={setCategoryFilter}
-          onMinDiscountChange={setMinDiscount}
-          onSortChange={setSort}
+          searchQuery={searchQuery}
+          onStoreChange={(v) => {
+            setStoreFilter(v);
+            setOffset(0);
+          }}
+          onBrandChange={(v) => {
+            setBrandFilter(v);
+            setOffset(0);
+          }}
+          onCategoryChange={(v) => {
+            setCategoryFilter(v);
+            setOffset(0);
+          }}
+          onMinDiscountChange={(v) => {
+            setMinDiscount(v);
+            setOffset(0);
+          }}
+          onSortChange={(v) => {
+            setSort(v);
+            setOffset(0);
+          }}
         />
+
+        {!loading && !error && (
+          <p className="text-sm text-stone-600 mb-4">
+            {totalCount === 0
+              ? "No deals found"
+              : `${totalCount} deal${totalCount === 1 ? "" : "s"} found`}
+          </p>
+        )}
 
         {error && <ErrorMessage message={error} />}
 
         {loading ? (
           <LoadingState />
         ) : (
-          <DealGrid deals={sortedDeals} />
+          <DealGrid deals={deals} />
         )}
 
-        {!loading && !error && sortedDeals.length === 0 && <EmptyState />}
+        {!loading && !error && deals.length === 0 && <EmptyState />}
+
+        {!loading && !error && totalCount > 0 && (
+          <Pagination
+            totalCount={totalCount}
+            limit={DEFAULT_PAGE_SIZE}
+            offset={offset}
+            onPageChange={setOffset}
+          />
+        )}
       </main>
     </div>
   );
