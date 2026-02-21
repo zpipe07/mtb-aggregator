@@ -1,0 +1,26 @@
+{
+  "mappings": [
+    { "raw": ["mountain bike", "mtb", "mountain bikes", "full suspension", "trail bike", "trail bikes", "enduro", "xc bike", "downhill", "dirt jump", "fat bike", "hardtail"], "canonical": ["Bikes", "Mountain"] },
+    { "raw": ["bike", "bikes", "bicycle"], "canonical": ["Bikes"] },
+    { "raw": ["gravel"], "canonical": ["Bikes", "Gravel"] },
+    { "raw": ["road bike", "road"], "canonical": ["Bikes", "Road"] },
+    { "raw": ["kid", "kids", "children"], "canonical": ["Bikes", "Kids"] },
+    { "raw": ["drivetrain", "derailleur", "cassette", "crankset", "chain", "groupset", "shift"], "canonical": ["Components", "Drivetrain"] },
+    { "raw": ["brake", "brakes", "brake pad", "disc brake", "rotor"], "canonical": ["Components", "Brakes"] },
+    { "raw": ["suspension", "fork", "shock", "damper"], "canonical": ["Components", "Suspension"] },
+    { "raw": ["wheel", "wheels", "tire", "tyre", "rim"], "canonical": ["Components", "Wheels"] },
+    { "raw": ["handlebar", "stem", "grip", "cockpit", "seatpost", "saddle", "pedal"], "canonical": ["Components", "Cockpit"] },
+    { "raw": ["helmet", "helmets"], "canonical": ["Gear", "Helmets"] },
+    { "raw": ["protection", "pad", "guard", "knee", "elbow"], "canonical": ["Gear", "Protection"] },
+    { "raw": ["clothing", "jersey", "short", "jacket", "vest", "glove", "sock"], "canonical": ["Gear", "Clothing"] },
+    { "raw": ["shoe", "shoes", "footwear"], "canonical": ["Gear", "Shoes"] },
+    { "raw": ["tool", "tools", "multi-tool", "pump", "maintenance"], "canonical": ["Accessories", "Tools"] },
+    { "raw": ["bag", "bags", "pack", "hydration", "bottle", "cage"], "canonical": ["Accessories", "Bags"] },
+    { "raw": ["light", "lights", "lamp"], "canonical": ["Accessories", "Lights"] },
+    { "raw": ["lock", "locks", "rack", "fender", "kickstand"], "canonical": ["Accessories"] },
+    { "raw": ["frame", "frameset"], "canonical": ["Components"] },
+    { "raw": ["component", "parts", "part"], "canonical": ["Components"] },
+    { "raw": ["accessory", "accessories"], "canonical": ["Accessories"] },
+    { "raw": ["gear", "equipment"], "canonical": ["Gear"] }
+  ]
+}

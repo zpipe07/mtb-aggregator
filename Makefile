@@ -1,4 +1,4 @@
-.PHONY: dev db-up db-down db-migrate db-migrate-docker db-seed db-up-local db-migrate-local db-migrate-remote db-seed-remote backfill-brands scrape scrape-now scrape-now-wwc scrape-now-revel build-all install
+.PHONY: dev db-up db-down db-migrate db-migrate-docker db-seed db-up-local db-migrate-local db-migrate-remote db-seed-remote backfill-brands backfill-canonical-categories scrape scrape-now scrape-now-wwc scrape-now-revel build-all install
 
 # Ensure Make can find docker (Docker Desktop CLI locations)
 export PATH := /Applications/Docker.app/Contents/Resources/bin:/usr/local/bin:/opt/homebrew/bin:$(PATH)
@@ -72,6 +72,10 @@ db-seed-remote:
 # Normalize existing listing brands using packages/shared/brand_aliases.json (run once after adding brand normalization)
 backfill-brands:
 	cd apps/api && go run ./cmd/backfill-brands
+
+# Set canonical_category on existing listings from category_path using category_taxonomy.json (run once or after updating mappings)
+backfill-canonical-categories:
+	cd apps/api && go run ./cmd/backfill-canonical-categories
 
 # Run scraper manually (for testing)
 scrape:

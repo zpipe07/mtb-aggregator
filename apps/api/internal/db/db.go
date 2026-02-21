@@ -19,16 +19,17 @@ type Store struct {
 }
 
 type Listing struct {
-	StoreID       int
-	StoreSKU      string
-	ProductName   string
-	CurrentPrice  float64
-	OriginalPrice *float64
-	ProductURL    string
-	ImageURL      *string
-	Brand         *string
-	CategoryPath  []string
-	IsInStock     bool
+	StoreID            int
+	StoreSKU           string
+	ProductName        string
+	CurrentPrice       float64
+	OriginalPrice      *float64
+	ProductURL         string
+	ImageURL           *string
+	Brand              *string
+	CategoryPath       []string
+	CanonicalCategory  []string // MTB taxonomy path e.g. ["Components", "Brakes"]
+	IsInStock          bool
 }
 
 type DB struct {
@@ -112,8 +113,8 @@ func (db *DB) GetLastPrice(ctx context.Context, storeID int, storeSKU string) (f
 func (db *DB) UpsertListing(ctx context.Context, listing Listing) (int, error) {
 	var id int
 	err := db.pool.QueryRow(ctx, `
-		INSERT INTO store_listings (store_id, store_sku, product_name, current_price, original_price, product_url, image_url, brand, category_path, is_in_stock, last_scraped)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())
+		INSERT INTO store_listings (store_id, store_sku, product_name, current_price, original_price, product_url, image_url, brand, category_path, canonical_category, is_in_stock, last_scraped)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW())
 		ON CONFLICT (store_id, store_sku) DO UPDATE SET
 			product_name = EXCLUDED.product_name,
 			current_price = EXCLUDED.current_price,
@@ -122,11 +123,12 @@ func (db *DB) UpsertListing(ctx context.Context, listing Listing) (int, error) {
 			image_url = EXCLUDED.image_url,
 			brand = EXCLUDED.brand,
 			category_path = CASE WHEN EXCLUDED.category_path IS NOT NULL AND array_length(EXCLUDED.category_path, 1) > 0 THEN EXCLUDED.category_path ELSE store_listings.category_path END,
+			canonical_category = EXCLUDED.canonical_category,
 			is_in_stock = EXCLUDED.is_in_stock,
 			last_scraped = NOW()
 		RETURNING id
 	`, listing.StoreID, listing.StoreSKU, listing.ProductName, listing.CurrentPrice, listing.OriginalPrice,
-		listing.ProductURL, listing.ImageURL, listing.Brand, pq.Array(listing.CategoryPath), listing.IsInStock).Scan(&id)
+		listing.ProductURL, listing.ImageURL, listing.Brand, pq.Array(listing.CategoryPath), pq.Array(listing.CanonicalCategory), listing.IsInStock).Scan(&id)
 	return id, err
 }
 
@@ -150,8 +152,9 @@ type Deal struct {
 	AffiliateURL  *string  `json:"affiliate_url,omitempty"`
 	ImageURL      *string  `json:"image_url,omitempty"`
 	Brand         *string   `json:"brand,omitempty"`
-	CategoryPath  []string  `json:"category_path,omitempty"`
-	IsInStock     bool      `json:"is_in_stock"`
+	CategoryPath       []string `json:"category_path,omitempty"`
+	CanonicalCategory  []string `json:"canonical_category,omitempty"`
+	IsInStock          bool     `json:"is_in_stock"`
 	DiscountPct   *float64 `json:"discount_pct,omitempty"`
 	LastScraped   string   `json:"last_scraped"`
 }
@@ -190,7 +193,7 @@ func (db *DB) GetDeals(ctx context.Context, params GetDealsParams) (*GetDealsRes
 
 	query := `
 		SELECT l.id, l.store_id, s.name, l.store_sku, l.product_name, l.current_price, l.original_price,
-			l.product_url, l.affiliate_url, l.image_url, l.brand, COALESCE(l.category_path, '{}'), l.is_in_stock, l.last_scraped::text,
+			l.product_url, l.affiliate_url, l.image_url, l.brand, COALESCE(l.category_path, '{}'), COALESCE(l.canonical_category, '{}'), l.is_in_stock, l.last_scraped::text,
 			COUNT(*) OVER() AS total_count
 		FROM store_listings l
 		JOIN stores s ON s.id = l.store_id
@@ -260,12 +263,13 @@ func (db *DB) GetDeals(ctx context.Context, params GetDealsParams) (*GetDealsRes
 	for rows.Next() {
 		var d Deal
 		var lastScraped []byte
-		var cp pgtype.FlatArray[string]
+		var cp, canCat pgtype.FlatArray[string]
 		if err := rows.Scan(&d.ID, &d.StoreID, &d.StoreName, &d.StoreSKU, &d.ProductName, &d.CurrentPrice, &d.OriginalPrice,
-			&d.ProductURL, &d.AffiliateURL, &d.ImageURL, &d.Brand, &cp, &d.IsInStock, &lastScraped, &totalCount); err != nil {
+			&d.ProductURL, &d.AffiliateURL, &d.ImageURL, &d.Brand, &cp, &canCat, &d.IsInStock, &lastScraped, &totalCount); err != nil {
 			return nil, err
 		}
 		d.CategoryPath = cp
+		d.CanonicalCategory = canCat
 		d.LastScraped = string(lastScraped)
 		if d.OriginalPrice != nil && *d.OriginalPrice > 0 && *d.OriginalPrice > d.CurrentPrice {
 			pct := (1 - d.CurrentPrice/(*d.OriginalPrice)) * 100
@@ -285,18 +289,20 @@ func (db *DB) GetDealByID(ctx context.Context, id int) (*Deal, error) {
 	var d Deal
 	var lastScraped []byte
 	var cp pgtype.FlatArray[string]
+	var canCat pgtype.FlatArray[string]
 	err := db.pool.QueryRow(ctx, `
 		SELECT l.id, l.store_id, s.name, l.store_sku, l.product_name, l.current_price, l.original_price,
-			l.product_url, l.affiliate_url, l.image_url, l.brand, COALESCE(l.category_path, '{}'), l.is_in_stock, l.last_scraped::text
+			l.product_url, l.affiliate_url, l.image_url, l.brand, COALESCE(l.category_path, '{}'), COALESCE(l.canonical_category, '{}'), l.is_in_stock, l.last_scraped::text
 		FROM store_listings l
 		JOIN stores s ON s.id = l.store_id
 		WHERE l.id = $1
 	`, id).Scan(&d.ID, &d.StoreID, &d.StoreName, &d.StoreSKU, &d.ProductName, &d.CurrentPrice, &d.OriginalPrice,
-		&d.ProductURL, &d.AffiliateURL, &d.ImageURL, &d.Brand, &cp, &d.IsInStock, &lastScraped)
+		&d.ProductURL, &d.AffiliateURL, &d.ImageURL, &d.Brand, &cp, &canCat, &d.IsInStock, &lastScraped)
 	if err != nil {
 		return nil, err
 	}
 	d.CategoryPath = cp
+	d.CanonicalCategory = canCat
 	d.LastScraped = string(lastScraped)
 	if d.OriginalPrice != nil && *d.OriginalPrice > 0 && *d.OriginalPrice > d.CurrentPrice {
 		pct := (1 - d.CurrentPrice/(*d.OriginalPrice)) * 100
@@ -477,4 +483,46 @@ func (db *DB) BackfillBrands(ctx context.Context, normalize func(string) string)
 		updated++
 	}
 	return updated, rows.Err()
+}
+
+// BackfillCanonicalCategories sets canonical_category from category_path using the given mapper (e.g. taxonomy.Map).
+// Returns the number of rows updated.
+func (db *DB) BackfillCanonicalCategories(ctx context.Context, mapFn func([]string) []string) (int, error) {
+	rows, err := db.pool.Query(ctx, `SELECT id, COALESCE(category_path, '{}'), COALESCE(canonical_category, '{}') FROM store_listings`)
+	if err != nil {
+		return 0, err
+	}
+	defer rows.Close()
+
+	var id int
+	var cp, existing pgtype.FlatArray[string]
+	updated := 0
+	for rows.Next() {
+		if err := rows.Scan(&id, &cp, &existing); err != nil {
+			return updated, err
+		}
+		raw := []string(cp)
+		canonical := mapFn(raw)
+		if sliceEqual(canonical, []string(existing)) {
+			continue
+		}
+		_, err := db.pool.Exec(ctx, `UPDATE store_listings SET canonical_category = $1 WHERE id = $2`, pq.Array(canonical), id)
+		if err != nil {
+			return updated, err
+		}
+		updated++
+	}
+	return updated, rows.Err()
+}
+
+func sliceEqual(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
 }

@@ -14,6 +14,7 @@ import (
 	"github.com/mtb-aggregator/api/internal/brand"
 	"github.com/mtb-aggregator/api/internal/db"
 	"github.com/mtb-aggregator/api/internal/scheduler"
+	"github.com/mtb-aggregator/api/internal/taxonomy"
 )
 
 func corsMiddleware(next http.Handler) http.Handler {
@@ -64,6 +65,9 @@ func main() {
 
 	if err := brand.Load(""); err != nil {
 		log.Printf("[brand] could not load aliases (brand normalization disabled): %v", err)
+	}
+	if err := taxonomy.Load(""); err != nil {
+		log.Printf("[taxonomy] could not load category taxonomy (canonical category disabled): %v", err)
 	}
 
 	connString := os.Getenv("DATABASE_URL")
