@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/mtb-aggregator/api/internal/db"
 )
@@ -50,6 +51,17 @@ func (h *Handlers) GetDeals(w http.ResponseWriter, r *http.Request) {
 		if n, err := strconv.Atoi(s); err == nil && n >= 0 {
 			params.Offset = n
 		}
+	}
+	if s := r.URL.Query().Get("wheel_size"); s != "" {
+		params.WheelSize = strings.TrimSpace(s)
+	}
+	if s := r.URL.Query().Get("model_year"); s != "" {
+		if n, err := strconv.Atoi(s); err == nil && n >= 2010 && n <= 2030 {
+			params.ModelYear = n
+		}
+	}
+	if s := r.URL.Query().Get("groupset"); s != "" {
+		params.Groupset = strings.TrimSpace(s)
 	}
 
 	result, err := h.DB.GetDeals(r.Context(), params)

@@ -9,6 +9,7 @@ import (
 
 	"github.com/mtb-aggregator/api/internal/brand"
 	"github.com/mtb-aggregator/api/internal/db"
+	"github.com/mtb-aggregator/api/internal/metadata"
 	"github.com/mtb-aggregator/api/internal/scraper"
 	"github.com/mtb-aggregator/api/internal/taxonomy"
 	"github.com/robfig/cron/v3"
@@ -153,6 +154,7 @@ func (s *Scheduler) scrapeStore(ctx context.Context, store db.Store) {
 			Brand:             normalizedBrand,
 			CategoryPath:      r.CategoryPath,
 			CanonicalCategory: canonicalCat,
+			Metadata:          metadata.Extract(r.ProductName),
 			IsInStock:         r.IsInStock,
 		}
 

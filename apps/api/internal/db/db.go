@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	"github.com/jackc/pgx/v5/pgtype"
@@ -29,6 +30,7 @@ type Listing struct {
 	Brand              *string
 	CategoryPath       []string
 	CanonicalCategory  []string // MTB taxonomy path e.g. ["Components", "Brakes"]
+	Metadata           []byte   // JSONB: wheel_size, suspension_travel_mm, model_year, groupset
 	IsInStock          bool
 }
 
@@ -113,8 +115,8 @@ func (db *DB) GetLastPrice(ctx context.Context, storeID int, storeSKU string) (f
 func (db *DB) UpsertListing(ctx context.Context, listing Listing) (int, error) {
 	var id int
 	err := db.pool.QueryRow(ctx, `
-		INSERT INTO store_listings (store_id, store_sku, product_name, current_price, original_price, product_url, image_url, brand, category_path, canonical_category, is_in_stock, last_scraped)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW())
+		INSERT INTO store_listings (store_id, store_sku, product_name, current_price, original_price, product_url, image_url, brand, category_path, canonical_category, metadata, is_in_stock, last_scraped)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW())
 		ON CONFLICT (store_id, store_sku) DO UPDATE SET
 			product_name = EXCLUDED.product_name,
 			current_price = EXCLUDED.current_price,
@@ -124,11 +126,12 @@ func (db *DB) UpsertListing(ctx context.Context, listing Listing) (int, error) {
 			brand = EXCLUDED.brand,
 			category_path = CASE WHEN EXCLUDED.category_path IS NOT NULL AND array_length(EXCLUDED.category_path, 1) > 0 THEN EXCLUDED.category_path ELSE store_listings.category_path END,
 			canonical_category = EXCLUDED.canonical_category,
+			metadata = EXCLUDED.metadata,
 			is_in_stock = EXCLUDED.is_in_stock,
 			last_scraped = NOW()
 		RETURNING id
 	`, listing.StoreID, listing.StoreSKU, listing.ProductName, listing.CurrentPrice, listing.OriginalPrice,
-		listing.ProductURL, listing.ImageURL, listing.Brand, pq.Array(listing.CategoryPath), pq.Array(listing.CanonicalCategory), listing.IsInStock).Scan(&id)
+		listing.ProductURL, listing.ImageURL, listing.Brand, pq.Array(listing.CategoryPath), pq.Array(listing.CanonicalCategory), listing.Metadata, listing.IsInStock).Scan(&id)
 	return id, err
 }
 
@@ -152,9 +155,10 @@ type Deal struct {
 	AffiliateURL  *string  `json:"affiliate_url,omitempty"`
 	ImageURL      *string  `json:"image_url,omitempty"`
 	Brand         *string   `json:"brand,omitempty"`
-	CategoryPath       []string `json:"category_path,omitempty"`
-	CanonicalCategory  []string `json:"canonical_category,omitempty"`
-	IsInStock          bool     `json:"is_in_stock"`
+	CategoryPath       []string        `json:"category_path,omitempty"`
+	CanonicalCategory  []string        `json:"canonical_category,omitempty"`
+	Metadata           json.RawMessage `json:"metadata,omitempty"`
+	IsInStock          bool            `json:"is_in_stock"`
 	DiscountPct   *float64 `json:"discount_pct,omitempty"`
 	LastScraped   string   `json:"last_scraped"`
 }
@@ -166,10 +170,14 @@ type GetDealsParams struct {
 	Brand       string
 	Category    string
 	MinDiscount *float64
-	Search      string   // full-text search query (q)
-	Sort        string   // newest, discount, price_asc, price_desc, relevance
+	Search      string // full-text search query (q)
+	Sort        string // newest, discount, price_asc, price_desc, relevance
 	Limit       int
 	Offset      int
+	// Metadata facets (from product name extraction)
+	WheelSize  string // e.g. "29", "27.5", "mullet"
+	ModelYear  int    // e.g. 2024
+	Groupset   string // e.g. "XT", "GX Eagle"
 }
 
 // GetDealsResult includes deals and total count for pagination
@@ -193,7 +201,7 @@ func (db *DB) GetDeals(ctx context.Context, params GetDealsParams) (*GetDealsRes
 
 	query := `
 		SELECT l.id, l.store_id, s.name, l.store_sku, l.product_name, l.current_price, l.original_price,
-			l.product_url, l.affiliate_url, l.image_url, l.brand, COALESCE(l.category_path, '{}'), COALESCE(l.canonical_category, '{}'), l.is_in_stock, l.last_scraped::text,
+			l.product_url, l.affiliate_url, l.image_url, l.brand, COALESCE(l.category_path, '{}'), COALESCE(l.canonical_category, '{}'), l.metadata, l.is_in_stock, l.last_scraped::text,
 			COUNT(*) OVER() AS total_count
 		FROM store_listings l
 		JOIN stores s ON s.id = l.store_id
@@ -220,6 +228,21 @@ func (db *DB) GetDeals(ctx context.Context, params GetDealsParams) (*GetDealsRes
 	if params.Category != "" {
 		query += fmt.Sprintf(" AND EXISTS (SELECT 1 FROM unnest(COALESCE(l.category_path, '{}')) AS c WHERE c ILIKE $%d)", argNum)
 		args = append(args, params.Category)
+		argNum++
+	}
+	if params.WheelSize != "" {
+		query += fmt.Sprintf(" AND l.metadata->>'wheel_size' = $%d", argNum)
+		args = append(args, params.WheelSize)
+		argNum++
+	}
+	if params.ModelYear > 0 {
+		query += fmt.Sprintf(" AND (l.metadata->>'model_year')::int = $%d", argNum)
+		args = append(args, params.ModelYear)
+		argNum++
+	}
+	if params.Groupset != "" {
+		query += fmt.Sprintf(" AND l.metadata->>'groupset' ILIKE $%d", argNum)
+		args = append(args, params.Groupset)
 		argNum++
 	}
 	if params.MinDiscount != nil && *params.MinDiscount > 0 {
@@ -264,12 +287,14 @@ func (db *DB) GetDeals(ctx context.Context, params GetDealsParams) (*GetDealsRes
 		var d Deal
 		var lastScraped []byte
 		var cp, canCat pgtype.FlatArray[string]
+		var meta []byte
 		if err := rows.Scan(&d.ID, &d.StoreID, &d.StoreName, &d.StoreSKU, &d.ProductName, &d.CurrentPrice, &d.OriginalPrice,
-			&d.ProductURL, &d.AffiliateURL, &d.ImageURL, &d.Brand, &cp, &canCat, &d.IsInStock, &lastScraped, &totalCount); err != nil {
+			&d.ProductURL, &d.AffiliateURL, &d.ImageURL, &d.Brand, &cp, &canCat, &meta, &d.IsInStock, &lastScraped, &totalCount); err != nil {
 			return nil, err
 		}
 		d.CategoryPath = cp
 		d.CanonicalCategory = canCat
+		d.Metadata = json.RawMessage(meta)
 		d.LastScraped = string(lastScraped)
 		if d.OriginalPrice != nil && *d.OriginalPrice > 0 && *d.OriginalPrice > d.CurrentPrice {
 			pct := (1 - d.CurrentPrice/(*d.OriginalPrice)) * 100
@@ -290,19 +315,21 @@ func (db *DB) GetDealByID(ctx context.Context, id int) (*Deal, error) {
 	var lastScraped []byte
 	var cp pgtype.FlatArray[string]
 	var canCat pgtype.FlatArray[string]
+	var meta []byte
 	err := db.pool.QueryRow(ctx, `
 		SELECT l.id, l.store_id, s.name, l.store_sku, l.product_name, l.current_price, l.original_price,
-			l.product_url, l.affiliate_url, l.image_url, l.brand, COALESCE(l.category_path, '{}'), COALESCE(l.canonical_category, '{}'), l.is_in_stock, l.last_scraped::text
+			l.product_url, l.affiliate_url, l.image_url, l.brand, COALESCE(l.category_path, '{}'), COALESCE(l.canonical_category, '{}'), l.metadata, l.is_in_stock, l.last_scraped::text
 		FROM store_listings l
 		JOIN stores s ON s.id = l.store_id
 		WHERE l.id = $1
 	`, id).Scan(&d.ID, &d.StoreID, &d.StoreName, &d.StoreSKU, &d.ProductName, &d.CurrentPrice, &d.OriginalPrice,
-		&d.ProductURL, &d.AffiliateURL, &d.ImageURL, &d.Brand, &cp, &canCat, &d.IsInStock, &lastScraped)
+		&d.ProductURL, &d.AffiliateURL, &d.ImageURL, &d.Brand, &cp, &canCat, &meta, &d.IsInStock, &lastScraped)
 	if err != nil {
 		return nil, err
 	}
 	d.CategoryPath = cp
 	d.CanonicalCategory = canCat
+	d.Metadata = json.RawMessage(meta)
 	d.LastScraped = string(lastScraped)
 	if d.OriginalPrice != nil && *d.OriginalPrice > 0 && *d.OriginalPrice > d.CurrentPrice {
 		pct := (1 - d.CurrentPrice/(*d.OriginalPrice)) * 100
