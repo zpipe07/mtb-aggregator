@@ -135,7 +135,10 @@ app.post("/scrape-debug", async (req, res) => {
     return res.status(400).json({ error: "Only jensonusa supported for debug" });
   }
   const { chromium } = await import("playwright");
-  const browser = await chromium.launch({ headless: true });
+  const browser = await chromium.launch({
+    headless: true,
+    args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"],
+  });
   try {
     const page = await browser.newPage();
     await page.goto(url, { waitUntil: "load", timeout: 60000 });

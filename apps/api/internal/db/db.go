@@ -202,9 +202,11 @@ func (db *DB) GetDeals(ctx context.Context, params GetDealsParams) ([]Deal, erro
 		}
 		d.CategoryPath = cp
 		d.LastScraped = string(lastScraped)
-		if d.OriginalPrice != nil && *d.OriginalPrice > 0 {
+		if d.OriginalPrice != nil && *d.OriginalPrice > 0 && *d.OriginalPrice > d.CurrentPrice {
 			pct := (1 - d.CurrentPrice/(*d.OriginalPrice)) * 100
-			d.DiscountPct = &pct
+			if pct > 0 {
+				d.DiscountPct = &pct
+			}
 		}
 		deals = append(deals, d)
 	}
@@ -228,9 +230,11 @@ func (db *DB) GetDealByID(ctx context.Context, id int) (*Deal, error) {
 	}
 	d.CategoryPath = cp
 	d.LastScraped = string(lastScraped)
-	if d.OriginalPrice != nil && *d.OriginalPrice > 0 {
+	if d.OriginalPrice != nil && *d.OriginalPrice > 0 && *d.OriginalPrice > d.CurrentPrice {
 		pct := (1 - d.CurrentPrice/(*d.OriginalPrice)) * 100
-		d.DiscountPct = &pct
+		if pct > 0 {
+			d.DiscountPct = &pct
+		}
 	}
 	return &d, nil
 }

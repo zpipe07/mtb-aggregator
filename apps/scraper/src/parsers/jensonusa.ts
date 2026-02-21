@@ -3,6 +3,7 @@ import { join } from "path";
 import { chromium } from "playwright";
 import type { ScrapeResult } from "../types.js";
 import { USER_AGENT, SCRAPE_DELAY_MS, ENRICH_DELAY_MS } from "../config.js";
+import { parseProductDto, type JensonProductDto } from "./jensonusa-dto.js";
 
 export interface EnrichResult {
   category_path: string[] | null;
@@ -29,7 +30,7 @@ function buildNextPageUrl(currentUrl: string): string | null {
 export async function scrapeJensonUSA(url: string): Promise<ScrapeResult[]> {
   const browser = await chromium.launch({
     headless: true,
-    args: ["--no-sandbox", "--disable-setuid-sandbox"],
+    args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"],
   });
 
   try {
@@ -60,66 +61,29 @@ export async function scrapeJensonUSA(url: string): Promise<ScrapeResult[]> {
       // Polite delay before scraping
       await new Promise((r) => setTimeout(r, SCRAPE_DELAY_MS));
 
-      // Use string to avoid tsx/transpiler adding __name or other helpers that break in browser context
-      // JensonUSA uses data-product-result-dto with JSON: { name, url, code, brand, catalogNodeCodes, selectedVariant: { listPrice: { amount } } }
+      // Extract raw DTO + container text from each card. Parsing happens in Node via parseProductDto
+      // so we can unit-test the DTO structure (listPrice, msrpPrice) and catch field changes.
       const extractScript = `
       const parsePriceFromText = (text) => {
         const m = (text || '').replace(/,/g, '').match(/\\$?([\\d.]+)/);
         return m ? parseFloat(m[1]) : null;
       };
-      const deriveCategory = (codes, brand) => {
-        if (!codes || !Array.isArray(codes)) return null;
-        const brandLower = (brand || '').toLowerCase();
-        for (const c of codes) {
-          if (!c || typeof c !== 'string') continue;
-          if (c.toLowerCase() === brandLower) continue;
-          if (c.toLowerCase().includes('sale')) continue;
-          if (/^\\d{8,}$/.test(c) || /^C\\d{7}$/.test(c)) continue;
-          var seg = c.split('-')[0];
-          if (seg && seg.length > 2) return seg;
-        }
-        return null;
-      };
-      const results = [];
-      const baseUrl = "https://www.jensonusa.com";
+      const raw = [];
       const productCards = document.querySelectorAll("[data-product-result-dto]");
       for (const card of productCards) {
         const dtoStr = card.getAttribute("data-product-result-dto");
         if (!dtoStr) continue;
         try {
           const dto = JSON.parse(dtoStr.replace(/&quot;/g, '"'));
-          const name = dto.name;
-          const urlPath = (dto.url || "").replace(/^\\//, "");
-          if (!name || !urlPath) continue;
-          const url = urlPath.startsWith("http") ? urlPath : baseUrl + "/" + urlPath;
-          const sku = dto.code || urlPath;
-          let currentPrice = null;
-          if (dto.selectedVariant && dto.selectedVariant.listPrice) {
-            currentPrice = dto.selectedVariant.listPrice.amount;
-          }
-          if (!currentPrice && dto.listPrice) currentPrice = dto.listPrice.amount;
-          if (!currentPrice) {
-            const priceText = card.textContent || "";
-            currentPrice = parsePriceFromText(priceText);
-          }
           const container = card.closest(".list-item") || card;
-          const img = container.querySelector("img");
-          let imageUrl = (dto.selectedVariant && dto.selectedVariant.imageUrl) || dto.imageUrl || (img ? img.src : null);
-          if (imageUrl && imageUrl.startsWith("data:")) imageUrl = null;
-          let originalPrice = null;
-          if (dto.selectedVariant && dto.selectedVariant.originalPrice) {
-            originalPrice = dto.selectedVariant.originalPrice.amount;
-          }
-          if (!originalPrice && dto.originalPrice) originalPrice = dto.originalPrice.amount;
-          const brand = dto.brand && typeof dto.brand === 'string' ? dto.brand.trim() : null;
-          const cat = deriveCategory(dto.catalogNodeCodes, brand);
-          const category_path = cat ? [cat] : null;
-          if (currentPrice && currentPrice > 0 && currentPrice < 100000) {
-            results.push({ sku, name, url, currentPrice, originalPrice, imageUrl, brand, category_path });
-          }
+          const containerText = (container && container.textContent) || "";
+          const img = container ? container.querySelector("img") : null;
+          const imageUrlFromDom = img && img.src && !img.src.startsWith("data:") ? img.src : null;
+          raw.push({ dto, containerText, imageUrlFromDom });
         } catch (e) { continue; }
       }
-      if (results.length === 0) {
+      if (raw.length === 0) {
+        const baseUrl = "https://www.jensonusa.com";
         const links = document.querySelectorAll('a[href*="jensonusa.com"]');
         const seen = new Set();
         for (const link of links) {
@@ -138,46 +102,44 @@ export async function scrapeJensonUSA(url: string): Promise<ScrapeResult[]> {
           const containerText = (container && container.textContent) || "";
           const priceMatch = containerText.match(/\\$[\\d,]+\\.?\\d*/);
           const currentPrice = priceMatch ? parsePriceFromText(priceMatch[0]) : null;
-          const msrpMatch = containerText.match(/MSRP\\s*\\$[\\d,]+\\.?\\d*/);
-          const originalPrice = msrpMatch ? parsePriceFromText(msrpMatch[0]) : null;
           const img = container ? container.querySelector("img") : null;
-          let imageUrl = img ? img.src : null;
-          if (imageUrl && imageUrl.startsWith("data:")) imageUrl = null;
+          const imageUrlFromDom = img && img.src && !img.src.startsWith("data:") ? img.src : null;
           if (currentPrice && currentPrice > 0 && currentPrice < 100000) {
-            results.push({ sku: pathClean, name, url: href, currentPrice, originalPrice, imageUrl, brand: null, category_path: null });
+            const dto = { name, url: href, code: pathClean, listPrice: { amount: currentPrice } };
+            raw.push({ dto, containerText, imageUrlFromDom });
           }
         }
       }
-      return { results: results };
+      return { raw };
     `;
 
     const extracted = (await page.evaluate(
       `(function() { ${extractScript} })()`
     )) as {
-      results: Array<{
-        sku: string;
-        name: string;
-        url: string;
-        currentPrice: number | null;
-        originalPrice: number | null;
-        imageUrl: string | null;
-        brand: string | null;
-        category_path: string[] | null;
+      raw: Array<{
+        dto: JensonProductDto;
+        containerText: string;
+        imageUrlFromDom: string | null;
       }>;
     };
 
-    const rawResults = extracted.results;
-    const results: ScrapeResult[] = rawResults.map((r) => ({
-      store_sku: r.sku,
-      product_name: r.name,
-      current_price: r.currentPrice!,
-      original_price: r.originalPrice,
-      product_url: r.url,
-      image_url: r.imageUrl,
-      brand: r.brand ?? null,
-      category_path: r.category_path ?? null,
-      is_in_stock: true,
-    }));
+    const results: ScrapeResult[] = [];
+    for (const { dto, containerText, imageUrlFromDom } of extracted.raw) {
+      const parsed = parseProductDto(dto, containerText, imageUrlFromDom);
+      if (parsed) {
+        results.push({
+          store_sku: parsed.sku,
+          product_name: parsed.name,
+          current_price: parsed.currentPrice!,
+          original_price: parsed.originalPrice,
+          product_url: parsed.url,
+          image_url: parsed.imageUrl,
+          brand: parsed.brand,
+          category_path: parsed.category_path,
+          is_in_stock: true,
+        });
+      }
+    }
 
       allResults.push(...results);
       const nextUrl = buildNextPageUrl(currentUrl);
@@ -193,6 +155,7 @@ export async function scrapeJensonUSA(url: string): Promise<ScrapeResult[]> {
 
     const deduped = deduplicateBySku(allResults);
     console.log(`[scraper] JensonUSA done: ${deduped.length} listings after dedup`);
+    warnIfNoOriginalPrice(deduped, "JensonUSA");
     return deduped;
   } catch (err) {
     try {
@@ -223,11 +186,28 @@ function deduplicateBySku(results: ScrapeResult[]): ScrapeResult[] {
   });
 }
 
+/** Warn when we got many results but none have original_price - likely a DTO field change. */
+function warnIfNoOriginalPrice(results: ScrapeResult[], store: string): void {
+  const withOriginal = results.filter((r) => r.original_price != null).length;
+  const threshold = 10;
+  if (results.length >= threshold && withOriginal === 0) {
+    console.warn(
+      `[scraper] WARNING: ${results.length} ${store} listings scraped but 0 have original_price (MSRP). ` +
+        `Check that the DTO uses msrpPrice - the site may have changed structure.`
+    );
+    if (process.env.SCRAPER_STRICT_ORIGINAL_PRICE === "1") {
+      throw new Error(
+        `Scrape failed: no original_price in ${results.length} results. Set SCRAPER_STRICT_ORIGINAL_PRICE=0 to warn only.`
+      );
+    }
+  }
+}
+
 /** Extract category from PDP breadcrumbs. JensonUSA uses breadcrumb links. */
 export async function enrichJensonUSA(productUrl: string): Promise<EnrichResult> {
   const browser = await chromium.launch({
     headless: true,
-    args: ["--no-sandbox", "--disable-setuid-sandbox"],
+    args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"],
   });
 
   try {

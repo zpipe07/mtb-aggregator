@@ -6,8 +6,15 @@ type DealCardProps = {
 
 export function DealCard({ deal }: DealCardProps) {
   const viewUrl = deal.affiliate_url || deal.product_url;
+  // Compute discount % from API value or derive from original_price/current_price
   const discountPct =
-    deal.discount_pct != null ? Math.round(deal.discount_pct) : null;
+    deal.discount_pct != null
+      ? Math.round(deal.discount_pct)
+      : deal.original_price != null &&
+          deal.original_price > 0 &&
+          deal.original_price > deal.current_price
+        ? Math.round((1 - deal.current_price / deal.original_price) * 100)
+        : null;
 
   return (
     <article className="bg-white rounded-xl shadow-sm border border-stone-200 overflow-hidden hover:shadow-md transition-shadow">

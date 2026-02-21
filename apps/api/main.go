@@ -5,12 +5,25 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 
 	"github.com/mtb-aggregator/api/internal/api"
 	"github.com/mtb-aggregator/api/internal/db"
 	"github.com/mtb-aggregator/api/internal/scheduler"
 )
+
+func validateCronSecret(r *http.Request) bool {
+	secret := os.Getenv("CRON_SECRET")
+	if secret == "" {
+		return true
+	}
+	got := r.Header.Get("X-Cron-Secret")
+	if got == "" {
+		got = r.URL.Query().Get("secret")
+	}
+	return got == secret
+}
 
 func main() {
 	connString := os.Getenv("DATABASE_URL")
@@ -32,24 +45,36 @@ func main() {
 	sched := scheduler.New(database, scraperURL)
 	handlers := &api.Handlers{DB: database, ScraperURL: scraperURL}
 
-	// Cron: every 4 hours (configurable via SCRAPE_CRON_SPEC)
+	// Cron: every 4 hours (configurable via SCRAPE_CRON_SPEC, "disabled" = use external cron)
 	cronSpec := os.Getenv("SCRAPE_CRON_SPEC")
 	if cronSpec == "" {
 		cronSpec = "0 */4 * * *"
 	}
-	sched.Start(cronSpec)
+	if !strings.EqualFold(cronSpec, "disabled") {
+		sched.Start(cronSpec)
+	} else {
+		log.Println("scrape cron disabled (use external cron for /scrape-now)")
+	}
 
-	// Enrichment cron: nightly at 2am (configurable via ENRICH_CRON_SPEC, empty = disabled)
+	// Enrichment cron: nightly at 2am (ENRICH_CRON_SPEC, "disabled" = use external cron)
 	enrichCronSpec := os.Getenv("ENRICH_CRON_SPEC")
 	if enrichCronSpec == "" {
 		enrichCronSpec = "0 2 * * *"
 	}
-	sched.StartEnrichment(enrichCronSpec)
+	if !strings.EqualFold(enrichCronSpec, "disabled") {
+		sched.StartEnrichment(enrichCronSpec)
+	} else {
+		log.Println("enrichment cron disabled (use external cron for /enrich-now)")
+	}
 
-	// Manual trigger for testing: POST /scrape-now
+	// Manual trigger for testing: POST /scrape-now (requires CRON_SECRET if set)
 	http.HandleFunc("/scrape-now", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		if !validateCronSecret(r) {
+			http.Error(w, "forbidden", http.StatusForbidden)
 			return
 		}
 		sched.RunScrapeJob()
@@ -57,10 +82,14 @@ func main() {
 		w.Write([]byte(`{"status":"ok"}`))
 	})
 
-	// Manual trigger for enrichment: POST /enrich-now (add ?force=1 to re-enrich all)
+	// Manual trigger for enrichment: POST /enrich-now (add ?force=1 to re-enrich all, requires CRON_SECRET if set)
 	http.HandleFunc("/enrich-now", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		if !validateCronSecret(r) {
+			http.Error(w, "forbidden", http.StatusForbidden)
 			return
 		}
 		force := r.URL.Query().Get("force") == "1"

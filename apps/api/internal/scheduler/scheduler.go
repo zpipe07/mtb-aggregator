@@ -3,6 +3,7 @@ package scheduler
 import (
 	"context"
 	"log"
+	"os"
 	"strings"
 
 	"github.com/mtb-aggregator/api/internal/db"
@@ -59,9 +60,34 @@ func (s *Scheduler) scrapeStore(ctx context.Context, store db.Store) {
 
 	log.Printf("[scheduler] %s: got %d listings", store.Name, len(results))
 
+	// Validate full scrape contract at ingestion boundary - reject bad data before saving.
+	strictMode := os.Getenv("SCRAPER_STRICT_ORIGINAL_PRICE") == "1"
+	validation := scraper.ValidateBatch(results, store.Name, strictMode)
+
+	if len(validation.Errors) > 0 {
+		log.Printf("[scheduler] %s: %d validation errors (invalid results will be skipped)", store.Name, len(validation.Errors))
+		for _, e := range validation.Errors {
+			if e.Index >= 0 {
+				log.Printf("[scheduler]   %s", e.Error())
+			}
+		}
+		// Cap error log to first 5
+		if len(validation.Errors) > 5 {
+			log.Printf("[scheduler]   ... and %d more", len(validation.Errors)-5)
+		}
+	}
+	for _, w := range validation.Warnings {
+		log.Printf("[scheduler] %s: WARNING %s", store.Name, w.Reason)
+	}
+	if validation.AbortSave {
+		log.Printf("[scheduler] %s: aborting save (strict mode). Set SCRAPER_STRICT_ORIGINAL_PRICE=0 to warn only.", store.Name)
+		return
+	}
+
 	validCount := 0
-	for _, r := range results {
-		if !s.validateListing(r) {
+	for i, r := range results {
+		// Skip results that failed schema validation
+		if errs := scraper.ValidateResult(r, i); len(errs) > 0 {
 			continue
 		}
 
@@ -142,21 +168,6 @@ func (s *Scheduler) RunEnrichmentJob(force bool) {
 	log.Printf("[enrichment] enriched %d/%d listings", successCount, len(listings))
 }
 
-func (s *Scheduler) validateListing(r scraper.ScrapeResult) bool {
-	if r.CurrentPrice <= 0 {
-		log.Printf("[scheduler] skip %s: invalid price %.2f", r.StoreSKU, r.CurrentPrice)
-		return false
-	}
-	if r.CurrentPrice > 50000 {
-		log.Printf("[scheduler] skip %s: price too high %.2f", r.StoreSKU, r.CurrentPrice)
-		return false
-	}
-	if r.StoreSKU == "" || r.ProductName == "" || r.ProductURL == "" {
-		log.Printf("[scheduler] skip: missing required fields")
-		return false
-	}
-	return true
-}
 
 func (s *Scheduler) Start(spec string) {
 	s.cron.AddFunc(spec, s.RunScrapeJob)

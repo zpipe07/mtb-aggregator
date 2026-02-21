@@ -100,6 +100,38 @@ curl -X POST http://localhost:3000/scrape \
 docker compose up --build
 ```
 
+## Database
+
+### Initial Setup
+
+Run once on a fresh database:
+
+```bash
+psql $DATABASE_URL -f packages/shared/schema.sql
+psql $DATABASE_URL -f packages/shared/seed.sql
+```
+
+With Docker: `make db-migrate` then `make db-seed`.
+
+### Migrations
+
+Future schema changes go in `packages/shared/migrations/` as numbered files (e.g. `002_add_foo.sql`). Run them manually in order. See [packages/shared/migrations/README.md](packages/shared/migrations/README.md).
+
+## Deployment
+
+Deploy to Render (API + scraper), Vercel (web), and Neon (PostgreSQL). See [.cursor/plans/mtb_aggregator_deployment.plan.md](.cursor/plans/mtb_aggregator_deployment.plan.md) for the full plan.
+
+### Quick Setup
+
+1. **Neon** – Create project, run `schema.sql` + `seed.sql`, copy `DATABASE_URL`
+2. **Render** – Create two Web Services (API, scraper), connect repo, set env vars:
+   - API: `DATABASE_URL`, `SCRAPER_SERVICE_URL`, `SCRAPE_CRON_SPEC=disabled`, `ENRICH_CRON_SPEC=disabled`, `CRON_SECRET` (optional)
+   - Scraper: `NODE_ENV=production`
+3. **Vercel** – Connect repo, set `VITE_API_URL` to API URL
+4. **External cron** – [cron-job.org](https://cron-job.org): POST `/scrape-now` every 4h, POST `/enrich-now` daily at 02:00 UTC. If `CRON_SECRET` is set, add header `X-Cron-Secret: <secret>`.
+
+Copy `.env.example` to `.env` for local dev. Production secrets go in each platform's dashboard.
+
 ## Project Structure
 
 ```
