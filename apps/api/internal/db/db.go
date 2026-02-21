@@ -50,9 +50,27 @@ func (db *DB) Close() {
 }
 
 func (db *DB) GetStores(ctx context.Context) ([]Store, error) {
-	rows, err := db.pool.Query(ctx, `
+	return db.getStores(ctx, "")
+}
+
+// GetStoresByType returns stores with the given store_type (e.g. "worldwidecyclery").
+// Pass empty string to get all stores (same as GetStores).
+func (db *DB) GetStoresByType(ctx context.Context, storeType string) ([]Store, error) {
+	return db.getStores(ctx, storeType)
+}
+
+func (db *DB) getStores(ctx context.Context, storeType string) ([]Store, error) {
+	query := `
 		SELECT id, name, base_url, scrape_url, COALESCE(store_type, 'jensonusa') FROM stores
-	`)
+	`
+	args := []interface{}{}
+	if storeType != "" {
+		query += ` WHERE LOWER(COALESCE(store_type, '')) = LOWER($1)`
+		args = append(args, storeType)
+	}
+	query += ` ORDER BY id`
+
+	rows, err := db.pool.Query(ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}

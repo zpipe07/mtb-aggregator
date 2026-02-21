@@ -81,7 +81,7 @@ Runs up to 50 listings per batch. Enrichment also runs nightly at 2am (configura
 | `GET /stores` | List stores with deal counts |
 | `GET /status` | Health: last scrape per store, scraper reachable |
 | `GET /brands` | List distinct brands |
-| `POST /scrape-now` | Trigger scrape job |
+| `POST /scrape-now` | Trigger scrape job (optional `?store=worldwidecyclery` to scrape one store) |
 | `POST /enrich-now` | Trigger enrichment job (PDP category extraction) |
 
 ### Testing the Scraper
@@ -161,7 +161,8 @@ mtb-aggregator/
 | `make db-migrate` | Apply schema (Docker)      |
 | `make db-seed` | Seed stores (Docker)        |
 | `make db-migrate-local` | Apply schema + seed (local) |
-| `make scrape-now` | Trigger scrape (API must be running) |
+| `make scrape-now` | Trigger scrape all stores (API must be running) |
+| `make scrape-now-wwc` | Trigger scrape for Worldwide Cyclery only |
 | `pnpm --filter @mtb-aggregator/web run dev` | Start React dev server |
 | `make dev`     | Start db (see dev workflow)  |
 | `make build-all` | Build scraper + API          |

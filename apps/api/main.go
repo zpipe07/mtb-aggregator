@@ -102,7 +102,7 @@ func main() {
 		log.Println("enrichment cron disabled (use external cron for /enrich-now)")
 	}
 
-	// Manual trigger for testing: POST /scrape-now (requires CRON_SECRET if set)
+	// Manual trigger for testing: POST /scrape-now (optional ?store=worldwidecyclery to scrape one store; requires CRON_SECRET if set)
 	http.HandleFunc("/scrape-now", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
@@ -112,7 +112,8 @@ func main() {
 			http.Error(w, "forbidden", http.StatusForbidden)
 			return
 		}
-		sched.RunScrapeJob()
+		storeType := strings.TrimSpace(r.URL.Query().Get("store"))
+		sched.RunScrapeJob(storeType)
 		w.Header().Set("Content-Type", "application/json")
 		w.Write([]byte(`{"status":"ok"}`))
 	})

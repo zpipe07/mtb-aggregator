@@ -1,4 +1,4 @@
-.PHONY: dev db-up db-down db-migrate db-seed db-up-local db-migrate-local db-migrate-remote scrape scrape-now build-all install
+.PHONY: dev db-up db-down db-migrate db-seed db-up-local db-migrate-local db-migrate-remote db-seed-remote scrape scrape-now scrape-now-wwc build-all install
 
 # Ensure Make can find docker (Docker Desktop CLI locations)
 export PATH := /Applications/Docker.app/Contents/Resources/bin:/usr/local/bin:/opt/homebrew/bin:$(PATH)
@@ -57,13 +57,21 @@ db-migrate-local:
 db-migrate-remote:
 	cd apps/api && go run ./cmd/migrate
 
+# Seed stores on remote DB (run after schema/migrations). Uses DATABASE_URL from .env.
+db-seed-remote:
+	cd apps/api && go run ./cmd/seed
+
 # Run scraper manually (for testing)
 scrape:
 	pnpm --filter @mtb-aggregator/scraper run dev
 
-# Trigger scrape job manually (requires API running)
+# Trigger scrape job manually (requires API running). Optional: store=worldwidecyclery to scrape one store.
 scrape-now:
 	@curl -s -X POST http://localhost:8080/scrape-now
+
+# Scrape only Worldwide Cyclery (requires API running)
+scrape-now-wwc:
+	@curl -s -X POST "http://localhost:8080/scrape-now?store=worldwidecyclery"
 
 # Trigger enrichment job manually (requires API and scraper running)
 # Add force=1 to re-enrich all listings: make enrich-now FORCE=1

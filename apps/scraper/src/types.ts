@@ -16,14 +16,14 @@ export type ScrapeResult = z.infer<typeof ScrapeResultSchema>;
 
 export const ScrapeRequestSchema = z.object({
   url: z.string().url(),
-  store: z.enum(["jensonusa", "backcountry"]),
+  store: z.enum(["jensonusa", "backcountry", "worldwidecyclery"]),
 });
 
 export type ScrapeRequest = z.infer<typeof ScrapeRequestSchema>;
 
 export const EnrichRequestSchema = z.object({
   url: z.string().url(),
-  store: z.enum(["jensonusa", "backcountry"]),
+  store: z.enum(["jensonusa", "backcountry", "worldwidecyclery"]),
 });
 
 export type EnrichRequest = z.infer<typeof EnrichRequestSchema>;

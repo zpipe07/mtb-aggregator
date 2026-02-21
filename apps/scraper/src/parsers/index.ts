@@ -1,12 +1,14 @@
 import type { ScrapeResult } from "../types.js";
 import type { EnrichResult } from "./jensonusa.js";
 import { scrapeJensonUSA, enrichJensonUSA } from "./jensonusa.js";
+import { scrapeWorldwideCyclery } from "./worldwidecyclery.js";
 
 export type ParserFn = (url: string) => Promise<ScrapeResult[]>;
 export type EnrichFn = (url: string) => Promise<EnrichResult>;
 
 export const PARSERS: Record<string, ParserFn> = {
   jensonusa: scrapeJensonUSA,
+  worldwidecyclery: scrapeWorldwideCyclery,
 };
 
 export const ENRICHERS: Record<string, EnrichFn> = {

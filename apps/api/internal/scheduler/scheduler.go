@@ -37,12 +37,25 @@ func New(database *db.DB, scraperURL string) *Scheduler {
 	}
 }
 
-func (s *Scheduler) RunScrapeJob() {
+// RunScrapeJob scrapes all stores. If storeType is non-empty, only stores with that store_type are scraped (e.g. "worldwidecyclery").
+func (s *Scheduler) RunScrapeJob(storeType string) {
 	ctx := context.Background()
 
-	stores, err := s.db.GetStores(ctx)
+	var stores []db.Store
+	var err error
+	if storeType != "" {
+		stores, err = s.db.GetStoresByType(ctx, storeType)
+	} else {
+		stores, err = s.db.GetStores(ctx)
+	}
 	if err != nil {
 		log.Printf("[scheduler] failed to get stores: %v", err)
+		return
+	}
+	if len(stores) == 0 {
+		if storeType != "" {
+			log.Printf("[scheduler] no stores found for store_type=%q", storeType)
+		}
 		return
 	}
 
@@ -56,7 +69,7 @@ func (s *Scheduler) scrapeStore(ctx context.Context, store db.Store) {
 	if storeType == "" {
 		storeType = strings.ToLower(strings.ReplaceAll(store.Name, " ", ""))
 	}
-	if storeType != "jensonusa" && storeType != "backcountry" {
+	if storeType != "jensonusa" && storeType != "backcountry" && storeType != "worldwidecyclery" {
 		storeType = "jensonusa"
 	}
 
@@ -181,7 +194,7 @@ func (s *Scheduler) RunEnrichmentJob(force bool) {
 
 
 func (s *Scheduler) Start(spec string) {
-	s.cron.AddFunc(spec, s.RunScrapeJob)
+	s.cron.AddFunc(spec, func() { s.RunScrapeJob("") })
 	s.cron.Start()
 	log.Printf("[scheduler] started scrape cron with spec %s", spec)
 }
