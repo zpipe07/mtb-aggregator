@@ -83,6 +83,14 @@ func (s *Scheduler) scrapeStore(ctx context.Context, store db.Store) {
 
 	log.Printf("[scheduler] %s: got %d listings", store.Name, len(results))
 
+	// Health monitoring: flag if 0 results for 2+ consecutive scrapes (possible selector breakage)
+	if len(results) == 0 && store.LastScrapeResultCount != nil && *store.LastScrapeResultCount == 0 {
+		log.Printf("[scheduler] WARNING: %s returned 0 results for 2+ consecutive scrapes - check for site/selector changes", store.Name)
+	}
+	if err := s.db.UpdateStoreLastScrapeResultCount(ctx, store.ID, len(results)); err != nil {
+		log.Printf("[scheduler] failed to update last_scrape_result_count for %s: %v", store.Name, err)
+	}
+
 	// Validate full scrape contract at ingestion boundary - reject bad data before saving.
 	strictMode := os.Getenv("SCRAPER_STRICT_ORIGINAL_PRICE") == "1"
 	validation := scraper.ValidateBatch(results, store.Name, strictMode)
@@ -133,7 +141,7 @@ func (s *Scheduler) scrapeStore(ctx context.Context, store db.Store) {
 			ProductURL:    r.ProductURL,
 			ImageURL:      r.ImageURL,
 			Brand:         r.Brand,
-			CategoryPath:  nil, // Only enrichment populates category_path; listing heuristic is unreliable
+			CategoryPath:  r.CategoryPath, // From scraper (e.g. Shopify product_type); enrichment fills for stores that need PDP crawl
 			IsInStock:     r.IsInStock,
 		}
 

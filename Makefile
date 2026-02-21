@@ -1,4 +1,4 @@
-.PHONY: dev db-up db-down db-migrate db-seed db-up-local db-migrate-local db-migrate-remote db-seed-remote scrape scrape-now scrape-now-wwc scrape-now-revel build-all install
+.PHONY: dev db-up db-down db-migrate db-migrate-docker db-seed db-up-local db-migrate-local db-migrate-remote db-seed-remote scrape scrape-now scrape-now-wwc scrape-now-revel build-all install
 
 # Ensure Make can find docker (Docker Desktop CLI locations)
 export PATH := /Applications/Docker.app/Contents/Resources/bin:/usr/local/bin:/opt/homebrew/bin:$(PATH)
@@ -34,7 +34,15 @@ db-down:
 db-migrate:
 	@cat packages/shared/schema.sql | $(DOCKER_COMPOSE) exec -T db psql -U mtb -d mtb_deals -f - || \
 		(echo "Error: Run 'make db-up' first to start the database."; exit 1)
-	@echo "Run 'make db-seed' to seed stores."
+	@echo "Run 'make db-seed' to seed stores. Then run 'make db-migrate-docker' for incremental migrations."
+
+# Run incremental migrations (004_currency, 005_scraper_health, etc.) against Docker DB. Run after db-migrate.
+db-migrate-docker:
+	@for f in $$(ls -1 packages/shared/migrations/*.sql 2>/dev/null | sort); do \
+		echo "Running $$f..."; \
+		cat $$f | $(DOCKER_COMPOSE) exec -T db psql -U mtb -d mtb_deals -f - || exit 1; \
+	done
+	@echo "Migrations complete."
 
 # Seed stores (Docker) - run after db-migrate
 db-seed:

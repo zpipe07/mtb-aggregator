@@ -74,16 +74,16 @@ Each parser follows the existing pattern: export a `scrape[Store]` function retu
 - **REI Outlet** (`rei.ts`) -- `https://www.rei.com/rei-garage/c/cycling`. Trusted US retailer. Try cheerio first (server-rendered HTML).
 - **Worldwide Cyclery** (`worldwide.ts`) -- `https://www.worldwidecyclery.com/collections/sale`. Shopify store, supports `.json` URL variant for direct JSON access. Use cheerio/fetch.
 
-### Database Changes
+### Database Changes — DONE
 
-- Seed new stores in `packages/shared/seed.sql`
-- Consider adding `currency VARCHAR(3) DEFAULT 'USD'` to `store_listings` if including international stores
-- Update enrichment query in `db.go` to remove the `s.store_type = 'jensonusa'` filter so new store types get enriched
+- Seed new stores in `packages/shared/seed.sql` (JensonUSA, Worldwide Cyclery, Revel Bikes)
+- Added `currency VARCHAR(3) DEFAULT 'USD'` in `004_currency.sql` for future international stores
+- Enrichment query now uses `StoreTypesWithEnrichers` in `db.go` so new store types get enriched when enrichers are added
 
 ### Operational
 
-- Add fixture HTML/JSON for each parser for testing (save a sample response, write parser tests against it)
-- Add scraper health monitoring: if a store returns 0 results for 2+ consecutive scrapes, flag it (likely selector breakage)
+- **Scraper health monitoring — DONE:** `stores.last_scrape_result_count` (migration `005_scraper_health.sql`); scheduler updates it after each scrape and logs a WARNING when a store returns 0 results for 2+ consecutive runs
+- Parser fixture HTML/JSON + tests: deferred (add when stabilizing parsers)
 
 ---
 

@@ -10,11 +10,12 @@ import (
 )
 
 type Store struct {
-	ID         int
-	Name       string
-	BaseURL    string
-	ScrapeURL  string
-	StoreType  string
+	ID                    int
+	Name                  string
+	BaseURL               string
+	ScrapeURL             string
+	StoreType             string
+	LastScrapeResultCount *int // nil before first scrape; used for health monitoring (0 for 2+ runs = possible breakage)
 }
 
 type Listing struct {
@@ -61,7 +62,7 @@ func (db *DB) GetStoresByType(ctx context.Context, storeType string) ([]Store, e
 
 func (db *DB) getStores(ctx context.Context, storeType string) ([]Store, error) {
 	query := `
-		SELECT id, name, base_url, scrape_url, COALESCE(store_type, 'jensonusa') FROM stores
+		SELECT id, name, base_url, scrape_url, COALESCE(store_type, 'jensonusa'), last_scrape_result_count FROM stores
 	`
 	args := []interface{}{}
 	if storeType != "" {
@@ -79,12 +80,18 @@ func (db *DB) getStores(ctx context.Context, storeType string) ([]Store, error) 
 	var stores []Store
 	for rows.Next() {
 		var s Store
-		if err := rows.Scan(&s.ID, &s.Name, &s.BaseURL, &s.ScrapeURL, &s.StoreType); err != nil {
+		if err := rows.Scan(&s.ID, &s.Name, &s.BaseURL, &s.ScrapeURL, &s.StoreType, &s.LastScrapeResultCount); err != nil {
 			return nil, err
 		}
 		stores = append(stores, s)
 	}
 	return stores, rows.Err()
+}
+
+// UpdateStoreLastScrapeResultCount records the number of listings returned by the last scrape for health monitoring.
+func (db *DB) UpdateStoreLastScrapeResultCount(ctx context.Context, storeID int, count int) error {
+	_, err := db.pool.Exec(ctx, `UPDATE stores SET last_scrape_result_count = $1 WHERE id = $2`, count, storeID)
+	return err
 }
 
 func (db *DB) GetLastPrice(ctx context.Context, storeID int, storeSKU string) (float64, bool, error) {
@@ -114,6 +121,7 @@ func (db *DB) UpsertListing(ctx context.Context, listing Listing) (int, error) {
 			product_url = EXCLUDED.product_url,
 			image_url = EXCLUDED.image_url,
 			brand = EXCLUDED.brand,
+			category_path = CASE WHEN EXCLUDED.category_path IS NOT NULL AND array_length(EXCLUDED.category_path, 1) > 0 THEN EXCLUDED.category_path ELSE store_listings.category_path END,
 			is_in_stock = EXCLUDED.is_in_stock,
 			last_scraped = NOW()
 		RETURNING id
@@ -383,6 +391,10 @@ func (db *DB) GetCategories(ctx context.Context) ([]string, error) {
 	return categories, rows.Err()
 }
 
+// StoreTypesWithEnrichers lists store_type values that have a scraper enricher (PDP category extraction).
+// When adding an enricher for a new store, add its store_type here.
+var StoreTypesWithEnrichers = []string{"jensonusa"}
+
 // ListingForEnrichment is a listing that needs PDP enrichment
 type ListingForEnrichment struct {
 	ID         int
@@ -395,12 +407,15 @@ func (db *DB) GetListingsNeedingEnrichment(ctx context.Context, limit int, force
 	if limit <= 0 {
 		limit = 50
 	}
+	if len(StoreTypesWithEnrichers) == 0 {
+		return nil, nil
+	}
 	query := `
 		SELECT l.id, l.store_id, COALESCE(s.store_type, 'jensonusa'), l.product_url
 		FROM store_listings l
 		JOIN stores s ON s.id = l.store_id
 		WHERE l.product_url IS NOT NULL AND l.product_url != ''
-		  AND s.store_type = 'jensonusa'
+		  AND s.store_type = ANY($2)
 	`
 	if !force {
 		query += ` AND (l.last_enriched_at IS NULL OR l.last_enriched_at < NOW() - INTERVAL '7 days')`
@@ -409,7 +424,7 @@ func (db *DB) GetListingsNeedingEnrichment(ctx context.Context, limit int, force
 		ORDER BY l.last_enriched_at NULLS FIRST, l.last_scraped DESC
 		LIMIT $1
 	`
-	rows, err := db.pool.Query(ctx, query, limit)
+	rows, err := db.pool.Query(ctx, query, limit, pq.Array(StoreTypesWithEnrichers))
 	if err != nil {
 		return nil, err
 	}
