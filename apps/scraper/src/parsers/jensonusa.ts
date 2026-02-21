@@ -12,7 +12,7 @@ export interface EnrichResult {
 const BASE_URL = "https://www.jensonusa.com";
 const LOGS_DIR = process.env.SCREENSHOT_DIR ?? join(process.cwd(), "logs");
 
-const MAX_PAGES = 20; // Safety limit
+const MAX_PAGES = Number(process.env.SCRAPER_MAX_PAGES) || 1; // Default 1 for Render free tier (512MB); set higher for more RAM
 const PAGE_GOTO_RETRIES = 2;
 const RETRY_DELAY_MS = 15000;
 
@@ -164,14 +164,13 @@ export async function scrapeJensonUSA(url: string): Promise<ScrapeResult[]> {
 
       allResults.push(...results);
       const nextUrl = buildNextPageUrl(currentUrl);
-      console.log(`[scraper] JensonUSA page ${pageNum}: got ${results.length} listings, nextPageUrl=${nextUrl ?? "none"}, total=${allResults.length}`);
+      console.log(`[scraper] JensonUSA page ${pageNum}: got ${results.length} listings, nextPageUrl=${nextUrl ?? "none"}, total=${allResults.length} (MAX_PAGES=${MAX_PAGES})`);
 
-      if (results.length >= 48 && nextUrl) {
-        currentUrl = nextUrl;
-        await new Promise((r) => setTimeout(r, SCRAPE_DELAY_MS));
-      } else {
+      if (pageNum >= MAX_PAGES || results.length < 48 || !nextUrl) {
         break;
       }
+      currentUrl = nextUrl;
+      await new Promise((r) => setTimeout(r, SCRAPE_DELAY_MS));
     }
 
     const deduped = deduplicateBySku(allResults);
