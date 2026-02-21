@@ -107,6 +107,9 @@ func (h *Handlers) GetStores(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	if stores == nil {
+		stores = []db.StoreWithCount{}
+	}
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(stores)
@@ -122,6 +125,9 @@ func (h *Handlers) GetBrands(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
+	}
+	if brands == nil {
+		brands = []string{}
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -139,6 +145,9 @@ func (h *Handlers) GetCategories(w http.ResponseWriter, r *http.Request) {
 		log.Printf("[api] GetCategories error: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
+	}
+	if categories == nil {
+		categories = []string{}
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -177,6 +186,9 @@ func (h *Handlers) GetStatus(w http.ResponseWriter, r *http.Request) {
 			LastScraped: s.LastScraped,
 			Success:     s.LastScraped != "",
 		})
+	}
+	if storeStatuses == nil {
+		storeStatuses = []storeStatus{}
 	}
 
 	w.Header().Set("Content-Type", "application/json")

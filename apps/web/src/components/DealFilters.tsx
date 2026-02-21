@@ -44,17 +44,17 @@ export function DealFilters({
 }: DealFiltersProps) {
   const storeOptions = [
     { value: "", label: "All stores" },
-    ...stores.map((s) => ({ value: s.name, label: `${s.name} (${s.deal_count})` })),
+    ...(stores ?? []).map((s) => ({ value: s.name, label: `${s.name} (${s.deal_count})` })),
   ];
 
   const brandOptions = [
     { value: "", label: "All brands" },
-    ...brands.map((b) => ({ value: b, label: b })),
+    ...(brands ?? []).map((b) => ({ value: b, label: b })),
   ];
 
   const categoryOptions = [
     { value: "", label: "All categories" },
-    ...categories.map((c) => ({ value: c, label: c })),
+    ...(categories ?? []).map((c) => ({ value: c, label: c })),
   ];
 
   return (

@@ -57,19 +57,22 @@ export async function fetchDeal(id: number): Promise<Deal> {
 export async function fetchStores(): Promise<Store[]> {
   const res = await fetch(`${API_BASE}/stores`);
   if (!res.ok) throw new Error("Failed to fetch stores");
-  return res.json();
+  const data = await res.json();
+  return Array.isArray(data) ? data : [];
 }
 
 export async function fetchBrands(): Promise<string[]> {
   const res = await fetch(`${API_BASE}/brands`);
   if (!res.ok) throw new Error("Failed to fetch brands");
-  return res.json();
+  const data = await res.json();
+  return Array.isArray(data) ? data : [];
 }
 
 export async function fetchCategories(): Promise<string[]> {
   const res = await fetch(`${API_BASE}/categories`);
   if (!res.ok) throw new Error("Failed to fetch categories");
-  return res.json();
+  const data = await res.json();
+  return Array.isArray(data) ? data : [];
 }
 
 export interface StoreStatus {

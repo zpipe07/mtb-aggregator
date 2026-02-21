@@ -21,7 +21,7 @@ export function StatusBar({ status }: StatusBarProps) {
             Scraper {status.scraper_reachable ? "online" : "offline"}
           </span>
         </div>
-        {status.stores.map((s) => (
+        {(status.stores ?? []).map((s) => (
           <div
             key={s.name}
             className="flex items-center gap-2 text-stone-600"
