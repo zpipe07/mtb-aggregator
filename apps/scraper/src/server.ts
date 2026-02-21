@@ -1,6 +1,8 @@
+import "./load-env.js";
 import express from "express";
 import { mkdir, writeFile } from "fs/promises";
 import { join } from "path";
+import { runWithBrowser } from "./browser.js";
 import { getParser, getEnricher } from "./parsers/index.js";
 import { ScrapeRequestSchema, ScrapeResultSchema, EnrichRequestSchema } from "./types.js";
 
@@ -134,17 +136,14 @@ app.post("/scrape-debug", async (req, res) => {
   if (store !== "jensonusa") {
     return res.status(400).json({ error: "Only jensonusa supported for debug" });
   }
-  const { chromium } = await import("playwright");
-  const browser = await chromium.launch({
-    headless: true,
-    args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"],
-  });
   try {
-    const page = await browser.newPage();
-    await page.goto(url, { waitUntil: "load", timeout: 60000 });
-    await new Promise((r) => setTimeout(r, 3000));
-    const html = await page.content();
-    const diagnostics = await page.evaluate(`
+    const result = await runWithBrowser(async (browser) => {
+      const context = await browser.newContext();
+      const page = await context.newPage();
+      await page.goto(url, { waitUntil: "load", timeout: 60000 });
+      await new Promise((r) => setTimeout(r, 3000));
+      const html = await page.content();
+      const diagnostics = await page.evaluate(`
       (function() {
         const links = document.querySelectorAll('a[href*="jensonusa.com"]');
         const productLike = Array.from(links).filter(function(a) {
@@ -177,10 +176,10 @@ app.post("/scrape-debug", async (req, res) => {
         };
       })()
     `);
-    await browser.close();
-    res.json({ diagnostics, htmlLength: html.length, htmlPreview: html.slice(0, 5000) });
+      return { diagnostics, htmlLength: html.length, htmlPreview: html.slice(0, 5000) };
+    });
+    res.json(result);
   } catch (err) {
-    await browser.close();
     res.status(500).json({ error: String(err) });
   }
 });

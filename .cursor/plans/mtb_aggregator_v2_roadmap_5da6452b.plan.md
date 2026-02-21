@@ -4,10 +4,10 @@ overview: A phased plan to transform the MTB deal aggregator from a single-sourc
 todos:
   - id: phase-1-search
     content: "Phase 1: Add full-text search (tsvector + GIN index), server-side sort/pagination, search bar UI"
-    status: pending
+    status: completed
   - id: phase-2-infra
-    content: "Phase 2 prep: Hybrid scraper infra -- add cheerio, create shared browser.ts utility for Browserbase remote browser, refactor JensonUSA to use remote browser"
-    status: pending
+    content: "Phase 2 prep: Upgrade Render scraper to Standard tier (2GB), add cheerio, clean up browser.ts to prefer local Chromium"
+    status: completed
   - id: phase-2-backcountry
     content: "Phase 2a: Backcountry parser + seed data"
     status: pending
@@ -43,36 +43,11 @@ isProject: false
 - Go API with basic filtering (store, brand, category, min_discount) in [apps/api/internal/db/db.go](apps/api/internal/db/db.go)
 - React + Vite SPA with dropdowns and client-side sorting in [apps/web/src/App.tsx](apps/web/src/App.tsx)
 - PostgreSQL schema with `store_listings`, `price_history`, `stores` tables in [packages/shared/schema.sql](packages/shared/schema.sql)
-- No full-text search, no price history UI, no SSR/SEO
+- No price history UI, no SSR/SEO
 
----
+## Phase 1: Full-Text Search + Server-Side Sort/Pagination -- COMPLETED
 
-## Phase 1: Full-Text Search + Server-Side Sort/Pagination
-
-**Goal:** People can type "fox 36 kashima" and find what they're looking for. This is the single highest-impact UX improvement.
-
-### Database
-
-- Add `search_vector tsvector` column to `store_listings`
-- Add GIN index: `CREATE INDEX idx_store_listings_search ON store_listings USING GIN(search_vector)`
-- Add trigger to auto-populate on INSERT/UPDATE from `product_name`, `brand`, and the last element of `category_path`
-- Backfill existing rows
-- Migration file: `packages/shared/migrations/003_full_text_search.sql`
-
-### Go API ([apps/api/internal/db/db.go](apps/api/internal/db/db.go))
-
-- Add `Search string` field to `GetDealsParams`
-- When `?q=` is present, add `search_vector @@ plainto_tsquery('english', $N)` to the WHERE clause, and rank results by `ts_rank(search_vector, query)` instead of `last_scraped DESC`
-- Move sorting to server-side: add `?sort=` param (`newest`, `discount`, `price_asc`, `price_desc`, `relevance`) to the API, build `ORDER BY` clause in Go
-- Add `total_count` to the response (via `COUNT(*) OVER()` window function) so the frontend can show pagination
-
-### Frontend ([apps/web/src/](apps/web/src/))
-
-- Add a prominent search bar above the filter row (debounced, ~300ms)
-- Pass `q` param through to API via [apps/web/src/api.ts](apps/web/src/api.ts)
-- Remove client-side sorting logic from `App.tsx`; let API handle it via `?sort=`
-- Add pagination controls (prev/next or infinite scroll) using `total_count`
-- Show result count ("142 deals found")
+Full-text search via `tsvector`/GIN index, server-side sort/pagination, search bar, page-number pagination top/bottom. See [packages/shared/migrations/003_full_text_search.sql](packages/shared/migrations/003_full_text_search.sql).
 
 ---
 
@@ -80,28 +55,24 @@ isProject: false
 
 **Goal:** Enough sources that users come here instead of visiting each store. Target 4-5 total stores.
 
-### Scraper Infrastructure: Hybrid Approach
+### Scraper Infrastructure: Render Standard (2GB)
 
-The Render free tier (512MB) cannot support multiple concurrent Playwright/Chromium instances. Instead of migrating platforms, use a hybrid scraping strategy:
+Upgrade the Render scraper service from free tier (512MB) to Standard ($25/mo, 2GB RAM). This avoids the complexity and fragility of remote browser services (session timeouts, CDP protocol issues) and gives plenty of headroom for Chromium + multiple parsers.
 
-- **Lightweight parsers (cheerio + fetch):** For sites that serve product data in the initial HTML response or embed JSON in `<script>` tags. No Chromium needed, ~10MB memory per scrape. Likely candidates: REI, Chain Reaction Cycles, Worldwide Cyclery (Shopify stores serve JSON at `.json` URL variants).
-- **Remote browser (Browserbase/Browserless):** For sites that require JS rendering (like JensonUSA). Instead of `chromium.launch()`, use `playwright.connect(browserWSEndpoint)` to connect to a managed remote browser. The scraper process stays lightweight (~~50MB), Chromium runs on their infrastructure. Free tiers available (~~100 sessions/month on Browserbase).
-- **Refactor existing JensonUSA parser** to use the remote browser approach so the scraper service itself never launches Chromium locally.
-
-Implementation in [apps/scraper/src/parsers/](apps/scraper/src/parsers/):
-
-- Add `cheerio` as a dependency for lightweight HTML parsing
-- Create a shared browser utility (`src/browser.ts`) that connects to Browserbase via `BROWSER_WS_ENDPOINT` env var, falling back to local `chromium.launch()` for local dev
-- Each parser declares its scraping mode: `"http"` (cheerio) or `"browser"` (Playwright remote)
+- **Playwright parsers** run local `chromium.launch()` for sites needing JS rendering (JensonUSA, Backcountry). 2GB supports Chromium (~~300MB) + Node (~~100MB) comfortably.
+- **Cheerio parsers** (already added as a dependency) for sites serving product data in HTML or JSON (Shopify, server-rendered). No Chromium needed, ~10MB per scrape.
+- **[apps/scraper/src/browser.ts](apps/scraper/src/browser.ts):** Simplify to default to `chromium.launch()`. Keep optional `BROWSER_WS_ENDPOINT` support for future flexibility, but the primary path is local. Remove Browserless-specific session timeout logic.
+- **Remove `SCRAPER_MAX_PAGES=1` constraint**: with 2GB, set `SCRAPER_MAX_PAGES=5` (or higher) on Render to scrape full catalogs.
+- **Render config:** Upgrade scraper service to Standard in Render dashboard. Update env vars to remove `BROWSER_WS_ENDPOINT` / `BROWSERLESS_TOKEN`, increase `SCRAPER_MAX_PAGES`.
 
 ### New Parsers
 
 Each parser follows the existing pattern: export a `scrape[Store]` function returning `ScrapeResult[]` and an `enrich[Store]` function returning `EnrichResult`, then register in [apps/scraper/src/parsers/index.ts](apps/scraper/src/parsers/index.ts).
 
-- **Backcountry** (`backcountry.ts`) -- already stubbed in types. Target `https://www.backcountry.com/cycling/mountain-biking` + sale section. Large catalog, good metadata. Assess: likely needs browser (React SPA).
-- **Chain Reaction Cycles** (`chainreaction.ts`) -- `https://www.chainreactioncycles.com/clearance/cycling`. UK-based, massive MTB selection, frequent deep discounts. Assess: likely HTTP-friendly (server-rendered). Prices in GBP (store in original currency, add `currency` column or normalize to USD).
-- **REI Outlet** (`rei.ts`) -- `https://www.rei.com/rei-garage/c/cycling`. Trusted US retailer. Assess: server-rendered HTML, likely HTTP-friendly.
-- **Worldwide Cyclery** (`worldwide.ts`) -- `https://www.worldwidecyclery.com/collections/sale`. Shopify store, supports `.json` URL variant for direct JSON access. Definitely HTTP-friendly.
+- **Backcountry** (`backcountry.ts`) -- already stubbed in types. Target `https://www.backcountry.com/cycling/mountain-biking` + sale section. Large catalog, good metadata. Likely needs Playwright (React SPA).
+- **Chain Reaction Cycles** (`chainreaction.ts`) -- `https://www.chainreactioncycles.com/clearance/cycling`. UK-based, massive MTB selection, frequent deep discounts. Try cheerio first (server-rendered). Prices in GBP (store in original currency, add `currency` column or normalize to USD).
+- **REI Outlet** (`rei.ts`) -- `https://www.rei.com/rei-garage/c/cycling`. Trusted US retailer. Try cheerio first (server-rendered HTML).
+- **Worldwide Cyclery** (`worldwide.ts`) -- `https://www.worldwidecyclery.com/collections/sale`. Shopify store, supports `.json` URL variant for direct JSON access. Use cheerio/fetch.
 
 ### Database Changes
 

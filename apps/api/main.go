@@ -5,9 +5,11 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strings"
 	"syscall"
 
+	"github.com/joho/godotenv"
 	"github.com/mtb-aggregator/api/internal/api"
 	"github.com/mtb-aggregator/api/internal/db"
 	"github.com/mtb-aggregator/api/internal/scheduler"
@@ -53,6 +55,12 @@ func validateCronSecret(r *http.Request) bool {
 }
 
 func main() {
+	// Load .env from cwd or monorepo root so ENRICH_BATCH_SIZE etc. are set when running locally
+	_ = godotenv.Load()
+	if p, _ := filepath.Abs("../../.env"); p != "" {
+		_ = godotenv.Load(p)
+	}
+
 	connString := os.Getenv("DATABASE_URL")
 	if connString == "" {
 		connString = "postgres://mtb:mtb@localhost:5432/mtb_deals?sslmode=disable"

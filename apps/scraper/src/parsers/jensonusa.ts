@@ -1,7 +1,7 @@
 import { mkdir } from "fs/promises";
 import { join } from "path";
-import { chromium } from "playwright";
 import type { ScrapeResult } from "../types.js";
+import { runWithBrowser } from "../browser.js";
 import { USER_AGENT, SCRAPE_DELAY_MS, ENRICH_DELAY_MS } from "../config.js";
 import { parseProductDto, type JensonProductDto } from "./jensonusa-dto.js";
 
@@ -12,7 +12,7 @@ export interface EnrichResult {
 const BASE_URL = "https://www.jensonusa.com";
 const LOGS_DIR = process.env.SCREENSHOT_DIR ?? join(process.cwd(), "logs");
 
-const MAX_PAGES = Number(process.env.SCRAPER_MAX_PAGES) || 1; // Default 1 for Render free tier (512MB); set higher for more RAM
+const MAX_PAGES = Number(process.env.SCRAPER_MAX_PAGES) || 1; // Default 1; set higher for more pages
 const PAGE_GOTO_RETRIES = 2;
 const RETRY_DELAY_MS = 15000;
 
@@ -30,12 +30,7 @@ function buildNextPageUrl(currentUrl: string): string | null {
 }
 
 export async function scrapeJensonUSA(url: string): Promise<ScrapeResult[]> {
-  const browser = await chromium.launch({
-    headless: true,
-    args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"],
-  });
-
-  try {
+  return runWithBrowser(async (browser) => {
     const context = await browser.newContext({
       userAgent: USER_AGENT,
       viewport: { width: 1280, height: 720 },
@@ -43,6 +38,7 @@ export async function scrapeJensonUSA(url: string): Promise<ScrapeResult[]> {
 
     const page = await context.newPage();
 
+    try {
     // Use ps=100 for clearance to get more items per page (fewer page requests)
     let currentUrl = url;
     if (url.includes("jensonusa.com/clearance") && !url.includes("ps=")) {
@@ -192,9 +188,8 @@ export async function scrapeJensonUSA(url: string): Promise<ScrapeResult[]> {
       console.error("Failed to save screenshot:", screenshotErr);
     }
     throw err;
-  } finally {
-    await browser.close();
   }
+  });
 }
 
 function deduplicateBySku(results: ScrapeResult[]): ScrapeResult[] {
@@ -225,18 +220,14 @@ function warnIfNoOriginalPrice(results: ScrapeResult[], store: string): void {
 
 /** Extract category from PDP breadcrumbs. JensonUSA uses breadcrumb links. */
 export async function enrichJensonUSA(productUrl: string): Promise<EnrichResult> {
-  const browser = await chromium.launch({
-    headless: true,
-    args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"],
-  });
-
-  try {
+  return runWithBrowser(async (browser) => {
     const context = await browser.newContext({
       userAgent: USER_AGENT,
       viewport: { width: 1280, height: 720 },
     });
 
     const page = await context.newPage();
+    try {
     await page.goto(productUrl, { waitUntil: "load", timeout: 60000 });
     await new Promise((r) => setTimeout(r, 3000));
 
@@ -278,22 +269,21 @@ export async function enrichJensonUSA(productUrl: string): Promise<EnrichResult>
     await new Promise((r) => setTimeout(r, ENRICH_DELAY_MS));
 
     return { category_path };
-  } catch (err) {
-    try {
-      const context = browser.contexts()[0];
-      const page = context?.pages()[0];
-      if (page) {
-        await mkdir(LOGS_DIR, { recursive: true });
-        const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-        const screenshotPath = join(LOGS_DIR, `jensonusa-enrich-error-${timestamp}.png`);
-        await page.screenshot({ path: screenshotPath });
-        console.error("Enrich screenshot saved to", screenshotPath);
+    } catch (err) {
+      try {
+        const ctx = browser.contexts()[0];
+        const p = ctx?.pages()[0];
+        if (p) {
+          await mkdir(LOGS_DIR, { recursive: true });
+          const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+          const screenshotPath = join(LOGS_DIR, `jensonusa-enrich-error-${timestamp}.png`);
+          await p.screenshot({ path: screenshotPath });
+          console.error("Enrich screenshot saved to", screenshotPath);
+        }
+      } catch (screenshotErr) {
+        console.error("Failed to save screenshot:", screenshotErr);
       }
-    } catch (screenshotErr) {
-      console.error("Failed to save screenshot:", screenshotErr);
+      throw err;
     }
-    throw err;
-  } finally {
-    await browser.close();
-  }
+  });
 }

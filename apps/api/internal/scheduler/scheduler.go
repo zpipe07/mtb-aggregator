@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/mtb-aggregator/api/internal/db"
@@ -11,7 +12,16 @@ import (
 	"github.com/robfig/cron/v3"
 )
 
-const enrichBatchSize = 50
+const defaultEnrichBatchSize = 50
+
+func getEnrichBatchSize() int {
+	if s := os.Getenv("ENRICH_BATCH_SIZE"); s != "" {
+		if n, err := strconv.Atoi(s); err == nil && n > 0 {
+			return n
+		}
+	}
+	return defaultEnrichBatchSize
+}
 
 type Scheduler struct {
 	cron    *cron.Cron
@@ -133,7 +143,8 @@ func (s *Scheduler) scrapeStore(ctx context.Context, store db.Store) {
 func (s *Scheduler) RunEnrichmentJob(force bool) {
 	ctx := context.Background()
 
-	listings, err := s.db.GetListingsNeedingEnrichment(ctx, enrichBatchSize, force)
+	batchSize := getEnrichBatchSize()
+	listings, err := s.db.GetListingsNeedingEnrichment(ctx, batchSize, force)
 	if err != nil {
 		log.Printf("[enrichment] failed to get listings: %v", err)
 		return

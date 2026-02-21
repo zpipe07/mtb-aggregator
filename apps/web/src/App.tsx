@@ -151,6 +151,17 @@ function App() {
           </p>
         )}
 
+        {!loading && !error && totalCount > 0 && (
+          <div className="border-b border-stone-200 mb-4">
+            <Pagination
+              totalCount={totalCount}
+              limit={DEFAULT_PAGE_SIZE}
+              offset={offset}
+              onPageChange={setOffset}
+            />
+          </div>
+        )}
+
         {error && <ErrorMessage message={error} />}
 
         {loading ? (
@@ -162,12 +173,14 @@ function App() {
         {!loading && !error && deals.length === 0 && <EmptyState />}
 
         {!loading && !error && totalCount > 0 && (
-          <Pagination
-            totalCount={totalCount}
-            limit={DEFAULT_PAGE_SIZE}
-            offset={offset}
-            onPageChange={setOffset}
-          />
+          <div className="border-t border-stone-200 mt-8">
+            <Pagination
+              totalCount={totalCount}
+              limit={DEFAULT_PAGE_SIZE}
+              offset={offset}
+              onPageChange={setOffset}
+            />
+          </div>
         )}
       </main>
     </div>
