@@ -1,4 +1,4 @@
-.PHONY: dev db-up db-down db-migrate db-seed db-up-local db-migrate-local scrape scrape-now build-all install
+.PHONY: dev db-up db-down db-migrate db-seed db-up-local db-migrate-local db-migrate-remote scrape scrape-now build-all install
 
 # Ensure Make can find docker (Docker Desktop CLI locations)
 export PATH := /Applications/Docker.app/Contents/Resources/bin:/usr/local/bin:/opt/homebrew/bin:$(PATH)
@@ -52,6 +52,10 @@ db-migrate-local:
 	@psql -d $(DB_NAME) -f packages/shared/schema.sql
 	@psql -d $(DB_NAME) -f packages/shared/seed.sql
 	@echo "Schema and seed applied. Connection: postgres://$(DB_USER)@localhost:5432/$(DB_NAME)"
+
+# Run migrations against DATABASE_URL (Neon, etc.). Set DATABASE_URL in .env at repo root.
+db-migrate-remote:
+	cd apps/api && go run ./cmd/migrate
 
 # Run scraper manually (for testing)
 scrape:
