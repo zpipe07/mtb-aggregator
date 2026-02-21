@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/mtb-aggregator/api/internal/brand"
 	"github.com/mtb-aggregator/api/internal/db"
 	"github.com/mtb-aggregator/api/internal/scraper"
 	"github.com/robfig/cron/v3"
@@ -132,6 +133,13 @@ func (s *Scheduler) scrapeStore(ctx context.Context, store db.Store) {
 			}
 		}
 
+		var normalizedBrand *string
+		if r.Brand != nil {
+			s := brand.Normalize(*r.Brand)
+			if s != "" {
+				normalizedBrand = &s
+			}
+		}
 		listing := db.Listing{
 			StoreID:       store.ID,
 			StoreSKU:      r.StoreSKU,
@@ -140,7 +148,7 @@ func (s *Scheduler) scrapeStore(ctx context.Context, store db.Store) {
 			OriginalPrice: r.OriginalPrice,
 			ProductURL:    r.ProductURL,
 			ImageURL:      r.ImageURL,
-			Brand:         r.Brand,
+			Brand:         normalizedBrand,
 			CategoryPath:  r.CategoryPath, // From scraper (e.g. Shopify product_type); enrichment fills for stores that need PDP crawl
 			IsInStock:     r.IsInStock,
 		}

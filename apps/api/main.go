@@ -11,6 +11,7 @@ import (
 
 	"github.com/joho/godotenv"
 	"github.com/mtb-aggregator/api/internal/api"
+	"github.com/mtb-aggregator/api/internal/brand"
 	"github.com/mtb-aggregator/api/internal/db"
 	"github.com/mtb-aggregator/api/internal/scheduler"
 )
@@ -59,6 +60,10 @@ func main() {
 	_ = godotenv.Load()
 	if p, _ := filepath.Abs("../../.env"); p != "" {
 		_ = godotenv.Load(p)
+	}
+
+	if err := brand.Load(""); err != nil {
+		log.Printf("[brand] could not load aliases (brand normalization disabled): %v", err)
 	}
 
 	connString := os.Getenv("DATABASE_URL")

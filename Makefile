@@ -1,4 +1,4 @@
-.PHONY: dev db-up db-down db-migrate db-migrate-docker db-seed db-up-local db-migrate-local db-migrate-remote db-seed-remote scrape scrape-now scrape-now-wwc scrape-now-revel build-all install
+.PHONY: dev db-up db-down db-migrate db-migrate-docker db-seed db-up-local db-migrate-local db-migrate-remote db-seed-remote backfill-brands scrape scrape-now scrape-now-wwc scrape-now-revel build-all install
 
 # Ensure Make can find docker (Docker Desktop CLI locations)
 export PATH := /Applications/Docker.app/Contents/Resources/bin:/usr/local/bin:/opt/homebrew/bin:$(PATH)
@@ -68,6 +68,10 @@ db-migrate-remote:
 # Seed stores on remote DB (run after schema/migrations). Uses DATABASE_URL from .env.
 db-seed-remote:
 	cd apps/api && go run ./cmd/seed
+
+# Normalize existing listing brands using packages/shared/brand_aliases.json (run once after adding brand normalization)
+backfill-brands:
+	cd apps/api && go run ./cmd/backfill-brands
 
 # Run scraper manually (for testing)
 scrape:

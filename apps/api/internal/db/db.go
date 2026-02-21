@@ -449,3 +449,32 @@ func (db *DB) UpdateListingEnrichment(ctx context.Context, id int, categoryPath 
 	`, pq.Array(categoryPath), id)
 	return err
 }
+
+// BackfillBrands updates store_listings.brand using the given normalizer (e.g. brand.Normalize).
+// Returns the number of rows updated.
+func (db *DB) BackfillBrands(ctx context.Context, normalize func(string) string) (int, error) {
+	rows, err := db.pool.Query(ctx, `SELECT id, brand FROM store_listings WHERE brand IS NOT NULL AND brand != ''`)
+	if err != nil {
+		return 0, err
+	}
+	defer rows.Close()
+
+	var id int
+	var b string
+	updated := 0
+	for rows.Next() {
+		if err := rows.Scan(&id, &b); err != nil {
+			return updated, err
+		}
+		norm := normalize(b)
+		if norm == b {
+			continue
+		}
+		_, err := db.pool.Exec(ctx, `UPDATE store_listings SET brand = $1 WHERE id = $2`, norm, id)
+		if err != nil {
+			return updated, err
+		}
+		updated++
+	}
+	return updated, rows.Err()
+}
