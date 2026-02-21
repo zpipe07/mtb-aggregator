@@ -13,6 +13,8 @@ const BASE_URL = "https://www.jensonusa.com";
 const LOGS_DIR = process.env.SCREENSHOT_DIR ?? join(process.cwd(), "logs");
 
 const MAX_PAGES = 20; // Safety limit
+const PAGE_GOTO_RETRIES = 2;
+const RETRY_DELAY_MS = 15000;
 
 /** Build next page URL by incrementing the pn (page number) param. JensonUSA uses pn, zero-indexed: pn=0 is page 1. */
 function buildNextPageUrl(currentUrl: string): string | null {
@@ -53,7 +55,26 @@ export async function scrapeJensonUSA(url: string): Promise<ScrapeResult[]> {
     while (pageNum < MAX_PAGES) {
       pageNum++;
       console.log(`[scraper] JensonUSA page ${pageNum}: fetching ${currentUrl}`);
-      await page.goto(currentUrl, { waitUntil: "load", timeout: 60000 });
+
+      let gotoOk = false;
+      for (let attempt = 1; attempt <= PAGE_GOTO_RETRIES + 1; attempt++) {
+        try {
+          await page.goto(currentUrl, { waitUntil: "load", timeout: 60000 });
+          gotoOk = true;
+          break;
+        } catch (gotoErr) {
+          const msg = gotoErr instanceof Error ? gotoErr.message : String(gotoErr);
+          console.warn(`[scraper] page.goto attempt ${attempt} failed: ${msg}`);
+          if (attempt <= PAGE_GOTO_RETRIES) {
+            console.log(`[scraper] retrying in ${RETRY_DELAY_MS / 1000}s...`);
+            await new Promise((r) => setTimeout(r, RETRY_DELAY_MS));
+          } else {
+            console.warn(`[scraper] giving up on page ${pageNum}, returning ${allResults.length} results so far`);
+            break;
+          }
+        }
+      }
+      if (!gotoOk) break;
 
       // Wait for dynamic content (products often load via JS after initial render)
       await new Promise((r) => setTimeout(r, 8000));
