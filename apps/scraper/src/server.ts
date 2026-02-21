@@ -27,7 +27,7 @@ app.post("/scrape", async (req, res) => {
 
   if (!parser) {
     return res.status(400).json({
-      error: `Unknown store: ${store}. Supported: jensonusa, worldwidecyclery`,
+      error: `Unknown store: ${store}. Supported: jensonusa, worldwidecyclery, revelbikes`,
     });
   }
 
@@ -95,7 +95,7 @@ app.post("/enrich", async (req, res) => {
 
   if (!enricher) {
     return res.status(400).json({
-      error: `Unknown store: ${store}. Supported: jensonusa, worldwidecyclery`,
+      error: `Unknown store: ${store}. Supported: jensonusa, worldwidecyclery, revelbikes`,
     });
   }
 

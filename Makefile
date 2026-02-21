@@ -1,4 +1,4 @@
-.PHONY: dev db-up db-down db-migrate db-seed db-up-local db-migrate-local db-migrate-remote db-seed-remote scrape scrape-now scrape-now-wwc build-all install
+.PHONY: dev db-up db-down db-migrate db-seed db-up-local db-migrate-local db-migrate-remote db-seed-remote scrape scrape-now scrape-now-wwc scrape-now-revel build-all install
 
 # Ensure Make can find docker (Docker Desktop CLI locations)
 export PATH := /Applications/Docker.app/Contents/Resources/bin:/usr/local/bin:/opt/homebrew/bin:$(PATH)
@@ -72,6 +72,10 @@ scrape-now:
 # Scrape only Worldwide Cyclery (requires API running)
 scrape-now-wwc:
 	@curl -s -X POST "http://localhost:8080/scrape-now?store=worldwidecyclery"
+
+# Scrape only Revel Bikes (requires API running)
+scrape-now-revel:
+	@curl -s -X POST "http://localhost:8080/scrape-now?store=revelbikes"
 
 # Trigger enrichment job manually (requires API and scraper running)
 # Add force=1 to re-enrich all listings: make enrich-now FORCE=1

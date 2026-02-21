@@ -54,7 +54,7 @@ func (s *Scheduler) RunScrapeJob(storeType string) {
 	}
 	if len(stores) == 0 {
 		if storeType != "" {
-			log.Printf("[scheduler] no stores found for store_type=%q", storeType)
+			log.Printf("[scheduler] no stores found for store_type=%q (run seed for that store: make db-seed or make db-seed-remote)", storeType)
 		}
 		return
 	}
@@ -69,7 +69,7 @@ func (s *Scheduler) scrapeStore(ctx context.Context, store db.Store) {
 	if storeType == "" {
 		storeType = strings.ToLower(strings.ReplaceAll(store.Name, " ", ""))
 	}
-	if storeType != "jensonusa" && storeType != "backcountry" && storeType != "worldwidecyclery" {
+	if storeType != "jensonusa" && storeType != "backcountry" && storeType != "worldwidecyclery" && storeType != "revelbikes" {
 		storeType = "jensonusa"
 	}
 

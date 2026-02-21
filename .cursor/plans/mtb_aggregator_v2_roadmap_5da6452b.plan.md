@@ -15,11 +15,11 @@ todos:
     content: "Phase 2b: Chain Reaction Cycles parser + seed data"
     status: pending
   - id: phase-2-rei
-    content: "Phase 2c: REI Outlet parser + seed data"
-    status: pending
+    content: "Phase 2c: REI — skipped, Akamai bot protection blocks all scraping methods"
+    status: cancelled
   - id: phase-2-worldwide
     content: "Phase 2d: Worldwide Cyclery parser + seed data + scraper health monitoring"
-    status: pending
+    status: completed
   - id: phase-3-data-quality
     content: "Phase 3: Brand normalization, MTB taxonomy, product name metadata extraction, faceted filter UI"
     status: pending
