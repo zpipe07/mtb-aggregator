@@ -13,6 +13,33 @@ import (
 	"github.com/mtb-aggregator/api/internal/scheduler"
 )
 
+func corsMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		origin := r.Header.Get("Origin")
+		allowed := os.Getenv("CORS_ORIGINS")
+		if allowed == "" {
+			allowed = "*"
+		}
+		if allowed == "*" {
+			w.Header().Set("Access-Control-Allow-Origin", "*")
+		} else if origin != "" {
+			for _, o := range strings.Split(allowed, ",") {
+				if strings.TrimSpace(o) == origin {
+					w.Header().Set("Access-Control-Allow-Origin", origin)
+					break
+				}
+			}
+		}
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, X-Cron-Secret")
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
 func validateCronSecret(r *http.Request) bool {
 	secret := os.Getenv("CRON_SECRET")
 	if secret == "" {
@@ -118,7 +145,8 @@ func main() {
 
 	go func() {
 		log.Printf("API listening on port %s", port)
-		if err := http.ListenAndServe(":"+port, nil); err != nil {
+		handler := corsMiddleware(http.DefaultServeMux)
+		if err := http.ListenAndServe(":"+port, handler); err != nil {
 			log.Fatal(err)
 		}
 	}()
