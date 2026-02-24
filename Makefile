@@ -77,6 +77,10 @@ backfill-brands:
 backfill-canonical-categories:
 	cd apps/api && go run ./cmd/backfill-canonical-categories
 
+# Set metadata (wheel_size, model_year, groupset) on existing listings from product_name (run once so filter chips return results)
+backfill-metadata:
+	cd apps/api && go run ./cmd/backfill-metadata
+
 # Run scraper manually (for testing)
 scrape:
 	pnpm --filter @mtb-aggregator/scraper run dev

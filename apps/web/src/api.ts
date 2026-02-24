@@ -13,6 +13,8 @@ export interface Deal {
   image_url?: string;
   brand?: string;
   category_path?: string[];
+  canonical_category?: string[];
+  metadata?: { wheel_size?: string; suspension_travel_mm?: number; model_year?: number; groupset?: string };
   is_in_stock: boolean;
   discount_pct?: number;
   last_scraped: string;
@@ -37,21 +39,29 @@ export async function fetchDeals(params?: {
   store?: string;
   brand?: string;
   category?: string;
+  canonical_category?: string;
   min_discount?: number;
   q?: string;
   sort?: string;
   limit?: number;
   offset?: number;
+  wheel_size?: string;
+  model_year?: number;
+  groupset?: string;
 }): Promise<DealListResponse> {
   const search = new URLSearchParams();
   if (params?.store) search.set("store", params.store);
   if (params?.brand) search.set("brand", params.brand);
   if (params?.category) search.set("category", params.category);
+  if (params?.canonical_category) search.set("canonical_category", params.canonical_category);
   if (params?.min_discount != null) search.set("min_discount", String(params.min_discount));
   if (params?.q) search.set("q", params.q);
   if (params?.sort) search.set("sort", params.sort);
   if (params?.limit != null) search.set("limit", String(params.limit));
   if (params?.offset != null) search.set("offset", String(params.offset));
+  if (params?.wheel_size) search.set("wheel_size", params.wheel_size);
+  if (params?.model_year != null && params.model_year > 0) search.set("model_year", String(params.model_year));
+  if (params?.groupset) search.set("groupset", params.groupset);
   const qs = search.toString();
   const url = `${API_BASE}/deals${qs ? `?${qs}` : ""}`;
   const res = await fetch(url);
@@ -88,6 +98,14 @@ export async function fetchBrands(): Promise<string[]> {
 export async function fetchCategories(): Promise<string[]> {
   const res = await fetch(`${API_BASE}/categories`);
   if (!res.ok) throw new Error("Failed to fetch categories");
+  const data = await res.json();
+  return Array.isArray(data) ? data : [];
+}
+
+/** Canonical category paths for faceted filter, e.g. ["Bikes > Mountain", "Components > Brakes"] */
+export async function fetchCanonicalCategories(): Promise<string[]> {
+  const res = await fetch(`${API_BASE}/canonical-categories`);
+  if (!res.ok) throw new Error("Failed to fetch canonical categories");
   const data = await res.json();
   return Array.isArray(data) ? data : [];
 }

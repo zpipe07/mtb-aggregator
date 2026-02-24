@@ -149,6 +149,7 @@ func main() {
 	http.HandleFunc("/stores", handlers.GetStores)
 	http.HandleFunc("/brands", handlers.GetBrands)
 	http.HandleFunc("/categories", handlers.GetCategories)
+	http.HandleFunc("/canonical-categories", handlers.GetCanonicalCategories)
 	http.HandleFunc("/status", handlers.GetStatus)
 
 	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {

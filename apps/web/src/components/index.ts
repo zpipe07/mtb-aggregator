@@ -9,3 +9,4 @@ export { DealCard } from "./DealCard";
 export { ErrorMessage } from "./ErrorMessage";
 export { LoadingState } from "./LoadingState";
 export { EmptyState } from "./EmptyState";
+export { FilterChips } from "./FilterChips";

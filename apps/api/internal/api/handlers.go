@@ -31,6 +31,9 @@ func (h *Handlers) GetDeals(w http.ResponseWriter, r *http.Request) {
 	if s := r.URL.Query().Get("category"); s != "" {
 		params.Category = s
 	}
+	if s := r.URL.Query().Get("canonical_category"); s != "" {
+		params.CanonicalCategory = strings.TrimSpace(s)
+	}
 	if s := r.URL.Query().Get("min_discount"); s != "" {
 		if f, err := strconv.ParseFloat(s, 64); err == nil {
 			params.MinDiscount = &f
@@ -169,6 +172,26 @@ func (h *Handlers) GetCategories(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(categories)
+}
+
+func (h *Handlers) GetCanonicalCategories(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	list, err := h.DB.GetCanonicalCategories(r.Context())
+	if err != nil {
+		log.Printf("[api] GetCanonicalCategories error: %v", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if list == nil {
+		list = []string{}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(list)
 }
 
 func (h *Handlers) GetStatus(w http.ResponseWriter, r *http.Request) {

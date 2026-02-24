@@ -4,6 +4,7 @@ import {
   fetchStores,
   fetchBrands,
   fetchCategories,
+  fetchCanonicalCategories,
   fetchStatus,
   DEFAULT_PAGE_SIZE,
   type Deal,
@@ -32,11 +33,16 @@ function App() {
   const [storeFilter, setStoreFilter] = useState("");
   const [brandFilter, setBrandFilter] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
+  const [canonicalCategoryFilter, setCanonicalCategoryFilter] = useState("");
   const [minDiscount, setMinDiscount] = useState("");
+  const [wheelSize, setWheelSize] = useState("");
+  const [modelYear, setModelYear] = useState("");
+  const [groupset, setGroupset] = useState("");
   const [sort, setSort] = useState<SortOption>("newest");
   const [offset, setOffset] = useState(0);
   const [brands, setBrands] = useState<string[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
+  const [canonicalCategories, setCanonicalCategories] = useState<string[]>([]);
   const [status, setStatus] = useState<Awaited<
     ReturnType<typeof fetchStatus>
   > | null>(null);
@@ -66,6 +72,12 @@ function App() {
   }, []);
 
   useEffect(() => {
+    fetchCanonicalCategories()
+      .then(setCanonicalCategories)
+      .catch(() => setCanonicalCategories([]));
+  }, []);
+
+  useEffect(() => {
     setLoading(true);
     setError(null);
     const params = {
@@ -74,7 +86,11 @@ function App() {
       store: storeFilter || undefined,
       brand: brandFilter || undefined,
       category: categoryFilter || undefined,
+      canonical_category: canonicalCategoryFilter || undefined,
       min_discount: minDiscount ? parseFloat(minDiscount) || undefined : undefined,
+      wheel_size: wheelSize || undefined,
+      model_year: modelYear ? parseInt(modelYear, 10) || undefined : undefined,
+      groupset: groupset || undefined,
       q: searchQuery.trim() || undefined,
       sort,
     };
@@ -88,7 +104,30 @@ function App() {
         setError(String(e));
         setLoading(false);
       });
-  }, [searchQuery, storeFilter, brandFilter, categoryFilter, minDiscount, sort, offset]);
+  }, [searchQuery, storeFilter, brandFilter, categoryFilter, canonicalCategoryFilter, minDiscount, wheelSize, modelYear, groupset, sort, offset]);
+
+  const activeFilterCount = [
+    storeFilter,
+    brandFilter,
+    categoryFilter,
+    canonicalCategoryFilter,
+    minDiscount,
+    wheelSize,
+    modelYear,
+    groupset,
+  ].filter(Boolean).length;
+
+  const clearAllFilters = () => {
+    setStoreFilter("");
+    setBrandFilter("");
+    setCategoryFilter("");
+    setCanonicalCategoryFilter("");
+    setMinDiscount("");
+    setWheelSize("");
+    setModelYear("");
+    setGroupset("");
+    setOffset(0);
+  };
 
   useEffect(() => {
     if (searchQuery.trim() === "" && sort === "relevance") setSort("newest");
@@ -115,32 +154,28 @@ function App() {
           stores={stores}
           brands={brands}
           categories={categories}
+          canonicalCategories={canonicalCategories}
           storeFilter={storeFilter}
           brandFilter={brandFilter}
           categoryFilter={categoryFilter}
+          canonicalCategoryFilter={canonicalCategoryFilter}
           minDiscount={minDiscount}
+          wheelSize={wheelSize}
+          modelYear={modelYear}
+          groupset={groupset}
           sort={sort}
           searchQuery={searchQuery}
-          onStoreChange={(v) => {
-            setStoreFilter(v);
-            setOffset(0);
-          }}
-          onBrandChange={(v) => {
-            setBrandFilter(v);
-            setOffset(0);
-          }}
-          onCategoryChange={(v) => {
-            setCategoryFilter(v);
-            setOffset(0);
-          }}
-          onMinDiscountChange={(v) => {
-            setMinDiscount(v);
-            setOffset(0);
-          }}
-          onSortChange={(v) => {
-            setSort(v);
-            setOffset(0);
-          }}
+          onStoreChange={(v) => { setStoreFilter(v); setOffset(0); }}
+          onBrandChange={(v) => { setBrandFilter(v); setOffset(0); }}
+          onCategoryChange={(v) => { setCategoryFilter(v); setOffset(0); }}
+          onCanonicalCategoryChange={(v) => { setCanonicalCategoryFilter(v); setOffset(0); }}
+          onMinDiscountChange={(v) => { setMinDiscount(v); setOffset(0); }}
+          onWheelSizeChange={(v) => { setWheelSize(v); setOffset(0); }}
+          onModelYearChange={(v) => { setModelYear(v); setOffset(0); }}
+          onGroupsetChange={(v) => { setGroupset(v); setOffset(0); }}
+          onSortChange={(v) => { setSort(v); setOffset(0); }}
+          activeFilterCount={activeFilterCount}
+          onClearAll={clearAllFilters}
         />
 
         {!loading && !error && (

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -165,19 +166,19 @@ type Deal struct {
 
 // GetDealsParams for filtering, search, and sort
 type GetDealsParams struct {
-	StoreID     *int
-	StoreName   string
-	Brand       string
-	Category    string
-	MinDiscount *float64
-	Search      string // full-text search query (q)
-	Sort        string // newest, discount, price_asc, price_desc, relevance
-	Limit       int
-	Offset      int
-	// Metadata facets (from product name extraction)
-	WheelSize  string // e.g. "29", "27.5", "mullet"
-	ModelYear  int    // e.g. 2024
-	Groupset   string // e.g. "XT", "GX Eagle"
+	StoreID            *int
+	StoreName          string
+	Brand              string
+	Category           string
+	CanonicalCategory  string // e.g. "Bikes > Mountain" (exact path match)
+	MinDiscount        *float64
+	Search             string // full-text search query (q)
+	Sort               string // newest, discount, price_asc, price_desc, relevance
+	Limit              int
+	Offset             int
+	WheelSize          string // e.g. "29", "27.5", "mullet"
+	ModelYear          int    // e.g. 2024
+	Groupset           string // e.g. "XT", "GX Eagle"
 }
 
 // GetDealsResult includes deals and total count for pagination
@@ -229,6 +230,21 @@ func (db *DB) GetDeals(ctx context.Context, params GetDealsParams) (*GetDealsRes
 		query += fmt.Sprintf(" AND EXISTS (SELECT 1 FROM unnest(COALESCE(l.category_path, '{}')) AS c WHERE c ILIKE $%d)", argNum)
 		args = append(args, params.Category)
 		argNum++
+	}
+	if params.CanonicalCategory != "" {
+		// Parse "Bikes > Mountain" into array and match exactly
+		path := strings.Split(params.CanonicalCategory, " > ")
+		trimmed := make([]string, 0, len(path))
+		for _, p := range path {
+			if t := strings.TrimSpace(p); t != "" {
+				trimmed = append(trimmed, t)
+			}
+		}
+		if len(trimmed) > 0 {
+			query += fmt.Sprintf(" AND l.canonical_category = $%d", argNum)
+			args = append(args, pq.Array(trimmed))
+			argNum++
+		}
 	}
 	if params.WheelSize != "" {
 		query += fmt.Sprintf(" AND l.metadata->>'wheel_size' = $%d", argNum)
@@ -424,6 +440,30 @@ func (db *DB) GetCategories(ctx context.Context) ([]string, error) {
 	return categories, rows.Err()
 }
 
+// GetCanonicalCategories returns distinct canonical_category paths as "Parent > Child" strings for faceted filter UI.
+func (db *DB) GetCanonicalCategories(ctx context.Context) ([]string, error) {
+	rows, err := db.pool.Query(ctx, `
+		SELECT DISTINCT array_to_string(canonical_category, ' > ')
+		FROM store_listings
+		WHERE canonical_category IS NOT NULL AND array_length(canonical_category, 1) > 0
+		ORDER BY 1
+	`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var list []string
+	for rows.Next() {
+		var s string
+		if err := rows.Scan(&s); err != nil {
+			return nil, err
+		}
+		list = append(list, s)
+	}
+	return list, rows.Err()
+}
+
 // StoreTypesWithEnrichers lists store_type values that have a scraper enricher (PDP category extraction).
 // When adding an enricher for a new store, add its store_type here.
 var StoreTypesWithEnrichers = []string{"jensonusa"}
@@ -504,6 +544,32 @@ func (db *DB) BackfillBrands(ctx context.Context, normalize func(string) string)
 			continue
 		}
 		_, err := db.pool.Exec(ctx, `UPDATE store_listings SET brand = $1 WHERE id = $2`, norm, id)
+		if err != nil {
+			return updated, err
+		}
+		updated++
+	}
+	return updated, rows.Err()
+}
+
+// BackfillMetadata sets store_listings.metadata from product_name using the given extractor (e.g. metadata.Extract).
+// Returns the number of rows updated. Run once to populate metadata for listings that were scraped before extraction existed.
+func (db *DB) BackfillMetadata(ctx context.Context, extractFn func(productName string) []byte) (int, error) {
+	rows, err := db.pool.Query(ctx, `SELECT id, COALESCE(product_name, '') FROM store_listings`)
+	if err != nil {
+		return 0, err
+	}
+	defer rows.Close()
+
+	var id int
+	var productName string
+	updated := 0
+	for rows.Next() {
+		if err := rows.Scan(&id, &productName); err != nil {
+			return updated, err
+		}
+		meta := extractFn(productName)
+		_, err := db.pool.Exec(ctx, `UPDATE store_listings SET metadata = $1 WHERE id = $2`, meta, id)
 		if err != nil {
 			return updated, err
 		}
