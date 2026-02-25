@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, Routes, Route } from "react-router-dom";
 import {
   fetchDeals,
   fetchStores,
@@ -24,8 +24,9 @@ import {
   EmptyState,
   type SortOption,
 } from "./components";
+import { AdminSection } from "./admin";
 
-function App() {
+function DealsPage() {
   const [deals, setDeals] = useState<Deal[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [stores, setStores] = useState<Store[]>([]);
@@ -241,6 +242,15 @@ function App() {
         )}
       </main>
     </div>
+  );
+}
+
+function App() {
+  return (
+    <Routes>
+      <Route path="/" element={<DealsPage />} />
+      <Route path="/admin/*" element={<AdminSection />} />
+    </Routes>
   );
 }
 

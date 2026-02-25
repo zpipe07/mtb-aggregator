@@ -34,8 +34,8 @@ func corsMiddleware(next http.Handler) http.Handler {
 				}
 			}
 		}
-		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, X-Cron-Secret")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, X-Cron-Secret, Authorization")
 		if r.Method == http.MethodOptions {
 			w.WriteHeader(http.StatusNoContent)
 			return
@@ -54,6 +54,11 @@ func validateCronSecret(r *http.Request) bool {
 		got = r.URL.Query().Get("secret")
 	}
 	return got == secret
+}
+
+// validateCronOrAdmin returns true if either CRON_SECRET or admin Bearer token is valid.
+func validateCronOrAdmin(r *http.Request) bool {
+	return validateCronSecret(r) || api.ValidateAdminAuth(r)
 }
 
 func main() {
@@ -112,13 +117,13 @@ func main() {
 		log.Println("enrichment cron disabled (use external cron for /enrich-now)")
 	}
 
-	// Manual trigger for testing: POST /scrape-now (optional ?store=worldwidecyclery to scrape one store; requires CRON_SECRET if set)
+	// Manual trigger for testing: POST /scrape-now (optional ?store=worldwidecyclery; requires CRON_SECRET or admin auth if set)
 	http.HandleFunc("/scrape-now", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 			return
 		}
-		if !validateCronSecret(r) {
+		if !validateCronOrAdmin(r) {
 			http.Error(w, "forbidden", http.StatusForbidden)
 			return
 		}
@@ -128,13 +133,13 @@ func main() {
 		w.Write([]byte(`{"status":"ok"}`))
 	})
 
-	// Manual trigger for enrichment: POST /enrich-now (add ?force=1 to re-enrich all, requires CRON_SECRET if set)
+	// Manual trigger for enrichment: POST /enrich-now (add ?force=1 to re-enrich all; requires CRON_SECRET or admin auth if set)
 	http.HandleFunc("/enrich-now", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 			return
 		}
-		if !validateCronSecret(r) {
+		if !validateCronOrAdmin(r) {
 			http.Error(w, "forbidden", http.StatusForbidden)
 			return
 		}
@@ -157,6 +162,9 @@ func main() {
 		w.Header().Set("Content-Type", "application/json")
 		w.Write([]byte(`{"status":"ok"}`))
 	})
+
+	// Admin: POST /admin/auth (no auth required) — validates password for dashboard login
+	http.HandleFunc("/admin/auth", api.PostAuthHandler)
 
 	port := "8080"
 	if p := os.Getenv("PORT"); p != "" {
