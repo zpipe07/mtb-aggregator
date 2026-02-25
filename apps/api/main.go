@@ -79,6 +79,7 @@ func main() {
 	if scraperURL == "" {
 		scraperURL = "http://localhost:3000"
 	}
+	log.Printf("scraper service URL: %s (scrape-now requires scraper running: pnpm --filter @mtb-aggregator/scraper run dev)", scraperURL)
 
 	database, err := db.New(connString)
 	if err != nil {

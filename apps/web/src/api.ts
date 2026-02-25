@@ -81,6 +81,25 @@ export async function fetchDeal(id: number): Promise<Deal> {
   return res.json();
 }
 
+export interface PriceHistoryPoint {
+  price: number;
+  recorded_at: string;
+}
+
+export interface PriceHistoryResponse {
+  points: PriceHistoryPoint[];
+  lowest_price: number;
+  highest_price: number;
+  avg_price: number;
+  price_dropped: boolean;
+}
+
+export async function fetchPriceHistory(dealId: number): Promise<PriceHistoryResponse> {
+  const res = await fetch(`${API_BASE}/deals/${dealId}/price-history`);
+  if (!res.ok) throw new Error("Failed to fetch price history");
+  return res.json();
+}
+
 export async function fetchStores(): Promise<Store[]> {
   const res = await fetch(`${API_BASE}/stores`);
   if (!res.ok) throw new Error("Failed to fetch stores");

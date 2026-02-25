@@ -356,6 +356,75 @@ func (db *DB) GetDealByID(ctx context.Context, id int) (*Deal, error) {
 	return &d, nil
 }
 
+// PriceHistoryPoint is one recorded price for the price-history chart.
+type PriceHistoryPoint struct {
+	Price      float64 `json:"price"`
+	RecordedAt string  `json:"recorded_at"`
+}
+
+// PriceHistoryResult is the response for GET /deals/:id/price-history.
+type PriceHistoryResult struct {
+	Points       []PriceHistoryPoint `json:"points"`
+	LowestPrice  float64             `json:"lowest_price"`
+	HighestPrice float64             `json:"highest_price"`
+	AvgPrice     float64             `json:"avg_price"`
+	PriceDropped bool                `json:"price_dropped"`
+}
+
+// GetPriceHistory returns price history for a listing (deal id = listing id) for charts and summary stats.
+func (db *DB) GetPriceHistory(ctx context.Context, listingID int) (*PriceHistoryResult, error) {
+	rows, err := db.pool.Query(ctx, `
+		SELECT price, recorded_at::text
+		FROM price_history
+		WHERE listing_id = $1
+		ORDER BY recorded_at ASC
+	`, listingID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var points []PriceHistoryPoint
+	var sum float64
+	lowest, highest := 0.0, 0.0
+	for rows.Next() {
+		var p PriceHistoryPoint
+		if err := rows.Scan(&p.Price, &p.RecordedAt); err != nil {
+			return nil, err
+		}
+		points = append(points, p)
+		sum += p.Price
+		if lowest == 0 || p.Price < lowest {
+			lowest = p.Price
+		}
+		if p.Price > highest {
+			highest = p.Price
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	n := float64(len(points))
+	avg := 0.0
+	if n > 0 {
+		avg = sum / n
+	}
+	priceDropped := false
+	if len(points) >= 2 {
+		last, prev := points[len(points)-1].Price, points[len(points)-2].Price
+		priceDropped = last < prev
+	}
+
+	return &PriceHistoryResult{
+		Points:       points,
+		LowestPrice:  lowest,
+		HighestPrice: highest,
+		AvgPrice:     avg,
+		PriceDropped: priceDropped,
+	}, nil
+}
+
 // StoreWithCount includes deal count for API
 type StoreWithCount struct {
 	ID        int    `json:"id"`

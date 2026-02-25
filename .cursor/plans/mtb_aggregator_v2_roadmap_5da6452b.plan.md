@@ -22,7 +22,7 @@ todos:
     status: completed
   - id: phase-3-data-quality
     content: "Phase 3: Brand normalization, MTB taxonomy, product name metadata extraction, faceted filter UI"
-    status: pending
+    status: completed
   - id: phase-4-price-history
     content: "Phase 4: Price history API endpoint + chart visualization on deal detail page"
     status: pending
@@ -117,11 +117,12 @@ Each parser follows the existing pattern: export a `scrape[Store]` function retu
 - Store as a `metadata JSONB` column on `store_listings`
 - Expose as filterable facets in the API
 
-### Frontend Faceted Filters
+### Frontend Faceted Filters — DONE
 
-- Replace simple dropdowns with grouped/hierarchical category browser
-- Add MTB-specific filter chips (wheel size, component type)
+- Replace simple dropdowns with grouped/hierarchical category browser (canonical category dropdown with optgroups; raw category kept as "Category (raw)")
+- Add MTB-specific filter chips (wheel size, model year, groupset) using extracted metadata
 - Show active filter count and "clear all" affordance
+- **Future refinement:** Dynamically generate filter chips from API (e.g. `GET /facets` or aggregate from deal metadata) instead of hardcoded options, so new wheel sizes/years/groupsets appear automatically as data grows
 
 ---
 
@@ -202,4 +203,6 @@ gantt
     Next.js migration + SEO            :p5, after p4, 5d
 ```
 
-Phases 1-2 are where the most value is concentrated. A usable search bar and 4-5 stores would already make this meaningfully useful to MTB shoppers. Phases 3-4 make it _great_. Phase 5 makes it _discoverable_. Phase 6 makes it _sticky_.
+
+
+Phases 1-2 are where the most value is concentrated. A usable search bar and 4-5 stores would already make this meaningfully useful to MTB shoppers. Phases 3-4 make it *great*. Phase 5 makes it *discoverable*. Phase 6 makes it *sticky*.

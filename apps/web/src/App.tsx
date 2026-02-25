@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   fetchDeals,
   fetchStores,
@@ -16,6 +17,7 @@ import {
   SearchBar,
   DealFilters,
   DealGrid,
+  DealDetailModal,
   Pagination,
   ErrorMessage,
   LoadingState,
@@ -46,6 +48,21 @@ function App() {
   const [status, setStatus] = useState<Awaited<
     ReturnType<typeof fetchStatus>
   > | null>(null);
+
+  const [searchParams, setSearchParams] = useSearchParams();
+  const dealParam = searchParams.get("deal");
+  const selectedDealId = dealParam ? parseInt(dealParam, 10) || null : null;
+  const setSelectedDealId = useCallback(
+    (id: number | null) => {
+      setSearchParams((prev: URLSearchParams) => {
+        const next = new URLSearchParams(prev);
+        if (id == null) next.delete("deal");
+        else next.set("deal", String(id));
+        return next;
+      });
+    },
+    [setSearchParams]
+  );
 
   useEffect(() => {
     fetchStores()
@@ -202,8 +219,13 @@ function App() {
         {loading ? (
           <LoadingState />
         ) : (
-          <DealGrid deals={deals} />
+          <DealGrid deals={deals} onSelectDeal={(d) => setSelectedDealId(d.id)} />
         )}
+
+        <DealDetailModal
+          dealId={selectedDealId}
+          onClose={() => setSelectedDealId(null)}
+        />
 
         {!loading && !error && deals.length === 0 && <EmptyState />}
 

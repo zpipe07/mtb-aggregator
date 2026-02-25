@@ -2,9 +2,10 @@ import type { Deal } from "../api";
 
 type DealCardProps = {
   deal: Deal;
+  onSelect?: (deal: Deal) => void;
 };
 
-export function DealCard({ deal }: DealCardProps) {
+export function DealCard({ deal, onSelect }: DealCardProps) {
   const viewUrl = deal.affiliate_url || deal.product_url;
   // Compute discount % from API value or derive from original_price/current_price
   const discountPct =
@@ -17,7 +18,13 @@ export function DealCard({ deal }: DealCardProps) {
         : null;
 
   return (
-    <article className="bg-white rounded-xl shadow-sm border border-stone-200 overflow-hidden hover:shadow-md transition-shadow">
+    <article
+      className="bg-white rounded-xl shadow-sm border border-stone-200 overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
+      onClick={() => onSelect?.(deal)}
+      role={onSelect ? "button" : undefined}
+      tabIndex={onSelect ? 0 : undefined}
+      onKeyDown={onSelect ? (e) => e.key === "Enter" && onSelect(deal) : undefined}
+    >
       <div className="aspect-square bg-stone-200 relative">
         {deal.image_url ? (
           <img
@@ -69,6 +76,7 @@ export function DealCard({ deal }: DealCardProps) {
           target="_blank"
           rel="noopener noreferrer"
           className="mt-4 block w-full text-center bg-stone-800 hover:bg-stone-700 text-white font-medium py-2 px-4 rounded-lg transition-colors"
+          onClick={(e) => e.stopPropagation()}
         >
           View Deal
         </a>

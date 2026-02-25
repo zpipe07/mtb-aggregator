@@ -116,6 +116,23 @@ func (h *Handlers) GetDealByID(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(deal)
 }
 
+func (h *Handlers) GetPriceHistory(w http.ResponseWriter, r *http.Request, dealID int) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	result, err := h.DB.GetPriceHistory(r.Context(), dealID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if result == nil {
+		result = &db.PriceHistoryResult{Points: []db.PriceHistoryPoint{}}
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(result)
+}
+
 func (h *Handlers) GetStores(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
