@@ -427,11 +427,29 @@ func (db *DB) GetPriceHistory(ctx context.Context, listingID int) (*PriceHistory
 
 // StoreWithCount includes deal count for API
 type StoreWithCount struct {
-	ID        int    `json:"id"`
-	Name      string `json:"name"`
-	BaseURL   string `json:"base_url"`
-	DealCount int    `json:"deal_count"`
+	ID          int    `json:"id"`
+	Name        string `json:"name"`
+	BaseURL     string `json:"base_url"`
+	DealCount   int    `json:"deal_count"`
 	LastScraped string `json:"last_scraped"`
+}
+
+// StoreWithCountAndHealth adds last_scrape_result_count for admin dashboard health.
+type StoreWithCountAndHealth struct {
+	ID                    int     `json:"id"`
+	Name                  string  `json:"name"`
+	StoreType             string  `json:"store_type"`
+	DealCount             int     `json:"deal_count"`
+	LastScraped           string  `json:"last_scraped"`
+	LastScrapeResultCount *int    `json:"last_scrape_result_count,omitempty"`
+}
+
+// DashboardStats holds aggregate counts for the admin dashboard.
+type DashboardStats struct {
+	TotalStores      int `json:"total_stores"`
+	TotalListings    int `json:"total_listings"`
+	InStockListings  int `json:"in_stock_listings"`
+	EnrichedListings int `json:"enriched_listings"` // canonical_category set
 }
 
 func (db *DB) GetStoresWithCounts(ctx context.Context) ([]StoreWithCount, error) {
@@ -462,6 +480,50 @@ func (db *DB) GetStoresWithCounts(ctx context.Context) ([]StoreWithCount, error)
 		stores = append(stores, s)
 	}
 	return stores, rows.Err()
+}
+
+// GetStoresWithCountsAndHealth returns stores with deal counts and last_scrape_result_count for admin dashboard.
+func (db *DB) GetStoresWithCountsAndHealth(ctx context.Context) ([]StoreWithCountAndHealth, error) {
+	rows, err := db.pool.Query(ctx, `
+		SELECT s.id, s.name, COALESCE(s.store_type, 'jensonusa'),
+			COUNT(l.id)::int as deal_count,
+			COALESCE(MAX(l.last_scraped)::text, ''),
+			s.last_scrape_result_count
+		FROM stores s
+		LEFT JOIN store_listings l ON l.store_id = s.id
+		GROUP BY s.id, s.name, s.store_type, s.last_scrape_result_count
+		ORDER BY s.name
+	`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var stores []StoreWithCountAndHealth
+	for rows.Next() {
+		var s StoreWithCountAndHealth
+		if err := rows.Scan(&s.ID, &s.Name, &s.StoreType, &s.DealCount, &s.LastScraped, &s.LastScrapeResultCount); err != nil {
+			return nil, err
+		}
+		stores = append(stores, s)
+	}
+	return stores, rows.Err()
+}
+
+// GetDashboardStats returns aggregate counts for the admin dashboard, including enrichment coverage.
+func (db *DB) GetDashboardStats(ctx context.Context) (DashboardStats, error) {
+	var stats DashboardStats
+	err := db.pool.QueryRow(ctx, `
+		SELECT
+			(SELECT COUNT(*)::int FROM stores),
+			(SELECT COUNT(*)::int FROM store_listings),
+			(SELECT COUNT(*)::int FROM store_listings WHERE is_in_stock),
+			(SELECT COUNT(*)::int FROM store_listings WHERE canonical_category IS NOT NULL AND array_length(canonical_category, 1) > 0)
+	`).Scan(&stats.TotalStores, &stats.TotalListings, &stats.InStockListings, &stats.EnrichedListings)
+	if err != nil {
+		return DashboardStats{}, err
+	}
+	return stats, nil
 }
 
 func (db *DB) GetBrands(ctx context.Context) ([]string, error) {

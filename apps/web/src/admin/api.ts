@@ -33,3 +33,46 @@ export async function adminAuth(password: string): Promise<boolean> {
   });
   return res.ok;
 }
+
+export interface DashboardStats {
+  total_stores: number;
+  total_listings: number;
+  in_stock_listings: number;
+  enriched_listings: number;
+}
+
+export interface DashboardStore {
+  id: number;
+  name: string;
+  store_type: string;
+  deal_count: number;
+  last_scraped: string;
+  last_scrape_result_count?: number | null;
+}
+
+export interface DashboardResponse {
+  stats: DashboardStats;
+  stores: DashboardStore[];
+  scraper_reachable: boolean;
+  enrichment_pct: number;
+}
+
+export async function fetchDashboard(): Promise<DashboardResponse> {
+  const res = await fetch(`${API_BASE}/admin/dashboard`, { headers: adminHeaders() });
+  if (!res.ok) throw new Error(res.status === 401 ? "Unauthorized" : "Failed to fetch dashboard");
+  return res.json();
+}
+
+/** Trigger scrape; pass store type (e.g. "worldwidecyclery") to scrape one store, or omit for all. */
+export async function triggerScrape(store?: string): Promise<void> {
+  const url = store ? `${API_BASE}/scrape-now?store=${encodeURIComponent(store)}` : `${API_BASE}/scrape-now`;
+  const res = await fetch(url, { method: "POST", headers: adminHeaders() });
+  if (!res.ok) throw new Error("Scrape request failed");
+}
+
+/** Trigger enrichment; pass force=true to re-enrich all. */
+export async function triggerEnrich(force?: boolean): Promise<void> {
+  const url = force ? `${API_BASE}/enrich-now?force=1` : `${API_BASE}/enrich-now`;
+  const res = await fetch(url, { method: "POST", headers: adminHeaders() });
+  if (!res.ok) throw new Error("Enrich request failed");
+}

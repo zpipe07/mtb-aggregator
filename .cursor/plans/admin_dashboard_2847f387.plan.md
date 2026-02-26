@@ -7,7 +7,7 @@ todos:
     status: completed
   - id: dashboard
     content: "Phase B: Dashboard overview page with aggregate stats API endpoint, store health table, and quick action buttons"
-    status: pending
+    status: completed
   - id: store-management
     content: "Phase C: Store CRUD API endpoints (create/update/delete), store management page with table and add/edit forms"
     status: pending

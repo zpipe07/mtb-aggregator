@@ -254,3 +254,42 @@ func (h *Handlers) GetStatus(w http.ResponseWriter, r *http.Request) {
 		"scraper_reachable": scraperReachable,
 	})
 }
+
+// GetAdminDashboard returns aggregate stats, store health, and scraper reachability for the admin dashboard.
+func (h *Handlers) GetAdminDashboard(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	stats, err := h.DB.GetDashboardStats(r.Context())
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	stores, err := h.DB.GetStoresWithCountsAndHealth(r.Context())
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	scraperReachable := false
+	if resp, err := http.Get(h.ScraperURL + "/health"); err == nil {
+		resp.Body.Close()
+		scraperReachable = resp.StatusCode == 200
+	}
+
+	enrichmentPct := 0.0
+	if stats.TotalListings > 0 {
+		enrichmentPct = 100 * float64(stats.EnrichedListings) / float64(stats.TotalListings)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"stats":              stats,
+		"stores":             stores,
+		"scraper_reachable":  scraperReachable,
+		"enrichment_pct":     enrichmentPct,
+	})
+}

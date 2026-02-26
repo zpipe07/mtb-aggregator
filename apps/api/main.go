@@ -165,6 +165,8 @@ func main() {
 
 	// Admin: POST /admin/auth (no auth required) — validates password for dashboard login
 	http.HandleFunc("/admin/auth", api.PostAuthHandler)
+	// Admin: GET /admin/dashboard — aggregate stats, store health, scraper status (admin auth required)
+	http.HandleFunc("/admin/dashboard", api.AdminRequired(handlers.GetAdminDashboard))
 
 	port := "8080"
 	if p := os.Getenv("PORT"); p != "" {
