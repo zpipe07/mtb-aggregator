@@ -13,7 +13,7 @@ todos:
     status: completed
   - id: operations-jobs
     content: "Phase D: scrape_jobs table migration, job tracking in scheduler, job history API, operations page with scrape/enrich triggers and job history"
-    status: pending
+    status: completed
   - id: data-browser
     content: "Phase E: Admin listings endpoint with full detail, data browser page with searchable/filterable table and detail view"
     status: pending

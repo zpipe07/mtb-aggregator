@@ -102,7 +102,7 @@ func main() {
 		cronSpec = "0 */4 * * *"
 	}
 	if !strings.EqualFold(cronSpec, "disabled") {
-		sched.Start(cronSpec)
+		sched.Start(cronSpec, "cron")
 	} else {
 		log.Println("scrape cron disabled (use external cron for /scrape-now)")
 	}
@@ -129,7 +129,7 @@ func main() {
 			return
 		}
 		storeType := strings.TrimSpace(r.URL.Query().Get("store"))
-		sched.RunScrapeJob(storeType)
+		sched.RunScrapeJob(storeType, "manual")
 		w.Header().Set("Content-Type", "application/json")
 		w.Write([]byte(`{"status":"ok"}`))
 	})
@@ -208,6 +208,30 @@ func main() {
 		default:
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		}
+	}))
+
+	// Admin: GET /admin/jobs — list scrape jobs (query: limit, offset, store_id)
+	http.HandleFunc("/admin/jobs", api.AdminRequired(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/admin/jobs" {
+			http.NotFound(w, r)
+			return
+		}
+		handlers.GetAdminJobs(w, r)
+	}))
+	// Admin: GET /admin/jobs/:id
+	http.HandleFunc("/admin/jobs/", api.AdminRequired(func(w http.ResponseWriter, r *http.Request) {
+		path := strings.TrimPrefix(r.URL.Path, "/admin/jobs/")
+		path = strings.Trim(path, "/")
+		if path == "" {
+			http.NotFound(w, r)
+			return
+		}
+		id, err := strconv.Atoi(path)
+		if err != nil {
+			http.Error(w, "invalid id", http.StatusBadRequest)
+			return
+		}
+		handlers.GetAdminJobByID(w, r, id)
 	}))
 
 	port := "8080"

@@ -151,3 +151,42 @@ export async function deleteStore(id: number): Promise<void> {
   });
   if (!res.ok) throw new Error("Delete failed");
 }
+
+// --- Scrape jobs (Phase D) ---
+
+export interface ScrapeJob {
+  id: number;
+  store_id?: number | null;
+  store_name: string;
+  status: string;
+  started_at: string;
+  completed_at?: string | null;
+  listings_found?: number | null;
+  listings_upserted?: number | null;
+  errors?: string[];
+  warnings?: string[];
+  triggered_by: string;
+}
+
+export async function fetchScrapeJobs(params?: {
+  limit?: number;
+  offset?: number;
+  store_id?: number;
+}): Promise<ScrapeJob[]> {
+  const search = new URLSearchParams();
+  if (params?.limit != null) search.set("limit", String(params.limit));
+  if (params?.offset != null) search.set("offset", String(params.offset));
+  if (params?.store_id != null) search.set("store_id", String(params.store_id));
+  const qs = search.toString();
+  const res = await fetch(`${API_BASE}/admin/jobs${qs ? `?${qs}` : ""}`, { headers: adminHeaders() });
+  if (!res.ok) throw new Error(res.status === 401 ? "Unauthorized" : "Failed to fetch jobs");
+  const data = await res.json();
+  return Array.isArray(data) ? data : [];
+}
+
+export async function fetchScrapeJob(id: number): Promise<ScrapeJob | null> {
+  const res = await fetch(`${API_BASE}/admin/jobs/${id}`, { headers: adminHeaders() });
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error("Failed to fetch job");
+  return res.json();
+}

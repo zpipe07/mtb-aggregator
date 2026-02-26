@@ -41,8 +41,12 @@ func New(database *db.DB, scraperURL string) *Scheduler {
 }
 
 // RunScrapeJob scrapes all stores. If storeType is non-empty, only stores with that store_type are scraped (e.g. "worldwidecyclery").
-func (s *Scheduler) RunScrapeJob(storeType string) {
+// triggeredBy is "manual" or "cron" for job history.
+func (s *Scheduler) RunScrapeJob(storeType string, triggeredBy string) {
 	ctx := context.Background()
+	if triggeredBy == "" {
+		triggeredBy = "manual"
+	}
 
 	var stores []db.Store
 	var err error
@@ -63,11 +67,11 @@ func (s *Scheduler) RunScrapeJob(storeType string) {
 	}
 
 	for _, store := range stores {
-		s.scrapeStore(ctx, store)
+		s.scrapeStore(ctx, store, triggeredBy)
 	}
 }
 
-func (s *Scheduler) scrapeStore(ctx context.Context, store db.Store) {
+func (s *Scheduler) scrapeStore(ctx context.Context, store db.Store, triggeredBy string) {
 	storeType := store.StoreType
 	if storeType == "" {
 		storeType = strings.ToLower(strings.ReplaceAll(store.Name, " ", ""))
@@ -76,11 +80,20 @@ func (s *Scheduler) scrapeStore(ctx context.Context, store db.Store) {
 		storeType = "jensonusa"
 	}
 
+	jobID, err := s.db.CreateScrapeJob(ctx, &store.ID, store.Name, triggeredBy)
+	if err != nil {
+		log.Printf("[scheduler] failed to create scrape job for %s: %v", store.Name, err)
+	}
+
 	log.Printf("[scheduler] scraping %s (%s)", store.Name, store.ScrapeURL)
 
 	results, err := s.scraper.Scrape(store.ScrapeURL, storeType)
 	if err != nil {
 		log.Printf("[scheduler] scrape failed for %s: %v", store.Name, err)
+		if jobID != 0 {
+			errs := []string{err.Error()}
+			_ = s.db.UpdateScrapeJob(ctx, jobID, "failed", nil, nil, errs, nil)
+		}
 		return
 	}
 
@@ -115,6 +128,18 @@ func (s *Scheduler) scrapeStore(ctx context.Context, store db.Store) {
 	}
 	if validation.AbortSave {
 		log.Printf("[scheduler] %s: aborting save (strict mode). Set SCRAPER_STRICT_ORIGINAL_PRICE=0 to warn only.", store.Name)
+		if jobID != 0 {
+			errStrs := make([]string, 0, len(validation.Errors))
+			for _, e := range validation.Errors {
+				errStrs = append(errStrs, e.Error())
+			}
+			warnStrs := make([]string, 0, len(validation.Warnings))
+			for _, w := range validation.Warnings {
+				warnStrs = append(warnStrs, w.Error())
+			}
+			found := len(results)
+			_ = s.db.UpdateScrapeJob(ctx, jobID, "failed", &found, nil, errStrs, warnStrs)
+		}
 		return
 	}
 
@@ -171,6 +196,22 @@ func (s *Scheduler) scrapeStore(ctx context.Context, store db.Store) {
 		validCount++
 	}
 
+	if jobID != 0 {
+		found := len(results)
+		errStrs := make([]string, 0, len(validation.Errors))
+		for _, e := range validation.Errors {
+			errStrs = append(errStrs, e.Error())
+		}
+		warnStrs := make([]string, 0, len(validation.Warnings))
+		for _, w := range validation.Warnings {
+			warnStrs = append(warnStrs, w.Error())
+		}
+		status := "completed"
+		if err := s.db.UpdateScrapeJob(ctx, jobID, status, &found, &validCount, errStrs, warnStrs); err != nil {
+			log.Printf("[scheduler] failed to update scrape job %d: %v", jobID, err)
+		}
+	}
+
 	log.Printf("[scheduler] %s: saved %d listings", store.Name, validCount)
 }
 
@@ -214,8 +255,12 @@ func (s *Scheduler) RunEnrichmentJob(force bool) {
 }
 
 
-func (s *Scheduler) Start(spec string) {
-	s.cron.AddFunc(spec, func() { s.RunScrapeJob("") })
+func (s *Scheduler) Start(spec string, triggeredBy string) {
+	if triggeredBy == "" {
+		triggeredBy = "cron"
+	}
+	tb := triggeredBy
+	s.cron.AddFunc(spec, func() { s.RunScrapeJob("", tb) })
 	s.cron.Start()
 	log.Printf("[scheduler] started scrape cron with spec %s", spec)
 }

@@ -577,6 +577,110 @@ func (db *DB) GetDashboardStats(ctx context.Context) (DashboardStats, error) {
 	return stats, nil
 }
 
+// ScrapeJob represents a single scrape run (one store).
+type ScrapeJob struct {
+	ID                int       `json:"id"`
+	StoreID           *int      `json:"store_id,omitempty"`
+	StoreName         string    `json:"store_name"`
+	Status            string    `json:"status"` // running, completed, failed
+	StartedAt         string    `json:"started_at"`
+	CompletedAt       *string   `json:"completed_at,omitempty"`
+	ListingsFound     *int      `json:"listings_found,omitempty"`
+	ListingsUpserted  *int      `json:"listings_upserted,omitempty"`
+	Errors            []string  `json:"errors,omitempty"`
+	Warnings          []string  `json:"warnings,omitempty"`
+	TriggeredBy       string    `json:"triggered_by"` // manual, cron
+}
+
+// CreateScrapeJob inserts a new scrape job (status=running) and returns its id.
+func (db *DB) CreateScrapeJob(ctx context.Context, storeID *int, storeName, triggeredBy string) (int, error) {
+	var id int
+	err := db.pool.QueryRow(ctx, `
+		INSERT INTO scrape_jobs (store_id, store_name, status, triggered_by)
+		VALUES ($1, $2, 'running', $3)
+		RETURNING id
+	`, storeID, storeName, triggeredBy).Scan(&id)
+	return id, err
+}
+
+// UpdateScrapeJob sets status, completed_at, counts, and messages for a job.
+func (db *DB) UpdateScrapeJob(ctx context.Context, id int, status string, listingsFound, listingsUpserted *int, errors, warnings []string) error {
+	var errSlice, warnSlice interface{}
+	if len(errors) > 0 {
+		errSlice = pq.Array(errors)
+	} else {
+		errSlice = pq.Array([]string{})
+	}
+	if len(warnings) > 0 {
+		warnSlice = pq.Array(warnings)
+	} else {
+		warnSlice = pq.Array([]string{})
+	}
+	_, err := db.pool.Exec(ctx, `
+		UPDATE scrape_jobs SET
+			status = $1,
+			completed_at = NOW(),
+			listings_found = $2,
+			listings_upserted = $3,
+			errors = $4,
+			warnings = $5
+		WHERE id = $6
+	`, status, listingsFound, listingsUpserted, errSlice, warnSlice, id)
+	return err
+}
+
+// GetScrapeJobs returns recent scrape jobs (newest first). storeID 0 means all stores.
+func (db *DB) GetScrapeJobs(ctx context.Context, storeID int, limit, offset int) ([]ScrapeJob, error) {
+	rows, err := db.pool.Query(ctx, `
+		SELECT id, store_id, store_name, status, started_at::text, completed_at::text,
+			listings_found, listings_upserted, COALESCE(errors, '{}'), COALESCE(warnings, '{}'), triggered_by
+		FROM scrape_jobs
+		WHERE ($1 = 0 OR store_id = $1)
+		ORDER BY started_at DESC LIMIT $2 OFFSET $3
+	`, storeID, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var jobs []ScrapeJob
+	for rows.Next() {
+		var j ScrapeJob
+		var completedAt *string
+		var errArr, warnArr pgtype.FlatArray[string]
+		if err := rows.Scan(&j.ID, &j.StoreID, &j.StoreName, &j.Status, &j.StartedAt, &completedAt, &j.ListingsFound, &j.ListingsUpserted, &errArr, &warnArr, &j.TriggeredBy); err != nil {
+			return nil, err
+		}
+		j.CompletedAt = completedAt
+		j.Errors = []string(errArr)
+		j.Warnings = []string(warnArr)
+		jobs = append(jobs, j)
+	}
+	return jobs, rows.Err()
+}
+
+// GetScrapeJobByID returns one scrape job by id, or nil if not found.
+func (db *DB) GetScrapeJobByID(ctx context.Context, id int) (*ScrapeJob, error) {
+	var j ScrapeJob
+	var completedAt *string
+	var errArr, warnArr pgtype.FlatArray[string]
+	err := db.pool.QueryRow(ctx, `
+		SELECT id, store_id, store_name, status, started_at::text, completed_at::text,
+			listings_found, listings_upserted, COALESCE(errors, '{}'), COALESCE(warnings, '{}'), triggered_by
+		FROM scrape_jobs WHERE id = $1
+	`, id).Scan(&j.ID, &j.StoreID, &j.StoreName, &j.Status, &j.StartedAt, &completedAt, &j.ListingsFound, &j.ListingsUpserted, &errArr, &warnArr, &j.TriggeredBy)
+	if err != nil {
+		if err.Error() == "no rows in result set" {
+			return nil, nil
+		}
+		return nil, err
+	}
+	j.CompletedAt = completedAt
+	j.Errors = []string(errArr)
+	j.Warnings = []string(warnArr)
+	return &j, nil
+}
+
 func (db *DB) GetBrands(ctx context.Context) ([]string, error) {
 	rows, err := db.pool.Query(ctx, `
 		SELECT DISTINCT brand FROM store_listings

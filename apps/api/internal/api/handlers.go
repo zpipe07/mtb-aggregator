@@ -470,3 +470,58 @@ func (h *Handlers) DeleteAdminStore(w http.ResponseWriter, r *http.Request, id i
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
+
+// GetAdminJobs returns recent scrape jobs. Query: limit (default 50), offset (default 0), store_id (optional).
+func (h *Handlers) GetAdminJobs(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	limit := 50
+	if s := r.URL.Query().Get("limit"); s != "" {
+		if n, err := strconv.Atoi(s); err == nil && n > 0 && n <= 200 {
+			limit = n
+		}
+	}
+	offset := 0
+	if s := r.URL.Query().Get("offset"); s != "" {
+		if n, err := strconv.Atoi(s); err == nil && n >= 0 {
+			offset = n
+		}
+	}
+	storeID := 0
+	if s := r.URL.Query().Get("store_id"); s != "" {
+		if n, err := strconv.Atoi(s); err == nil && n > 0 {
+			storeID = n
+		}
+	}
+	jobs, err := h.DB.GetScrapeJobs(r.Context(), storeID, limit, offset)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if jobs == nil {
+		jobs = []db.ScrapeJob{}
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(jobs)
+}
+
+// GetAdminJobByID returns one scrape job by id (admin).
+func (h *Handlers) GetAdminJobByID(w http.ResponseWriter, r *http.Request, id int) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	job, err := h.DB.GetScrapeJobByID(r.Context(), id)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if job == nil {
+		http.Error(w, "not found", http.StatusNotFound)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(job)
+}
