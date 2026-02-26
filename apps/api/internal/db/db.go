@@ -215,6 +215,207 @@ type Deal struct {
 	LastScraped   string   `json:"last_scraped"`
 }
 
+// AdminListing extends Deal with created_at and last_enriched_at for the admin data browser.
+type AdminListing struct {
+	Deal
+	CreatedAt      string `json:"created_at"`
+	LastEnrichedAt string `json:"last_enriched_at"`
+}
+
+// GetAdminListingsParams for admin listing browser filters.
+type GetAdminListingsParams struct {
+	StoreID             int     // 0 = all
+	Brand               string
+	HasCanonicalCategory *bool  // true = has canonical category set; false = not set; nil = any
+	HasEnrichment       *bool  // true = last_enriched_at IS NOT NULL; false = NULL; nil = any
+	Category            string // match in category_path
+	CanonicalCategory   string // exact path match
+	Search              string
+	Sort                string // newest, discount, price_asc, price_desc, relevance
+	Limit               int
+	Offset              int
+}
+
+// GetAdminListings returns listings for the admin data browser with full detail.
+func (db *DB) GetAdminListings(ctx context.Context, params GetAdminListingsParams) ([]AdminListing, int, error) {
+	if params.Limit <= 0 {
+		params.Limit = 50
+	}
+	if params.Limit > 200 {
+		params.Limit = 200
+	}
+	sort := params.Sort
+	if sort == "" {
+		sort = "newest"
+	}
+	if params.Search == "" && sort == "relevance" {
+		sort = "newest"
+	}
+
+	query := `
+		SELECT l.id, l.store_id, s.name, l.store_sku, l.product_name, l.current_price, l.original_price,
+			l.product_url, l.affiliate_url, l.image_url, l.brand, COALESCE(l.category_path, '{}'), COALESCE(l.canonical_category, '{}'), l.metadata, l.is_in_stock, l.last_scraped::text,
+			l.created_at::text, l.last_enriched_at::text,
+			COUNT(*) OVER() AS total_count
+		FROM store_listings l
+		JOIN stores s ON s.id = l.store_id
+		WHERE 1=1
+	`
+	args := []interface{}{}
+	argNum := 1
+
+	if params.StoreID > 0 {
+		query += fmt.Sprintf(" AND l.store_id = $%d", argNum)
+		args = append(args, params.StoreID)
+		argNum++
+	}
+	if params.Brand != "" {
+		query += fmt.Sprintf(" AND l.brand ILIKE $%d", argNum)
+		args = append(args, params.Brand)
+		argNum++
+	}
+	if params.HasCanonicalCategory != nil {
+		if *params.HasCanonicalCategory {
+			query += " AND l.canonical_category IS NOT NULL AND array_length(l.canonical_category, 1) > 0"
+		} else {
+			query += " AND (l.canonical_category IS NULL OR array_length(l.canonical_category, 1) IS NULL)"
+		}
+	}
+	if params.HasEnrichment != nil {
+		if *params.HasEnrichment {
+			query += " AND l.last_enriched_at IS NOT NULL"
+		} else {
+			query += " AND l.last_enriched_at IS NULL"
+		}
+	}
+	if params.Category != "" {
+		query += fmt.Sprintf(" AND EXISTS (SELECT 1 FROM unnest(COALESCE(l.category_path, '{}')) AS c WHERE c ILIKE $%d)", argNum)
+		args = append(args, params.Category)
+		argNum++
+	}
+	if params.CanonicalCategory != "" {
+		path := strings.Split(params.CanonicalCategory, " > ")
+		trimmed := make([]string, 0, len(path))
+		for _, p := range path {
+			if t := strings.TrimSpace(p); t != "" {
+				trimmed = append(trimmed, t)
+			}
+		}
+		if len(trimmed) > 0 {
+			query += fmt.Sprintf(" AND l.canonical_category = $%d", argNum)
+			args = append(args, pq.Array(trimmed))
+			argNum++
+		}
+	}
+	if params.Search != "" {
+		query += fmt.Sprintf(" AND l.search_vector @@ plainto_tsquery('english', $%d)", argNum)
+		args = append(args, params.Search)
+		argNum++
+	}
+
+	switch sort {
+	case "relevance":
+		query += fmt.Sprintf(" ORDER BY ts_rank(l.search_vector, plainto_tsquery('english', $%d)) DESC", argNum)
+		args = append(args, params.Search)
+		argNum++
+	case "discount":
+		query += ` ORDER BY (CASE WHEN l.original_price IS NOT NULL AND l.original_price > 0 AND l.current_price < l.original_price THEN (1 - l.current_price / l.original_price) * 100 ELSE 0 END) DESC NULLS LAST`
+	case "price_asc":
+		query += " ORDER BY l.current_price ASC"
+	case "price_desc":
+		query += " ORDER BY l.current_price DESC"
+	default:
+		query += " ORDER BY l.last_scraped DESC"
+	}
+
+	query += fmt.Sprintf(" LIMIT $%d OFFSET $%d", argNum, argNum+1)
+	args = append(args, params.Limit, params.Offset)
+
+	rows, err := db.pool.Query(ctx, query, args...)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+
+	var listings []AdminListing
+	var totalCount int
+	for rows.Next() {
+		var a AdminListing
+		var lastScraped []byte
+		var cp, canCat pgtype.FlatArray[string]
+		var meta []byte
+		var createdAt, lastEnrichedAt []byte
+		if err := rows.Scan(&a.ID, &a.StoreID, &a.StoreName, &a.StoreSKU, &a.ProductName, &a.CurrentPrice, &a.OriginalPrice,
+			&a.ProductURL, &a.AffiliateURL, &a.ImageURL, &a.Brand, &cp, &canCat, &meta, &a.IsInStock, &lastScraped,
+			&createdAt, &lastEnrichedAt, &totalCount); err != nil {
+			return nil, 0, err
+		}
+		a.CategoryPath = cp
+		a.CanonicalCategory = canCat
+		a.Metadata = json.RawMessage(meta)
+		a.LastScraped = string(lastScraped)
+		if len(createdAt) > 0 {
+			a.CreatedAt = string(createdAt)
+		}
+		if len(lastEnrichedAt) > 0 {
+			a.LastEnrichedAt = string(lastEnrichedAt)
+		}
+		if a.OriginalPrice != nil && *a.OriginalPrice > 0 && *a.OriginalPrice > a.CurrentPrice {
+			pct := (1 - a.CurrentPrice/(*a.OriginalPrice)) * 100
+			if pct > 0 {
+				a.DiscountPct = &pct
+			}
+		}
+		listings = append(listings, a)
+	}
+	if listings == nil {
+		listings = []AdminListing{}
+	}
+	return listings, totalCount, rows.Err()
+}
+
+// GetAdminListingByID returns one listing by id for admin detail view, or nil if not found.
+func (db *DB) GetAdminListingByID(ctx context.Context, id int) (*AdminListing, error) {
+	var a AdminListing
+	var lastScraped []byte
+	var cp, canCat pgtype.FlatArray[string]
+	var meta []byte
+	var createdAt, lastEnrichedAt *string
+	err := db.pool.QueryRow(ctx, `
+		SELECT l.id, l.store_id, s.name, l.store_sku, l.product_name, l.current_price, l.original_price,
+			l.product_url, l.affiliate_url, l.image_url, l.brand, COALESCE(l.category_path, '{}'), COALESCE(l.canonical_category, '{}'), l.metadata, l.is_in_stock, l.last_scraped::text,
+			l.created_at::text, l.last_enriched_at::text
+		FROM store_listings l
+		JOIN stores s ON s.id = l.store_id
+		WHERE l.id = $1
+	`, id).Scan(&a.ID, &a.StoreID, &a.StoreName, &a.StoreSKU, &a.ProductName, &a.CurrentPrice, &a.OriginalPrice,
+		&a.ProductURL, &a.AffiliateURL, &a.ImageURL, &a.Brand, &cp, &canCat, &meta, &a.IsInStock, &lastScraped,
+		&createdAt, &lastEnrichedAt)
+	if err != nil {
+		if err.Error() == "no rows in result set" {
+			return nil, nil
+		}
+		return nil, err
+	}
+	a.CategoryPath = cp
+	a.CanonicalCategory = canCat
+	a.Metadata = json.RawMessage(meta)
+	a.LastScraped = string(lastScraped)
+	if createdAt != nil {
+		a.CreatedAt = *createdAt
+	}
+	if lastEnrichedAt != nil {
+		a.LastEnrichedAt = *lastEnrichedAt
+	}
+	if a.OriginalPrice != nil && *a.OriginalPrice > 0 && *a.OriginalPrice > a.CurrentPrice {
+		pct := (1 - a.CurrentPrice/(*a.OriginalPrice)) * 100
+		if pct > 0 {
+			a.DiscountPct = &pct
+		}
+	}
+	return &a, nil
+}
+
 // GetDealsParams for filtering, search, and sort
 type GetDealsParams struct {
 	StoreID            *int
@@ -807,6 +1008,23 @@ func (db *DB) UpdateListingEnrichment(ctx context.Context, id int, categoryPath 
 		WHERE id = $2
 	`, pq.Array(categoryPath), id)
 	return err
+}
+
+// GetListingEnrichmentInfo returns product_url and store_type for a listing by id. Used for single-listing enrichment.
+func (db *DB) GetListingEnrichmentInfo(ctx context.Context, id int) (productURL, storeType string, err error) {
+	err = db.pool.QueryRow(ctx, `
+		SELECT l.product_url, COALESCE(s.store_type, 'jensonusa')
+		FROM store_listings l
+		JOIN stores s ON s.id = l.store_id
+		WHERE l.id = $1
+	`, id).Scan(&productURL, &storeType)
+	if err != nil {
+		if err.Error() == "no rows in result set" {
+			return "", "", nil
+		}
+		return "", "", err
+	}
+	return productURL, storeType, nil
 }
 
 // BackfillBrands updates store_listings.brand using the given normalizer (e.g. brand.Normalize).

@@ -8,11 +8,13 @@ import (
 	"strings"
 
 	"github.com/mtb-aggregator/api/internal/db"
+	"github.com/mtb-aggregator/api/internal/scraper"
 )
 
 type Handlers struct {
-	DB      *db.DB
-	ScraperURL string
+	DB          *db.DB
+	ScraperURL  string
+	Scraper     *scraper.Client
 }
 
 func (h *Handlers) GetDeals(w http.ResponseWriter, r *http.Request) {
@@ -524,4 +526,138 @@ func (h *Handlers) GetAdminJobByID(w http.ResponseWriter, r *http.Request, id in
 	}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(job)
+}
+
+// GetAdminListings returns paginated listings for the admin data browser. Query: store_id, brand, has_canonical_category, has_enrichment, category, canonical_category, q, sort, limit, offset.
+func (h *Handlers) GetAdminListings(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	params := db.GetAdminListingsParams{Limit: 50, Offset: 0}
+	if s := r.URL.Query().Get("store_id"); s != "" {
+		if n, err := strconv.Atoi(s); err == nil && n > 0 {
+			params.StoreID = n
+		}
+	}
+	if s := r.URL.Query().Get("brand"); s != "" {
+		params.Brand = strings.TrimSpace(s)
+	}
+	if s := r.URL.Query().Get("has_canonical_category"); s != "" {
+		params.HasCanonicalCategory = boolPtr(s == "1" || strings.EqualFold(s, "true"))
+	}
+	if s := r.URL.Query().Get("has_enrichment"); s != "" {
+		params.HasEnrichment = boolPtr(s == "1" || strings.EqualFold(s, "true"))
+	}
+	if s := r.URL.Query().Get("category"); s != "" {
+		params.Category = strings.TrimSpace(s)
+	}
+	if s := r.URL.Query().Get("canonical_category"); s != "" {
+		params.CanonicalCategory = strings.TrimSpace(s)
+	}
+	if s := r.URL.Query().Get("q"); s != "" {
+		params.Search = strings.TrimSpace(s)
+	}
+	if s := r.URL.Query().Get("sort"); s != "" {
+		params.Sort = s
+	}
+	if s := r.URL.Query().Get("limit"); s != "" {
+		if n, err := strconv.Atoi(s); err == nil && n > 0 {
+			params.Limit = n
+		}
+	}
+	if s := r.URL.Query().Get("offset"); s != "" {
+		if n, err := strconv.Atoi(s); err == nil && n >= 0 {
+			params.Offset = n
+		}
+	}
+	listings, totalCount, err := h.DB.GetAdminListings(r.Context(), params)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if listings == nil {
+		listings = []db.AdminListing{}
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"listings":    listings,
+		"total_count": totalCount,
+	})
+}
+
+func boolPtr(b bool) *bool { return &b }
+
+// GetAdminListingByID returns one listing by id for admin detail (admin).
+func (h *Handlers) GetAdminListingByID(w http.ResponseWriter, r *http.Request, id int) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	listing, err := h.DB.GetAdminListingByID(r.Context(), id)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if listing == nil {
+		http.Error(w, "not found", http.StatusNotFound)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(listing)
+}
+
+// PostAdminEnrichListing runs enrichment for a single listing (admin). Useful for testing enricher logic without running the full batch.
+func (h *Handlers) PostAdminEnrichListing(w http.ResponseWriter, r *http.Request, id int) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if h.Scraper == nil {
+		http.Error(w, "scraper not configured", http.StatusServiceUnavailable)
+		return
+	}
+	productURL, storeType, err := h.DB.GetListingEnrichmentInfo(r.Context(), id)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if productURL == "" {
+		http.Error(w, "not found", http.StatusNotFound)
+		return
+	}
+	hasEnricher := false
+	for _, t := range db.StoreTypesWithEnrichers {
+		if strings.EqualFold(t, storeType) {
+			hasEnricher = true
+			break
+		}
+	}
+	if !hasEnricher {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{
+			"error": "no enricher for store type " + storeType,
+		})
+		return
+	}
+	result, err := h.Scraper.Enrich(productURL, storeType)
+	if err != nil {
+		log.Printf("[admin] enrich listing %d: %v", id, err)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadGateway)
+		json.NewEncoder(w).Encode(map[string]string{
+			"error": err.Error(),
+		})
+		return
+	}
+	if err := h.DB.UpdateListingEnrichment(r.Context(), id, result.CategoryPath); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"ok":            true,
+		"category_path": result.CategoryPath,
+	})
 }

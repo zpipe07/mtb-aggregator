@@ -15,6 +15,7 @@ import (
 	"github.com/mtb-aggregator/api/internal/brand"
 	"github.com/mtb-aggregator/api/internal/db"
 	"github.com/mtb-aggregator/api/internal/scheduler"
+	"github.com/mtb-aggregator/api/internal/scraper"
 	"github.com/mtb-aggregator/api/internal/taxonomy"
 )
 
@@ -94,7 +95,8 @@ func main() {
 	defer database.Close()
 
 	sched := scheduler.New(database, scraperURL)
-	handlers := &api.Handlers{DB: database, ScraperURL: scraperURL}
+	scraperClient := scraper.NewClient(scraperURL)
+	handlers := &api.Handlers{DB: database, ScraperURL: scraperURL, Scraper: scraperClient}
 
 	// Cron: every 4 hours (configurable via SCRAPE_CRON_SPEC, "disabled" = use external cron)
 	cronSpec := os.Getenv("SCRAPE_CRON_SPEC")
@@ -232,6 +234,39 @@ func main() {
 			return
 		}
 		handlers.GetAdminJobByID(w, r, id)
+	}))
+
+	// Admin: GET /admin/listings — data browser (query: store_id, brand, has_canonical_category, has_enrichment, category, canonical_category, q, sort, limit, offset)
+	http.HandleFunc("/admin/listings", api.AdminRequired(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/admin/listings" {
+			http.NotFound(w, r)
+			return
+		}
+		handlers.GetAdminListings(w, r)
+	}))
+	// Admin: GET /admin/listings/:id, POST /admin/listings/:id/enrich
+	http.HandleFunc("/admin/listings/", api.AdminRequired(func(w http.ResponseWriter, r *http.Request) {
+		path := strings.TrimPrefix(r.URL.Path, "/admin/listings/")
+		path = strings.Trim(path, "/")
+		if path == "" {
+			http.NotFound(w, r)
+			return
+		}
+		parts := strings.SplitN(path, "/", 2)
+		id, err := strconv.Atoi(parts[0])
+		if err != nil {
+			http.Error(w, "invalid id", http.StatusBadRequest)
+			return
+		}
+		if len(parts) > 1 && parts[1] == "enrich" {
+			if r.Method != http.MethodPost {
+				http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+				return
+			}
+			handlers.PostAdminEnrichListing(w, r, id)
+			return
+		}
+		handlers.GetAdminListingByID(w, r, id)
 	}))
 
 	port := "8080"

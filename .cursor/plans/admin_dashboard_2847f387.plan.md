@@ -16,7 +16,7 @@ todos:
     status: completed
   - id: data-browser
     content: "Phase E: Admin listings endpoint with full detail, data browser page with searchable/filterable table and detail view"
-    status: pending
+    status: completed
 isProject: false
 ---
 

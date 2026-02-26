@@ -190,3 +190,86 @@ export async function fetchScrapeJob(id: number): Promise<ScrapeJob | null> {
   if (!res.ok) throw new Error("Failed to fetch job");
   return res.json();
 }
+
+// --- Admin listings / data browser (Phase E) ---
+
+export interface AdminListing {
+  id: number;
+  store_id: number;
+  store_name: string;
+  store_sku: string;
+  product_name: string;
+  current_price: number;
+  original_price?: number | null;
+  product_url: string;
+  affiliate_url?: string | null;
+  image_url?: string | null;
+  brand?: string | null;
+  category_path?: string[];
+  canonical_category?: string[];
+  metadata?: Record<string, unknown>;
+  is_in_stock: boolean;
+  discount_pct?: number | null;
+  last_scraped: string;
+  created_at?: string;
+  last_enriched_at?: string;
+}
+
+export interface AdminListingsResponse {
+  listings: AdminListing[];
+  total_count: number;
+}
+
+export async function fetchAdminListings(params?: {
+  store_id?: number;
+  brand?: string;
+  has_canonical_category?: boolean;
+  has_enrichment?: boolean;
+  category?: string;
+  canonical_category?: string;
+  q?: string;
+  sort?: string;
+  limit?: number;
+  offset?: number;
+}): Promise<AdminListingsResponse> {
+  const search = new URLSearchParams();
+  if (params?.store_id != null) search.set("store_id", String(params.store_id));
+  if (params?.brand) search.set("brand", params.brand);
+  if (params?.has_canonical_category != null) search.set("has_canonical_category", params.has_canonical_category ? "true" : "false");
+  if (params?.has_enrichment != null) search.set("has_enrichment", params.has_enrichment ? "true" : "false");
+  if (params?.category) search.set("category", params.category);
+  if (params?.canonical_category) search.set("canonical_category", params.canonical_category);
+  if (params?.q) search.set("q", params.q);
+  if (params?.sort) search.set("sort", params.sort);
+  if (params?.limit != null) search.set("limit", String(params.limit));
+  if (params?.offset != null) search.set("offset", String(params.offset));
+  const qs = search.toString();
+  const res = await fetch(`${API_BASE}/admin/listings${qs ? `?${qs}` : ""}`, { headers: adminHeaders() });
+  if (!res.ok) throw new Error(res.status === 401 ? "Unauthorized" : "Failed to fetch listings");
+  const data = await res.json();
+  return {
+    listings: Array.isArray(data.listings) ? data.listings : [],
+    total_count: typeof data.total_count === "number" ? data.total_count : 0,
+  };
+}
+
+export async function fetchAdminListing(id: number): Promise<AdminListing | null> {
+  const res = await fetch(`${API_BASE}/admin/listings/${id}`, { headers: adminHeaders() });
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error("Failed to fetch listing");
+  return res.json();
+}
+
+/** Run enrichment for a single listing. Returns { ok, category_path } or throws with error message. */
+export async function enrichListing(id: number): Promise<{ ok: boolean; category_path: string[] }> {
+  const res = await fetch(`${API_BASE}/admin/listings/${id}/enrich`, {
+    method: "POST",
+    headers: adminHeaders(),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const msg = typeof data?.error === "string" ? data.error : "Enrich failed";
+    throw new Error(msg);
+  }
+  return data;
+}
