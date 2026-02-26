@@ -1123,3 +1123,100 @@ func sliceEqual(a, b []string) bool {
 	}
 	return true
 }
+
+// CategoryMapping is one rule: raw_keywords (substring match) -> canonical path. Priority: higher = evaluated first.
+type CategoryMapping struct {
+	ID          int      `json:"id"`
+	RawKeywords []string `json:"raw_keywords"`
+	Canonical   []string `json:"canonical"`
+	Priority    int      `json:"priority"`
+	CreatedAt   string   `json:"created_at"`
+	UpdatedAt   string   `json:"updated_at"`
+}
+
+// ListCategoryMappings returns all mappings ordered by priority DESC, then id (for stable ordering).
+func (db *DB) ListCategoryMappings(ctx context.Context) ([]CategoryMapping, error) {
+	rows, err := db.pool.Query(ctx, `
+		SELECT id, COALESCE(raw_keywords, '{}'), COALESCE(canonical, '{}'), priority, created_at::text, updated_at::text
+		FROM category_mappings ORDER BY priority DESC, id
+	`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []CategoryMapping
+	for rows.Next() {
+		var m CategoryMapping
+		var raw, canon pgtype.FlatArray[string]
+		if err := rows.Scan(&m.ID, &raw, &canon, &m.Priority, &m.CreatedAt, &m.UpdatedAt); err != nil {
+			return nil, err
+		}
+		m.RawKeywords = []string(raw)
+		m.Canonical = []string(canon)
+		out = append(out, m)
+	}
+	return out, rows.Err()
+}
+
+// GetCategoryMapping returns one mapping by id, or nil if not found.
+func (db *DB) GetCategoryMapping(ctx context.Context, id int) (*CategoryMapping, error) {
+	var m CategoryMapping
+	var raw, canon pgtype.FlatArray[string]
+	err := db.pool.QueryRow(ctx, `
+		SELECT id, COALESCE(raw_keywords, '{}'), COALESCE(canonical, '{}'), priority, created_at::text, updated_at::text
+		FROM category_mappings WHERE id = $1
+	`, id).Scan(&m.ID, &raw, &canon, &m.Priority, &m.CreatedAt, &m.UpdatedAt)
+	if err != nil {
+		if err.Error() == "no rows in result set" {
+			return nil, nil
+		}
+		return nil, err
+	}
+	m.RawKeywords = []string(raw)
+	m.Canonical = []string(canon)
+	return &m, nil
+}
+
+// CreateCategoryMapping inserts a mapping and returns its id.
+func (db *DB) CreateCategoryMapping(ctx context.Context, rawKeywords, canonical []string, priority int) (int, error) {
+	var id int
+	err := db.pool.QueryRow(ctx, `
+		INSERT INTO category_mappings (raw_keywords, canonical, priority) VALUES ($1, $2, $3) RETURNING id
+	`, pq.Array(rawKeywords), pq.Array(canonical), priority).Scan(&id)
+	return id, err
+}
+
+// UpdateCategoryMapping updates a mapping by id.
+func (db *DB) UpdateCategoryMapping(ctx context.Context, id int, rawKeywords, canonical []string, priority int) error {
+	_, err := db.pool.Exec(ctx, `
+		UPDATE category_mappings SET raw_keywords = $1, canonical = $2, priority = $3, updated_at = NOW() WHERE id = $4
+	`, pq.Array(rawKeywords), pq.Array(canonical), priority, id)
+	return err
+}
+
+// DeleteCategoryMapping deletes a mapping by id.
+func (db *DB) DeleteCategoryMapping(ctx context.Context, id int) error {
+	_, err := db.pool.Exec(ctx, `DELETE FROM category_mappings WHERE id = $1`, id)
+	return err
+}
+
+// SeedCategoryMappingsIfEmpty inserts mappings from the given slice only if category_mappings is empty. Returns true if seeded.
+func (db *DB) SeedCategoryMappingsIfEmpty(ctx context.Context, mappings []struct{ Raw []string; Canonical []string }) (bool, error) {
+	var n int
+	if err := db.pool.QueryRow(ctx, `SELECT COUNT(*) FROM category_mappings`).Scan(&n); err != nil {
+		return false, err
+	}
+	if n > 0 {
+		return false, nil
+	}
+	// Insert in order; priority = 1000 - i so first mapping has highest priority.
+	for i, m := range mappings {
+		priority := 1000 - i
+		_, err := db.pool.Exec(ctx, `INSERT INTO category_mappings (raw_keywords, canonical, priority) VALUES ($1, $2, $3)`,
+			pq.Array(m.Raw), pq.Array(m.Canonical), priority)
+		if err != nil {
+			return false, err
+		}
+	}
+	return true, nil
+}

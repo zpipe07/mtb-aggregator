@@ -1,6 +1,8 @@
 package main
 
 import (
+	"context"
+	"encoding/json"
 	"log"
 	"net/http"
 	"os"
@@ -63,6 +65,48 @@ func validateCronOrAdmin(r *http.Request) bool {
 	return validateCronSecret(r) || api.ValidateAdminAuth(r)
 }
 
+var taxonomySeedStruct = struct {
+	Mappings []struct {
+		Raw      []string `json:"raw"`
+		Canonical []string `json:"canonical"`
+	} `json:"mappings"`
+}{}
+
+// seedCategoryMappingsFromFile reads category_taxonomy.json and seeds category_mappings if the table is empty. Returns (true, nil) if seeded.
+func seedCategoryMappingsFromFile(ctx context.Context, database *db.DB) (bool, error) {
+	path := os.Getenv("CATEGORY_TAXONOMY_PATH")
+	if path == "" {
+		path = "../../packages/shared/category_taxonomy.json"
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return false, err
+	}
+	if err := json.Unmarshal(data, &taxonomySeedStruct); err != nil {
+		return false, err
+	}
+	seedSlice := make([]struct{ Raw []string; Canonical []string }, len(taxonomySeedStruct.Mappings))
+	for i := range taxonomySeedStruct.Mappings {
+		seedSlice[i].Raw = taxonomySeedStruct.Mappings[i].Raw
+		seedSlice[i].Canonical = taxonomySeedStruct.Mappings[i].Canonical
+	}
+	return database.SeedCategoryMappingsIfEmpty(ctx, seedSlice)
+}
+
+// loadTaxonomyFromDB loads category_mappings from DB into the taxonomy in-memory cache.
+func loadTaxonomyFromDB(ctx context.Context, database *db.DB) error {
+	list, err := database.ListCategoryMappings(ctx)
+	if err != nil {
+		return err
+	}
+	mappings := make([]taxonomy.Mapping, len(list))
+	for i := range list {
+		mappings[i] = taxonomy.Mapping{Raw: list[i].RawKeywords, Canonical: list[i].Canonical}
+	}
+	taxonomy.SetMappings(mappings)
+	return nil
+}
+
 func main() {
 	// Load .env from cwd or monorepo root so ENRICH_BATCH_SIZE etc. are set when running locally
 	_ = godotenv.Load()
@@ -93,6 +137,19 @@ func main() {
 		log.Fatalf("database: %v", err)
 	}
 	defer database.Close()
+
+	// Seed category_mappings from JSON if table is empty, then load taxonomy from DB
+	ctx := context.Background()
+	if seeded, err := seedCategoryMappingsFromFile(ctx, database); err != nil {
+		log.Printf("[taxonomy] seed from file: %v", err)
+	} else if seeded {
+		log.Println("[taxonomy] seeded category_mappings from JSON")
+	}
+	if err := loadTaxonomyFromDB(ctx, database); err != nil {
+		log.Printf("[taxonomy] load from DB: %v", err)
+	} else {
+		log.Println("[taxonomy] loaded category mappings from DB")
+	}
 
 	sched := scheduler.New(database, scraperURL)
 	scraperClient := scraper.NewClient(scraperURL)
@@ -267,6 +324,50 @@ func main() {
 			return
 		}
 		handlers.GetAdminListingByID(w, r, id)
+	}))
+
+	// Admin: GET/POST /admin/taxonomy — list or create category mappings
+	http.HandleFunc("/admin/taxonomy", api.AdminRequired(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/admin/taxonomy" {
+			http.NotFound(w, r)
+			return
+		}
+		switch r.Method {
+		case http.MethodGet:
+			handlers.GetAdminTaxonomy(w, r)
+		case http.MethodPost:
+			handlers.PostAdminTaxonomy(w, r)
+		default:
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		}
+	}))
+	// Admin: GET/PUT/DELETE /admin/taxonomy/:id, POST /admin/taxonomy/recategorize
+	http.HandleFunc("/admin/taxonomy/", api.AdminRequired(func(w http.ResponseWriter, r *http.Request) {
+		path := strings.TrimPrefix(r.URL.Path, "/admin/taxonomy/")
+		path = strings.Trim(path, "/")
+		if path == "" {
+			http.NotFound(w, r)
+			return
+		}
+		if path == "recategorize" {
+			handlers.PostAdminTaxonomyRecategorize(w, r)
+			return
+		}
+		id, err := strconv.Atoi(path)
+		if err != nil {
+			http.Error(w, "invalid id", http.StatusBadRequest)
+			return
+		}
+		switch r.Method {
+		case http.MethodGet:
+			handlers.GetAdminTaxonomyByID(w, r, id)
+		case http.MethodPut:
+			handlers.PutAdminTaxonomy(w, r, id)
+		case http.MethodDelete:
+			handlers.DeleteAdminTaxonomy(w, r, id)
+		default:
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		}
 	}))
 
 	port := "8080"

@@ -36,20 +36,6 @@ function parsePriceFromText(text: string): number | null {
   return m ? parseFloat(m[1]) : null;
 }
 
-function deriveCategory(codes: string[] | undefined, brand: string | null): string | null {
-  if (!codes || !Array.isArray(codes)) return null;
-  const brandLower = (brand || "").toLowerCase();
-  for (const c of codes) {
-    if (!c || typeof c !== "string") continue;
-    if (c.toLowerCase() === brandLower) continue;
-    if (c.toLowerCase().includes("sale")) continue;
-    if (/^\d{8,}$/.test(c) || /^C\d{7}$/.test(c)) continue;
-    const seg = c.split("-")[0];
-    if (seg && seg.length > 2) return seg;
-  }
-  return null;
-}
-
 /**
  * Extract original_price (MSRP) from DTO. Uses msrpPrice - the actual JensonUSA field.
  * Fallback: parse "MSRP $X" from container text.
@@ -109,8 +95,9 @@ export function parseProductDto(
 
   const brand =
     dto.brand && typeof dto.brand === "string" ? dto.brand.trim() : null;
-  const cat = deriveCategory(dto.catalogNodeCodes, brand);
-  const category_path = cat ? [cat] : null;
+  // Category is not derived from catalogNodeCodes (often internal codes like C0000SA5).
+  // Jenson category_path is set via enrichment (PDP breadcrumbs).
+  const category_path: string[] | null = null;
 
   return {
     sku,

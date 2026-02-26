@@ -5,6 +5,7 @@ import { AdminLayout } from "./AdminLayout";
 import { Dashboard } from "./Dashboard";
 import { StoreManager } from "./StoreManager";
 import { DataBrowser } from "./DataBrowser";
+import { TaxonomyManager } from "./TaxonomyManager";
 import { Operations } from "./Operations";
 import { getStoredAdminToken } from "./api";
 
@@ -21,6 +22,7 @@ export function AdminSection() {
         <Route index element={<Dashboard />} />
         <Route path="stores" element={<StoreManager />} />
         <Route path="data" element={<DataBrowser />} />
+        <Route path="taxonomy" element={<TaxonomyManager />} />
         <Route path="operations" element={<Operations />} />
         <Route path="*" element={<Navigate to="/admin" replace />} />
       </Route>

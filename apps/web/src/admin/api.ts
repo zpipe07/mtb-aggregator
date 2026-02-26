@@ -273,3 +273,78 @@ export async function enrichListing(id: number): Promise<{ ok: boolean; category
   }
   return data;
 }
+
+// --- Category taxonomy (canonical mappings) ---
+
+export interface CategoryMapping {
+  id: number;
+  raw_keywords: string[];
+  canonical: string[];
+  priority: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export async function fetchTaxonomyMappings(): Promise<CategoryMapping[]> {
+  const res = await fetch(`${API_BASE}/admin/taxonomy`, { headers: adminHeaders() });
+  if (!res.ok) throw new Error(res.status === 401 ? "Unauthorized" : "Failed to fetch taxonomy");
+  const data = await res.json();
+  return Array.isArray(data) ? data : [];
+}
+
+export async function createTaxonomyMapping(body: {
+  raw_keywords: string[];
+  canonical: string[];
+  priority?: number;
+}): Promise<{ id: number }> {
+  const res = await fetch(`${API_BASE}/admin/taxonomy`, {
+    method: "POST",
+    headers: adminHeaders(),
+    body: JSON.stringify({
+      raw_keywords: body.raw_keywords,
+      canonical: body.canonical,
+      priority: body.priority ?? 0,
+    }),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || "Create failed");
+  }
+  return res.json();
+}
+
+export async function updateTaxonomyMapping(
+  id: number,
+  body: { raw_keywords: string[]; canonical: string[]; priority?: number }
+): Promise<void> {
+  const res = await fetch(`${API_BASE}/admin/taxonomy/${id}`, {
+    method: "PUT",
+    headers: adminHeaders(),
+    body: JSON.stringify({
+      raw_keywords: body.raw_keywords,
+      canonical: body.canonical,
+      priority: body.priority ?? 0,
+    }),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || "Update failed");
+  }
+}
+
+export async function deleteTaxonomyMapping(id: number): Promise<void> {
+  const res = await fetch(`${API_BASE}/admin/taxonomy/${id}`, {
+    method: "DELETE",
+    headers: adminHeaders(),
+  });
+  if (!res.ok) throw new Error("Delete failed");
+}
+
+export async function triggerRecategorize(): Promise<{ updated: number }> {
+  const res = await fetch(`${API_BASE}/admin/taxonomy/recategorize`, {
+    method: "POST",
+    headers: adminHeaders(),
+  });
+  if (!res.ok) throw new Error("Recategorize failed");
+  return res.json();
+}

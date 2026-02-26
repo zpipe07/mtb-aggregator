@@ -5,6 +5,7 @@ const navItems = [
   { to: "/admin", end: true, label: "Dashboard" },
   { to: "/admin/stores", end: false, label: "Stores" },
   { to: "/admin/data", end: false, label: "Data" },
+  { to: "/admin/taxonomy", end: false, label: "Taxonomy" },
   { to: "/admin/operations", end: false, label: "Operations" },
 ];
 

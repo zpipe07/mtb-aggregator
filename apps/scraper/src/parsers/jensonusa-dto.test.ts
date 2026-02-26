@@ -89,4 +89,16 @@ describe("parseProductDto", () => {
     const result = parseProductDto(dto, "No MSRP here");
     expect(result!.originalPrice).toBeNull();
   });
+
+  it("always returns null category_path (Jenson category comes from enrichment/PDP breadcrumbs)", () => {
+    const result = parseProductDto(JENSONUSA_CLEARANCE_FIXTURE);
+    expect(result).not.toBeNull();
+    expect(result!.category_path).toBeNull();
+    // Even with catalogNodeCodes that look human-readable, we do not use them
+    const dtoWithCodes: JensonProductDto = {
+      ...JENSONUSA_CLEARANCE_FIXTURE,
+      catalogNodeCodes: ["Derailleurs", "Mountain"],
+    };
+    expect(parseProductDto(dtoWithCodes)!.category_path).toBeNull();
+  });
 });

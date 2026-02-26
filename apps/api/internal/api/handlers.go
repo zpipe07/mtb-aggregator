@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -9,6 +10,7 @@ import (
 
 	"github.com/mtb-aggregator/api/internal/db"
 	"github.com/mtb-aggregator/api/internal/scraper"
+	"github.com/mtb-aggregator/api/internal/taxonomy"
 )
 
 type Handlers struct {
@@ -660,4 +662,150 @@ func (h *Handlers) PostAdminEnrichListing(w http.ResponseWriter, r *http.Request
 		"ok":            true,
 		"category_path": result.CategoryPath,
 	})
+}
+
+// reloadTaxonomyFromDB loads category_mappings from DB into the taxonomy in-memory cache.
+func (h *Handlers) reloadTaxonomyFromDB(ctx context.Context) error {
+	list, err := h.DB.ListCategoryMappings(ctx)
+	if err != nil {
+		return err
+	}
+	mappings := make([]taxonomy.Mapping, len(list))
+	for i := range list {
+		mappings[i] = taxonomy.Mapping{Raw: list[i].RawKeywords, Canonical: list[i].Canonical}
+	}
+	taxonomy.SetMappings(mappings)
+	return nil
+}
+
+// GetAdminTaxonomy returns all category mappings (admin).
+func (h *Handlers) GetAdminTaxonomy(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	list, err := h.DB.ListCategoryMappings(r.Context())
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if list == nil {
+		list = []db.CategoryMapping{}
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(list)
+}
+
+// PostAdminTaxonomy creates a category mapping (admin). Body: raw_keywords, canonical, priority.
+func (h *Handlers) PostAdminTaxonomy(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var body struct {
+		RawKeywords []string `json:"raw_keywords"`
+		Canonical   []string `json:"canonical"`
+		Priority    int     `json:"priority"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		http.Error(w, "invalid json", http.StatusBadRequest)
+		return
+	}
+	if len(body.RawKeywords) == 0 || len(body.Canonical) == 0 {
+		http.Error(w, "raw_keywords and canonical required (non-empty arrays)", http.StatusBadRequest)
+		return
+	}
+	id, err := h.DB.CreateCategoryMapping(r.Context(), body.RawKeywords, body.Canonical, body.Priority)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if err := h.reloadTaxonomyFromDB(r.Context()); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{"id": id})
+}
+
+// GetAdminTaxonomyByID returns one category mapping by id (admin).
+func (h *Handlers) GetAdminTaxonomyByID(w http.ResponseWriter, r *http.Request, id int) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	m, err := h.DB.GetCategoryMapping(r.Context(), id)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if m == nil {
+		http.Error(w, "not found", http.StatusNotFound)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(m)
+}
+
+// PutAdminTaxonomy updates a category mapping (admin). Body: raw_keywords, canonical, priority.
+func (h *Handlers) PutAdminTaxonomy(w http.ResponseWriter, r *http.Request, id int) {
+	if r.Method != http.MethodPut {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var body struct {
+		RawKeywords []string `json:"raw_keywords"`
+		Canonical   []string `json:"canonical"`
+		Priority    int     `json:"priority"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		http.Error(w, "invalid json", http.StatusBadRequest)
+		return
+	}
+	if len(body.RawKeywords) == 0 || len(body.Canonical) == 0 {
+		http.Error(w, "raw_keywords and canonical required (non-empty arrays)", http.StatusBadRequest)
+		return
+	}
+	if err := h.DB.UpdateCategoryMapping(r.Context(), id, body.RawKeywords, body.Canonical, body.Priority); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if err := h.reloadTaxonomyFromDB(r.Context()); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Write([]byte(`{"ok":true}`))
+}
+
+// DeleteAdminTaxonomy deletes a category mapping (admin).
+func (h *Handlers) DeleteAdminTaxonomy(w http.ResponseWriter, r *http.Request, id int) {
+	if r.Method != http.MethodDelete {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if err := h.DB.DeleteCategoryMapping(r.Context(), id); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if err := h.reloadTaxonomyFromDB(r.Context()); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// PostAdminTaxonomyRecategorize runs a full backfill of canonical_category on all listings (admin).
+func (h *Handlers) PostAdminTaxonomyRecategorize(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	updated, err := h.DB.BackfillCanonicalCategories(r.Context(), taxonomy.Map)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{"updated": updated})
 }
