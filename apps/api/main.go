@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"syscall"
 
@@ -167,6 +168,47 @@ func main() {
 	http.HandleFunc("/admin/auth", api.PostAuthHandler)
 	// Admin: GET /admin/dashboard — aggregate stats, store health, scraper status (admin auth required)
 	http.HandleFunc("/admin/dashboard", api.AdminRequired(handlers.GetAdminDashboard))
+	// Admin: GET /admin/store-types — allowed store types for dropdown
+	http.HandleFunc("/admin/store-types", api.AdminRequired(api.GetStoreTypes))
+	// Admin: GET/POST /admin/stores — list or create stores
+	http.HandleFunc("/admin/stores", api.AdminRequired(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/admin/stores" {
+			http.NotFound(w, r)
+			return
+		}
+		switch r.Method {
+		case http.MethodGet:
+			handlers.GetAdminStores(w, r)
+		case http.MethodPost:
+			handlers.PostAdminStore(w, r)
+		default:
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		}
+	}))
+	// Admin: GET/PUT/DELETE /admin/stores/:id
+	http.HandleFunc("/admin/stores/", api.AdminRequired(func(w http.ResponseWriter, r *http.Request) {
+		path := strings.TrimPrefix(r.URL.Path, "/admin/stores/")
+		path = strings.Trim(path, "/")
+		if path == "" {
+			http.NotFound(w, r)
+			return
+		}
+		id, err := strconv.Atoi(path)
+		if err != nil {
+			http.Error(w, "invalid id", http.StatusBadRequest)
+			return
+		}
+		switch r.Method {
+		case http.MethodGet:
+			handlers.GetAdminStoreByID(w, r, id)
+		case http.MethodPut:
+			handlers.PutAdminStore(w, r, id)
+		case http.MethodDelete:
+			handlers.DeleteAdminStore(w, r, id)
+		default:
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		}
+	}))
 
 	port := "8080"
 	if p := os.Getenv("PORT"); p != "" {

@@ -10,7 +10,7 @@ todos:
     status: completed
   - id: store-management
     content: "Phase C: Store CRUD API endpoints (create/update/delete), store management page with table and add/edit forms"
-    status: pending
+    status: completed
   - id: operations-jobs
     content: "Phase D: scrape_jobs table migration, job tracking in scheduler, job history API, operations page with scrape/enrich triggers and job history"
     status: pending

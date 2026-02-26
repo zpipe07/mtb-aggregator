@@ -17,7 +17,8 @@ type Store struct {
 	BaseURL               string
 	ScrapeURL             string
 	StoreType             string
-	LastScrapeResultCount *int // nil before first scrape; used for health monitoring (0 for 2+ runs = possible breakage)
+	AffiliateNetwork      *string // optional
+	LastScrapeResultCount *int    // nil before first scrape; used for health monitoring (0 for 2+ runs = possible breakage)
 }
 
 type Listing struct {
@@ -64,9 +65,25 @@ func (db *DB) GetStoresByType(ctx context.Context, storeType string) ([]Store, e
 	return db.getStores(ctx, storeType)
 }
 
+// GetStoreByID returns one store by id, or nil if not found.
+func (db *DB) GetStoreByID(ctx context.Context, id int) (*Store, error) {
+	var s Store
+	err := db.pool.QueryRow(ctx, `
+		SELECT id, name, base_url, scrape_url, COALESCE(store_type, 'jensonusa'), affiliate_network, last_scrape_result_count
+		FROM stores WHERE id = $1
+	`, id).Scan(&s.ID, &s.Name, &s.BaseURL, &s.ScrapeURL, &s.StoreType, &s.AffiliateNetwork, &s.LastScrapeResultCount)
+	if err != nil {
+		if err.Error() == "no rows in result set" {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &s, nil
+}
+
 func (db *DB) getStores(ctx context.Context, storeType string) ([]Store, error) {
 	query := `
-		SELECT id, name, base_url, scrape_url, COALESCE(store_type, 'jensonusa'), last_scrape_result_count FROM stores
+		SELECT id, name, base_url, scrape_url, COALESCE(store_type, 'jensonusa'), affiliate_network, last_scrape_result_count FROM stores
 	`
 	args := []interface{}{}
 	if storeType != "" {
@@ -84,12 +101,46 @@ func (db *DB) getStores(ctx context.Context, storeType string) ([]Store, error) 
 	var stores []Store
 	for rows.Next() {
 		var s Store
-		if err := rows.Scan(&s.ID, &s.Name, &s.BaseURL, &s.ScrapeURL, &s.StoreType, &s.LastScrapeResultCount); err != nil {
+		if err := rows.Scan(&s.ID, &s.Name, &s.BaseURL, &s.ScrapeURL, &s.StoreType, &s.AffiliateNetwork, &s.LastScrapeResultCount); err != nil {
 			return nil, err
 		}
 		stores = append(stores, s)
 	}
 	return stores, rows.Err()
+}
+
+// CreateStore inserts a store and returns its id. Name must be unique.
+func (db *DB) CreateStore(ctx context.Context, s Store) (int, error) {
+	var id int
+	err := db.pool.QueryRow(ctx, `
+		INSERT INTO stores (name, base_url, scrape_url, store_type, affiliate_network)
+		VALUES ($1, $2, $3, COALESCE(NULLIF(TRIM($4), ''), 'jensonusa'), NULLIF(TRIM($5), ''))
+		RETURNING id
+	`, s.Name, s.BaseURL, s.ScrapeURL, s.StoreType, s.AffiliateNetwork).Scan(&id)
+	if err != nil {
+		return 0, err
+	}
+	return id, nil
+}
+
+// UpdateStore updates a store by id. Only non-zero/non-empty fields are updated; pass nil for AffiliateNetwork to clear.
+func (db *DB) UpdateStore(ctx context.Context, id int, name, baseURL, scrapeURL, storeType string, affiliateNetwork *string) error {
+	_, err := db.pool.Exec(ctx, `
+		UPDATE stores SET
+			name = $1,
+			base_url = $2,
+			scrape_url = $3,
+			store_type = COALESCE(NULLIF(TRIM($4), ''), store_type),
+			affiliate_network = $5
+		WHERE id = $6
+	`, name, baseURL, scrapeURL, storeType, affiliateNetwork, id)
+	return err
+}
+
+// DeleteStore deletes a store by id. Listings and price_history cascade.
+func (db *DB) DeleteStore(ctx context.Context, id int) error {
+	_, err := db.pool.Exec(ctx, `DELETE FROM stores WHERE id = $1`, id)
+	return err
 }
 
 // UpdateStoreLastScrapeResultCount records the number of listings returned by the last scrape for health monitoring.

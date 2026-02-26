@@ -9,6 +9,9 @@ import (
 
 const adminPasswordEnv = "ADMIN_PASSWORD"
 
+// AllowedStoreTypes are store_type values that have a registered scraper parser. Update when adding parsers.
+var AllowedStoreTypes = []string{"jensonusa", "worldwidecyclery", "revelbikes"}
+
 // ValidateAdminAuth returns true if r has a valid admin Bearer token.
 func ValidateAdminAuth(r *http.Request) bool {
 	expected := os.Getenv(adminPasswordEnv)
@@ -50,6 +53,17 @@ func PostAuthHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.Write([]byte(`{"ok":true}`))
+}
+
+// GetStoreTypes returns the list of allowed store_type values for the admin UI dropdown.
+func GetStoreTypes(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	enc := json.NewEncoder(w)
+	enc.Encode(AllowedStoreTypes)
 }
 
 // AdminRequired wraps a handler and returns 401 if the request is not admin-authenticated.

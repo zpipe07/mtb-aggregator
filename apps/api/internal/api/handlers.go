@@ -293,3 +293,180 @@ func (h *Handlers) GetAdminDashboard(w http.ResponseWriter, r *http.Request) {
 		"enrichment_pct":     enrichmentPct,
 	})
 }
+
+// GetAdminStores returns all stores with full detail (admin).
+func (h *Handlers) GetAdminStores(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	stores, err := h.DB.GetStores(r.Context())
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	// Include deal count for UI
+	withCounts, _ := h.DB.GetStoresWithCountsAndHealth(r.Context())
+	countByID := make(map[int]int)
+	for _, s := range withCounts {
+		countByID[s.ID] = s.DealCount
+	}
+	type storeRow struct {
+		ID                    int     `json:"id"`
+		Name                  string  `json:"name"`
+		BaseURL               string  `json:"base_url"`
+		ScrapeURL             string  `json:"scrape_url"`
+		StoreType             string  `json:"store_type"`
+		AffiliateNetwork      *string `json:"affiliate_network,omitempty"`
+		LastScrapeResultCount *int    `json:"last_scrape_result_count,omitempty"`
+		DealCount             int     `json:"deal_count"`
+	}
+	var out []storeRow
+	for _, s := range stores {
+		out = append(out, storeRow{
+			ID:                    s.ID,
+			Name:                  s.Name,
+			BaseURL:               s.BaseURL,
+			ScrapeURL:             s.ScrapeURL,
+			StoreType:             s.StoreType,
+			AffiliateNetwork:      s.AffiliateNetwork,
+			LastScrapeResultCount: s.LastScrapeResultCount,
+			DealCount:             countByID[s.ID],
+		})
+	}
+	if out == nil {
+		out = []storeRow{}
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(out)
+}
+
+// PostAdminStore creates a store (admin). Body: name, base_url, scrape_url, store_type, affiliate_network.
+func (h *Handlers) PostAdminStore(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var body struct {
+		Name             string  `json:"name"`
+		BaseURL          string  `json:"base_url"`
+		ScrapeURL        string  `json:"scrape_url"`
+		StoreType        string  `json:"store_type"`
+		AffiliateNetwork *string `json:"affiliate_network"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		http.Error(w, "invalid json", http.StatusBadRequest)
+		return
+	}
+	name := strings.TrimSpace(body.Name)
+	baseURL := strings.TrimSpace(body.BaseURL)
+	scrapeURL := strings.TrimSpace(body.ScrapeURL)
+	storeType := strings.TrimSpace(body.StoreType)
+	if storeType == "" {
+		storeType = "jensonusa"
+	}
+	if name == "" || baseURL == "" || scrapeURL == "" {
+		http.Error(w, "name, base_url, scrape_url required", http.StatusBadRequest)
+		return
+	}
+	if !isAllowedStoreType(storeType) {
+		http.Error(w, "invalid store_type", http.StatusBadRequest)
+		return
+	}
+	s := db.Store{Name: name, BaseURL: baseURL, ScrapeURL: scrapeURL, StoreType: storeType, AffiliateNetwork: body.AffiliateNetwork}
+	id, err := h.DB.CreateStore(r.Context(), s)
+	if err != nil {
+		if strings.Contains(err.Error(), "duplicate") || strings.Contains(err.Error(), "unique") {
+			http.Error(w, "store name already exists", http.StatusConflict)
+			return
+		}
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(map[string]interface{}{"id": id})
+}
+
+func isAllowedStoreType(t string) bool {
+	for _, allowed := range AllowedStoreTypes {
+		if strings.EqualFold(t, allowed) {
+			return true
+		}
+	}
+	return false
+}
+
+// GetAdminStoreByID returns one store by id (admin).
+func (h *Handlers) GetAdminStoreByID(w http.ResponseWriter, r *http.Request, id int) {
+	store, err := h.DB.GetStoreByID(r.Context(), id)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if store == nil {
+		http.Error(w, "not found", http.StatusNotFound)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(store)
+}
+
+// PutAdminStore updates a store (admin). Body: name, base_url, scrape_url, store_type, affiliate_network.
+func (h *Handlers) PutAdminStore(w http.ResponseWriter, r *http.Request, id int) {
+	if r.Method != http.MethodPut {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var body struct {
+		Name             string  `json:"name"`
+		BaseURL          string  `json:"base_url"`
+		ScrapeURL        string  `json:"scrape_url"`
+		StoreType        string  `json:"store_type"`
+		AffiliateNetwork *string `json:"affiliate_network"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		http.Error(w, "invalid json", http.StatusBadRequest)
+		return
+	}
+	name := strings.TrimSpace(body.Name)
+	baseURL := strings.TrimSpace(body.BaseURL)
+	scrapeURL := strings.TrimSpace(body.ScrapeURL)
+	storeType := strings.TrimSpace(body.StoreType)
+	if name == "" || baseURL == "" || scrapeURL == "" {
+		http.Error(w, "name, base_url, scrape_url required", http.StatusBadRequest)
+		return
+	}
+	if storeType != "" && !isAllowedStoreType(storeType) {
+		http.Error(w, "invalid store_type", http.StatusBadRequest)
+		return
+	}
+	if storeType == "" {
+		storeType = "jensonusa"
+	}
+	err := h.DB.UpdateStore(r.Context(), id, name, baseURL, scrapeURL, storeType, body.AffiliateNetwork)
+	if err != nil {
+		if strings.Contains(err.Error(), "duplicate") || strings.Contains(err.Error(), "unique") {
+			http.Error(w, "store name already exists", http.StatusConflict)
+			return
+		}
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Write([]byte(`{"ok":true}`))
+}
+
+// DeleteAdminStore deletes a store (admin).
+func (h *Handlers) DeleteAdminStore(w http.ResponseWriter, r *http.Request, id int) {
+	if r.Method != http.MethodDelete {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	err := h.DB.DeleteStore(r.Context(), id)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
