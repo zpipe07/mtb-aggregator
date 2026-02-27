@@ -55,6 +55,7 @@ export interface DashboardResponse {
   stores: DashboardStore[];
   scraper_reachable: boolean;
   enrichment_pct: number;
+  store_types_with_enrichers?: string[];
 }
 
 export async function fetchDashboard(): Promise<DashboardResponse> {
@@ -70,9 +71,13 @@ export async function triggerScrape(store?: string): Promise<void> {
   if (!res.ok) throw new Error("Scrape request failed");
 }
 
-/** Trigger enrichment; pass force=true to re-enrich all. */
-export async function triggerEnrich(force?: boolean): Promise<void> {
-  const url = force ? `${API_BASE}/enrich-now?force=1` : `${API_BASE}/enrich-now`;
+/** Trigger enrichment; pass force=true to re-enrich all, or store=store_type to enrich one store. */
+export async function triggerEnrich(force?: boolean, store?: string): Promise<void> {
+  const params = new URLSearchParams();
+  if (force) params.set("force", "1");
+  if (store) params.set("store", store);
+  const qs = params.toString();
+  const url = qs ? `${API_BASE}/enrich-now?${qs}` : `${API_BASE}/enrich-now`;
   const res = await fetch(url, { method: "POST", headers: adminHeaders() });
   if (!res.ok) throw new Error("Enrich request failed");
 }
@@ -100,6 +105,14 @@ export async function fetchAdminStores(): Promise<AdminStore[]> {
 export async function fetchStoreTypes(): Promise<string[]> {
   const res = await fetch(`${API_BASE}/admin/store-types`, { headers: adminHeaders() });
   if (!res.ok) throw new Error("Failed to fetch store types");
+  const data = await res.json();
+  return Array.isArray(data) ? data : [];
+}
+
+/** Store types that support PDP enrichment (for showing Enrich button). */
+export async function fetchStoreTypesWithEnrichers(): Promise<string[]> {
+  const res = await fetch(`${API_BASE}/admin/store-types-with-enrichers`, { headers: adminHeaders() });
+  if (!res.ok) throw new Error("Failed to fetch store types with enrichers");
   const data = await res.json();
   return Array.isArray(data) ? data : [];
 }

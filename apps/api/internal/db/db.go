@@ -1001,6 +1001,46 @@ func (db *DB) GetListingsNeedingEnrichment(ctx context.Context, limit int, force
 	return listings, rows.Err()
 }
 
+// GetListingsNeedingEnrichmentForStore returns listings that need enrichment for a single store (by store_type).
+// Used to run enrichment for an entire store. Caller should ensure storeType is in StoreTypesWithEnrichers.
+func (db *DB) GetListingsNeedingEnrichmentForStore(ctx context.Context, storeType string, limit int, force bool) ([]ListingForEnrichment, error) {
+	if limit <= 0 {
+		limit = 50
+	}
+	if storeType == "" {
+		return nil, nil
+	}
+	query := `
+		SELECT l.id, l.store_id, COALESCE(s.store_type, 'jensonusa'), l.product_url
+		FROM store_listings l
+		JOIN stores s ON s.id = l.store_id
+		WHERE l.product_url IS NOT NULL AND l.product_url != ''
+		  AND s.store_type = $2
+	`
+	if !force {
+		query += ` AND (l.last_enriched_at IS NULL OR l.last_enriched_at < NOW() - INTERVAL '7 days')`
+	}
+	query += `
+		ORDER BY l.last_enriched_at NULLS FIRST, l.last_scraped DESC
+		LIMIT $1
+	`
+	rows, err := db.pool.Query(ctx, query, limit, storeType)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var listings []ListingForEnrichment
+	for rows.Next() {
+		var l ListingForEnrichment
+		if err := rows.Scan(&l.ID, &l.StoreID, &l.StoreType, &l.ProductURL); err != nil {
+			return nil, err
+		}
+		listings = append(listings, l)
+	}
+	return listings, rows.Err()
+}
+
 func (db *DB) UpdateListingEnrichment(ctx context.Context, id int, categoryPath []string) error {
 	_, err := db.pool.Exec(ctx, `
 		UPDATE store_listings

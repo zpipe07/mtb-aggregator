@@ -204,7 +204,8 @@ func main() {
 			return
 		}
 		force := r.URL.Query().Get("force") == "1"
-		sched.RunEnrichmentJob(force)
+		store := strings.TrimSpace(r.URL.Query().Get("store"))
+		sched.RunEnrichmentJobForStore(store, force)
 		w.Header().Set("Content-Type", "application/json")
 		w.Write([]byte(`{"status":"ok"}`))
 	})
@@ -229,6 +230,8 @@ func main() {
 	http.HandleFunc("/admin/dashboard", api.AdminRequired(handlers.GetAdminDashboard))
 	// Admin: GET /admin/store-types — allowed store types for dropdown
 	http.HandleFunc("/admin/store-types", api.AdminRequired(api.GetStoreTypes))
+	// Admin: GET /admin/store-types-with-enrichers — store types that support enrichment (for Enrich button)
+	http.HandleFunc("/admin/store-types-with-enrichers", api.AdminRequired(handlers.GetStoreTypesWithEnrichers))
 	// Admin: GET/POST /admin/stores — list or create stores
 	http.HandleFunc("/admin/stores", api.AdminRequired(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/admin/stores" {

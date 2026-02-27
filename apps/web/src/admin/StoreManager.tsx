@@ -2,10 +2,12 @@ import { useEffect, useState, useCallback } from "react";
 import {
   fetchAdminStores,
   fetchStoreTypes,
+  fetchStoreTypesWithEnrichers,
   createStore,
   updateStore,
   deleteStore,
   triggerScrape,
+  triggerEnrich,
   type AdminStore,
   type StoreFormBody,
 } from "./api";
@@ -161,14 +163,17 @@ export function StoreManager() {
   const [modal, setModal] = useState<"add" | "edit" | null>(null);
   const [editingStore, setEditingStore] = useState<AdminStore | null>(null);
   const [scrapingId, setScrapingId] = useState<number | null>(null);
+  const [enrichingStoreType, setEnrichingStoreType] = useState<string | null>(null);
+  const [enricherSet, setEnricherSet] = useState<Set<string>>(new Set());
 
   const load = useCallback(() => {
     setLoading(true);
     setError(null);
-    Promise.all([fetchAdminStores(), fetchStoreTypes()])
-      .then(([s, t]) => {
+    Promise.all([fetchAdminStores(), fetchStoreTypes(), fetchStoreTypesWithEnrichers()])
+      .then(([s, t, e]) => {
         setStores(s);
         setStoreTypes(t.length > 0 ? t : ["jensonusa", "worldwidecyclery", "revelbikes"]);
+        setEnricherSet(new Set((Array.isArray(e) ? e : []).map((t) => t.toLowerCase())));
       })
       .catch((e) => setError(e instanceof Error ? e.message : "Failed to load"))
       .finally(() => setLoading(false));
@@ -212,6 +217,18 @@ export function StoreManager() {
       setError(e instanceof Error ? e.message : "Scrape failed");
     } finally {
       setScrapingId(null);
+    }
+  }
+
+  async function handleEnrich(store: AdminStore) {
+    setEnrichingStoreType(store.store_type);
+    try {
+      await triggerEnrich(false, store.store_type);
+      load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Enrich failed");
+    } finally {
+      setEnrichingStoreType(null);
     }
   }
 
@@ -286,6 +303,16 @@ export function StoreManager() {
                         >
                           {scrapingId === store.id ? "…" : "Scrape"}
                         </button>
+                        {enricherSet.has(store.store_type.toLowerCase()) && (
+                          <button
+                            type="button"
+                            onClick={() => handleEnrich(store)}
+                            disabled={enrichingStoreType !== null}
+                            className="rounded border border-stone-300 px-2 py-1 text-xs hover:bg-stone-100 disabled:opacity-50 mr-1"
+                          >
+                            {enrichingStoreType === store.store_type ? "…" : "Enrich"}
+                          </button>
+                        )}
                         <button
                           type="button"
                           onClick={() => {

@@ -254,6 +254,68 @@ func (s *Scheduler) RunEnrichmentJob(force bool) {
 	log.Printf("[enrichment] enriched %d/%d listings", successCount, len(listings))
 }
 
+// RunEnrichmentJobForStore runs enrichment for all listings of a single store (by store_type), in batches.
+// If storeType is empty, runs the global job (one batch). Caller should pass a store_type that has an enricher.
+func (s *Scheduler) RunEnrichmentJobForStore(storeType string, force bool) {
+	if storeType == "" {
+		s.RunEnrichmentJob(force)
+		return
+	}
+	hasEnricher := false
+	for _, t := range db.StoreTypesWithEnrichers {
+		if strings.EqualFold(t, storeType) {
+			hasEnricher = true
+			break
+		}
+	}
+	if !hasEnricher {
+		log.Printf("[enrichment] no enricher for store_type=%q; skipping", storeType)
+		return
+	}
+
+	ctx := context.Background()
+	batchSize := getEnrichBatchSize()
+	totalSuccess := 0
+	totalProcessed := 0
+	for {
+		listings, err := s.db.GetListingsNeedingEnrichmentForStore(ctx, storeType, batchSize, force)
+		if err != nil {
+			log.Printf("[enrichment] failed to get listings for %s: %v", storeType, err)
+			return
+		}
+		if len(listings) == 0 {
+			break
+		}
+		log.Printf("[enrichment] %s: enriching batch of %d listings", storeType, len(listings))
+		successCount := 0
+		for _, l := range listings {
+			result, err := s.scraper.Enrich(l.ProductURL, l.StoreType)
+			if err != nil {
+				log.Printf("[enrichment] failed for listing %d: %v", l.ID, err)
+				continue
+			}
+			if err := s.db.UpdateListingEnrichment(ctx, l.ID, result.CategoryPath); err != nil {
+				log.Printf("[enrichment] failed to update listing %d: %v", l.ID, err)
+				continue
+			}
+			successCount++
+			totalSuccess++
+			if len(result.CategoryPath) > 0 {
+				log.Printf("[enrichment] listing %d: category_path=%v", l.ID, result.CategoryPath)
+			}
+		}
+		totalProcessed += len(listings)
+		log.Printf("[enrichment] %s: batch done %d/%d", storeType, successCount, len(listings))
+		if len(listings) < batchSize {
+			break
+		}
+	}
+	if totalProcessed > 0 {
+		log.Printf("[enrichment] %s: enriched %d/%d listings total", storeType, totalSuccess, totalProcessed)
+	} else {
+		log.Printf("[enrichment] %s: no listings need enrichment", storeType)
+	}
+}
 
 func (s *Scheduler) Start(spec string, triggeredBy string) {
 	if triggeredBy == "" {

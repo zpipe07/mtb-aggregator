@@ -79,6 +79,18 @@ export function Dashboard() {
     }
   }
 
+  async function runEnrichStore(storeType: string) {
+    setActionBusy(`enrich-${storeType}`);
+    try {
+      await triggerEnrich(false, storeType);
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Enrich failed");
+    } finally {
+      setActionBusy(null);
+    }
+  }
+
   if (loading && !data) {
     return (
       <div>
@@ -104,7 +116,8 @@ export function Dashboard() {
     );
   }
 
-  const { stats, stores, scraper_reachable, enrichment_pct } = data!;
+  const { stats, stores, scraper_reachable, enrichment_pct, store_types_with_enrichers = [] } = data!;
+  const enricherSet = new Set(store_types_with_enrichers.map((t) => t.toLowerCase()));
 
   return (
     <div>
@@ -196,14 +209,26 @@ export function Dashboard() {
                     <td className="px-4 py-2 text-stone-600">{formatDate(store.last_scraped)}</td>
                     <td className={`px-4 py-2 text-right ${health.className}`}>{health.text}</td>
                     <td className="px-4 py-2 text-right">
-                      <button
-                        type="button"
-                        onClick={() => runScrapeStore(store.store_type)}
-                        disabled={!!actionBusy || !scraper_reachable}
-                        className="rounded border border-stone-300 px-2 py-1 text-xs hover:bg-stone-100 disabled:opacity-50"
-                      >
-                        {actionBusy === `scrape-${store.store_type}` ? "…" : "Scrape"}
-                      </button>
+                      <span className="inline-flex gap-1">
+                        <button
+                          type="button"
+                          onClick={() => runScrapeStore(store.store_type)}
+                          disabled={!!actionBusy || !scraper_reachable}
+                          className="rounded border border-stone-300 px-2 py-1 text-xs hover:bg-stone-100 disabled:opacity-50"
+                        >
+                          {actionBusy === `scrape-${store.store_type}` ? "…" : "Scrape"}
+                        </button>
+                        {enricherSet.has(store.store_type.toLowerCase()) && (
+                          <button
+                            type="button"
+                            onClick={() => runEnrichStore(store.store_type)}
+                            disabled={!!actionBusy}
+                            className="rounded border border-stone-300 px-2 py-1 text-xs hover:bg-stone-100 disabled:opacity-50"
+                          >
+                            {actionBusy === `enrich-${store.store_type}` ? "…" : "Enrich"}
+                          </button>
+                        )}
+                      </span>
                     </td>
                   </tr>
                 );

@@ -291,11 +291,22 @@ func (h *Handlers) GetAdminDashboard(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"stats":              stats,
-		"stores":             stores,
-		"scraper_reachable":  scraperReachable,
-		"enrichment_pct":     enrichmentPct,
+		"stats":                      stats,
+		"stores":                    stores,
+		"scraper_reachable":         scraperReachable,
+		"enrichment_pct":             enrichmentPct,
+		"store_types_with_enrichers": db.StoreTypesWithEnrichers,
 	})
+}
+
+// GetStoreTypesWithEnrichers returns store_type values that support PDP enrichment (for showing Enrich button in UI).
+func (h *Handlers) GetStoreTypesWithEnrichers(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(db.StoreTypesWithEnrichers)
 }
 
 // GetAdminStores returns all stores with full detail (admin).
