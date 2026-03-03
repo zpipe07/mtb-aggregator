@@ -9,6 +9,7 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/lib/pq"
+	"github.com/mtb-aggregator/api/internal/metadata"
 )
 
 type Store struct {
@@ -418,19 +419,18 @@ func (db *DB) GetAdminListingByID(ctx context.Context, id int) (*AdminListing, e
 
 // GetDealsParams for filtering, search, and sort
 type GetDealsParams struct {
-	StoreID            *int
-	StoreName          string
-	Brand              string
-	Category           string
-	CanonicalCategory  string // e.g. "Bikes > Mountain" (exact path match)
-	MinDiscount        *float64
-	Search             string // full-text search query (q)
-	Sort               string // newest, discount, price_asc, price_desc, relevance
-	Limit              int
-	Offset             int
-	WheelSize          string // e.g. "29", "27.5", "mullet"
-	ModelYear          int    // e.g. 2024
-	Groupset           string // e.g. "XT", "GX Eagle"
+	StoreID           *int
+	StoreName         string
+	Brand             string
+	Category          string
+	CanonicalCategory string // e.g. "Bikes > Mountain" (exact path match)
+	MinDiscount       *float64
+	Search            string // full-text search query (q)
+	Sort              string // newest, discount, price_asc, price_desc, relevance
+	Limit             int
+	Offset            int
+	SpecKey           string // e.g. "tooth_count", "material" — filters metadata.specs[key]
+	SpecValue         string // value to match (ILIKE) in metadata.specs
 }
 
 // GetDealsResult includes deals and total count for pagination
@@ -498,20 +498,10 @@ func (db *DB) GetDeals(ctx context.Context, params GetDealsParams) (*GetDealsRes
 			argNum++
 		}
 	}
-	if params.WheelSize != "" {
-		query += fmt.Sprintf(" AND l.metadata->>'wheel_size' = $%d", argNum)
-		args = append(args, params.WheelSize)
-		argNum++
-	}
-	if params.ModelYear > 0 {
-		query += fmt.Sprintf(" AND (l.metadata->>'model_year')::int = $%d", argNum)
-		args = append(args, params.ModelYear)
-		argNum++
-	}
-	if params.Groupset != "" {
-		query += fmt.Sprintf(" AND l.metadata->>'groupset' ILIKE $%d", argNum)
-		args = append(args, params.Groupset)
-		argNum++
+	if params.SpecKey != "" && params.SpecValue != "" {
+		query += fmt.Sprintf(" AND l.metadata->'specs'->>$%d ILIKE $%d", argNum, argNum+1)
+		args = append(args, params.SpecKey, params.SpecValue)
+		argNum += 2
 	}
 	if params.MinDiscount != nil && *params.MinDiscount > 0 {
 		query += fmt.Sprintf(" AND l.original_price IS NOT NULL AND l.original_price > 0 AND l.current_price < l.original_price AND (1 - l.current_price / l.original_price) * 100 >= $%d", argNum)
@@ -882,6 +872,100 @@ func (db *DB) GetScrapeJobByID(ctx context.Context, id int) (*ScrapeJob, error) 
 	return &j, nil
 }
 
+// EnrichJob represents a single enrichment run (optionally scoped by store_type).
+type EnrichJob struct {
+	ID                int      `json:"id"`
+	StoreType         *string  `json:"store_type,omitempty"`
+	Status            string   `json:"status"` // running, completed, failed
+	StartedAt         string   `json:"started_at"`
+	CompletedAt       *string  `json:"completed_at,omitempty"`
+	ListingsProcessed *int     `json:"listings_processed,omitempty"`
+	ListingsEnriched  *int     `json:"listings_enriched,omitempty"`
+	Errors            []string `json:"errors,omitempty"`
+	TriggeredBy       string   `json:"triggered_by"` // manual, cron
+	ForceMode         bool     `json:"force_mode"`
+}
+
+// CreateEnrichJob inserts a new enrich job (status=running) and returns its id.
+func (db *DB) CreateEnrichJob(ctx context.Context, storeType *string, triggeredBy string, forceMode bool) (int, error) {
+	var id int
+	err := db.pool.QueryRow(ctx, `
+		INSERT INTO enrich_jobs (store_type, status, triggered_by, force_mode)
+		VALUES ($1, 'running', $2, $3)
+		RETURNING id
+	`, storeType, triggeredBy, forceMode).Scan(&id)
+	return id, err
+}
+
+// UpdateEnrichJob sets status, completed_at, counts, and errors for a job.
+func (db *DB) UpdateEnrichJob(ctx context.Context, id int, status string, processed, enriched *int, errors []string) error {
+	var errSlice interface{}
+	if len(errors) > 0 {
+		errSlice = pq.Array(errors)
+	} else {
+		errSlice = pq.Array([]string{})
+	}
+	_, err := db.pool.Exec(ctx, `
+		UPDATE enrich_jobs SET
+			status = $1,
+			completed_at = NOW(),
+			listings_processed = $2,
+			listings_enriched = $3,
+			errors = $4
+		WHERE id = $5
+	`, status, processed, enriched, errSlice, id)
+	return err
+}
+
+// GetEnrichJobs returns recent enrich jobs (newest first), paginated.
+func (db *DB) GetEnrichJobs(ctx context.Context, limit, offset int) ([]EnrichJob, error) {
+	rows, err := db.pool.Query(ctx, `
+		SELECT id, store_type, status, started_at::text, completed_at::text,
+			listings_processed, listings_enriched, COALESCE(errors, '{}'), triggered_by, force_mode
+		FROM enrich_jobs
+		ORDER BY started_at DESC LIMIT $1 OFFSET $2
+	`, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var jobs []EnrichJob
+	for rows.Next() {
+		var j EnrichJob
+		var completedAt *string
+		var errArr pgtype.FlatArray[string]
+		if err := rows.Scan(&j.ID, &j.StoreType, &j.Status, &j.StartedAt, &completedAt, &j.ListingsProcessed, &j.ListingsEnriched, &errArr, &j.TriggeredBy, &j.ForceMode); err != nil {
+			return nil, err
+		}
+		j.CompletedAt = completedAt
+		j.Errors = []string(errArr)
+		jobs = append(jobs, j)
+	}
+	return jobs, rows.Err()
+}
+
+// GetEnrichJobByID returns one enrich job by id, or nil if not found.
+func (db *DB) GetEnrichJobByID(ctx context.Context, id int) (*EnrichJob, error) {
+	var j EnrichJob
+	var completedAt *string
+	var errArr pgtype.FlatArray[string]
+	err := db.pool.QueryRow(ctx, `
+		SELECT id, store_type, status, started_at::text, completed_at::text,
+			listings_processed, listings_enriched, COALESCE(errors, '{}'), triggered_by, force_mode
+		FROM enrich_jobs WHERE id = $1
+	`, id).Scan(&j.ID, &j.StoreType, &j.Status, &j.StartedAt, &completedAt, &j.ListingsProcessed, &j.ListingsEnriched, &errArr, &j.TriggeredBy, &j.ForceMode)
+	if err != nil {
+		if err.Error() == "no rows in result set" {
+			return nil, nil
+		}
+		return nil, err
+	}
+	j.CompletedAt = completedAt
+	j.Errors = []string(errArr)
+	return &j, nil
+}
+
 func (db *DB) GetBrands(ctx context.Context) ([]string, error) {
 	rows, err := db.pool.Query(ctx, `
 		SELECT DISTINCT brand FROM store_listings
@@ -951,9 +1035,9 @@ func (db *DB) GetCanonicalCategories(ctx context.Context) ([]string, error) {
 	return list, rows.Err()
 }
 
-// StoreTypesWithEnrichers lists store_type values that have a scraper enricher (PDP category extraction).
+// StoreTypesWithEnrichers lists store_type values that have a scraper enricher (PDP enrichment).
 // When adding an enricher for a new store, add its store_type here.
-var StoreTypesWithEnrichers = []string{"jensonusa"}
+var StoreTypesWithEnrichers = []string{"jensonusa", "worldwidecyclery"}
 
 // ListingForEnrichment is a listing that needs PDP enrichment
 type ListingForEnrichment struct {
@@ -1041,12 +1125,44 @@ func (db *DB) GetListingsNeedingEnrichmentForStore(ctx context.Context, storeTyp
 	return listings, rows.Err()
 }
 
-func (db *DB) UpdateListingEnrichment(ctx context.Context, id int, categoryPath []string) error {
+func (db *DB) UpdateListingEnrichment(ctx context.Context, id int, categoryPath []string, rawSpecs map[string]string) error {
+	// Fetch existing metadata so we can merge PDP-derived specs into it.
+	var existingMeta []byte
+	if err := db.pool.QueryRow(ctx, `SELECT metadata FROM store_listings WHERE id = $1`, id).Scan(&existingMeta); err != nil {
+		// If the row disappeared between selection and update, treat as non-fatal for the caller.
+		if err.Error() == "no rows in result set" {
+			return nil
+		}
+		return err
+	}
+
+	mergedMeta := metadata.MergeSpecs(existingMeta, rawSpecs)
+
+	// If we got a non-empty categoryPath, update category_path as well; otherwise leave it unchanged.
+	if len(categoryPath) > 0 {
+		_, err := db.pool.Exec(ctx, `
+			UPDATE store_listings
+			SET category_path = $1, metadata = $2, last_enriched_at = NOW()
+			WHERE id = $3
+		`, pq.Array(categoryPath), mergedMeta, id)
+		return err
+	}
+
+	// Only specs (or just last_enriched_at) to update.
+	if mergedMeta != nil {
+		_, err := db.pool.Exec(ctx, `
+			UPDATE store_listings
+			SET metadata = $1, last_enriched_at = NOW()
+			WHERE id = $2
+		`, mergedMeta, id)
+		return err
+	}
+
 	_, err := db.pool.Exec(ctx, `
 		UPDATE store_listings
-		SET category_path = $1, last_enriched_at = NOW()
-		WHERE id = $2
-	`, pq.Array(categoryPath), id)
+		SET last_enriched_at = NOW()
+		WHERE id = $1
+	`, id)
 	return err
 }
 

@@ -2,6 +2,7 @@ package scheduler
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"os"
 	"strconv"
@@ -9,7 +10,6 @@ import (
 
 	"github.com/mtb-aggregator/api/internal/brand"
 	"github.com/mtb-aggregator/api/internal/db"
-	"github.com/mtb-aggregator/api/internal/metadata"
 	"github.com/mtb-aggregator/api/internal/scraper"
 	"github.com/mtb-aggregator/api/internal/taxonomy"
 	"github.com/robfig/cron/v3"
@@ -179,7 +179,7 @@ func (s *Scheduler) scrapeStore(ctx context.Context, store db.Store, triggeredBy
 			Brand:             normalizedBrand,
 			CategoryPath:      r.CategoryPath,
 			CanonicalCategory: canonicalCat,
-			Metadata:          metadata.Extract(r.ProductName),
+			Metadata:          nil,
 			IsInStock:         r.IsInStock,
 		}
 
@@ -215,33 +215,53 @@ func (s *Scheduler) scrapeStore(ctx context.Context, store db.Store, triggeredBy
 	log.Printf("[scheduler] %s: saved %d listings", store.Name, validCount)
 }
 
-func (s *Scheduler) RunEnrichmentJob(force bool) {
+// RunEnrichmentJob runs enrichment for listings needing it (all stores, one batch).
+// triggeredBy is "manual" or "cron" for job history.
+func (s *Scheduler) RunEnrichmentJob(force bool, triggeredBy string) {
 	ctx := context.Background()
+	if triggeredBy == "" {
+		triggeredBy = "manual"
+	}
+
+	jobID, err := s.db.CreateEnrichJob(ctx, nil, triggeredBy, force)
+	if err != nil {
+		log.Printf("[enrichment] failed to create enrich job: %v", err)
+	}
 
 	batchSize := getEnrichBatchSize()
 	listings, err := s.db.GetListingsNeedingEnrichment(ctx, batchSize, force)
 	if err != nil {
 		log.Printf("[enrichment] failed to get listings: %v", err)
+		if jobID != 0 {
+			_ = s.db.UpdateEnrichJob(ctx, jobID, "failed", nil, nil, []string{err.Error()})
+		}
 		return
 	}
 
 	if len(listings) == 0 {
 		log.Printf("[enrichment] no listings need enrichment")
+		if jobID != 0 {
+			z := 0
+			_ = s.db.UpdateEnrichJob(ctx, jobID, "completed", &z, &z, nil)
+		}
 		return
 	}
 
 	log.Printf("[enrichment] enriching %d listings", len(listings))
 
 	successCount := 0
+	var errStrs []string
 	for _, l := range listings {
 		result, err := s.scraper.Enrich(l.ProductURL, l.StoreType)
 		if err != nil {
 			log.Printf("[enrichment] failed for listing %d: %v", l.ID, err)
+			errStrs = append(errStrs, fmt.Sprintf("listing %d: %v", l.ID, err))
 			continue
 		}
 
-		if err := s.db.UpdateListingEnrichment(ctx, l.ID, result.CategoryPath); err != nil {
+		if err := s.db.UpdateListingEnrichment(ctx, l.ID, result.CategoryPath, result.RawSpecs); err != nil {
 			log.Printf("[enrichment] failed to update listing %d: %v", l.ID, err)
+			errStrs = append(errStrs, fmt.Sprintf("listing %d update: %v", l.ID, err))
 			continue
 		}
 
@@ -251,16 +271,25 @@ func (s *Scheduler) RunEnrichmentJob(force bool) {
 		}
 	}
 
+	status := "completed"
+	if jobID != 0 {
+		processed := len(listings)
+		_ = s.db.UpdateEnrichJob(ctx, jobID, status, &processed, &successCount, errStrs)
+	}
 	log.Printf("[enrichment] enriched %d/%d listings", successCount, len(listings))
 }
 
 // RunEnrichmentJobForStore runs enrichment for all listings of a single store (by store_type), in batches.
-// If storeType is empty, runs the global job (one batch). Caller should pass a store_type that has an enricher.
-func (s *Scheduler) RunEnrichmentJobForStore(storeType string, force bool) {
+// If storeType is empty, runs the global job (one batch). triggeredBy is "manual" or "cron" for job history.
+func (s *Scheduler) RunEnrichmentJobForStore(storeType string, force bool, triggeredBy string) {
 	if storeType == "" {
-		s.RunEnrichmentJob(force)
+		s.RunEnrichmentJob(force, triggeredBy)
 		return
 	}
+	if triggeredBy == "" {
+		triggeredBy = "manual"
+	}
+
 	hasEnricher := false
 	for _, t := range db.StoreTypesWithEnrichers {
 		if strings.EqualFold(t, storeType) {
@@ -274,13 +303,23 @@ func (s *Scheduler) RunEnrichmentJobForStore(storeType string, force bool) {
 	}
 
 	ctx := context.Background()
+	st := storeType
+	jobID, err := s.db.CreateEnrichJob(ctx, &st, triggeredBy, force)
+	if err != nil {
+		log.Printf("[enrichment] failed to create enrich job: %v", err)
+	}
+
 	batchSize := getEnrichBatchSize()
 	totalSuccess := 0
 	totalProcessed := 0
+	var errStrs []string
 	for {
 		listings, err := s.db.GetListingsNeedingEnrichmentForStore(ctx, storeType, batchSize, force)
 		if err != nil {
 			log.Printf("[enrichment] failed to get listings for %s: %v", storeType, err)
+			if jobID != 0 {
+				_ = s.db.UpdateEnrichJob(ctx, jobID, "failed", nil, nil, []string{err.Error()})
+			}
 			return
 		}
 		if len(listings) == 0 {
@@ -292,10 +331,12 @@ func (s *Scheduler) RunEnrichmentJobForStore(storeType string, force bool) {
 			result, err := s.scraper.Enrich(l.ProductURL, l.StoreType)
 			if err != nil {
 				log.Printf("[enrichment] failed for listing %d: %v", l.ID, err)
+				errStrs = append(errStrs, fmt.Sprintf("listing %d: %v", l.ID, err))
 				continue
 			}
-			if err := s.db.UpdateListingEnrichment(ctx, l.ID, result.CategoryPath); err != nil {
+			if err := s.db.UpdateListingEnrichment(ctx, l.ID, result.CategoryPath, result.RawSpecs); err != nil {
 				log.Printf("[enrichment] failed to update listing %d: %v", l.ID, err)
+				errStrs = append(errStrs, fmt.Sprintf("listing %d update: %v", l.ID, err))
 				continue
 			}
 			successCount++
@@ -309,6 +350,9 @@ func (s *Scheduler) RunEnrichmentJobForStore(storeType string, force bool) {
 		if len(listings) < batchSize {
 			break
 		}
+	}
+	if jobID != 0 {
+		_ = s.db.UpdateEnrichJob(ctx, jobID, "completed", &totalProcessed, &totalSuccess, errStrs)
 	}
 	if totalProcessed > 0 {
 		log.Printf("[enrichment] %s: enriched %d/%d listings total", storeType, totalSuccess, totalProcessed)
@@ -329,7 +373,7 @@ func (s *Scheduler) Start(spec string, triggeredBy string) {
 
 func (s *Scheduler) StartEnrichment(spec string) {
 	if spec != "" {
-		s.cron.AddFunc(spec, func() { s.RunEnrichmentJob(false) })
+		s.cron.AddFunc(spec, func() { s.RunEnrichmentJob(false, "cron") })
 		log.Printf("[scheduler] started enrichment cron with spec %s", spec)
 	}
 }

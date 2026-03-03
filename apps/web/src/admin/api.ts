@@ -204,6 +204,42 @@ export async function fetchScrapeJob(id: number): Promise<ScrapeJob | null> {
   return res.json();
 }
 
+// --- Enrich jobs ---
+
+export interface EnrichJob {
+  id: number;
+  store_type?: string | null;
+  status: string;
+  started_at: string;
+  completed_at?: string | null;
+  listings_processed?: number | null;
+  listings_enriched?: number | null;
+  errors?: string[];
+  triggered_by: string;
+  force_mode: boolean;
+}
+
+export async function fetchEnrichJobs(params?: {
+  limit?: number;
+  offset?: number;
+}): Promise<EnrichJob[]> {
+  const search = new URLSearchParams();
+  if (params?.limit != null) search.set("limit", String(params.limit));
+  if (params?.offset != null) search.set("offset", String(params.offset));
+  const qs = search.toString();
+  const res = await fetch(`${API_BASE}/admin/enrich-jobs${qs ? `?${qs}` : ""}`, { headers: adminHeaders() });
+  if (!res.ok) throw new Error(res.status === 401 ? "Unauthorized" : "Failed to fetch enrich jobs");
+  const data = await res.json();
+  return Array.isArray(data) ? data : [];
+}
+
+export async function fetchEnrichJob(id: number): Promise<EnrichJob | null> {
+  const res = await fetch(`${API_BASE}/admin/enrich-jobs/${id}`, { headers: adminHeaders() });
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error("Failed to fetch enrich job");
+  return res.json();
+}
+
 // --- Admin listings / data browser (Phase E) ---
 
 export interface AdminListing {

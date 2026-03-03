@@ -1,7 +1,6 @@
 import type { Store } from "../api";
 import { FilterSelect } from "./FilterSelect";
 import { FilterInput } from "./FilterInput";
-import { FilterChips } from "./FilterChips";
 
 export type SortOption = "newest" | "discount" | "price_asc" | "price_desc" | "relevance";
 
@@ -12,30 +11,21 @@ const BASE_SORT_OPTIONS: { value: SortOption; label: string }[] = [
   { value: "price_desc", label: "Price: high to low" },
 ];
 
-const WHEEL_SIZE_OPTIONS = [
-  { value: "29", label: '29"' },
-  { value: "27.5", label: '27.5"' },
-  { value: "26", label: '26"' },
-  { value: "mullet", label: "Mullet" },
-];
-
-const MODEL_YEAR_OPTIONS = [
-  { value: "2025", label: "2025" },
-  { value: "2024", label: "2024" },
-  { value: "2023", label: "2023" },
-  { value: "2022", label: "2022" },
-];
-
-const GROUPSET_OPTIONS = [
-  { value: "XTR", label: "XTR" },
-  { value: "XT", label: "XT" },
-  { value: "SLX", label: "SLX" },
-  { value: "Deore", label: "Deore" },
-  { value: "X01", label: "X01" },
-  { value: "GX Eagle", label: "GX Eagle" },
-  { value: "GX", label: "GX" },
-  { value: "NX Eagle", label: "NX Eagle" },
-  { value: "NX", label: "NX" },
+const SPEC_KEY_OPTIONS = [
+  { value: "", label: "Any spec" },
+  { value: "wheel_size", label: "Wheel size" },
+  { value: "travel", label: "Travel" },
+  { value: "material", label: "Material" },
+  { value: "tooth_count", label: "Tooth count" },
+  { value: "brake_type", label: "Brake type" },
+  { value: "speeds", label: "Drivetrain speeds" },
+  { value: "weight", label: "Weight" },
+  { value: "offset", label: "Offset" },
+  { value: "axle", label: "Axle" },
+  { value: "hub_spacing", label: "Hub spacing" },
+  { value: "steerer", label: "Steerer" },
+  { value: "damper", label: "Damper" },
+  { value: "spring", label: "Spring" },
 ];
 
 function getSortOptions(hasSearchQuery: boolean): { value: SortOption; label: string }[] {
@@ -71,9 +61,8 @@ type DealFiltersProps = {
   categoryFilter: string;
   canonicalCategoryFilter: string;
   minDiscount: string;
-  wheelSize: string;
-  modelYear: string;
-  groupset: string;
+  specKey: string;
+  specValue: string;
   sort: SortOption;
   searchQuery?: string;
   onStoreChange: (value: string) => void;
@@ -81,9 +70,8 @@ type DealFiltersProps = {
   onCategoryChange: (value: string) => void;
   onCanonicalCategoryChange: (value: string) => void;
   onMinDiscountChange: (value: string) => void;
-  onWheelSizeChange: (value: string) => void;
-  onModelYearChange: (value: string) => void;
-  onGroupsetChange: (value: string) => void;
+  onSpecKeyChange: (value: string) => void;
+  onSpecValueChange: (value: string) => void;
   onSortChange: (value: SortOption) => void;
   activeFilterCount: number;
   onClearAll: () => void;
@@ -99,9 +87,8 @@ export function DealFilters({
   categoryFilter,
   canonicalCategoryFilter,
   minDiscount,
-  wheelSize,
-  modelYear,
-  groupset,
+  specKey,
+  specValue,
   sort,
   searchQuery = "",
   onStoreChange,
@@ -109,9 +96,8 @@ export function DealFilters({
   onCategoryChange,
   onCanonicalCategoryChange,
   onMinDiscountChange,
-  onWheelSizeChange,
-  onModelYearChange,
-  onGroupsetChange,
+  onSpecKeyChange,
+  onSpecValueChange,
   onSortChange,
   activeFilterCount,
   onClearAll,
@@ -204,24 +190,30 @@ export function DealFilters({
       </div>
 
       <div className="flex flex-wrap gap-6 border-t border-stone-200 pt-4">
-        <FilterChips
-          label="Wheel size"
-          options={WHEEL_SIZE_OPTIONS}
-          value={wheelSize}
-          onChange={onWheelSizeChange}
-        />
-        <FilterChips
-          label="Model year"
-          options={MODEL_YEAR_OPTIONS}
-          value={modelYear}
-          onChange={onModelYearChange}
-        />
-        <FilterChips
-          label="Groupset"
-          options={GROUPSET_OPTIONS}
-          value={groupset}
-          onChange={onGroupsetChange}
-        />
+        <div>
+          <label className="block text-sm font-medium text-stone-600 mb-1">Spec</label>
+          <div className="flex flex-wrap items-center gap-2">
+            <select
+              value={specKey}
+              onChange={(e) => onSpecKeyChange(e.target.value)}
+              className="rounded-lg border border-stone-300 px-3 py-2 bg-white text-stone-800 text-sm"
+            >
+              {SPEC_KEY_OPTIONS.map((opt) => (
+                <option key={opt.value || "any"} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+            <input
+              type="text"
+              value={specValue}
+              onChange={(e) => onSpecValueChange(e.target.value)}
+              placeholder={specKey ? "e.g. 29, Steel, 170mm" : "Select a spec first"}
+              disabled={!specKey}
+              className="rounded-lg border border-stone-300 px-3 py-2 bg-white text-stone-800 text-sm w-40"
+            />
+          </div>
+        </div>
       </div>
     </div>
   );

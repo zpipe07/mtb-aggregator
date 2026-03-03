@@ -205,7 +205,7 @@ func main() {
 		}
 		force := r.URL.Query().Get("force") == "1"
 		store := strings.TrimSpace(r.URL.Query().Get("store"))
-		sched.RunEnrichmentJobForStore(store, force)
+		sched.RunEnrichmentJobForStore(store, force, "manual")
 		w.Header().Set("Content-Type", "application/json")
 		w.Write([]byte(`{"status":"ok"}`))
 	})
@@ -217,6 +217,7 @@ func main() {
 	http.HandleFunc("/brands", handlers.GetBrands)
 	http.HandleFunc("/categories", handlers.GetCategories)
 	http.HandleFunc("/canonical-categories", handlers.GetCanonicalCategories)
+	http.HandleFunc("/spec-values", handlers.GetSpecValues)
 	http.HandleFunc("/status", handlers.GetStatus)
 
 	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
@@ -294,6 +295,30 @@ func main() {
 			return
 		}
 		handlers.GetAdminJobByID(w, r, id)
+	}))
+
+	// Admin: GET /admin/enrich-jobs — list enrich jobs (query: limit, offset)
+	http.HandleFunc("/admin/enrich-jobs", api.AdminRequired(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/admin/enrich-jobs" {
+			http.NotFound(w, r)
+			return
+		}
+		handlers.GetAdminEnrichJobs(w, r)
+	}))
+	// Admin: GET /admin/enrich-jobs/:id
+	http.HandleFunc("/admin/enrich-jobs/", api.AdminRequired(func(w http.ResponseWriter, r *http.Request) {
+		path := strings.TrimPrefix(r.URL.Path, "/admin/enrich-jobs/")
+		path = strings.Trim(path, "/")
+		if path == "" {
+			http.NotFound(w, r)
+			return
+		}
+		id, err := strconv.Atoi(path)
+		if err != nil {
+			http.Error(w, "invalid id", http.StatusBadRequest)
+			return
+		}
+		handlers.GetAdminEnrichJobByID(w, r, id)
 	}))
 
 	// Admin: GET /admin/listings — data browser (query: store_id, brand, has_canonical_category, has_enrichment, category, canonical_category, q, sort, limit, offset)

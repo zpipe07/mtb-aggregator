@@ -1,4 +1,6 @@
 import type { ScrapeResult } from "../types.js";
+import type { EnrichResult } from "./jensonusa.js";
+import * as cheerio from "cheerio";
 
 const BASE_URL = "https://worldwidecyclery.com";
 const PER_PAGE = 250;
@@ -20,6 +22,15 @@ interface ShopifyProduct {
   product_type: string;
   variants: ShopifyVariant[];
   images?: { src: string }[];
+}
+
+interface ShopifyProductDetail {
+  body_html?: string;
+  product_type?: string;
+}
+
+interface ShopifyProductDetailResponse {
+  product?: ShopifyProductDetail;
 }
 
 interface ShopifyCollectionResponse {
@@ -115,4 +126,121 @@ function dedupeBySku(results: ScrapeResult[]): ScrapeResult[] {
     seen.add(r.store_sku);
     return true;
   });
+}
+
+/**
+ * Enrich a single Worldwide Cyclery product using Shopify's /products/{handle}.json API.
+ * Extracts specs from body_html tables/definition lists and returns them as raw key-value pairs.
+ * Category breadcrumbs are not updated here (we rely on product_type from the scrape).
+ */
+export async function enrichWorldwideCyclery(productUrl: string): Promise<EnrichResult> {
+  try {
+    const detail = await fetchWorldwideProductDetail(productUrl);
+    const rawSpecs = detail.body_html ? extractSpecsFromHtml(detail.body_html) : null;
+    // We don't currently extract breadcrumb categories for WWC; keep category_path unchanged by returning null.
+    return {
+      category_path: null,
+      raw_specs: rawSpecs,
+    };
+  } catch (err) {
+    console.error("[scraper] Worldwide Cyclery enrich failed:", err);
+    return {
+      category_path: null,
+      raw_specs: null,
+    };
+  }
+}
+
+async function fetchWorldwideProductDetail(productUrl: string): Promise<ShopifyProductDetail> {
+  const url = new URL(productUrl);
+  const origin = url.origin || BASE_URL;
+  const parts = url.pathname.split("/").filter(Boolean);
+  // Expect /products/{handle}
+  const handle = parts[parts.length - 1];
+  const jsonUrl = `${origin}/products/${handle}.json`;
+
+  const res = await fetch(jsonUrl, {
+    headers: {
+      Accept: "application/json",
+      "User-Agent": "MTBDealBot/1.0 (+https://github.com/mtb-aggregator)",
+    },
+  });
+  if (!res.ok) {
+    throw new Error(`product.json ${res.status}: ${res.statusText}`);
+  }
+  const data = (await res.json()) as ShopifyProductDetailResponse;
+  return data.product ?? {};
+}
+
+function extractSpecsFromHtml(html: string): Record<string, string> | null {
+  const $ = cheerio.load(html);
+  const specs: Record<string, string> = {};
+
+  const clean = (text: string | null | undefined): string =>
+    (text || "").replace(/\s+/g, " ").trim();
+
+  function collectFromTable(table: cheerio.Cheerio<cheerio.Element>) {
+    table.find("tr").each((_, row) => {
+      const cells = $(row).children("th,td");
+      if (cells.length < 2) return;
+      const key = clean($(cells[0]).text());
+      const value = clean($(cells[1]).text());
+      if (!key || !value) return;
+      if (key.length > 80 || value.length > 200) return;
+      specs[key] = value;
+    });
+  }
+
+  function collectFromDl(dl: cheerio.Cheerio<cheerio.Element>) {
+    dl.find("dt").each((_, el) => {
+      const term = $(el);
+      const def = term.next("dd");
+      const key = clean(term.text());
+      const value = clean(def.text());
+      if (!key || !value) return;
+      if (key.length > 80 || value.length > 200) return;
+      specs[key] = value;
+    });
+  }
+
+  // Prefer tables that are clearly labeled as specifications
+  $("table").each((_, el) => {
+    const table = $(el);
+    const heading = clean(
+      table
+        .prevAll("h1,h2,h3,h4,strong")
+        .first()
+        .text(),
+    ).toLowerCase();
+    const isSpecTable =
+      heading.includes("spec") || heading.includes("item specifications") || heading.includes("details");
+    if (isSpecTable) {
+      collectFromTable(table);
+    }
+  });
+
+  // Fallback: any table with many short key/value rows
+  if (Object.keys(specs).length === 0) {
+    $("table").each((_, el) => {
+      collectFromTable($(el));
+    });
+  }
+
+  // Fallback: definition lists near a specs heading
+  if (Object.keys(specs).length === 0) {
+    $("dl").each((_, el) => {
+      const dl = $(el);
+      const heading = clean(
+        dl
+          .prevAll("h1,h2,h3,h4,strong")
+          .first()
+          .text(),
+      ).toLowerCase();
+      if (heading.includes("spec")) {
+        collectFromDl(dl);
+      }
+    });
+  }
+
+  return Object.keys(specs).length > 0 ? specs : null;
 }

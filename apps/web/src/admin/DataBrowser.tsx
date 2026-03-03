@@ -59,16 +59,17 @@ function getMetadataObj(metadata: AdminListing["metadata"]): Record<string, unkn
   return null;
 }
 
-/** Short one-line summary of metadata for table display (wheel_size, travel, year, groupset). */
+/** Short one-line summary for table: pull from metadata.specs (wheel_size, travel, material). */
 function metadataSummary(metadata: AdminListing["metadata"]): string {
   const obj = getMetadataObj(metadata);
-  if (!obj || Object.keys(obj).length === 0) return "—";
+  if (!obj) return "—";
+  const specs = obj.specs as Record<string, unknown> | undefined;
+  if (!specs || typeof specs !== "object" || Object.keys(specs).length === 0) return "—";
   const parts: string[] = [];
-  if (obj.wheel_size != null) parts.push(String(obj.wheel_size));
-  if (obj.suspension_travel_mm != null) parts.push(`${obj.suspension_travel_mm}mm`);
-  if (obj.model_year != null) parts.push(String(obj.model_year));
-  if (obj.groupset != null) parts.push(String(obj.groupset));
-  return parts.length > 0 ? parts.join(" · ") : "—";
+  if (specs.wheel_size != null) parts.push(String(specs.wheel_size));
+  if (specs.travel != null) parts.push(String(specs.travel));
+  if (specs.material != null) parts.push(String(specs.material));
+  return parts.length > 0 ? parts.slice(0, 3).join(" · ") : "—";
 }
 
 export function DataBrowser() {
@@ -412,26 +413,21 @@ export function DataBrowser() {
                 </dl>
                 {(() => {
                   const meta = getMetadataObj(detail.metadata);
-                  if (!meta || Object.keys(meta).length === 0) return null;
-                  const labels: Record<string, string> = {
-                    wheel_size: "Wheel size",
-                    suspension_travel_mm: "Travel (mm)",
-                    model_year: "Model year",
-                    groupset: "Groupset",
-                  };
+                  const specs = meta?.specs as Record<string, unknown> | undefined;
+                  if (!specs || typeof specs !== "object" || Object.keys(specs).length === 0) return null;
                   return (
                     <div>
-                      <h4 className="font-medium text-stone-700 mb-2">Metadata</h4>
+                      <h4 className="font-medium text-stone-700 mb-2">Specifications</h4>
                       <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 mb-2">
-                        {Object.entries(meta).map(([key, value]) => (
+                        {Object.entries(specs).map(([key, value]) => (
                           <span key={key} className="contents">
-                            <dt className="text-stone-500">{labels[key] ?? key}</dt>
+                            <dt className="text-stone-500">{key.replace(/_/g, " ")}</dt>
                             <dd>{value != null ? String(value) : "—"}</dd>
                           </span>
                         ))}
                       </dl>
                       <details className="mt-1">
-                        <summary className="text-stone-500 cursor-pointer text-xs">Raw JSON</summary>
+                        <summary className="text-stone-500 cursor-pointer text-xs">Raw metadata JSON</summary>
                         <pre className="rounded bg-stone-100 p-2 text-xs overflow-auto max-h-24 mt-1">
                           {JSON.stringify(detail.metadata, null, 2)}
                         </pre>

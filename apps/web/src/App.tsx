@@ -38,9 +38,8 @@ function DealsPage() {
   const [categoryFilter, setCategoryFilter] = useState("");
   const [canonicalCategoryFilter, setCanonicalCategoryFilter] = useState("");
   const [minDiscount, setMinDiscount] = useState("");
-  const [wheelSize, setWheelSize] = useState("");
-  const [modelYear, setModelYear] = useState("");
-  const [groupset, setGroupset] = useState("");
+  const [specKey, setSpecKey] = useState("");
+  const [specValue, setSpecValue] = useState("");
   const [sort, setSort] = useState<SortOption>("newest");
   const [offset, setOffset] = useState(0);
   const [brands, setBrands] = useState<string[]>([]);
@@ -106,9 +105,8 @@ function DealsPage() {
       category: categoryFilter || undefined,
       canonical_category: canonicalCategoryFilter || undefined,
       min_discount: minDiscount ? parseFloat(minDiscount) || undefined : undefined,
-      wheel_size: wheelSize || undefined,
-      model_year: modelYear ? parseInt(modelYear, 10) || undefined : undefined,
-      groupset: groupset || undefined,
+      spec_key: specKey || undefined,
+      spec_value: specValue || undefined,
       q: searchQuery.trim() || undefined,
       sort,
     };
@@ -122,7 +120,7 @@ function DealsPage() {
         setError(String(e));
         setLoading(false);
       });
-  }, [searchQuery, storeFilter, brandFilter, categoryFilter, canonicalCategoryFilter, minDiscount, wheelSize, modelYear, groupset, sort, offset]);
+  }, [searchQuery, storeFilter, brandFilter, categoryFilter, canonicalCategoryFilter, minDiscount, specKey, specValue, sort, offset]);
 
   const activeFilterCount = [
     storeFilter,
@@ -130,9 +128,7 @@ function DealsPage() {
     categoryFilter,
     canonicalCategoryFilter,
     minDiscount,
-    wheelSize,
-    modelYear,
-    groupset,
+    specKey && specValue ? 1 : 0,
   ].filter(Boolean).length;
 
   const clearAllFilters = () => {
@@ -141,9 +137,8 @@ function DealsPage() {
     setCategoryFilter("");
     setCanonicalCategoryFilter("");
     setMinDiscount("");
-    setWheelSize("");
-    setModelYear("");
-    setGroupset("");
+    setSpecKey("");
+    setSpecValue("");
     setOffset(0);
   };
 
@@ -178,9 +173,8 @@ function DealsPage() {
           categoryFilter={categoryFilter}
           canonicalCategoryFilter={canonicalCategoryFilter}
           minDiscount={minDiscount}
-          wheelSize={wheelSize}
-          modelYear={modelYear}
-          groupset={groupset}
+          specKey={specKey}
+          specValue={specValue}
           sort={sort}
           searchQuery={searchQuery}
           onStoreChange={(v) => { setStoreFilter(v); setOffset(0); }}
@@ -188,9 +182,8 @@ function DealsPage() {
           onCategoryChange={(v) => { setCategoryFilter(v); setOffset(0); }}
           onCanonicalCategoryChange={(v) => { setCanonicalCategoryFilter(v); setOffset(0); }}
           onMinDiscountChange={(v) => { setMinDiscount(v); setOffset(0); }}
-          onWheelSizeChange={(v) => { setWheelSize(v); setOffset(0); }}
-          onModelYearChange={(v) => { setModelYear(v); setOffset(0); }}
-          onGroupsetChange={(v) => { setGroupset(v); setOffset(0); }}
+          onSpecKeyChange={(v) => { setSpecKey(v); setOffset(0); }}
+          onSpecValueChange={(v) => { setSpecValue(v); setOffset(0); }}
           onSortChange={(v) => { setSort(v); setOffset(0); }}
           activeFilterCount={activeFilterCount}
           onClearAll={clearAllFilters}

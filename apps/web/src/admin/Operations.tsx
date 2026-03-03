@@ -3,11 +3,14 @@ import {
   fetchAdminStores,
   fetchScrapeJobs,
   fetchScrapeJob,
+  fetchEnrichJobs,
+  fetchEnrichJob,
   triggerScrape,
   triggerEnrich,
   fetchDashboard,
   type AdminStore,
   type ScrapeJob,
+  type EnrichJob,
 } from "./api";
 
 const PAGE_SIZE = 20;
@@ -52,7 +55,10 @@ export function Operations() {
   const [scrapeStoreType, setScrapeStoreType] = useState<string>("");
   const [enrichForce, setEnrichForce] = useState(false);
   const [jobOffset, setJobOffset] = useState(0);
+  const [enrichJobOffset, setEnrichJobOffset] = useState(0);
+  const [enrichJobs, setEnrichJobs] = useState<EnrichJob[]>([]);
   const [selectedJob, setSelectedJob] = useState<ScrapeJob | null>(null);
+  const [selectedEnrichJob, setSelectedEnrichJob] = useState<EnrichJob | null>(null);
   const [scraperReachable, setScraperReachable] = useState(false);
 
   const loadStores = useCallback(async () => {
@@ -82,6 +88,11 @@ export function Operations() {
     fetchScrapeJobs({ limit: PAGE_SIZE, offset: jobOffset }).then(setJobs).catch((e) => setError(e instanceof Error ? e.message : "Failed to load jobs"));
   }, [loading, jobOffset]);
 
+  useEffect(() => {
+    if (loading) return;
+    fetchEnrichJobs({ limit: PAGE_SIZE, offset: enrichJobOffset }).then(setEnrichJobs).catch((e) => setError(e instanceof Error ? e.message : "Failed to load enrich jobs"));
+  }, [loading, enrichJobOffset]);
+
   async function runScrape() {
     setScrapeBusy(true);
     setError(null);
@@ -103,7 +114,10 @@ export function Operations() {
     setError(null);
     try {
       await triggerEnrich(enrichForce);
+      setEnrichJobOffset(0);
       await load();
+      const j = await fetchEnrichJobs({ limit: PAGE_SIZE, offset: 0 });
+      setEnrichJobs(j);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Enrich failed");
     } finally {
@@ -117,6 +131,15 @@ export function Operations() {
       setSelectedJob(full ?? job);
     } else {
       setSelectedJob(job);
+    }
+  }
+
+  async function openEnrichJobDetail(job: EnrichJob) {
+    if (job.errors?.length) {
+      const full = await fetchEnrichJob(job.id);
+      setSelectedEnrichJob(full ?? job);
+    } else {
+      setSelectedEnrichJob(job);
     }
   }
 
@@ -266,6 +289,79 @@ export function Operations() {
         </div>
       </div>
 
+      <div className="mt-6 rounded-lg border border-stone-200 bg-white shadow-sm overflow-hidden">
+        <h3 className="border-b border-stone-200 px-4 py-3 text-sm font-medium text-stone-800">
+          Enrichment job history
+        </h3>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-stone-200 bg-stone-50">
+                <th className="px-4 py-2 text-left font-medium text-stone-600">Store</th>
+                <th className="px-4 py-2 text-left font-medium text-stone-600">Status</th>
+                <th className="px-4 py-2 text-left font-medium text-stone-600">Started</th>
+                <th className="px-4 py-2 text-left font-medium text-stone-600">Duration</th>
+                <th className="px-4 py-2 text-right font-medium text-stone-600">Processed</th>
+                <th className="px-4 py-2 text-right font-medium text-stone-600">Enriched</th>
+                <th className="px-4 py-2 text-right font-medium text-stone-600">Errors</th>
+                <th className="px-4 py-2 text-left font-medium text-stone-600">Mode</th>
+              </tr>
+            </thead>
+            <tbody>
+              {enrichJobs.map((job) => {
+                const ms = durationMs(job.started_at, job.completed_at);
+                const durationStr = ms != null ? `${(ms / 1000).toFixed(1)}s` : "—";
+                const errCount = job.errors?.length ?? 0;
+                const storeLabel = job.store_type ?? "All";
+                return (
+                  <tr
+                    key={job.id}
+                    className="border-b border-stone-100 hover:bg-stone-50 cursor-pointer"
+                    onClick={() => openEnrichJobDetail(job)}
+                  >
+                    <td className="px-4 py-2 font-medium text-stone-800">{storeLabel}</td>
+                    <td className={`px-4 py-2 capitalize ${statusColor(job.status)}`}>{job.status}</td>
+                    <td className="px-4 py-2 text-stone-600">{formatDate(job.started_at)}</td>
+                    <td className="px-4 py-2 text-stone-600">{durationStr}</td>
+                    <td className="px-4 py-2 text-right">{job.listings_processed ?? "—"}</td>
+                    <td className="px-4 py-2 text-right">{job.listings_enriched ?? "—"}</td>
+                    <td className="px-4 py-2 text-right">
+                      {errCount > 0 ? (
+                        <span className="text-red-600">{errCount}</span>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
+                    <td className="px-4 py-2 text-stone-600">{job.force_mode ? "Force" : "Normal"}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        {enrichJobs.length === 0 && (
+          <p className="px-4 py-6 text-center text-stone-500">No enrichment jobs yet.</p>
+        )}
+        <div className="border-t border-stone-200 px-4 py-2 flex justify-between">
+          <button
+            type="button"
+            onClick={() => setEnrichJobOffset((o) => Math.max(0, o - PAGE_SIZE))}
+            disabled={enrichJobOffset === 0}
+            className="text-sm text-stone-600 hover:text-stone-800 disabled:opacity-50"
+          >
+            Previous
+          </button>
+          <button
+            type="button"
+            onClick={() => setEnrichJobOffset((o) => o + PAGE_SIZE)}
+            disabled={enrichJobs.length < PAGE_SIZE}
+            className="text-sm text-stone-600 hover:text-stone-800 disabled:opacity-50"
+          >
+            Next
+          </button>
+        </div>
+      </div>
+
       {selectedJob && (
         <div
           className="fixed inset-0 z-10 flex items-center justify-center bg-stone-900/50 p-4"
@@ -311,6 +407,50 @@ export function Operations() {
             <button
               type="button"
               onClick={() => setSelectedJob(null)}
+              className="rounded border border-stone-300 px-3 py-2 text-sm text-stone-700 hover:bg-stone-50"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+
+      {selectedEnrichJob && (
+        <div
+          className="fixed inset-0 z-10 flex items-center justify-center bg-stone-900/50 p-4"
+          onClick={() => setSelectedEnrichJob(null)}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Enrich job detail"
+        >
+          <div
+            className="w-full max-w-lg max-h-[80vh] overflow-auto rounded-lg border border-stone-200 bg-white p-6 shadow-lg"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-lg font-semibold text-stone-800 mb-2">
+              Enrich job #{selectedEnrichJob.id} — {selectedEnrichJob.store_type ?? "All stores"}
+            </h3>
+            <p className="text-sm text-stone-600 mb-4">
+              {formatDate(selectedEnrichJob.started_at)}
+              {selectedEnrichJob.completed_at && ` → ${formatDate(selectedEnrichJob.completed_at)}`}
+              {" · "}
+              <span className={statusColor(selectedEnrichJob.status)}>{selectedEnrichJob.status}</span>
+              {selectedEnrichJob.listings_processed != null && ` · ${selectedEnrichJob.listings_processed} processed, ${selectedEnrichJob.listings_enriched ?? 0} enriched`}
+              {selectedEnrichJob.force_mode && " · Force mode"}
+            </p>
+            {selectedEnrichJob.errors && selectedEnrichJob.errors.length > 0 && (
+              <div className="mb-4">
+                <h4 className="text-sm font-medium text-red-700 mb-1">Errors</h4>
+                <ul className="list-disc list-inside text-sm text-stone-700 space-y-0.5 max-h-40 overflow-auto">
+                  {selectedEnrichJob.errors.map((e, i) => (
+                    <li key={i}>{e}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={() => setSelectedEnrichJob(null)}
               className="rounded border border-stone-300 px-3 py-2 text-sm text-stone-700 hover:bg-stone-50"
             >
               Close

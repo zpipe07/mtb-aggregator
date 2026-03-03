@@ -1,7 +1,7 @@
 import type { ScrapeResult } from "../types.js";
 import type { EnrichResult } from "./jensonusa.js";
 import { scrapeJensonUSA, enrichJensonUSA } from "./jensonusa.js";
-import { scrapeWorldwideCyclery } from "./worldwidecyclery.js";
+import { scrapeWorldwideCyclery, enrichWorldwideCyclery } from "./worldwidecyclery.js";
 import { scrapeRevelBikes } from "./revelbikes.js";
 
 export type ParserFn = (url: string) => Promise<ScrapeResult[]>;
@@ -15,6 +15,7 @@ export const PARSERS: Record<string, ParserFn> = {
 
 export const ENRICHERS: Record<string, EnrichFn> = {
   jensonusa: enrichJensonUSA,
+  worldwidecyclery: enrichWorldwideCyclery,
 };
 
 export function getParser(store: string): ParserFn | null {

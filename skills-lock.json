@@ -1,10 +1,20 @@
 {
   "version": 1,
   "skills": {
+    "golang-pro": {
+      "source": "jeffallan/claude-skills",
+      "sourceType": "github",
+      "computedHash": "709f35fe79694533e7e8f1059eecb627cced758a1e31ae2d0c0c6f4bffa91277"
+    },
     "neon-postgres": {
       "source": "neondatabase/agent-skills",
       "sourceType": "github",
       "computedHash": "13624b09c8dde98402647ffa13158f0e66a3fe6c440e74b2110e8b455a11153a"
+    },
+    "tanstack-query-best-practices": {
+      "source": "deckardger/tanstack-agent-skills",
+      "sourceType": "github",
+      "computedHash": "21d2e8b7468a81d772b6527ad8ca178cc2f3f08af777bb9061333013ee88a0c9"
     },
     "vercel-composition-patterns": {
       "source": "vercel-labs/agent-skills",

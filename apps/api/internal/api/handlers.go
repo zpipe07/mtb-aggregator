@@ -59,16 +59,11 @@ func (h *Handlers) GetDeals(w http.ResponseWriter, r *http.Request) {
 			params.Offset = n
 		}
 	}
-	if s := r.URL.Query().Get("wheel_size"); s != "" {
-		params.WheelSize = strings.TrimSpace(s)
+	if s := r.URL.Query().Get("spec_key"); s != "" {
+		params.SpecKey = strings.TrimSpace(s)
 	}
-	if s := r.URL.Query().Get("model_year"); s != "" {
-		if n, err := strconv.Atoi(s); err == nil && n >= 2010 && n <= 2030 {
-			params.ModelYear = n
-		}
-	}
-	if s := r.URL.Query().Get("groupset"); s != "" {
-		params.Groupset = strings.TrimSpace(s)
+	if s := r.URL.Query().Get("spec_value"); s != "" {
+		params.SpecValue = strings.TrimSpace(s)
 	}
 
 	result, err := h.DB.GetDeals(r.Context(), params)
@@ -213,6 +208,33 @@ func (h *Handlers) GetCanonicalCategories(w http.ResponseWriter, r *http.Request
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(list)
+}
+
+// GetSpecValues returns distinct metadata values for a given spec key, e.g. ?key=material.
+func (h *Handlers) GetSpecValues(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	key := strings.TrimSpace(r.URL.Query().Get("key"))
+	if key == "" {
+		http.Error(w, "key required", http.StatusBadRequest)
+		return
+	}
+
+	values, err := h.DB.GetDistinctMetadataValues(r.Context(), key, 200)
+	if err != nil {
+		log.Printf("[api] GetSpecValues error: %v", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if values == nil {
+		values = []string{}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(values)
 }
 
 func (h *Handlers) GetStatus(w http.ResponseWriter, r *http.Request) {
@@ -541,6 +563,55 @@ func (h *Handlers) GetAdminJobByID(w http.ResponseWriter, r *http.Request, id in
 	json.NewEncoder(w).Encode(job)
 }
 
+// GetAdminEnrichJobs returns recent enrich jobs. Query: limit (default 50), offset (default 0).
+func (h *Handlers) GetAdminEnrichJobs(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	limit := 50
+	if s := r.URL.Query().Get("limit"); s != "" {
+		if n, err := strconv.Atoi(s); err == nil && n > 0 && n <= 200 {
+			limit = n
+		}
+	}
+	offset := 0
+	if s := r.URL.Query().Get("offset"); s != "" {
+		if n, err := strconv.Atoi(s); err == nil && n >= 0 {
+			offset = n
+		}
+	}
+	jobs, err := h.DB.GetEnrichJobs(r.Context(), limit, offset)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if jobs == nil {
+		jobs = []db.EnrichJob{}
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(jobs)
+}
+
+// GetAdminEnrichJobByID returns one enrich job by id (admin).
+func (h *Handlers) GetAdminEnrichJobByID(w http.ResponseWriter, r *http.Request, id int) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	job, err := h.DB.GetEnrichJobByID(r.Context(), id)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if job == nil {
+		http.Error(w, "not found", http.StatusNotFound)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(job)
+}
+
 // GetAdminListings returns paginated listings for the admin data browser. Query: store_id, brand, has_canonical_category, has_enrichment, category, canonical_category, q, sort, limit, offset.
 func (h *Handlers) GetAdminListings(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
@@ -664,7 +735,7 @@ func (h *Handlers) PostAdminEnrichListing(w http.ResponseWriter, r *http.Request
 		})
 		return
 	}
-	if err := h.DB.UpdateListingEnrichment(r.Context(), id, result.CategoryPath); err != nil {
+	if err := h.DB.UpdateListingEnrichment(r.Context(), id, result.CategoryPath, result.RawSpecs); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}

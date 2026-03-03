@@ -29,7 +29,8 @@ type ScrapeRequest struct {
 
 // EnrichResult from POST /enrich
 type EnrichResult struct {
-	CategoryPath []string `json:"category_path"`
+	CategoryPath []string          `json:"category_path"`
+	RawSpecs     map[string]string `json:"raw_specs"`
 }
 
 type Client struct {

@@ -14,7 +14,9 @@ export interface Deal {
   brand?: string;
   category_path?: string[];
   canonical_category?: string[];
-  metadata?: { wheel_size?: string; suspension_travel_mm?: number; model_year?: number; groupset?: string };
+  metadata?: {
+    specs?: Record<string, string>;
+  };
   is_in_stock: boolean;
   discount_pct?: number;
   last_scraped: string;
@@ -45,9 +47,8 @@ export async function fetchDeals(params?: {
   sort?: string;
   limit?: number;
   offset?: number;
-  wheel_size?: string;
-  model_year?: number;
-  groupset?: string;
+  spec_key?: string;
+  spec_value?: string;
 }): Promise<DealListResponse> {
   const search = new URLSearchParams();
   if (params?.store) search.set("store", params.store);
@@ -59,9 +60,8 @@ export async function fetchDeals(params?: {
   if (params?.sort) search.set("sort", params.sort);
   if (params?.limit != null) search.set("limit", String(params.limit));
   if (params?.offset != null) search.set("offset", String(params.offset));
-  if (params?.wheel_size) search.set("wheel_size", params.wheel_size);
-  if (params?.model_year != null && params.model_year > 0) search.set("model_year", String(params.model_year));
-  if (params?.groupset) search.set("groupset", params.groupset);
+  if (params?.spec_key) search.set("spec_key", params.spec_key);
+  if (params?.spec_value) search.set("spec_value", params.spec_value);
   const qs = search.toString();
   const url = `${API_BASE}/deals${qs ? `?${qs}` : ""}`;
   const res = await fetch(url);
@@ -125,6 +125,16 @@ export async function fetchCategories(): Promise<string[]> {
 export async function fetchCanonicalCategories(): Promise<string[]> {
   const res = await fetch(`${API_BASE}/canonical-categories`);
   if (!res.ok) throw new Error("Failed to fetch canonical categories");
+  const data = await res.json();
+  return Array.isArray(data) ? data : [];
+}
+
+/** Distinct spec values for a given metadata key, e.g. "material" or "tooth_count". */
+export async function fetchSpecValues(key: string): Promise<string[]> {
+  const search = new URLSearchParams();
+  search.set("key", key);
+  const res = await fetch(`${API_BASE}/spec-values?${search.toString()}`);
+  if (!res.ok) throw new Error("Failed to fetch spec values");
   const data = await res.json();
   return Array.isArray(data) ? data : [];
 }

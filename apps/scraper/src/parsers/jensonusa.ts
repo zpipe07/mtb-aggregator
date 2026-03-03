@@ -7,6 +7,7 @@ import { parseProductDto, type JensonProductDto } from "./jensonusa-dto.js";
 
 export interface EnrichResult {
   category_path: string[] | null;
+  raw_specs: Record<string, string> | null;
 }
 
 const BASE_URL = "https://www.jensonusa.com";
@@ -218,7 +219,7 @@ function warnIfNoOriginalPrice(results: ScrapeResult[], store: string): void {
   }
 }
 
-/** Extract category from PDP breadcrumbs. JensonUSA uses breadcrumb links. */
+/** Extract category and raw specs from PDP. JensonUSA uses breadcrumb links and a specs table/section. */
 export async function enrichJensonUSA(productUrl: string): Promise<EnrichResult> {
   return runWithBrowser(async (browser) => {
     const context = await browser.newContext({
@@ -228,47 +229,148 @@ export async function enrichJensonUSA(productUrl: string): Promise<EnrichResult>
 
     const page = await context.newPage();
     try {
-    await page.goto(productUrl, { waitUntil: "load", timeout: 60000 });
-    await new Promise((r) => setTimeout(r, 3000));
+      await page.goto(productUrl, { waitUntil: "load", timeout: 60000 });
+      await new Promise((r) => setTimeout(r, 3000));
 
-    const extractBreadcrumb = `
-      (function() {
-        var items = [];
-        var sel = 'nav[aria-label="Breadcrumb"] a, nav[aria-label="breadcrumb"] a, .breadcrumb a, .breadcrumbs a, [class*="breadcrumb"] a, ol[class*="breadcrumb"] li a';
-        var links = document.querySelectorAll(sel);
-        if (links.length === 0) {
-          var scripts = document.querySelectorAll('script[type="application/ld+json"]');
-          for (var i = 0; i < scripts.length; i++) {
-            try {
-              var json = JSON.parse(scripts[i].textContent || '{}');
-              if (json['@type'] === 'BreadcrumbList' && json.itemListElement) {
-                for (var j = 0; j < json.itemListElement.length; j++) {
-                  var el = json.itemListElement[j];
-                  var name = el.name || (el.item && el.item.name);
-                  if (name) items.push(name);
-                }
-                break;
+      const script = `
+        (function() {
+          function extractBreadcrumb() {
+            var items = [];
+            var sel = 'nav[aria-label="Breadcrumb"] a, nav[aria-label="breadcrumb"] a, .breadcrumb a, .breadcrumbs a, [class*="breadcrumb"] a, ol[class*="breadcrumb"] li a';
+            var links = document.querySelectorAll(sel);
+            if (links.length === 0) {
+              var scripts = document.querySelectorAll('script[type="application/ld+json"]');
+              for (var i = 0; i < scripts.length; i++) {
+                try {
+                  var json = JSON.parse(scripts[i].textContent || '{}');
+                  if (json['@type'] === 'BreadcrumbList' && json.itemListElement) {
+                    for (var j = 0; j < json.itemListElement.length; j++) {
+                      var el = json.itemListElement[j];
+                      var name = el.name || (el.item && el.item.name);
+                      if (name) items.push(String(name));
+                    }
+                    break;
+                  }
+                } catch (e) {}
               }
-            } catch (e) {}
+            } else {
+              for (var k = 0; k < links.length; k++) {
+                var t = (links[k].textContent || '').trim();
+                if (t) items.push(t);
+              }
+            }
+            if (items.length < 2) return null;
+            var trimmed = items.slice(0, -1);
+            if (trimmed[0] && /^home$/i.test(trimmed[0])) {
+              trimmed = trimmed.slice(1);
+            }
+            return trimmed.length > 0 ? trimmed : null;
           }
-        } else {
-          for (var k = 0; k < links.length; k++) {
-            var t = (links[k].textContent || '').trim();
-            if (t) items.push(t);
+
+          function cleanText(input) {
+            return (input || '').replace(/\\s+/g, ' ').trim();
           }
-        }
-        if (items.length < 2) return null;
-        items = items.slice(0, -1);
-        if (items[0] && /^home$/i.test(items[0])) items = items.slice(1);
-        return items.length > 0 ? items : null;
-      })()
-    `;
 
-    const category_path = (await page.evaluate(extractBreadcrumb)) as string[] | null;
+          function collectFromTable(table, acc) {
+            var rows = table.querySelectorAll('tr');
+            for (var i = 0; i < rows.length; i++) {
+              var cells = rows[i].children;
+              if (cells.length < 2) continue;
+              var key = cleanText(cells[0].textContent);
+              var value = cleanText(cells[1].textContent);
+              if (!key || !value) continue;
+              if (key.length > 80 || value.length > 200) continue;
+              acc[key] = value;
+            }
+          }
 
-    await new Promise((r) => setTimeout(r, ENRICH_DELAY_MS));
+          function collectFromDl(dl, acc) {
+            var terms = dl.querySelectorAll('dt');
+            for (var i = 0; i < terms.length; i++) {
+              var term = terms[i];
+              var def = term.nextElementSibling;
+              if (!def || def.tagName.toLowerCase() !== 'dd') continue;
+              var key = cleanText(term.textContent);
+              var value = cleanText(def.textContent);
+              if (!key || !value) continue;
+              if (key.length > 80 || value.length > 200) continue;
+              acc[key] = value;
+            }
+          }
 
-    return { category_path };
+          function extractSpecs() {
+            var specs = {};
+            var tableSelectors = [
+              'section[id*=\"spec\"] table',
+              'section[class*=\"spec\"] table',
+              'div[id*=\"spec\"] table',
+              'div[class*=\"spec\"] table',
+              'table[class*=\"spec\"]',
+              'table[summary*=\"Spec\"]'
+            ];
+
+            var tableSet = [];
+            function addTable(t) {
+              if (tableSet.indexOf(t) === -1) tableSet.push(t);
+            }
+
+            for (var s = 0; s < tableSelectors.length; s++) {
+              var sel = tableSelectors[s];
+              var found = document.querySelectorAll(sel);
+              for (var f = 0; f < found.length; f++) {
+                addTable(found[f]);
+              }
+            }
+
+            if (tableSet.length === 0) {
+              var allTables = document.querySelectorAll('table');
+              for (var a = 0; a < allTables.length; a++) {
+                var t = allTables[a];
+                var prev = t.previousElementSibling;
+                var label = cleanText(prev && prev.textContent ? prev.textContent : '');
+                if (label.toLowerCase().indexOf('spec') !== -1) {
+                  addTable(t);
+                }
+              }
+            }
+
+            for (var ti = 0; ti < tableSet.length; ti++) {
+              collectFromTable(tableSet[ti], specs);
+            }
+
+            if (Object.keys(specs).length === 0) {
+              var dls = document.querySelectorAll('dl');
+              for (var di = 0; di < dls.length; di++) {
+                var dl = dls[di];
+                var prevEl = dl.previousElementSibling;
+                var label2 = cleanText(prevEl && prevEl.textContent ? prevEl.textContent : '');
+                if (label2.toLowerCase().indexOf('spec') !== -1) {
+                  collectFromDl(dl, specs);
+                }
+              }
+            }
+
+            return Object.keys(specs).length > 0 ? specs : null;
+          }
+
+          return {
+            categoryPath: extractBreadcrumb(),
+            rawSpecs: extractSpecs()
+          };
+        })()
+      `;
+
+      const result = (await page.evaluate(script)) as {
+        categoryPath: string[] | null;
+        rawSpecs: Record<string, string> | null;
+      };
+
+      await new Promise((r) => setTimeout(r, ENRICH_DELAY_MS));
+
+      return {
+        category_path: result.categoryPath,
+        raw_specs: result.rawSpecs,
+      };
     } catch (err) {
       try {
         const ctx = browser.contexts()[0];
