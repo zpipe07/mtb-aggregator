@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useCallback } from "react";
 import { useSearchParams, Routes, Route } from "react-router-dom";
 import { DEFAULT_PAGE_SIZE } from "./api";
 import {
@@ -10,6 +10,7 @@ import {
   useCanonicalCategories,
   useStatus,
 } from "./hooks/queries";
+import { useFilterParams } from "./hooks/useFilterParams";
 import {
   AppHeader,
   StatusBar,
@@ -21,20 +22,33 @@ import {
   ErrorMessage,
   LoadingState,
   EmptyState,
-  type SortOption,
 } from "./components";
 import { AdminSection } from "./admin";
 
 function DealsPage() {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [storeFilter, setStoreFilter] = useState("");
-  const [brandFilter, setBrandFilter] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState("");
-  const [canonicalCategoryFilter, setCanonicalCategoryFilter] = useState("");
-  const [minDiscount, setMinDiscount] = useState("");
-  const [specFilters, setSpecFilters] = useState<Record<string, string>>({});
-  const [sort, setSort] = useState<SortOption>("newest");
-  const [offset, setOffset] = useState(0);
+  const filterParams = useFilterParams();
+  const {
+    searchQuery,
+    storeFilter,
+    brandFilter,
+    categoryFilter,
+    canonicalCategoryFilter,
+    minDiscount,
+    specFilters,
+    sort,
+    offset,
+    setSearchQuery,
+    setStoreFilter,
+    setBrandFilter,
+    setCategoryFilter,
+    setCanonicalCategoryFilter,
+    setMinDiscount,
+    setSpecFilter,
+    clearSpecFilter,
+    setSort,
+    setOffset,
+    clearAllFilters,
+  } = filterParams;
 
   const [searchParams, setSearchParams] = useSearchParams();
   const dealParam = searchParams.get("deal");
@@ -94,37 +108,6 @@ function DealsPage() {
       Boolean
     ).length + Object.values(specFilters).filter(Boolean).length;
 
-  const clearAllFilters = () => {
-    setStoreFilter("");
-    setBrandFilter("");
-    setCategoryFilter("");
-    setCanonicalCategoryFilter("");
-    setMinDiscount("");
-    setSpecFilters({});
-    setOffset(0);
-  };
-
-  const setSpecFilter = (key: string, value: string) => {
-    setSpecFilters((prev) => {
-      const next = { ...prev };
-      if (value === "") {
-        delete next[key];
-      } else {
-        next[key] = value;
-      }
-      return next;
-    });
-    setOffset(0);
-  };
-
-  const clearSpecFilter = (key: string) => {
-    setSpecFilter(key, "");
-  };
-
-  useEffect(() => {
-    if (searchQuery.trim() === "" && sort === "relevance") setSort("newest");
-  }, [searchQuery, sort]);
-
   return (
     <div className="min-h-screen bg-stone-100">
       <AppHeader />
@@ -135,10 +118,7 @@ function DealsPage() {
         <div className="mb-6">
           <SearchBar
             value={searchQuery}
-            onChange={(q) => {
-              setSearchQuery(q);
-              setOffset(0);
-            }}
+            onChange={setSearchQuery}
           />
         </div>
 
@@ -156,18 +136,14 @@ function DealsPage() {
           specFacets={facetsData?.spec_facets ?? []}
           sort={sort}
           searchQuery={searchQuery}
-          onStoreChange={(v) => { setStoreFilter(v); setOffset(0); }}
-          onBrandChange={(v) => { setBrandFilter(v); setOffset(0); }}
-          onCategoryChange={(v) => { setCategoryFilter(v); setOffset(0); }}
-          onCanonicalCategoryChange={(v) => {
-            setCanonicalCategoryFilter(v);
-            setSpecFilters({});
-            setOffset(0);
-          }}
-          onMinDiscountChange={(v) => { setMinDiscount(v); setOffset(0); }}
+          onStoreChange={setStoreFilter}
+          onBrandChange={setBrandFilter}
+          onCategoryChange={setCategoryFilter}
+          onCanonicalCategoryChange={setCanonicalCategoryFilter}
+          onMinDiscountChange={setMinDiscount}
           onSpecFilterChange={setSpecFilter}
           onClearSpecFilter={clearSpecFilter}
-          onSortChange={(v) => { setSort(v); setOffset(0); }}
+          onSortChange={setSort}
           activeFilterCount={activeFilterCount}
           onClearAll={clearAllFilters}
         />
