@@ -2,11 +2,13 @@ package scheduler
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/mtb-aggregator/api/internal/brand"
 	"github.com/mtb-aggregator/api/internal/db"
@@ -24,6 +26,24 @@ func getEnrichBatchSize() int {
 		}
 	}
 	return defaultEnrichBatchSize
+}
+
+func getEnrichJobTimeout() time.Duration {
+	if s := os.Getenv("ENRICH_JOB_TIMEOUT"); s != "" {
+		if d, err := time.ParseDuration(s); err == nil && d > 0 {
+			return d
+		}
+	}
+	return 30 * time.Minute
+}
+
+func getScrapeJobTimeout() time.Duration {
+	if s := os.Getenv("SCRAPE_JOB_TIMEOUT"); s != "" {
+		if d, err := time.ParseDuration(s); err == nil && d > 0 {
+			return d
+		}
+	}
+	return 20 * time.Minute
 }
 
 type Scheduler struct {
@@ -67,7 +87,9 @@ func (s *Scheduler) RunScrapeJob(storeType string, triggeredBy string) {
 	}
 
 	for _, store := range stores {
-		s.scrapeStore(ctx, store, triggeredBy)
+		storeCtx, cancel := context.WithTimeout(ctx, getScrapeJobTimeout())
+		s.scrapeStore(storeCtx, store, triggeredBy)
+		cancel()
 	}
 }
 
@@ -85,14 +107,31 @@ func (s *Scheduler) scrapeStore(ctx context.Context, store db.Store, triggeredBy
 		log.Printf("[scheduler] failed to create scrape job for %s: %v", store.Name, err)
 	}
 
+	validCount := 0
+	var results []scraper.ScrapeResult
+	defer func() {
+		if r := recover(); r != nil {
+			log.Printf("[scheduler] panic scraping %s: %v", store.Name, r)
+			if jobID != 0 {
+				errStrs := []string{fmt.Sprintf("panic: %v", r)}
+				found := len(results)
+				_ = s.db.UpdateScrapeJob(ctx, jobID, "failed", &found, &validCount, errStrs, nil)
+			}
+		}
+	}()
+
 	log.Printf("[scheduler] scraping %s (%s)", store.Name, store.ScrapeURL)
 
-	results, err := s.scraper.Scrape(store.ScrapeURL, storeType)
+	results, err = s.scraper.Scrape(ctx, store.ScrapeURL, storeType)
 	if err != nil {
 		log.Printf("[scheduler] scrape failed for %s: %v", store.Name, err)
 		if jobID != 0 {
 			errs := []string{err.Error()}
-			_ = s.db.UpdateScrapeJob(ctx, jobID, "failed", nil, nil, errs, nil)
+			status := "failed"
+			if errors.Is(err, context.DeadlineExceeded) {
+				status = "timed_out"
+			}
+			_ = s.db.UpdateScrapeJob(ctx, jobID, status, nil, nil, errs, nil)
 		}
 		return
 	}
@@ -143,8 +182,16 @@ func (s *Scheduler) scrapeStore(ctx context.Context, store db.Store, triggeredBy
 		return
 	}
 
-	validCount := 0
 	for i, r := range results {
+		if ctx.Err() != nil {
+			log.Printf("[scheduler] %s: job timeout, saving partial progress: %d found, %d upserted", store.Name, len(results), validCount)
+			if jobID != 0 {
+				found := len(results)
+				errStrs := []string{"job timed out"}
+				_ = s.db.UpdateScrapeJob(ctx, jobID, "timed_out", &found, &validCount, errStrs, nil)
+			}
+			return
+		}
 		// Skip results that failed schema validation
 		if errs := scraper.ValidateResult(r, i); len(errs) > 0 {
 			continue
@@ -218,15 +265,29 @@ func (s *Scheduler) scrapeStore(ctx context.Context, store db.Store, triggeredBy
 // RunEnrichmentJob runs enrichment for listings needing it (all stores, one batch).
 // triggeredBy is "manual" or "cron" for job history.
 func (s *Scheduler) RunEnrichmentJob(force bool, triggeredBy string) {
-	ctx := context.Background()
 	if triggeredBy == "" {
 		triggeredBy = "manual"
 	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), getEnrichJobTimeout())
+	defer cancel()
 
 	jobID, err := s.db.CreateEnrichJob(ctx, nil, triggeredBy, force)
 	if err != nil {
 		log.Printf("[enrichment] failed to create enrich job: %v", err)
 	}
+
+	successCount := 0
+	var errStrs []string
+	defer func() {
+		if r := recover(); r != nil {
+			log.Printf("[enrichment] panic: %v", r)
+			if jobID != 0 {
+				panicErrs := append(errStrs, fmt.Sprintf("panic: %v", r))
+				_ = s.db.UpdateEnrichJob(ctx, jobID, "failed", nil, &successCount, panicErrs)
+			}
+		}
+	}()
 
 	batchSize := getEnrichBatchSize()
 	listings, err := s.db.GetListingsNeedingEnrichment(ctx, batchSize, force)
@@ -249,10 +310,18 @@ func (s *Scheduler) RunEnrichmentJob(force bool, triggeredBy string) {
 
 	log.Printf("[enrichment] enriching %d listings", len(listings))
 
-	successCount := 0
-	var errStrs []string
+	processed := 0
 	for _, l := range listings {
-		result, err := s.scraper.Enrich(l.ProductURL, l.StoreType)
+		if ctx.Err() != nil {
+			log.Printf("[enrichment] job timeout, saving partial progress: %d processed, %d enriched", processed, successCount)
+			if jobID != 0 {
+				errStrs = append(errStrs, "job timed out")
+				_ = s.db.UpdateEnrichJob(ctx, jobID, "timed_out", &processed, &successCount, errStrs)
+			}
+			return
+		}
+		processed++
+		result, err := s.scraper.Enrich(ctx, l.ProductURL, l.StoreType)
 		if err != nil {
 			log.Printf("[enrichment] failed for listing %d: %v", l.ID, err)
 			errStrs = append(errStrs, fmt.Sprintf("listing %d: %v", l.ID, err))
@@ -273,8 +342,8 @@ func (s *Scheduler) RunEnrichmentJob(force bool, triggeredBy string) {
 
 	status := "completed"
 	if jobID != 0 {
-		processed := len(listings)
-		_ = s.db.UpdateEnrichJob(ctx, jobID, status, &processed, &successCount, errStrs)
+		p := len(listings)
+		_ = s.db.UpdateEnrichJob(ctx, jobID, status, &p, &successCount, errStrs)
 	}
 	log.Printf("[enrichment] enriched %d/%d listings", successCount, len(listings))
 }
@@ -302,18 +371,38 @@ func (s *Scheduler) RunEnrichmentJobForStore(storeType string, force bool, trigg
 		return
 	}
 
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), getEnrichJobTimeout())
+	defer cancel()
+
 	st := storeType
 	jobID, err := s.db.CreateEnrichJob(ctx, &st, triggeredBy, force)
 	if err != nil {
 		log.Printf("[enrichment] failed to create enrich job: %v", err)
 	}
 
-	batchSize := getEnrichBatchSize()
 	totalSuccess := 0
 	totalProcessed := 0
 	var errStrs []string
+	defer func() {
+		if r := recover(); r != nil {
+			log.Printf("[enrichment] panic: %v", r)
+			if jobID != 0 {
+				panicErrs := append(errStrs, fmt.Sprintf("panic: %v", r))
+				_ = s.db.UpdateEnrichJob(ctx, jobID, "failed", &totalProcessed, &totalSuccess, panicErrs)
+			}
+		}
+	}()
+
+	batchSize := getEnrichBatchSize()
 	for {
+		if ctx.Err() != nil {
+			log.Printf("[enrichment] %s: job timeout, saving partial progress: %d processed, %d enriched", storeType, totalProcessed, totalSuccess)
+			if jobID != 0 {
+				errStrs = append(errStrs, "job timed out")
+				_ = s.db.UpdateEnrichJob(ctx, jobID, "timed_out", &totalProcessed, &totalSuccess, errStrs)
+			}
+			return
+		}
 		listings, err := s.db.GetListingsNeedingEnrichmentForStore(ctx, storeType, batchSize, force)
 		if err != nil {
 			log.Printf("[enrichment] failed to get listings for %s: %v", storeType, err)
@@ -328,7 +417,15 @@ func (s *Scheduler) RunEnrichmentJobForStore(storeType string, force bool, trigg
 		log.Printf("[enrichment] %s: enriching batch of %d listings", storeType, len(listings))
 		successCount := 0
 		for _, l := range listings {
-			result, err := s.scraper.Enrich(l.ProductURL, l.StoreType)
+			if ctx.Err() != nil {
+				log.Printf("[enrichment] %s: job timeout, saving partial progress: %d processed, %d enriched", storeType, totalProcessed, totalSuccess)
+				if jobID != 0 {
+					errStrs = append(errStrs, "job timed out")
+					_ = s.db.UpdateEnrichJob(ctx, jobID, "timed_out", &totalProcessed, &totalSuccess, errStrs)
+				}
+				return
+			}
+			result, err := s.scraper.Enrich(ctx, l.ProductURL, l.StoreType)
 			if err != nil {
 				log.Printf("[enrichment] failed for listing %d: %v", l.ID, err)
 				errStrs = append(errStrs, fmt.Sprintf("listing %d: %v", l.ID, err))

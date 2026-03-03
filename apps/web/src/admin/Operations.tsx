@@ -7,7 +7,7 @@ import {
   useScrapeJob,
   useEnrichJob,
 } from "./hooks/queries";
-import { useTriggerScrape, useTriggerEnrich } from "./hooks/mutations";
+import { useTriggerScrape, useTriggerEnrich, useCancelScrapeJob, useCancelEnrichJob } from "./hooks/mutations";
 import type { ScrapeJob, EnrichJob } from "./api";
 
 const PAGE_SIZE = 20;
@@ -31,12 +31,21 @@ function durationMs(start: string, end: string | null | undefined): number | nul
   }
 }
 
+function formatStatus(status: string): string {
+  return status.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 function statusColor(status: string): string {
   switch (status) {
     case "completed":
       return "text-green-700";
     case "failed":
       return "text-red-700";
+    case "stale":
+      return "text-stone-600";
+    case "timed_out":
+    case "cancelled":
+      return "text-amber-700";
     default:
       return "text-amber-700";
   }
@@ -68,6 +77,8 @@ export function Operations() {
 
   const scrapeMutation = useTriggerScrape();
   const enrichMutation = useTriggerEnrich();
+  const cancelScrapeMutation = useCancelScrapeJob();
+  const cancelEnrichMutation = useCancelEnrichJob();
 
   const loading = useAdminStores().isPending && stores.length === 0;
   const error = jobsError ? (jobsErrorObj?.message ?? "Failed to load jobs") : null;
@@ -100,14 +111,16 @@ export function Operations() {
     <div>
       <h2 className="text-xl font-semibold text-stone-800 mb-4">Operations</h2>
 
-      {(scrapeMutation.isError || enrichMutation.isError || error) && (
+      {(scrapeMutation.isError || enrichMutation.isError || cancelScrapeMutation.isError || cancelEnrichMutation.isError || error) && (
         <div className="mb-4 rounded border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
-          {scrapeMutation.error?.message ?? enrichMutation.error?.message ?? error}
+          {scrapeMutation.error?.message ?? enrichMutation.error?.message ?? cancelScrapeMutation.error?.message ?? cancelEnrichMutation.error?.message ?? error}
           <button
             type="button"
             onClick={() => {
               scrapeMutation.reset();
               enrichMutation.reset();
+              cancelScrapeMutation.reset();
+              cancelEnrichMutation.reset();
               if (jobsError) refetchJobs();
             }}
             className="ml-2 underline"
@@ -209,7 +222,7 @@ export function Operations() {
                     onClick={() => openJobDetail(job)}
                   >
                     <td className="px-4 py-2 font-medium text-stone-800">{job.store_name}</td>
-                    <td className={`px-4 py-2 capitalize ${statusColor(job.status)}`}>{job.status}</td>
+                    <td className={`px-4 py-2 ${statusColor(job.status)}`}>{formatStatus(job.status)}</td>
                     <td className="px-4 py-2 text-stone-600">{formatDate(job.started_at)}</td>
                     <td className="px-4 py-2 text-stone-600">{durationStr}</td>
                     <td className="px-4 py-2 text-right">{job.listings_found ?? "—"}</td>
@@ -281,7 +294,7 @@ export function Operations() {
                     onClick={() => openEnrichJobDetail(job)}
                   >
                     <td className="px-4 py-2 font-medium text-stone-800">{storeLabel}</td>
-                    <td className={`px-4 py-2 capitalize ${statusColor(job.status)}`}>{job.status}</td>
+                    <td className={`px-4 py-2 ${statusColor(job.status)}`}>{formatStatus(job.status)}</td>
                     <td className="px-4 py-2 text-stone-600">{formatDate(job.started_at)}</td>
                     <td className="px-4 py-2 text-stone-600">{durationStr}</td>
                     <td className="px-4 py-2 text-right">{job.listings_processed ?? "—"}</td>
@@ -342,7 +355,7 @@ export function Operations() {
               {formatDate(selectedJob.started_at)}
               {selectedJob.completed_at && ` → ${formatDate(selectedJob.completed_at)}`}
               {" · "}
-              <span className={statusColor(selectedJob.status)}>{selectedJob.status}</span>
+              <span className={statusColor(selectedJob.status)}>{formatStatus(selectedJob.status)}</span>
               {selectedJob.listings_found != null && ` · ${selectedJob.listings_found} found, ${selectedJob.listings_upserted ?? 0} upserted`}
             </p>
             {selectedJob.errors && selectedJob.errors.length > 0 && (
@@ -365,13 +378,29 @@ export function Operations() {
                 </ul>
               </div>
             )}
-            <button
-              type="button"
-              onClick={() => setSelectedJobId(null)}
-              className="rounded border border-stone-300 px-3 py-2 text-sm text-stone-700 hover:bg-stone-50"
-            >
-              Close
-            </button>
+            <div className="flex gap-2">
+              {selectedJob.status === "running" && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    cancelScrapeMutation.mutate(selectedJob.id, {
+                      onSuccess: () => setSelectedJobId(null),
+                    })
+                  }
+                  disabled={cancelScrapeMutation.isPending}
+                  className="rounded border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800 hover:bg-amber-100 disabled:opacity-50"
+                >
+                  {cancelScrapeMutation.isPending ? "Marking…" : "Mark Stale"}
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setSelectedJobId(null)}
+                className="rounded border border-stone-300 px-3 py-2 text-sm text-stone-700 hover:bg-stone-50"
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -395,7 +424,7 @@ export function Operations() {
               {formatDate(selectedEnrichJob.started_at)}
               {selectedEnrichJob.completed_at && ` → ${formatDate(selectedEnrichJob.completed_at)}`}
               {" · "}
-              <span className={statusColor(selectedEnrichJob.status)}>{selectedEnrichJob.status}</span>
+              <span className={statusColor(selectedEnrichJob.status)}>{formatStatus(selectedEnrichJob.status)}</span>
               {selectedEnrichJob.listings_processed != null && ` · ${selectedEnrichJob.listings_processed} processed, ${selectedEnrichJob.listings_enriched ?? 0} enriched`}
               {selectedEnrichJob.force_mode && " · Force mode"}
             </p>
@@ -409,13 +438,29 @@ export function Operations() {
                 </ul>
               </div>
             )}
-            <button
-              type="button"
-              onClick={() => setSelectedEnrichJobId(null)}
-              className="rounded border border-stone-300 px-3 py-2 text-sm text-stone-700 hover:bg-stone-50"
-            >
-              Close
-            </button>
+            <div className="flex gap-2">
+              {selectedEnrichJob.status === "running" && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    cancelEnrichMutation.mutate(selectedEnrichJob.id, {
+                      onSuccess: () => setSelectedEnrichJobId(null),
+                    })
+                  }
+                  disabled={cancelEnrichMutation.isPending}
+                  className="rounded border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800 hover:bg-amber-100 disabled:opacity-50"
+                >
+                  {cancelEnrichMutation.isPending ? "Marking…" : "Mark Stale"}
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setSelectedEnrichJobId(null)}
+                className="rounded border border-stone-300 px-3 py-2 text-sm text-stone-700 hover:bg-stone-50"
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}

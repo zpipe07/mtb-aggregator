@@ -2,6 +2,7 @@ package scraper
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -48,14 +49,20 @@ func NewClient(baseURL string) *Client {
 	}
 }
 
-func (c *Client) Scrape(url, store string) ([]ScrapeResult, error) {
+func (c *Client) Scrape(ctx context.Context, url, store string) ([]ScrapeResult, error) {
 	reqBody := ScrapeRequest{URL: url, Store: store}
 	jsonBody, err := json.Marshal(reqBody)
 	if err != nil {
 		return nil, fmt.Errorf("marshal request: %w", err)
 	}
 
-	resp, err := c.httpClient.Post(c.baseURL+"/scrape", "application/json", bytes.NewReader(jsonBody))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+"/scrape", bytes.NewReader(jsonBody))
+	if err != nil {
+		return nil, fmt.Errorf("create request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("scrape request: %w", err)
 	}
@@ -73,14 +80,20 @@ func (c *Client) Scrape(url, store string) ([]ScrapeResult, error) {
 	return results, nil
 }
 
-func (c *Client) Enrich(productURL, store string) (*EnrichResult, error) {
+func (c *Client) Enrich(ctx context.Context, productURL, store string) (*EnrichResult, error) {
 	reqBody := map[string]string{"url": productURL, "store": store}
 	jsonBody, err := json.Marshal(reqBody)
 	if err != nil {
 		return nil, fmt.Errorf("marshal request: %w", err)
 	}
 
-	resp, err := c.httpClient.Post(c.baseURL+"/enrich", "application/json", bytes.NewReader(jsonBody))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+"/enrich", bytes.NewReader(jsonBody))
+	if err != nil {
+		return nil, fmt.Errorf("create request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("enrich request: %w", err)
 	}

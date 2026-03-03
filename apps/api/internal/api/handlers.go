@@ -631,6 +631,26 @@ func (h *Handlers) GetAdminJobByID(w http.ResponseWriter, r *http.Request, id in
 	json.NewEncoder(w).Encode(job)
 }
 
+// PostAdminCancelScrapeJob sets status=cancelled for a running scrape job (admin).
+func (h *Handlers) PostAdminCancelScrapeJob(w http.ResponseWriter, r *http.Request, id int) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	ok, err := h.DB.CancelScrapeJob(r.Context(), id)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if ok {
+		json.NewEncoder(w).Encode(map[string]interface{}{"ok": true, "status": "cancelled"})
+	} else {
+		w.WriteHeader(http.StatusConflict)
+		json.NewEncoder(w).Encode(map[string]interface{}{"ok": false, "error": "job not running or not found"})
+	}
+}
+
 // GetAdminEnrichJobs returns recent enrich jobs. Query: limit (default 50), offset (default 0).
 func (h *Handlers) GetAdminEnrichJobs(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
@@ -678,6 +698,26 @@ func (h *Handlers) GetAdminEnrichJobByID(w http.ResponseWriter, r *http.Request,
 	}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(job)
+}
+
+// PostAdminCancelEnrichJob sets status=cancelled for a running enrich job (admin).
+func (h *Handlers) PostAdminCancelEnrichJob(w http.ResponseWriter, r *http.Request, id int) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	ok, err := h.DB.CancelEnrichJob(r.Context(), id)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if ok {
+		json.NewEncoder(w).Encode(map[string]interface{}{"ok": true, "status": "cancelled"})
+	} else {
+		w.WriteHeader(http.StatusConflict)
+		json.NewEncoder(w).Encode(map[string]interface{}{"ok": false, "error": "job not running or not found"})
+	}
 }
 
 // GetAdminListings returns paginated listings for the admin data browser. Query: store_id, brand, has_canonical_category, has_enrichment, category, canonical_category, q, sort, limit, offset.
@@ -793,7 +833,7 @@ func (h *Handlers) PostAdminEnrichListing(w http.ResponseWriter, r *http.Request
 		})
 		return
 	}
-	result, err := h.Scraper.Enrich(productURL, storeType)
+	result, err := h.Scraper.Enrich(r.Context(), productURL, storeType)
 	if err != nil {
 		log.Printf("[admin] enrich listing %d: %v", id, err)
 		w.Header().Set("Content-Type", "application/json")

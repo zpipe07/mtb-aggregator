@@ -2,6 +2,8 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   triggerScrape,
   triggerEnrich,
+  cancelScrapeJob,
+  cancelEnrichJob,
   createStore,
   updateStore,
   deleteStore,
@@ -44,6 +46,28 @@ export function useTriggerEnrich() {
       queryClient.invalidateQueries({ queryKey: adminEnrichJobKeys.all });
       queryClient.invalidateQueries({ queryKey: adminDashboardKeys.all });
       queryClient.invalidateQueries({ queryKey: adminListingKeys.all });
+    },
+  });
+}
+
+export function useCancelScrapeJob() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: cancelScrapeJob,
+    onSuccess: (_, jobId) => {
+      queryClient.invalidateQueries({ queryKey: adminScrapeJobKeys.all });
+      queryClient.invalidateQueries({ queryKey: adminScrapeJobKeys.detail(jobId) });
+    },
+  });
+}
+
+export function useCancelEnrichJob() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: cancelEnrichJob,
+    onSuccess: (_, jobId) => {
+      queryClient.invalidateQueries({ queryKey: adminEnrichJobKeys.all });
+      queryClient.invalidateQueries({ queryKey: adminEnrichJobKeys.detail(jobId) });
     },
   });
 }

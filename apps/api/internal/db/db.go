@@ -859,6 +859,19 @@ func (db *DB) GetScrapeJobs(ctx context.Context, storeID int, limit, offset int)
 	return jobs, rows.Err()
 }
 
+// CancelScrapeJob sets status='cancelled' and completed_at=NOW() for a scrape job that is currently 'running'.
+// Returns (true, nil) if the job was updated, (false, nil) if it was not running or not found.
+func (db *DB) CancelScrapeJob(ctx context.Context, id int) (bool, error) {
+	res, err := db.pool.Exec(ctx, `
+		UPDATE scrape_jobs SET status = 'cancelled', completed_at = NOW()
+		WHERE id = $1 AND status = 'running'
+	`, id)
+	if err != nil {
+		return false, err
+	}
+	return res.RowsAffected() > 0, nil
+}
+
 // GetScrapeJobByID returns one scrape job by id, or nil if not found.
 func (db *DB) GetScrapeJobByID(ctx context.Context, id int) (*ScrapeJob, error) {
 	var j ScrapeJob
@@ -924,6 +937,40 @@ func (db *DB) UpdateEnrichJob(ctx context.Context, id int, status string, proces
 		WHERE id = $5
 	`, status, processed, enriched, errSlice, id)
 	return err
+}
+
+// MarkStaleJobs sets status='stale' and completed_at=NOW() for any scrape_jobs and enrich_jobs that are still 'running'.
+// Call on API startup to clean up jobs orphaned by a process crash/restart.
+func (db *DB) MarkStaleJobs(ctx context.Context) error {
+	_, err := db.pool.Exec(ctx, `
+		UPDATE enrich_jobs
+		SET status = 'stale', completed_at = NOW(),
+			errors = array_append(COALESCE(errors, '{}'), 'marked stale: process restarted while job was running')
+		WHERE status = 'running'
+	`)
+	if err != nil {
+		return err
+	}
+	_, err = db.pool.Exec(ctx, `
+		UPDATE scrape_jobs
+		SET status = 'stale', completed_at = NOW(),
+			errors = array_append(COALESCE(errors, '{}'), 'marked stale: process restarted while job was running')
+		WHERE status = 'running'
+	`)
+	return err
+}
+
+// CancelEnrichJob sets status='cancelled' and completed_at=NOW() for an enrich job that is currently 'running'.
+// Returns (true, nil) if the job was updated, (false, nil) if it was not running or not found.
+func (db *DB) CancelEnrichJob(ctx context.Context, id int) (bool, error) {
+	res, err := db.pool.Exec(ctx, `
+		UPDATE enrich_jobs SET status = 'cancelled', completed_at = NOW()
+		WHERE id = $1 AND status = 'running'
+	`, id)
+	if err != nil {
+		return false, err
+	}
+	return res.RowsAffected() > 0, nil
 }
 
 // GetEnrichJobs returns recent enrich jobs (newest first), paginated.

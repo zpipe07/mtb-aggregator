@@ -151,6 +151,12 @@ func main() {
 		log.Println("[taxonomy] loaded category mappings from DB")
 	}
 
+	if err := database.MarkStaleJobs(ctx); err != nil {
+		log.Printf("[jobs] mark stale jobs: %v", err)
+	} else {
+		log.Println("[jobs] marked any orphaned running jobs as stale")
+	}
+
 	sched := scheduler.New(database, scraperURL)
 	scraperClient := scraper.NewClient(scraperURL)
 	handlers := &api.Handlers{DB: database, ScraperURL: scraperURL, Scraper: scraperClient}
@@ -282,7 +288,7 @@ func main() {
 		}
 		handlers.GetAdminJobs(w, r)
 	}))
-	// Admin: GET /admin/jobs/:id
+	// Admin: GET /admin/jobs/:id, POST /admin/jobs/:id/cancel
 	http.HandleFunc("/admin/jobs/", api.AdminRequired(func(w http.ResponseWriter, r *http.Request) {
 		path := strings.TrimPrefix(r.URL.Path, "/admin/jobs/")
 		path = strings.Trim(path, "/")
@@ -290,9 +296,14 @@ func main() {
 			http.NotFound(w, r)
 			return
 		}
-		id, err := strconv.Atoi(path)
+		parts := strings.SplitN(path, "/", 2)
+		id, err := strconv.Atoi(strings.TrimSpace(parts[0]))
 		if err != nil {
 			http.Error(w, "invalid id", http.StatusBadRequest)
+			return
+		}
+		if len(parts) == 2 && strings.TrimSpace(parts[1]) == "cancel" && r.Method == http.MethodPost {
+			handlers.PostAdminCancelScrapeJob(w, r, id)
 			return
 		}
 		handlers.GetAdminJobByID(w, r, id)
@@ -306,7 +317,7 @@ func main() {
 		}
 		handlers.GetAdminEnrichJobs(w, r)
 	}))
-	// Admin: GET /admin/enrich-jobs/:id
+	// Admin: GET /admin/enrich-jobs/:id, POST /admin/enrich-jobs/:id/cancel
 	http.HandleFunc("/admin/enrich-jobs/", api.AdminRequired(func(w http.ResponseWriter, r *http.Request) {
 		path := strings.TrimPrefix(r.URL.Path, "/admin/enrich-jobs/")
 		path = strings.Trim(path, "/")
@@ -314,9 +325,14 @@ func main() {
 			http.NotFound(w, r)
 			return
 		}
-		id, err := strconv.Atoi(path)
+		parts := strings.SplitN(path, "/", 2)
+		id, err := strconv.Atoi(strings.TrimSpace(parts[0]))
 		if err != nil {
 			http.Error(w, "invalid id", http.StatusBadRequest)
+			return
+		}
+		if len(parts) == 2 && strings.TrimSpace(parts[1]) == "cancel" && r.Method == http.MethodPost {
+			handlers.PostAdminCancelEnrichJob(w, r, id)
 			return
 		}
 		handlers.GetAdminEnrichJobByID(w, r, id)

@@ -204,6 +204,19 @@ export async function fetchScrapeJob(id: number): Promise<ScrapeJob | null> {
   return res.json();
 }
 
+export async function cancelScrapeJob(id: number): Promise<{ ok: boolean; status?: string }> {
+  const res = await fetch(`${API_BASE}/admin/jobs/${id}/cancel`, {
+    method: "POST",
+    headers: adminHeaders(),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const msg = typeof data?.error === "string" ? data.error : "Cancel failed";
+    throw new Error(msg);
+  }
+  return data;
+}
+
 // --- Enrich jobs ---
 
 export interface EnrichJob {
@@ -238,6 +251,19 @@ export async function fetchEnrichJob(id: number): Promise<EnrichJob | null> {
   if (res.status === 404) return null;
   if (!res.ok) throw new Error("Failed to fetch enrich job");
   return res.json();
+}
+
+export async function cancelEnrichJob(id: number): Promise<{ ok: boolean; status?: string }> {
+  const res = await fetch(`${API_BASE}/admin/enrich-jobs/${id}/cancel`, {
+    method: "POST",
+    headers: adminHeaders(),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const msg = typeof data?.error === "string" ? data.error : "Cancel failed";
+    throw new Error(msg);
+  }
+  return data;
 }
 
 // --- Admin listings / data browser (Phase E) ---
