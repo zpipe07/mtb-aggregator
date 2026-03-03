@@ -139,8 +139,8 @@ func (db *DB) GetFacets(ctx context.Context, params GetFacetsParams) (*GetFacets
 		}
 	}
 
-	// Build spec facets: only keys with >= 3 products, limit 20 keys
-	const minCoverage = 3
+	// Build spec facets: only keys with >= 0 products, limit 20 keys
+	const minCoverage = 0
 	const maxKeys = 20
 	var specFacets []SpecFacet
 	keyOrder := make([]string, 0, len(keyProductCount))

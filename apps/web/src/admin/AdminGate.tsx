@@ -61,7 +61,7 @@ export function AdminGate({ onSuccess }: Props) {
           </button>
         </form>
         <p className="mt-4 text-center">
-          <a href="/" className="text-sm text-stone-500 hover:text-stone-700">
+          <a href="/deals" className="text-sm text-stone-500 hover:text-stone-700">
             ← Back to deals
           </a>
         </p>

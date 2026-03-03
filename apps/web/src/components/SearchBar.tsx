@@ -27,7 +27,7 @@ export function SearchBar({
   }, [local, debounceMs, onChange, value]);
 
   return (
-    <div className="w-full max-w-xl">
+    <div className="w-full min-w-0 max-w-xl">
       <label htmlFor="deal-search" className="sr-only">
         Search deals
       </label>

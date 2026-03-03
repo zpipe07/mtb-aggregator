@@ -20,8 +20,6 @@ export const specValueKeys = {
   all: ["specValues"] as const,
   byKey: (key: string) => [...specValueKeys.all, key] as const,
 };
-export const statusKeys = { all: ["status"] as const };
-
 export const facetKeys = {
   all: ["facets"] as const,
   list: (filters: Record<string, unknown>) =>

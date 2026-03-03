@@ -1,6 +1,11 @@
-export { AppHeader } from "./AppHeader";
-export { StatusBar } from "./StatusBar";
+export { NavHeader } from "./NavHeader";
+export { PublicLayout } from "./PublicLayout";
 export { SearchBar } from "./SearchBar";
+export { Toolbar } from "./Toolbar";
+export { FilterSidebar } from "./FilterSidebar";
+export { FilterDrawer } from "./FilterDrawer";
+export { FilterChips } from "./FilterChips";
+export { CategoryCard } from "./CategoryCard";
 export { DealFilters } from "./DealFilters";
 export type { SortOption } from "./DealFilters";
 export { DealGrid } from "./DealGrid";
@@ -10,4 +15,3 @@ export { DealDetailModal } from "./DealDetailModal";
 export { ErrorMessage } from "./ErrorMessage";
 export { LoadingState } from "./LoadingState";
 export { EmptyState } from "./EmptyState";
-export { FilterChips } from "./FilterChips";

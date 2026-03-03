@@ -8,7 +8,6 @@ import {
   fetchBrands,
   fetchCategories,
   fetchCanonicalCategories,
-  fetchStatus,
   DEFAULT_PAGE_SIZE,
   type DealListResponse,
   type FacetsResponse,
@@ -20,7 +19,6 @@ import {
   brandKeys,
   categoryKeys,
   canonicalCategoryKeys,
-  statusKeys,
 } from "./queryKeys";
 
 export interface DealsParams {
@@ -112,14 +110,6 @@ export function useCanonicalCategories() {
     queryKey: canonicalCategoryKeys.all,
     queryFn: fetchCanonicalCategories,
     staleTime: REFERENCE_STALE,
-  });
-}
-
-export function useStatus() {
-  return useQuery({
-    queryKey: statusKeys.all,
-    queryFn: fetchStatus,
-    staleTime: 30 * 1000,
   });
 }
 

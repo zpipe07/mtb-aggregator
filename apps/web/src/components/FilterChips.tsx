@@ -1,46 +1,44 @@
-type FilterChipsProps<T extends string> = {
+type ActiveFilter = {
+  key: string;
   label: string;
-  options: { value: T; label: string }[];
-  value: T;
-  onChange: (value: T) => void;
+  onRemove: () => void;
 };
 
-export function FilterChips<T extends string>({
-  label,
-  options,
-  value,
-  onChange,
-}: FilterChipsProps<T>) {
+type FilterChipsProps = {
+  filters: ActiveFilter[];
+  onClearAll: () => void;
+};
+
+export function FilterChips({ filters, onClearAll }: FilterChipsProps) {
+  if (filters.length === 0) return null;
+
   return (
-    <div>
-      <span className="block text-sm font-medium text-stone-600 mb-1.5">{label}</span>
-      <div className="flex flex-wrap gap-2">
-        <button
-          type="button"
-          onClick={() => onChange("" as T)}
-          className={`rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${
-            value === ""
-              ? "bg-stone-700 text-white"
-              : "bg-stone-200 text-stone-700 hover:bg-stone-300"
-          }`}
+    <div className="flex flex-wrap items-center gap-2 mb-4">
+      {filters.map(({ key, label, onRemove }) => (
+        <span
+          key={key}
+          className="inline-flex items-center gap-1.5 rounded-full bg-stone-200 text-stone-800 text-sm py-1.5 pl-3 pr-1"
         >
-          All
-        </button>
-        {options.map((opt) => (
+          {label}
           <button
-            key={opt.value}
             type="button"
-            onClick={() => onChange(opt.value)}
-            className={`rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${
-              value === opt.value
-                ? "bg-stone-700 text-white"
-                : "bg-stone-200 text-stone-700 hover:bg-stone-300"
-            }`}
+            onClick={onRemove}
+            className="p-1 rounded-full hover:bg-stone-300 transition-colors"
+            aria-label={`Remove ${label} filter`}
           >
-            {opt.label}
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
           </button>
-        ))}
-      </div>
+        </span>
+      ))}
+      <button
+        type="button"
+        onClick={onClearAll}
+        className="text-sm font-medium text-stone-600 hover:text-stone-900 underline"
+      >
+        Clear all
+      </button>
     </div>
   );
 }
