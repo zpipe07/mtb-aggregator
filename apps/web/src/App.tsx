@@ -1,16 +1,15 @@
 import { useEffect, useState, useCallback } from "react";
 import { useSearchParams, Routes, Route } from "react-router-dom";
+import { DEFAULT_PAGE_SIZE } from "./api";
 import {
-  fetchDeals,
-  fetchStores,
-  fetchBrands,
-  fetchCategories,
-  fetchCanonicalCategories,
-  fetchStatus,
-  DEFAULT_PAGE_SIZE,
-  type Deal,
-  type Store,
-} from "./api";
+  useDeals,
+  useFilterFacets,
+  useStores,
+  useBrands,
+  useCategories,
+  useCanonicalCategories,
+  useStatus,
+} from "./hooks/queries";
 import {
   AppHeader,
   StatusBar,
@@ -27,27 +26,15 @@ import {
 import { AdminSection } from "./admin";
 
 function DealsPage() {
-  const [deals, setDeals] = useState<Deal[]>([]);
-  const [totalCount, setTotalCount] = useState(0);
-  const [stores, setStores] = useState<Store[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [storeFilter, setStoreFilter] = useState("");
   const [brandFilter, setBrandFilter] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
   const [canonicalCategoryFilter, setCanonicalCategoryFilter] = useState("");
   const [minDiscount, setMinDiscount] = useState("");
-  const [specKey, setSpecKey] = useState("");
-  const [specValue, setSpecValue] = useState("");
+  const [specFilters, setSpecFilters] = useState<Record<string, string>>({});
   const [sort, setSort] = useState<SortOption>("newest");
   const [offset, setOffset] = useState(0);
-  const [brands, setBrands] = useState<string[]>([]);
-  const [categories, setCategories] = useState<string[]>([]);
-  const [canonicalCategories, setCanonicalCategories] = useState<string[]>([]);
-  const [status, setStatus] = useState<Awaited<
-    ReturnType<typeof fetchStatus>
-  > | null>(null);
 
   const [searchParams, setSearchParams] = useSearchParams();
   const dealParam = searchParams.get("deal");
@@ -64,72 +51,48 @@ function DealsPage() {
     [setSearchParams]
   );
 
-  useEffect(() => {
-    fetchStores()
-      .then(setStores)
-      .catch((e) => setError(String(e)));
-  }, []);
+  const { data: storesData } = useStores();
+  const { data: statusData } = useStatus();
+  const { data: brandsData } = useBrands();
+  const { data: categoriesData } = useCategories();
+  const { data: canonicalData } = useCanonicalCategories();
 
-  useEffect(() => {
-    fetchStatus()
-      .then(setStatus)
-      .catch(() => setStatus(null));
-  }, []);
+  const dealsParams = {
+    limit: DEFAULT_PAGE_SIZE,
+    offset,
+    store: storeFilter || undefined,
+    brand: brandFilter || undefined,
+    category: categoryFilter || undefined,
+    canonical_category: canonicalCategoryFilter || undefined,
+    min_discount: minDiscount ? parseFloat(minDiscount) || undefined : undefined,
+    specFilters: Object.keys(specFilters).length > 0 ? specFilters : undefined,
+    q: searchQuery.trim() || undefined,
+    sort,
+  };
+  const { data: dealsData, isPending: loading, isError, error } = useDeals(dealsParams);
 
-  useEffect(() => {
-    fetchBrands()
-      .then(setBrands)
-      .catch(() => setBrands([]));
-  }, []);
+  const facetsParams = {
+    store: storeFilter || undefined,
+    brand: brandFilter || undefined,
+    category: categoryFilter || undefined,
+    canonical_category: canonicalCategoryFilter || undefined,
+    min_discount: minDiscount ? parseFloat(minDiscount) || undefined : undefined,
+    specFilters: Object.keys(specFilters).length > 0 ? specFilters : undefined,
+    q: searchQuery.trim() || undefined,
+  };
+  const { data: facetsData } = useFilterFacets(facetsParams);
 
-  useEffect(() => {
-    fetchCategories()
-      .then(setCategories)
-      .catch(() => setCategories([]));
-  }, []);
+  const stores = storesData ?? [];
+  const brands = brandsData ?? [];
+  const categories = categoriesData ?? [];
+  const canonicalCategories = canonicalData ?? [];
+  const deals = dealsData?.deals ?? [];
+  const totalCount = dealsData?.total_count ?? 0;
 
-  useEffect(() => {
-    fetchCanonicalCategories()
-      .then(setCanonicalCategories)
-      .catch(() => setCanonicalCategories([]));
-  }, []);
-
-  useEffect(() => {
-    setLoading(true);
-    setError(null);
-    const params = {
-      limit: DEFAULT_PAGE_SIZE,
-      offset,
-      store: storeFilter || undefined,
-      brand: brandFilter || undefined,
-      category: categoryFilter || undefined,
-      canonical_category: canonicalCategoryFilter || undefined,
-      min_discount: minDiscount ? parseFloat(minDiscount) || undefined : undefined,
-      spec_key: specKey || undefined,
-      spec_value: specValue || undefined,
-      q: searchQuery.trim() || undefined,
-      sort,
-    };
-    fetchDeals(params)
-      .then((data) => {
-        setDeals(data.deals);
-        setTotalCount(data.total_count);
-        setLoading(false);
-      })
-      .catch((e) => {
-        setError(String(e));
-        setLoading(false);
-      });
-  }, [searchQuery, storeFilter, brandFilter, categoryFilter, canonicalCategoryFilter, minDiscount, specKey, specValue, sort, offset]);
-
-  const activeFilterCount = [
-    storeFilter,
-    brandFilter,
-    categoryFilter,
-    canonicalCategoryFilter,
-    minDiscount,
-    specKey && specValue ? 1 : 0,
-  ].filter(Boolean).length;
+  const activeFilterCount =
+    [storeFilter, brandFilter, categoryFilter, canonicalCategoryFilter, minDiscount].filter(
+      Boolean
+    ).length + Object.values(specFilters).filter(Boolean).length;
 
   const clearAllFilters = () => {
     setStoreFilter("");
@@ -137,9 +100,25 @@ function DealsPage() {
     setCategoryFilter("");
     setCanonicalCategoryFilter("");
     setMinDiscount("");
-    setSpecKey("");
-    setSpecValue("");
+    setSpecFilters({});
     setOffset(0);
+  };
+
+  const setSpecFilter = (key: string, value: string) => {
+    setSpecFilters((prev) => {
+      const next = { ...prev };
+      if (value === "") {
+        delete next[key];
+      } else {
+        next[key] = value;
+      }
+      return next;
+    });
+    setOffset(0);
+  };
+
+  const clearSpecFilter = (key: string) => {
+    setSpecFilter(key, "");
   };
 
   useEffect(() => {
@@ -150,7 +129,7 @@ function DealsPage() {
     <div className="min-h-screen bg-stone-100">
       <AppHeader />
 
-      {status && <StatusBar status={status} />}
+      {statusData && <StatusBar status={statusData} />}
 
       <main className="max-w-6xl mx-auto px-6 py-8">
         <div className="mb-6">
@@ -173,23 +152,27 @@ function DealsPage() {
           categoryFilter={categoryFilter}
           canonicalCategoryFilter={canonicalCategoryFilter}
           minDiscount={minDiscount}
-          specKey={specKey}
-          specValue={specValue}
+          specFilters={specFilters}
+          specFacets={facetsData?.spec_facets ?? []}
           sort={sort}
           searchQuery={searchQuery}
           onStoreChange={(v) => { setStoreFilter(v); setOffset(0); }}
           onBrandChange={(v) => { setBrandFilter(v); setOffset(0); }}
           onCategoryChange={(v) => { setCategoryFilter(v); setOffset(0); }}
-          onCanonicalCategoryChange={(v) => { setCanonicalCategoryFilter(v); setOffset(0); }}
+          onCanonicalCategoryChange={(v) => {
+            setCanonicalCategoryFilter(v);
+            setSpecFilters({});
+            setOffset(0);
+          }}
           onMinDiscountChange={(v) => { setMinDiscount(v); setOffset(0); }}
-          onSpecKeyChange={(v) => { setSpecKey(v); setOffset(0); }}
-          onSpecValueChange={(v) => { setSpecValue(v); setOffset(0); }}
+          onSpecFilterChange={setSpecFilter}
+          onClearSpecFilter={clearSpecFilter}
           onSortChange={(v) => { setSort(v); setOffset(0); }}
           activeFilterCount={activeFilterCount}
           onClearAll={clearAllFilters}
         />
 
-        {!loading && !error && (
+        {!loading && !isError && (
           <p className="text-sm text-stone-600 mb-4">
             {totalCount === 0
               ? "No deals found"
@@ -197,7 +180,7 @@ function DealsPage() {
           </p>
         )}
 
-        {!loading && !error && totalCount > 0 && (
+        {!loading && !isError && totalCount > 0 && (
           <div className="border-b border-stone-200 mb-4">
             <Pagination
               totalCount={totalCount}
@@ -208,7 +191,7 @@ function DealsPage() {
           </div>
         )}
 
-        {error && <ErrorMessage message={error} />}
+        {isError && <ErrorMessage message={error?.message ?? "Failed to load"} />}
 
         {loading ? (
           <LoadingState />
@@ -221,9 +204,9 @@ function DealsPage() {
           onClose={() => setSelectedDealId(null)}
         />
 
-        {!loading && !error && deals.length === 0 && <EmptyState />}
+        {!loading && !isError && deals.length === 0 && <EmptyState />}
 
-        {!loading && !error && totalCount > 0 && (
+        {!loading && !isError && totalCount > 0 && (
           <div className="border-t border-stone-200 mt-8">
             <Pagination
               totalCount={totalCount}

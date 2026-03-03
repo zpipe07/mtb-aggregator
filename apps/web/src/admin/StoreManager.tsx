@@ -1,16 +1,17 @@
-import { useEffect, useState, useCallback } from "react";
+import { useState } from "react";
 import {
-  fetchAdminStores,
-  fetchStoreTypes,
-  fetchStoreTypesWithEnrichers,
-  createStore,
-  updateStore,
-  deleteStore,
-  triggerScrape,
-  triggerEnrich,
-  type AdminStore,
-  type StoreFormBody,
-} from "./api";
+  useAdminStores,
+  useStoreTypes,
+  useStoreTypesWithEnrichers,
+} from "./hooks/queries";
+import {
+  useCreateStore,
+  useUpdateStore,
+  useDeleteStore,
+  useTriggerScrape,
+  useTriggerEnrich,
+} from "./hooks/mutations";
+import type { AdminStore, StoreFormBody } from "./api";
 
 const emptyForm: StoreFormBody = {
   name: "",
@@ -156,80 +157,60 @@ function StoreForm({
 }
 
 export function StoreManager() {
-  const [stores, setStores] = useState<AdminStore[]>([]);
-  const [storeTypes, setStoreTypes] = useState<string[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [modal, setModal] = useState<"add" | "edit" | null>(null);
   const [editingStore, setEditingStore] = useState<AdminStore | null>(null);
   const [scrapingId, setScrapingId] = useState<number | null>(null);
   const [enrichingStoreType, setEnrichingStoreType] = useState<string | null>(null);
-  const [enricherSet, setEnricherSet] = useState<Set<string>>(new Set());
 
-  const load = useCallback(() => {
-    setLoading(true);
-    setError(null);
-    Promise.all([fetchAdminStores(), fetchStoreTypes(), fetchStoreTypesWithEnrichers()])
-      .then(([s, t, e]) => {
-        setStores(s);
-        setStoreTypes(t.length > 0 ? t : ["jensonusa", "worldwidecyclery", "revelbikes"]);
-        setEnricherSet(new Set((Array.isArray(e) ? e : []).map((t) => t.toLowerCase())));
-      })
-      .catch((e) => setError(e instanceof Error ? e.message : "Failed to load"))
-      .finally(() => setLoading(false));
-  }, []);
+  const { data: stores = [], isPending: loading, isError, error } = useAdminStores();
+  const { data: storeTypesRaw = [] } = useStoreTypes();
+  const { data: enrichersRaw = [] } = useStoreTypesWithEnrichers();
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  const storeTypes = storeTypesRaw.length > 0 ? storeTypesRaw : ["jensonusa", "worldwidecyclery", "revelbikes"];
+  const enricherSet = new Set((Array.isArray(enrichersRaw) ? enrichersRaw : []).map((t) => t.toLowerCase()));
+
+  const createMutation = useCreateStore();
+  const updateMutation = useUpdateStore();
+  const deleteMutation = useDeleteStore();
+  const scrapeMutation = useTriggerScrape();
+  const enrichMutation = useTriggerEnrich();
+
+  const displayError =
+    scrapeMutation.error?.message ??
+    enrichMutation.error?.message ??
+    deleteMutation.error?.message ??
+    (isError ? error?.message ?? "Failed to load" : null);
 
   async function handleCreate(body: StoreFormBody) {
-    await createStore(body);
+    await createMutation.mutateAsync(body);
     setModal(null);
-    load();
   }
 
   async function handleUpdate(body: StoreFormBody) {
     if (!editingStore) return;
-    await updateStore(editingStore.id, body);
+    await updateMutation.mutateAsync({ id: editingStore.id, body });
     setModal(null);
     setEditingStore(null);
-    load();
   }
 
-  async function handleDelete(store: AdminStore) {
+  function handleDelete(store: AdminStore) {
     if (!window.confirm(`Delete "${store.name}"? This will remove all listings and price history for this store.`))
       return;
-    try {
-      await deleteStore(store.id);
-      load();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Delete failed");
-    }
+    deleteMutation.mutate(store.id);
   }
 
-  async function handleScrape(store: AdminStore) {
+  function handleScrape(store: AdminStore) {
     setScrapingId(store.id);
-    try {
-      await triggerScrape(store.store_type);
-      load();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Scrape failed");
-    } finally {
-      setScrapingId(null);
-    }
+    scrapeMutation.mutate(store.store_type, {
+      onSettled: () => setScrapingId(null),
+    });
   }
 
-  async function handleEnrich(store: AdminStore) {
+  function handleEnrich(store: AdminStore) {
     setEnrichingStoreType(store.store_type);
-    try {
-      await triggerEnrich(false, store.store_type);
-      load();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Enrich failed");
-    } finally {
-      setEnrichingStoreType(null);
-    }
+    enrichMutation.mutate({ force: false, store: store.store_type }, {
+      onSettled: () => setEnrichingStoreType(null),
+    });
   }
 
   const formInitial: StoreFormBody =
@@ -247,10 +228,18 @@ export function StoreManager() {
     <div>
       <h2 className="text-xl font-semibold text-stone-800 mb-4">Stores</h2>
 
-      {error && (
+      {displayError && (
         <div className="mb-4 rounded border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
-          {error}
-          <button type="button" onClick={() => setError(null)} className="ml-2 underline">
+          {displayError}
+          <button
+            type="button"
+            onClick={() => {
+              scrapeMutation.reset();
+              enrichMutation.reset();
+              deleteMutation.reset();
+            }}
+            className="ml-2 underline"
+          >
             Dismiss
           </button>
         </div>

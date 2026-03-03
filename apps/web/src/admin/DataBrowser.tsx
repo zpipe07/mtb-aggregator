@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useState } from "react";
 import {
   LineChart,
   Line,
@@ -8,15 +8,14 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { fetchPriceHistory } from "../api";
+import { usePriceHistory } from "../hooks/queries";
 import {
-  fetchAdminStores,
-  fetchAdminListings,
-  fetchAdminListing,
-  enrichListing,
-  type AdminStore,
-  type AdminListing,
-} from "./api";
+  useAdminStores,
+  useAdminListings,
+  useAdminListing,
+} from "./hooks/queries";
+import { useEnrichListing } from "./hooks/mutations";
+import type { AdminListing } from "./api";
 
 const PAGE_SIZE = 25;
 
@@ -73,11 +72,6 @@ function metadataSummary(metadata: AdminListing["metadata"]): string {
 }
 
 export function DataBrowser() {
-  const [stores, setStores] = useState<AdminStore[]>([]);
-  const [listings, setListings] = useState<AdminListing[]>([]);
-  const [totalCount, setTotalCount] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [storeId, setStoreId] = useState<number>(0);
   const [brand, setBrand] = useState("");
   const [hasEnrichment, setHasEnrichment] = useState<boolean | null>(null);
@@ -86,82 +80,26 @@ export function DataBrowser() {
   const [sort, setSort] = useState("newest");
   const [offset, setOffset] = useState(0);
   const [selectedId, setSelectedId] = useState<number | null>(null);
-  const [detail, setDetail] = useState<AdminListing | null>(null);
-  const [priceHistory, setPriceHistory] = useState<Awaited<ReturnType<typeof fetchPriceHistory>> | null>(null);
-  const [enrichBusy, setEnrichBusy] = useState(false);
-  const [enrichError, setEnrichError] = useState<string | null>(null);
 
-  const loadStores = useCallback(async () => {
-    try {
-      const s = await fetchAdminStores();
-      setStores(s);
-    } catch {
-      setStores([]);
-    }
-  }, []);
+  const { data: stores = [] } = useAdminStores();
+  const { data: listingsData, isPending: loading, isError, error, refetch } = useAdminListings({
+    store_id: storeId || undefined,
+    brand: brand || undefined,
+    has_enrichment: hasEnrichment ?? undefined,
+    category: category || undefined,
+    q: q || undefined,
+    sort,
+    limit: PAGE_SIZE,
+    offset,
+  });
 
-  const loadListings = useCallback(() => {
-    setLoading(true);
-    setError(null);
-    fetchAdminListings({
-      store_id: storeId || undefined,
-      brand: brand || undefined,
-      has_enrichment: hasEnrichment ?? undefined,
-      category: category || undefined,
-      q: q || undefined,
-      sort,
-      limit: PAGE_SIZE,
-      offset,
-    })
-      .then((r) => {
-        setListings(r.listings);
-        setTotalCount(r.total_count);
-      })
-      .catch((e) => setError(e instanceof Error ? e.message : "Failed to load"))
-      .finally(() => setLoading(false));
-  }, [storeId, brand, hasEnrichment, category, q, sort, offset]);
+  const { data: detail } = useAdminListing(selectedId);
+  const { data: priceHistory } = usePriceHistory(selectedId);
 
-  useEffect(() => {
-    loadStores();
-  }, [loadStores]);
+  const enrichMutation = useEnrichListing();
 
-  useEffect(() => {
-    loadListings();
-  }, [loadListings]);
-
-  useEffect(() => {
-    if (selectedId == null) {
-      setDetail(null);
-      setPriceHistory(null);
-      setEnrichError(null);
-      return;
-    }
-    setEnrichError(null);
-    Promise.all([fetchAdminListing(selectedId), fetchPriceHistory(selectedId)])
-      .then(([list, ph]) => {
-        setDetail(list ?? null);
-        setPriceHistory(ph ?? null);
-      })
-      .catch(() => {
-        setDetail(null);
-        setPriceHistory(null);
-      });
-  }, [selectedId]);
-
-  async function handleEnrich() {
-    if (selectedId == null) return;
-    setEnrichBusy(true);
-    setEnrichError(null);
-    try {
-      await enrichListing(selectedId);
-      const list = await fetchAdminListing(selectedId);
-      setDetail(list ?? null);
-    } catch (e) {
-      setEnrichError(e instanceof Error ? e.message : "Enrich failed");
-    } finally {
-      setEnrichBusy(false);
-    }
-  }
+  const listings = listingsData?.listings ?? [];
+  const totalCount = listingsData?.total_count ?? 0;
 
   const chartData =
     priceHistory?.points.map((p) => ({
@@ -169,14 +107,28 @@ export function DataBrowser() {
       dateLabel: formatAxisDate(p.recorded_at),
     })) ?? [];
 
+  function handleEnrich() {
+    if (selectedId == null) return;
+    enrichMutation.mutate(selectedId);
+  }
+
   return (
     <div>
       <h2 className="text-xl font-semibold text-stone-800 mb-4">Data</h2>
 
-      {error && (
+      {(isError || enrichMutation.isError) && (
         <div className="mb-4 rounded border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
-          {error}
-          <button type="button" onClick={() => setError(null)} className="ml-2 underline">
+          {enrichMutation.isError
+            ? enrichMutation.error?.message ?? "Enrich failed"
+            : error?.message ?? "Failed to load"}
+          <button
+            type="button"
+            onClick={() => {
+              enrichMutation.reset();
+              if (isError) refetch();
+            }}
+            className="ml-2 underline"
+          >
             Dismiss
           </button>
         </div>
@@ -366,10 +318,10 @@ export function DataBrowser() {
                 <button
                   type="button"
                   onClick={handleEnrich}
-                  disabled={enrichBusy}
+                  disabled={enrichMutation.isPending}
                   className="rounded bg-stone-700 px-3 py-1.5 text-sm text-white hover:bg-stone-600 disabled:opacity-50"
                 >
-                  {enrichBusy ? "Enriching…" : "Enrich"}
+                  {enrichMutation.isPending ? "Enriching…" : "Enrich"}
                 </button>
                 <button
                   type="button"
@@ -380,14 +332,6 @@ export function DataBrowser() {
                 </button>
               </div>
             </div>
-            {enrichError && (
-              <div className="mb-4 rounded border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
-                {enrichError}
-                <button type="button" onClick={() => setEnrichError(null)} className="ml-2 underline">
-                  Dismiss
-                </button>
-              </div>
-            )}
             {detail ? (
               <div className="space-y-4 text-sm">
                 <p className="font-medium text-stone-800">{detail.product_name}</p>

@@ -1,12 +1,11 @@
-import { useEffect, useState, useCallback } from "react";
+import { useState } from "react";
+import { useTaxonomyMappings } from "./hooks/queries";
 import {
-  fetchTaxonomyMappings,
-  createTaxonomyMapping,
-  updateTaxonomyMapping,
-  deleteTaxonomyMapping,
-  triggerRecategorize,
-  type CategoryMapping,
-} from "./api";
+  useCreateTaxonomyMapping,
+  useUpdateTaxonomyMapping,
+  useDeleteTaxonomyMapping,
+  useTriggerRecategorize,
+} from "./hooks/mutations";
 
 function MappingForm({
   initial,
@@ -110,63 +109,68 @@ function MappingForm({
 }
 
 export function TaxonomyManager() {
-  const [mappings, setMappings] = useState<CategoryMapping[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [adding, setAdding] = useState(false);
-  const [recategorizeBusy, setRecategorizeBusy] = useState(false);
-  const [recategorizeResult, setRecategorizeResult] = useState<number | null>(null);
+  const [swapping, setSwapping] = useState(false);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const list = await fetchTaxonomyMappings();
-      setMappings(list);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to load");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const { data: mappings = [], isPending: loading, isError, error } = useTaxonomyMappings();
+  const sorted = [...mappings].sort((a, b) => b.priority - a.priority);
+  const createMutation = useCreateTaxonomyMapping();
+  const updateMutation = useUpdateTaxonomyMapping();
+  const deleteMutation = useDeleteTaxonomyMapping();
+  const recategorizeMutation = useTriggerRecategorize();
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  const displayError =
+    createMutation.error?.message ??
+    updateMutation.error?.message ??
+    deleteMutation.error?.message ??
+    recategorizeMutation.error?.message ??
+    (isError ? error?.message ?? "Failed to load" : null);
+
+  const recategorizeResult = recategorizeMutation.data?.updated ?? null;
 
   async function handleCreate(body: { canonical: string[]; raw_keywords: string[]; priority: number }) {
-    await createTaxonomyMapping(body);
+    await createMutation.mutateAsync(body);
     setAdding(false);
-    await load();
   }
 
   async function handleUpdate(
     id: number,
     body: { canonical: string[]; raw_keywords: string[]; priority: number }
   ) {
-    await updateTaxonomyMapping(id, body);
+    await updateMutation.mutateAsync({ id, body });
     setEditingId(null);
-    await load();
   }
 
-  async function handleDelete(id: number) {
+  function handleDelete(id: number) {
     if (!confirm("Delete this mapping?")) return;
-    await deleteTaxonomyMapping(id);
-    setEditingId(null);
-    await load();
+    deleteMutation.mutate(id, {
+      onSuccess: () => setEditingId(null),
+    });
   }
 
-  async function handleRecategorize() {
-    setRecategorizeBusy(true);
-    setRecategorizeResult(null);
+  function handleRecategorize() {
+    recategorizeMutation.mutate(undefined);
+  }
+
+  async function handleSwapPriority(
+    a: { id: number; canonical: string[]; raw_keywords: string[]; priority: number },
+    b: { id: number; canonical: string[]; raw_keywords: string[]; priority: number }
+  ) {
+    setSwapping(true);
     try {
-      const { updated } = await triggerRecategorize();
-      setRecategorizeResult(updated);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Recategorize failed");
+      await Promise.all([
+        updateMutation.mutateAsync({
+          id: a.id,
+          body: { canonical: a.canonical, raw_keywords: a.raw_keywords, priority: b.priority },
+        }),
+        updateMutation.mutateAsync({
+          id: b.id,
+          body: { canonical: b.canonical, raw_keywords: b.raw_keywords, priority: a.priority },
+        }),
+      ]);
     } finally {
-      setRecategorizeBusy(false);
+      setSwapping(false);
     }
   }
 
@@ -179,10 +183,19 @@ export function TaxonomyManager() {
         Mappings from store category paths to canonical categories. First matching rule wins (higher priority first).
       </p>
 
-      {error && (
+      {displayError && (
         <div className="mb-4 rounded border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
-          {error}
-          <button type="button" onClick={() => setError(null)} className="ml-2 underline">
+          {displayError}
+          <button
+            type="button"
+            onClick={() => {
+              createMutation.reset();
+              updateMutation.reset();
+              deleteMutation.reset();
+              recategorizeMutation.reset();
+            }}
+            className="ml-2 underline"
+          >
             Dismiss
           </button>
         </div>
@@ -201,10 +214,10 @@ export function TaxonomyManager() {
         <button
           type="button"
           onClick={handleRecategorize}
-          disabled={recategorizeBusy}
+          disabled={recategorizeMutation.isPending}
           className="rounded border border-stone-300 px-3 py-2 text-sm hover:bg-stone-50 disabled:opacity-50"
         >
-          {recategorizeBusy ? "Re-categorizing…" : "Re-categorize all listings"}
+          {recategorizeMutation.isPending ? "Re-categorizing…" : "Re-categorize all listings"}
         </button>
         {recategorizeResult != null && (
           <span className="text-sm text-stone-600">{recategorizeResult} listings updated</span>
@@ -237,7 +250,7 @@ export function TaxonomyManager() {
               </tr>
             </thead>
             <tbody>
-              {mappings.map((m) => (
+              {sorted.map((m, i) => (
                 <tr key={m.id} className="border-b border-stone-100">
                   {editingId === m.id ? (
                     <td colSpan={4} className="px-4 py-3 bg-stone-50">
@@ -262,7 +275,29 @@ export function TaxonomyManager() {
                           {m.raw_keywords.join(", ")}
                         </span>
                       </td>
-                      <td className="px-4 py-2 text-right text-stone-600">{m.priority}</td>
+                      <td className="px-4 py-2 text-right text-stone-600">
+                        <div className="inline-flex items-center gap-1 justify-end">
+                          <button
+                            type="button"
+                            onClick={() => handleSwapPriority(sorted[i - 1], m)}
+                            disabled={i === 0 || swapping}
+                            className="text-stone-500 hover:text-stone-800 disabled:opacity-40 disabled:cursor-not-allowed"
+                            aria-label="Move up"
+                          >
+                            ↑
+                          </button>
+                          <span>{m.priority}</span>
+                          <button
+                            type="button"
+                            onClick={() => handleSwapPriority(m, sorted[i + 1])}
+                            disabled={i === sorted.length - 1 || swapping}
+                            className="text-stone-500 hover:text-stone-800 disabled:opacity-40 disabled:cursor-not-allowed"
+                            aria-label="Move down"
+                          >
+                            ↓
+                          </button>
+                        </div>
+                      </td>
                       <td className="px-4 py-2 text-right">
                         <button
                           type="button"

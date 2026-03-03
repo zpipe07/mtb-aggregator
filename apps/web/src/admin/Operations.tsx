@@ -1,17 +1,14 @@
-import { useEffect, useState, useCallback } from "react";
+import { useState } from "react";
 import {
-  fetchAdminStores,
-  fetchScrapeJobs,
-  fetchScrapeJob,
-  fetchEnrichJobs,
-  fetchEnrichJob,
-  triggerScrape,
-  triggerEnrich,
-  fetchDashboard,
-  type AdminStore,
-  type ScrapeJob,
-  type EnrichJob,
-} from "./api";
+  useAdminStores,
+  useAdminDashboard,
+  useScrapeJobs,
+  useEnrichJobs,
+  useScrapeJob,
+  useEnrichJob,
+} from "./hooks/queries";
+import { useTriggerScrape, useTriggerEnrich } from "./hooks/mutations";
+import type { ScrapeJob, EnrichJob } from "./api";
 
 const PAGE_SIZE = 20;
 
@@ -46,104 +43,51 @@ function statusColor(status: string): string {
 }
 
 export function Operations() {
-  const [stores, setStores] = useState<AdminStore[]>([]);
-  const [jobs, setJobs] = useState<ScrapeJob[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [scrapeBusy, setScrapeBusy] = useState(false);
-  const [enrichBusy, setEnrichBusy] = useState(false);
   const [scrapeStoreType, setScrapeStoreType] = useState<string>("");
   const [enrichForce, setEnrichForce] = useState(false);
   const [jobOffset, setJobOffset] = useState(0);
   const [enrichJobOffset, setEnrichJobOffset] = useState(0);
-  const [enrichJobs, setEnrichJobs] = useState<EnrichJob[]>([]);
-  const [selectedJob, setSelectedJob] = useState<ScrapeJob | null>(null);
-  const [selectedEnrichJob, setSelectedEnrichJob] = useState<EnrichJob | null>(null);
-  const [scraperReachable, setScraperReachable] = useState(false);
+  const [selectedJobId, setSelectedJobId] = useState<number | null>(null);
+  const [selectedEnrichJobId, setSelectedEnrichJobId] = useState<number | null>(null);
 
-  const loadStores = useCallback(async () => {
-    try {
-      const s = await fetchAdminStores();
-      setStores(s);
-    } catch {
-      setStores([]);
-    }
-  }, []);
+  const { data: stores = [] } = useAdminStores();
+  const { data: dashboardData } = useAdminDashboard();
+  const scraperReachable = dashboardData?.scraper_reachable ?? false;
 
-  const load = useCallback(() => {
-    setLoading(true);
-    setError(null);
-    Promise.all([
-      loadStores(),
-      fetchDashboard().then((d) => setScraperReachable(d.scraper_reachable)),
-    ]).catch((e) => setError(e instanceof Error ? e.message : "Failed to load")).finally(() => setLoading(false));
-  }, [loadStores]);
+  const { data: jobs = [], isPending: jobsLoading, isError: jobsError, error: jobsErrorObj, refetch: refetchJobs } = useScrapeJobs({
+    limit: PAGE_SIZE,
+    offset: jobOffset,
+  });
+  const { data: enrichJobs = [], isPending: enrichJobsLoading } = useEnrichJobs({
+    limit: PAGE_SIZE,
+    offset: enrichJobOffset,
+  });
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  const { data: selectedScrapeJobDetail } = useScrapeJob(selectedJobId);
+  const { data: selectedEnrichJobDetail } = useEnrichJob(selectedEnrichJobId);
 
-  useEffect(() => {
-    if (loading) return;
-    fetchScrapeJobs({ limit: PAGE_SIZE, offset: jobOffset }).then(setJobs).catch((e) => setError(e instanceof Error ? e.message : "Failed to load jobs"));
-  }, [loading, jobOffset]);
+  const scrapeMutation = useTriggerScrape();
+  const enrichMutation = useTriggerEnrich();
 
-  useEffect(() => {
-    if (loading) return;
-    fetchEnrichJobs({ limit: PAGE_SIZE, offset: enrichJobOffset }).then(setEnrichJobs).catch((e) => setError(e instanceof Error ? e.message : "Failed to load enrich jobs"));
-  }, [loading, enrichJobOffset]);
+  const loading = useAdminStores().isPending && stores.length === 0;
+  const error = jobsError ? (jobsErrorObj?.message ?? "Failed to load jobs") : null;
 
-  async function runScrape() {
-    setScrapeBusy(true);
-    setError(null);
-    try {
-      await triggerScrape(scrapeStoreType || undefined);
-      setJobOffset(0);
-      await load();
-      const j = await fetchScrapeJobs({ limit: PAGE_SIZE, offset: 0 });
-      setJobs(j);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Scrape failed");
-    } finally {
-      setScrapeBusy(false);
-    }
+  function openJobDetail(job: ScrapeJob) {
+    setSelectedJobId(job.id);
   }
 
-  async function runEnrich() {
-    setEnrichBusy(true);
-    setError(null);
-    try {
-      await triggerEnrich(enrichForce);
-      setEnrichJobOffset(0);
-      await load();
-      const j = await fetchEnrichJobs({ limit: PAGE_SIZE, offset: 0 });
-      setEnrichJobs(j);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Enrich failed");
-    } finally {
-      setEnrichBusy(false);
-    }
+  function openEnrichJobDetail(job: EnrichJob) {
+    setSelectedEnrichJobId(job.id);
   }
 
-  async function openJobDetail(job: ScrapeJob) {
-    if (job.errors?.length || job.warnings?.length) {
-      const full = await fetchScrapeJob(job.id);
-      setSelectedJob(full ?? job);
-    } else {
-      setSelectedJob(job);
-    }
-  }
+  const selectedJob = selectedJobId != null
+    ? (selectedScrapeJobDetail ?? jobs.find((j) => j.id === selectedJobId))
+    : null;
+  const selectedEnrichJob = selectedEnrichJobId != null
+    ? (selectedEnrichJobDetail ?? enrichJobs.find((j) => j.id === selectedEnrichJobId))
+    : null;
 
-  async function openEnrichJobDetail(job: EnrichJob) {
-    if (job.errors?.length) {
-      const full = await fetchEnrichJob(job.id);
-      setSelectedEnrichJob(full ?? job);
-    } else {
-      setSelectedEnrichJob(job);
-    }
-  }
-
-  if (loading && stores.length === 0) {
+  if (loading) {
     return (
       <div>
         <h2 className="text-xl font-semibold text-stone-800 mb-4">Operations</h2>
@@ -156,10 +100,18 @@ export function Operations() {
     <div>
       <h2 className="text-xl font-semibold text-stone-800 mb-4">Operations</h2>
 
-      {error && (
+      {(scrapeMutation.isError || enrichMutation.isError || error) && (
         <div className="mb-4 rounded border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
-          {error}
-          <button type="button" onClick={() => setError(null)} className="ml-2 underline">
+          {scrapeMutation.error?.message ?? enrichMutation.error?.message ?? error}
+          <button
+            type="button"
+            onClick={() => {
+              scrapeMutation.reset();
+              enrichMutation.reset();
+              if (jobsError) refetchJobs();
+            }}
+            className="ml-2 underline"
+          >
             Dismiss
           </button>
         </div>
@@ -183,11 +135,15 @@ export function Operations() {
             </select>
             <button
               type="button"
-              onClick={runScrape}
-              disabled={scrapeBusy || !scraperReachable}
+              onClick={() =>
+                scrapeMutation.mutate(scrapeStoreType || undefined, {
+                  onSuccess: () => setJobOffset(0),
+                })
+              }
+              disabled={scrapeMutation.isPending || !scraperReachable}
               className="rounded bg-stone-800 px-3 py-2 text-sm font-medium text-white hover:bg-stone-700 disabled:opacity-50"
             >
-              {scrapeBusy ? "Running…" : "Run"}
+              {scrapeMutation.isPending ? "Running…" : "Run"}
             </button>
             {!scraperReachable && (
               <span className="text-xs text-amber-600">Scraper unreachable</span>
@@ -209,11 +165,16 @@ export function Operations() {
             </label>
             <button
               type="button"
-              onClick={runEnrich}
-              disabled={enrichBusy}
+              onClick={() =>
+                enrichMutation.mutate(
+                  { force: enrichForce },
+                  { onSuccess: () => setEnrichJobOffset(0) }
+                )
+              }
+              disabled={enrichMutation.isPending}
               className="rounded bg-stone-800 px-3 py-2 text-sm font-medium text-white hover:bg-stone-700 disabled:opacity-50"
             >
-              {enrichBusy ? "Running…" : "Run"}
+              {enrichMutation.isPending ? "Running…" : "Run"}
             </button>
           </div>
         </div>
@@ -237,7 +198,7 @@ export function Operations() {
               </tr>
             </thead>
             <tbody>
-              {jobs.map((job) => {
+              {(jobsLoading ? [] : jobs).map((job) => {
                 const ms = durationMs(job.started_at, job.completed_at);
                 const durationStr = ms != null ? `${(ms / 1000).toFixed(1)}s` : "—";
                 const errCount = job.errors?.length ?? 0;
@@ -266,7 +227,7 @@ export function Operations() {
             </tbody>
           </table>
         </div>
-        {jobs.length === 0 && (
+        {!jobsLoading && jobs.length === 0 && (
           <p className="px-4 py-6 text-center text-stone-500">No scrape jobs yet.</p>
         )}
         <div className="border-t border-stone-200 px-4 py-2 flex justify-between">
@@ -308,7 +269,7 @@ export function Operations() {
               </tr>
             </thead>
             <tbody>
-              {enrichJobs.map((job) => {
+              {(enrichJobsLoading ? [] : enrichJobs).map((job) => {
                 const ms = durationMs(job.started_at, job.completed_at);
                 const durationStr = ms != null ? `${(ms / 1000).toFixed(1)}s` : "—";
                 const errCount = job.errors?.length ?? 0;
@@ -339,7 +300,7 @@ export function Operations() {
             </tbody>
           </table>
         </div>
-        {enrichJobs.length === 0 && (
+        {!enrichJobsLoading && enrichJobs.length === 0 && (
           <p className="px-4 py-6 text-center text-stone-500">No enrichment jobs yet.</p>
         )}
         <div className="border-t border-stone-200 px-4 py-2 flex justify-between">
@@ -365,7 +326,7 @@ export function Operations() {
       {selectedJob && (
         <div
           className="fixed inset-0 z-10 flex items-center justify-center bg-stone-900/50 p-4"
-          onClick={() => setSelectedJob(null)}
+          onClick={() => setSelectedJobId(null)}
           role="dialog"
           aria-modal="true"
           aria-label="Job detail"
@@ -406,7 +367,7 @@ export function Operations() {
             )}
             <button
               type="button"
-              onClick={() => setSelectedJob(null)}
+              onClick={() => setSelectedJobId(null)}
               className="rounded border border-stone-300 px-3 py-2 text-sm text-stone-700 hover:bg-stone-50"
             >
               Close
@@ -418,7 +379,7 @@ export function Operations() {
       {selectedEnrichJob && (
         <div
           className="fixed inset-0 z-10 flex items-center justify-center bg-stone-900/50 p-4"
-          onClick={() => setSelectedEnrichJob(null)}
+          onClick={() => setSelectedEnrichJobId(null)}
           role="dialog"
           aria-modal="true"
           aria-label="Enrich job detail"
@@ -450,7 +411,7 @@ export function Operations() {
             )}
             <button
               type="button"
-              onClick={() => setSelectedEnrichJob(null)}
+              onClick={() => setSelectedEnrichJobId(null)}
               className="rounded border border-stone-300 px-3 py-2 text-sm text-stone-700 hover:bg-stone-50"
             >
               Close

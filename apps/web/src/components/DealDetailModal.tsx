@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import {
   LineChart,
   Line,
@@ -8,7 +7,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { fetchDeal, fetchPriceHistory, type Deal, type PriceHistoryResponse } from "../api";
+import { useDeal, usePriceHistory } from "../hooks/queries";
 
 type DealDetailModalProps = {
   dealId: number | null;
@@ -34,29 +33,8 @@ function formatAxisDate(iso: string) {
 }
 
 export function DealDetailModal({ dealId, onClose }: DealDetailModalProps) {
-  const [deal, setDeal] = useState<Deal | null>(null);
-  const [priceHistory, setPriceHistory] = useState<PriceHistoryResponse | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (dealId == null) {
-      setDeal(null);
-      setPriceHistory(null);
-      setLoading(false);
-      setError(null);
-      return;
-    }
-    setLoading(true);
-    setError(null);
-    Promise.all([fetchDeal(dealId), fetchPriceHistory(dealId)])
-      .then(([d, ph]) => {
-        setDeal(d);
-        setPriceHistory(ph);
-      })
-      .catch((e) => setError(String(e)))
-      .finally(() => setLoading(false));
-  }, [dealId]);
+  const { data: deal, isPending: loading, isError, error } = useDeal(dealId);
+  const { data: priceHistory } = usePriceHistory(dealId);
 
   if (dealId == null) return null;
 
@@ -106,10 +84,10 @@ export function DealDetailModal({ dealId, onClose }: DealDetailModalProps) {
           {loading && (
             <div className="py-12 text-center text-stone-500">Loading…</div>
           )}
-          {error && (
-            <div className="py-6 text-red-600">{error}</div>
+          {isError && (
+            <div className="py-6 text-red-600">{error?.message ?? "Failed to load"}</div>
           )}
-          {!loading && !error && deal && (
+          {!loading && !isError && deal && (
             <>
               <div className="flex gap-6 flex-wrap">
                 <div className="w-40 h-40 flex-shrink-0 bg-stone-200 rounded-lg overflow-hidden">

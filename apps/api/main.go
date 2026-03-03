@@ -218,6 +218,7 @@ func main() {
 	http.HandleFunc("/categories", handlers.GetCategories)
 	http.HandleFunc("/canonical-categories", handlers.GetCanonicalCategories)
 	http.HandleFunc("/spec-values", handlers.GetSpecValues)
+	http.HandleFunc("/facets", handlers.GetFacets)
 	http.HandleFunc("/status", handlers.GetStatus)
 
 	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {

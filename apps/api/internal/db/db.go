@@ -429,8 +429,9 @@ type GetDealsParams struct {
 	Sort              string // newest, discount, price_asc, price_desc, relevance
 	Limit             int
 	Offset            int
-	SpecKey           string // e.g. "tooth_count", "material" — filters metadata.specs[key]
-	SpecValue         string // value to match (ILIKE) in metadata.specs
+	SpecKey           string            // legacy: single spec filter (use SpecFilters for multi)
+	SpecValue         string            // legacy: single spec value
+	SpecFilters       map[string]string // multiple spec filters: key -> value (e.g. hub_spacing=148mm)
 }
 
 // GetDealsResult includes deals and total count for pagination
@@ -498,9 +499,17 @@ func (db *DB) GetDeals(ctx context.Context, params GetDealsParams) (*GetDealsRes
 			argNum++
 		}
 	}
-	if params.SpecKey != "" && params.SpecValue != "" {
+	// Spec filters: use SpecFilters map if non-empty, else fall back to legacy SpecKey/SpecValue
+	specFilters := params.SpecFilters
+	if len(specFilters) == 0 && params.SpecKey != "" && params.SpecValue != "" {
+		specFilters = map[string]string{params.SpecKey: params.SpecValue}
+	}
+	for k, v := range specFilters {
+		if k == "" || v == "" {
+			continue
+		}
 		query += fmt.Sprintf(" AND l.metadata->'specs'->>$%d ILIKE $%d", argNum, argNum+1)
-		args = append(args, params.SpecKey, params.SpecValue)
+		args = append(args, k, v)
 		argNum += 2
 	}
 	if params.MinDiscount != nil && *params.MinDiscount > 0 {

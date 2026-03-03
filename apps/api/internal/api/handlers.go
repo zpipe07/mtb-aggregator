@@ -59,11 +59,25 @@ func (h *Handlers) GetDeals(w http.ResponseWriter, r *http.Request) {
 			params.Offset = n
 		}
 	}
-	if s := r.URL.Query().Get("spec_key"); s != "" {
-		params.SpecKey = strings.TrimSpace(s)
+	// Parse spec filters: spec_<key>=<value> for multiple, or legacy spec_key/spec_value
+	params.SpecFilters = make(map[string]string)
+	for key, vals := range r.URL.Query() {
+		if strings.HasPrefix(key, "spec_") && len(vals) > 0 && vals[0] != "" {
+			specKey := strings.TrimPrefix(key, "spec_")
+			specKey = strings.TrimSpace(specKey)
+			if specKey != "" {
+				params.SpecFilters[specKey] = strings.TrimSpace(vals[0])
+			}
+		}
 	}
-	if s := r.URL.Query().Get("spec_value"); s != "" {
-		params.SpecValue = strings.TrimSpace(s)
+	// Legacy: if no spec_ params, fall back to spec_key/spec_value
+	if len(params.SpecFilters) == 0 {
+		if s := r.URL.Query().Get("spec_key"); s != "" {
+			params.SpecKey = strings.TrimSpace(s)
+		}
+		if s := r.URL.Query().Get("spec_value"); s != "" {
+			params.SpecValue = strings.TrimSpace(s)
+		}
 	}
 
 	result, err := h.DB.GetDeals(r.Context(), params)
@@ -211,6 +225,60 @@ func (h *Handlers) GetCanonicalCategories(w http.ResponseWriter, r *http.Request
 }
 
 // GetSpecValues returns distinct metadata values for a given spec key, e.g. ?key=material.
+// GetFacets returns spec facets, brand facets, and price range for the current filter context.
+func (h *Handlers) GetFacets(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	params := db.GetFacetsParams{}
+	if s := r.URL.Query().Get("store"); s != "" {
+		params.StoreName = strings.TrimSpace(s)
+	}
+	if s := r.URL.Query().Get("brand"); s != "" {
+		params.Brand = strings.TrimSpace(s)
+	}
+	if s := r.URL.Query().Get("category"); s != "" {
+		params.Category = strings.TrimSpace(s)
+	}
+	if s := r.URL.Query().Get("canonical_category"); s != "" {
+		params.CanonicalCategory = strings.TrimSpace(s)
+	}
+	if s := r.URL.Query().Get("min_discount"); s != "" {
+		if f, err := strconv.ParseFloat(s, 64); err == nil {
+			params.MinDiscount = &f
+		}
+	}
+	if s := r.URL.Query().Get("q"); s != "" {
+		params.Search = strings.TrimSpace(s)
+	}
+	// Parse spec_<key>=<value> params for multiple spec filters
+	params.SpecFilters = make(map[string]string)
+	for key, vals := range r.URL.Query() {
+		if strings.HasPrefix(key, "spec_") && len(vals) > 0 && vals[0] != "" {
+			specKey := strings.TrimPrefix(key, "spec_")
+			specKey = strings.TrimSpace(specKey)
+			if specKey != "" {
+				params.SpecFilters[specKey] = strings.TrimSpace(vals[0])
+			}
+		}
+	}
+
+	result, err := h.DB.GetFacets(r.Context(), params)
+	if err != nil {
+		log.Printf("[api] GetFacets error: %v", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if result == nil {
+		result = &db.GetFacetsResult{}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(result)
+}
+
 func (h *Handlers) GetSpecValues(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)

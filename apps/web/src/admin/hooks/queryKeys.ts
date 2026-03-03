@@ -1,0 +1,42 @@
+export const adminStoreKeys = {
+  all: ["admin", "stores"] as const,
+  detail: (id: number) => [...adminStoreKeys.all, id] as const,
+};
+
+export const adminStoreTypeKeys = {
+  all: ["admin", "storeTypes"] as const,
+};
+
+export const adminStoreTypesWithEnrichersKeys = {
+  all: ["admin", "storeTypesWithEnrichers"] as const,
+};
+
+export const adminDashboardKeys = {
+  all: ["admin", "dashboard"] as const,
+};
+
+export const adminScrapeJobKeys = {
+  all: ["admin", "scrapeJobs"] as const,
+  list: (params: { limit?: number; offset?: number; store_id?: number }) =>
+    [...adminScrapeJobKeys.all, "list", params] as const,
+  detail: (id: number) => [...adminScrapeJobKeys.all, "detail", id] as const,
+};
+
+export const adminEnrichJobKeys = {
+  all: ["admin", "enrichJobs"] as const,
+  list: (params: { limit?: number; offset?: number }) =>
+    [...adminEnrichJobKeys.all, "list", params] as const,
+  detail: (id: number) => [...adminEnrichJobKeys.all, "detail", id] as const,
+};
+
+export const adminListingKeys = {
+  all: ["admin", "listings"] as const,
+  lists: () => [...adminListingKeys.all, "list"] as const,
+  list: (params: Record<string, unknown>) =>
+    [...adminListingKeys.lists(), params] as const,
+  detail: (id: number) => [...adminListingKeys.all, "detail", id] as const,
+};
+
+export const adminTaxonomyKeys = {
+  all: ["admin", "taxonomy"] as const,
+};

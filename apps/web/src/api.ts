@@ -49,6 +49,7 @@ export async function fetchDeals(params?: {
   offset?: number;
   spec_key?: string;
   spec_value?: string;
+  specFilters?: Record<string, string>;
 }): Promise<DealListResponse> {
   const search = new URLSearchParams();
   if (params?.store) search.set("store", params.store);
@@ -60,8 +61,14 @@ export async function fetchDeals(params?: {
   if (params?.sort) search.set("sort", params.sort);
   if (params?.limit != null) search.set("limit", String(params.limit));
   if (params?.offset != null) search.set("offset", String(params.offset));
-  if (params?.spec_key) search.set("spec_key", params.spec_key);
-  if (params?.spec_value) search.set("spec_value", params.spec_value);
+  if (params?.specFilters && Object.keys(params.specFilters).length > 0) {
+    for (const [key, value] of Object.entries(params.specFilters)) {
+      if (key && value) search.set(`spec_${key}`, value);
+    }
+  } else {
+    if (params?.spec_key) search.set("spec_key", params.spec_key);
+    if (params?.spec_value) search.set("spec_value", params.spec_value);
+  }
   const qs = search.toString();
   const url = `${API_BASE}/deals${qs ? `?${qs}` : ""}`;
   const res = await fetch(url);
@@ -127,6 +134,59 @@ export async function fetchCanonicalCategories(): Promise<string[]> {
   if (!res.ok) throw new Error("Failed to fetch canonical categories");
   const data = await res.json();
   return Array.isArray(data) ? data : [];
+}
+
+export interface SpecFacetValue {
+  value: string;
+  count: number;
+}
+
+export interface SpecFacet {
+  key: string;
+  label: string;
+  product_count: number;
+  values: SpecFacetValue[];
+}
+
+export interface BrandFacet {
+  value: string;
+  count: number;
+}
+
+export interface FacetsResponse {
+  spec_facets: SpecFacet[];
+  brand_facets: BrandFacet[];
+  price_range: { min: number; max: number };
+  total_matching: number;
+}
+
+export interface FacetsParams {
+  store?: string;
+  brand?: string;
+  category?: string;
+  canonical_category?: string;
+  min_discount?: number;
+  q?: string;
+  specFilters?: Record<string, string>;
+}
+
+export async function fetchFacets(params?: FacetsParams): Promise<FacetsResponse> {
+  const search = new URLSearchParams();
+  if (params?.store) search.set("store", params.store);
+  if (params?.brand) search.set("brand", params.brand);
+  if (params?.category) search.set("category", params.category);
+  if (params?.canonical_category) search.set("canonical_category", params.canonical_category);
+  if (params?.min_discount != null) search.set("min_discount", String(params.min_discount));
+  if (params?.q) search.set("q", params.q);
+  if (params?.specFilters) {
+    for (const [key, value] of Object.entries(params.specFilters)) {
+      if (key && value) search.set(`spec_${key}`, value);
+    }
+  }
+  const qs = search.toString();
+  const res = await fetch(`${API_BASE}/facets${qs ? `?${qs}` : ""}`);
+  if (!res.ok) throw new Error("Failed to fetch facets");
+  return res.json();
 }
 
 /** Distinct spec values for a given metadata key, e.g. "material" or "tooth_count". */

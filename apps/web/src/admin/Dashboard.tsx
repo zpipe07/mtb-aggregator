@@ -1,11 +1,6 @@
-import { useEffect, useState } from "react";
-import {
-  fetchDashboard,
-  triggerScrape,
-  triggerEnrich,
-  type DashboardResponse,
-  type DashboardStore,
-} from "./api";
+import { useAdminDashboard } from "./hooks/queries";
+import { useTriggerScrape, useTriggerEnrich } from "./hooks/mutations";
+import type { DashboardStore } from "./api";
 
 function formatDate(iso: string): string {
   if (!iso) return "—";
@@ -25,71 +20,11 @@ function storeHealthLabel(store: DashboardStore): { text: string; className: str
 }
 
 export function Dashboard() {
-  const [data, setData] = useState<DashboardResponse | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [actionBusy, setActionBusy] = useState<string | null>(null);
+  const { data, isPending: loading, isError, error, refetch } = useAdminDashboard();
+  const scrapeMutation = useTriggerScrape();
+  const enrichMutation = useTriggerEnrich();
 
-  function load() {
-    setLoading(true);
-    setError(null);
-    fetchDashboard()
-      .then(setData)
-      .catch((e) => setError(e instanceof Error ? e.message : "Failed to load"))
-      .finally(() => setLoading(false));
-  }
-
-  useEffect(() => {
-    load();
-  }, []);
-
-  async function runScrapeAll() {
-    setActionBusy("scrape-all");
-    try {
-      await triggerScrape();
-      await load();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Scrape failed");
-    } finally {
-      setActionBusy(null);
-    }
-  }
-
-  async function runScrapeStore(storeType: string) {
-    setActionBusy(`scrape-${storeType}`);
-    try {
-      await triggerScrape(storeType);
-      await load();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Scrape failed");
-    } finally {
-      setActionBusy(null);
-    }
-  }
-
-  async function runEnrich() {
-    setActionBusy("enrich");
-    try {
-      await triggerEnrich(false);
-      await load();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Enrich failed");
-    } finally {
-      setActionBusy(null);
-    }
-  }
-
-  async function runEnrichStore(storeType: string) {
-    setActionBusy(`enrich-${storeType}`);
-    try {
-      await triggerEnrich(false, storeType);
-      await load();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Enrich failed");
-    } finally {
-      setActionBusy(null);
-    }
-  }
+  const actionBusy = scrapeMutation.isPending || enrichMutation.isPending;
 
   if (loading && !data) {
     return (
@@ -100,14 +35,14 @@ export function Dashboard() {
     );
   }
 
-  if (error && !data) {
+  if (isError && !data) {
     return (
       <div>
         <h2 className="text-xl font-semibold text-stone-800 mb-4">Dashboard</h2>
-        <p className="text-red-600 mb-2">{error}</p>
+        <p className="text-red-600 mb-2">{error?.message ?? "Failed to load"}</p>
         <button
           type="button"
-          onClick={() => load()}
+          onClick={() => refetch()}
           className="rounded bg-stone-200 px-3 py-1.5 text-sm hover:bg-stone-300"
         >
           Retry
@@ -123,12 +58,15 @@ export function Dashboard() {
     <div>
       <h2 className="text-xl font-semibold text-stone-800 mb-4">Dashboard</h2>
 
-      {error && (
+      {(scrapeMutation.isError || enrichMutation.isError) && (
         <div className="mb-4 rounded border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
-          {error}
+          {scrapeMutation.error?.message ?? enrichMutation.error?.message ?? "Action failed"}
           <button
             type="button"
-            onClick={() => setError(null)}
+            onClick={() => {
+              scrapeMutation.reset();
+              enrichMutation.reset();
+            }}
             className="ml-2 underline"
           >
             Dismiss
@@ -166,19 +104,19 @@ export function Dashboard() {
       <div className="mb-6 flex flex-wrap gap-2">
         <button
           type="button"
-          onClick={runScrapeAll}
-          disabled={!!actionBusy || !scraper_reachable}
+          onClick={() => scrapeMutation.mutate(undefined)}
+          disabled={actionBusy || !scraper_reachable}
           className="rounded bg-stone-800 px-3 py-2 text-sm font-medium text-white hover:bg-stone-700 disabled:opacity-50"
         >
-          {actionBusy === "scrape-all" ? "Running…" : "Scrape all stores"}
+          {scrapeMutation.isPending ? "Running…" : "Scrape all stores"}
         </button>
         <button
           type="button"
-          onClick={runEnrich}
-          disabled={!!actionBusy}
+          onClick={() => enrichMutation.mutate({ force: false })}
+          disabled={actionBusy}
           className="rounded border border-stone-300 bg-white px-3 py-2 text-sm font-medium text-stone-700 hover:bg-stone-50 disabled:opacity-50"
         >
-          {actionBusy === "enrich" ? "Running…" : "Run enrichment"}
+          {enrichMutation.isPending ? "Running…" : "Run enrichment"}
         </button>
       </div>
 
@@ -212,20 +150,20 @@ export function Dashboard() {
                       <span className="inline-flex gap-1">
                         <button
                           type="button"
-                          onClick={() => runScrapeStore(store.store_type)}
-                          disabled={!!actionBusy || !scraper_reachable}
+                          onClick={() => scrapeMutation.mutate(store.store_type)}
+                          disabled={actionBusy || !scraper_reachable}
                           className="rounded border border-stone-300 px-2 py-1 text-xs hover:bg-stone-100 disabled:opacity-50"
                         >
-                          {actionBusy === `scrape-${store.store_type}` ? "…" : "Scrape"}
+                          {scrapeMutation.isPending ? "…" : "Scrape"}
                         </button>
                         {enricherSet.has(store.store_type.toLowerCase()) && (
                           <button
                             type="button"
-                            onClick={() => runEnrichStore(store.store_type)}
-                            disabled={!!actionBusy}
+                            onClick={() => enrichMutation.mutate({ force: false, store: store.store_type })}
+                            disabled={actionBusy}
                             className="rounded border border-stone-300 px-2 py-1 text-xs hover:bg-stone-100 disabled:opacity-50"
                           >
-                            {actionBusy === `enrich-${store.store_type}` ? "…" : "Enrich"}
+                            {enrichMutation.isPending ? "…" : "Enrich"}
                           </button>
                         )}
                       </span>
