@@ -10,13 +10,23 @@ export function NavHeader() {
   ];
 
   return (
-    <header className="bg-stone-800 text-white">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 flex items-center justify-between h-14 lg:h-16">
+    <header
+      className="
+    bg-white
+    text-stone-800
+    "
+    >
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
         <Link
           to="/"
-          className="text-lg lg:text-xl font-bold tracking-tight hover:text-stone-200 transition-colors"
+          className="flex items-center hover:opacity-90 transition-opacity"
+          aria-label="The Dropper - Home"
         >
-          MTB Deal Aggregator
+          <img
+            src="/the-dropper-logo-horizontal.png"
+            alt="The Dropper"
+            className="h-20 md:h-24 lg:h-30 w-auto"
+          />
         </Link>
 
         {/* Desktop nav */}
@@ -28,7 +38,9 @@ export function NavHeader() {
               end={end}
               className={({ isActive }) =>
                 `font-medium transition-colors ${
-                  isActive ? "text-white" : "text-stone-400 hover:text-white"
+                  isActive
+                    ? "text-stone-800 border-b-2 border-stone-800"
+                    : "text-stone-500 hover:text-stone-800"
                 }`
               }
             >
@@ -90,8 +102,8 @@ export function NavHeader() {
               className={({ isActive }) =>
                 `block px-3 py-2 rounded-lg font-medium transition-colors ${
                   isActive
-                    ? "bg-stone-700 text-white"
-                    : "text-stone-400 hover:bg-stone-700/50 hover:text-white"
+                    ? "bg-stone-700/50 text-white"
+                    : "text-stone-400 hover:bg-stone-700/30 hover:text-white"
                 }`
               }
             >
