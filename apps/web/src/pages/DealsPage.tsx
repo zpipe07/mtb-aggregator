@@ -6,7 +6,6 @@ import {
   useFilterFacets,
   useStores,
   useBrands,
-  useCategories,
   useCanonicalCategories,
 } from "../hooks/queries";
 import { useFilterParams } from "../hooks/useFilterParams";
@@ -31,7 +30,6 @@ export function DealsPage() {
     searchQuery,
     storeFilter,
     brandFilter,
-    categoryFilter,
     canonicalCategoryFilter,
     minDiscount,
     specFilters,
@@ -40,7 +38,6 @@ export function DealsPage() {
     setSearchQuery,
     setStoreFilter,
     setBrandFilter,
-    setCategoryFilter,
     setCanonicalCategoryFilter,
     setMinDiscount,
     setSpecFilter,
@@ -67,7 +64,6 @@ export function DealsPage() {
 
   const { data: storesData } = useStores();
   const { data: brandsData } = useBrands();
-  const { data: categoriesData } = useCategories();
   const { data: canonicalData } = useCanonicalCategories();
 
   const dealsParams = {
@@ -75,7 +71,6 @@ export function DealsPage() {
     offset,
     store: storeFilter || undefined,
     brand: brandFilter || undefined,
-    category: categoryFilter || undefined,
     canonical_category: canonicalCategoryFilter || undefined,
     min_discount: minDiscount ? parseFloat(minDiscount) || undefined : undefined,
     specFilters: Object.keys(specFilters).length > 0 ? specFilters : undefined,
@@ -87,7 +82,6 @@ export function DealsPage() {
   const facetsParams = {
     store: storeFilter || undefined,
     brand: brandFilter || undefined,
-    category: categoryFilter || undefined,
     canonical_category: canonicalCategoryFilter || undefined,
     min_discount: minDiscount ? parseFloat(minDiscount) || undefined : undefined,
     specFilters: Object.keys(specFilters).length > 0 ? specFilters : undefined,
@@ -97,13 +91,12 @@ export function DealsPage() {
 
   const stores = storesData ?? [];
   const brands = brandsData ?? [];
-  const categories = categoriesData ?? [];
   const canonicalCategories = canonicalData ?? [];
   const deals = dealsData?.deals ?? [];
   const totalCount = dealsData?.total_count ?? 0;
 
   const activeFilterCount =
-    [storeFilter, brandFilter, categoryFilter, canonicalCategoryFilter, minDiscount].filter(
+    [storeFilter, brandFilter, canonicalCategoryFilter, minDiscount].filter(
       Boolean
     ).length + Object.values(specFilters).filter(Boolean).length;
 
@@ -115,13 +108,11 @@ export function DealsPage() {
     if (brandFilter) {
       chips.push({ key: "brand", label: `Brand: ${brandFilter}`, onRemove: () => setBrandFilter("") });
     }
-    if (categoryFilter) {
-      chips.push({ key: "category", label: `Category: ${categoryFilter}`, onRemove: () => setCategoryFilter("") });
-    }
     if (canonicalCategoryFilter) {
+      const leafLabel = canonicalCategoryFilter.split(" > ").pop() ?? canonicalCategoryFilter;
       chips.push({
         key: "canonical_category",
-        label: `Category: ${canonicalCategoryFilter}`,
+        label: `Category: ${leafLabel}`,
         onRemove: () => setCanonicalCategoryFilter(""),
       });
     }
@@ -147,14 +138,12 @@ export function DealsPage() {
   }, [
     storeFilter,
     brandFilter,
-    categoryFilter,
     canonicalCategoryFilter,
     minDiscount,
     specFilters,
     facetsData?.spec_facets,
     setStoreFilter,
     setBrandFilter,
-    setCategoryFilter,
     setCanonicalCategoryFilter,
     setMinDiscount,
     setSpecFilter,
@@ -163,18 +152,15 @@ export function DealsPage() {
   const filterSidebarProps = {
     stores,
     brands,
-    categories,
     canonicalCategories,
     storeFilter,
     brandFilter,
-    categoryFilter,
     canonicalCategoryFilter,
     minDiscount,
     specFilters,
     specFacets: facetsData?.spec_facets ?? [],
     onStoreChange: setStoreFilter,
     onBrandChange: setBrandFilter,
-    onCategoryChange: setCategoryFilter,
     onCanonicalCategoryChange: setCanonicalCategoryFilter,
     onMinDiscountChange: setMinDiscount,
     onSpecFilterChange: setSpecFilter,

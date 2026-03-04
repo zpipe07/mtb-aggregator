@@ -2,6 +2,24 @@ import type { SpecFacet, Store } from "../api";
 import { FilterSelect } from "./FilterSelect";
 import { FilterInput } from "./FilterInput";
 
+/** Group canonical categories by top-level; option labels strip the top-level to avoid redundancy. */
+function groupCanonicalCategories(list: string[]): { group: string; options: { value: string; label: string }[] }[] {
+  const byGroup = new Map<string, string[]>();
+  for (const path of list) {
+    const top = path.split(" > ")[0]?.trim() || "Other";
+    if (!byGroup.has(top)) byGroup.set(top, []);
+    byGroup.get(top)!.push(path);
+  }
+  const order = ["Bikes", "Components", "Gear", "Accessories", "Other"];
+  return order.filter((g) => byGroup.has(g)).map((group) => ({
+    group,
+    options: (byGroup.get(group) ?? []).map((p) => {
+      const rest = p.split(" > ").slice(1).join(" > ").trim();
+      return { value: p, label: rest || p };
+    }),
+  }));
+}
+
 export type SortOption = "newest" | "discount" | "price_asc" | "price_desc" | "relevance";
 
 const BASE_SORT_OPTIONS: { value: SortOption; label: string }[] = [
@@ -19,29 +37,12 @@ function getSortOptions(hasSearchQuery: boolean): { value: SortOption; label: st
   ];
 }
 
-/** Group canonical categories by top-level (Bikes, Components, Gear, Accessories) for optgroup. */
-function groupCanonicalCategories(list: string[]): { group: string; options: { value: string; label: string }[] }[] {
-  const byGroup = new Map<string, string[]>();
-  for (const path of list) {
-    const top = path.split(" > ")[0]?.trim() || "Other";
-    if (!byGroup.has(top)) byGroup.set(top, []);
-    byGroup.get(top)!.push(path);
-  }
-  const order = ["Bikes", "Components", "Gear", "Accessories", "Other"];
-  return order.filter((g) => byGroup.has(g)).map((group) => ({
-    group,
-    options: (byGroup.get(group) ?? []).map((p) => ({ value: p, label: p })),
-  }));
-}
-
 type DealFiltersProps = {
   stores: Store[];
   brands: string[];
-  categories: string[];
   canonicalCategories: string[];
   storeFilter: string;
   brandFilter: string;
-  categoryFilter: string;
   canonicalCategoryFilter: string;
   minDiscount: string;
   specFilters: Record<string, string>;
@@ -50,7 +51,6 @@ type DealFiltersProps = {
   searchQuery?: string;
   onStoreChange: (value: string) => void;
   onBrandChange: (value: string) => void;
-  onCategoryChange: (value: string) => void;
   onCanonicalCategoryChange: (value: string) => void;
   onMinDiscountChange: (value: string) => void;
   onSpecFilterChange: (key: string, value: string) => void;
@@ -63,11 +63,9 @@ type DealFiltersProps = {
 export function DealFilters({
   stores,
   brands,
-  categories,
   canonicalCategories,
   storeFilter,
   brandFilter,
-  categoryFilter,
   canonicalCategoryFilter,
   minDiscount,
   specFilters,
@@ -76,7 +74,6 @@ export function DealFilters({
   searchQuery = "",
   onStoreChange,
   onBrandChange,
-  onCategoryChange,
   onCanonicalCategoryChange,
   onMinDiscountChange,
   onSpecFilterChange,
@@ -93,10 +90,6 @@ export function DealFilters({
   const brandOptions = [
     { value: "", label: "All brands" },
     ...(brands ?? []).map((b) => ({ value: b, label: b })),
-  ];
-  const categoryOptions = [
-    { value: "", label: "All categories" },
-    ...(categories ?? []).map((c) => ({ value: c, label: c })),
   ];
   const groupedCanonical = groupCanonicalCategories(canonicalCategories ?? []);
   const hasCanonicalOptions = groupedCanonical.some((g) => g.options.length > 0);
@@ -128,12 +121,6 @@ export function DealFilters({
           value={brandFilter}
           onChange={onBrandChange}
           options={brandOptions}
-        />
-        <FilterSelect
-          label="Category (raw)"
-          value={categoryFilter}
-          onChange={onCategoryChange}
-          options={categoryOptions}
         />
         {hasCanonicalOptions && (
           <div>

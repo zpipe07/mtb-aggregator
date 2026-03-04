@@ -2,7 +2,7 @@ import type { SpecFacet, Store } from "../api";
 import { FilterSelect } from "./FilterSelect";
 import { FilterInput } from "./FilterInput";
 
-/** Group canonical categories by top-level for optgroup. */
+/** Group canonical categories by top-level; option labels strip the top-level to avoid redundancy. */
 function groupCanonicalCategories(list: string[]): { group: string; options: { value: string; label: string }[] }[] {
   const byGroup = new Map<string, string[]>();
   for (const path of list) {
@@ -13,25 +13,25 @@ function groupCanonicalCategories(list: string[]): { group: string; options: { v
   const order = ["Bikes", "Components", "Gear", "Accessories", "Other"];
   return order.filter((g) => byGroup.has(g)).map((group) => ({
     group,
-    options: (byGroup.get(group) ?? []).map((p) => ({ value: p, label: p })),
+    options: (byGroup.get(group) ?? []).map((p) => {
+      const rest = p.split(" > ").slice(1).join(" > ").trim();
+      return { value: p, label: rest || p };
+    }),
   }));
 }
 
 export type FilterSidebarProps = {
   stores: Store[];
   brands: string[];
-  categories: string[];
   canonicalCategories: string[];
   storeFilter: string;
   brandFilter: string;
-  categoryFilter: string;
   canonicalCategoryFilter: string;
   minDiscount: string;
   specFilters: Record<string, string>;
   specFacets: SpecFacet[];
   onStoreChange: (value: string) => void;
   onBrandChange: (value: string) => void;
-  onCategoryChange: (value: string) => void;
   onCanonicalCategoryChange: (value: string) => void;
   onMinDiscountChange: (value: string) => void;
   onSpecFilterChange: (key: string, value: string) => void;
@@ -41,18 +41,15 @@ export type FilterSidebarProps = {
 export function FilterSidebar({
   stores,
   brands,
-  categories,
   canonicalCategories,
   storeFilter,
   brandFilter,
-  categoryFilter,
   canonicalCategoryFilter,
   minDiscount,
   specFilters,
   specFacets,
   onStoreChange,
   onBrandChange,
-  onCategoryChange,
   onCanonicalCategoryChange,
   onMinDiscountChange,
   onSpecFilterChange,
@@ -65,10 +62,6 @@ export function FilterSidebar({
   const brandOptions = [
     { value: "", label: "All brands" },
     ...(brands ?? []).map((b) => ({ value: b, label: b })),
-  ];
-  const categoryOptions = [
-    { value: "", label: "All categories" },
-    ...(categories ?? []).map((c) => ({ value: c, label: c })),
   ];
   const groupedCanonical = groupCanonicalCategories(canonicalCategories ?? []);
   const hasCanonicalOptions = groupedCanonical.some((g) => g.options.length > 0);
@@ -86,12 +79,6 @@ export function FilterSidebar({
         value={brandFilter}
         onChange={onBrandChange}
         options={brandOptions}
-      />
-      <FilterSelect
-        label="Category (raw)"
-        value={categoryFilter}
-        onChange={onCategoryChange}
-        options={categoryOptions}
       />
       {hasCanonicalOptions && (
         <div>
