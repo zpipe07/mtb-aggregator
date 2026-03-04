@@ -415,6 +415,101 @@ func main() {
 		}
 	}))
 
+	// Admin: GET /admin/spec-keys — discover spec keys in listings
+	http.HandleFunc("/admin/spec-keys", api.AdminRequired(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/admin/spec-keys" {
+			http.NotFound(w, r)
+			return
+		}
+		handlers.GetAdminSpecKeys(w, r)
+	}))
+	// Admin: POST /admin/renormalize-specs — re-apply key aliases to all listings
+	http.HandleFunc("/admin/renormalize-specs", api.AdminRequired(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/admin/renormalize-specs" {
+			http.NotFound(w, r)
+			return
+		}
+		handlers.PostAdminRenormalizeSpecs(w, r)
+	}))
+	// Admin: GET/POST /admin/spec-filter-config — list or create
+	http.HandleFunc("/admin/spec-filter-config", api.AdminRequired(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/admin/spec-filter-config" {
+			http.NotFound(w, r)
+			return
+		}
+		switch r.Method {
+		case http.MethodGet:
+			handlers.GetAdminSpecFilterConfigs(w, r)
+		case http.MethodPost:
+			handlers.PostAdminSpecFilterConfig(w, r)
+		default:
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		}
+	}))
+	// Admin: GET/PUT/DELETE /admin/spec-filter-config/:id
+	http.HandleFunc("/admin/spec-filter-config/", api.AdminRequired(func(w http.ResponseWriter, r *http.Request) {
+		path := strings.TrimPrefix(r.URL.Path, "/admin/spec-filter-config/")
+		path = strings.Trim(path, "/")
+		if path == "" {
+			http.NotFound(w, r)
+			return
+		}
+		id, err := strconv.Atoi(path)
+		if err != nil {
+			http.Error(w, "invalid id", http.StatusBadRequest)
+			return
+		}
+		switch r.Method {
+		case http.MethodGet:
+			handlers.GetAdminSpecFilterConfigByID(w, r, id)
+		case http.MethodPut:
+			handlers.PutAdminSpecFilterConfig(w, r, id)
+		case http.MethodDelete:
+			handlers.DeleteAdminSpecFilterConfig(w, r, id)
+		default:
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		}
+	}))
+	// Admin: GET/POST /admin/spec-value-aliases — list (query ?spec_key=) or create
+	http.HandleFunc("/admin/spec-value-aliases", api.AdminRequired(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/admin/spec-value-aliases" {
+			http.NotFound(w, r)
+			return
+		}
+		switch r.Method {
+		case http.MethodGet:
+			handlers.GetAdminSpecValueAliases(w, r)
+		case http.MethodPost:
+			handlers.PostAdminSpecValueAlias(w, r)
+		default:
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		}
+	}))
+	// Admin: GET/PUT/DELETE /admin/spec-value-aliases/:id
+	http.HandleFunc("/admin/spec-value-aliases/", api.AdminRequired(func(w http.ResponseWriter, r *http.Request) {
+		path := strings.TrimPrefix(r.URL.Path, "/admin/spec-value-aliases/")
+		path = strings.Trim(path, "/")
+		if path == "" {
+			http.NotFound(w, r)
+			return
+		}
+		id, err := strconv.Atoi(path)
+		if err != nil {
+			http.Error(w, "invalid id", http.StatusBadRequest)
+			return
+		}
+		switch r.Method {
+		case http.MethodGet:
+			handlers.GetAdminSpecValueAliasByID(w, r, id)
+		case http.MethodPut:
+			handlers.PutAdminSpecValueAlias(w, r, id)
+		case http.MethodDelete:
+			handlers.DeleteAdminSpecValueAlias(w, r, id)
+		default:
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		}
+	}))
+
 	port := "8080"
 	if p := os.Getenv("PORT"); p != "" {
 		port = p

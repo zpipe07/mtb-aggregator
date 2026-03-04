@@ -8,6 +8,7 @@ import (
 
 	"github.com/lib/pq"
 	"github.com/mtb-aggregator/api/internal/metadata"
+	"github.com/mtb-aggregator/api/internal/specfilter"
 )
 
 // GetFacetsParams mirrors GetDealsParams for filter context. SpecFilters supports multiple spec filters.
@@ -58,7 +59,9 @@ type GetFacetsResult struct {
 
 // GetFacets returns facets (spec keys/values, brands, price range) for the given filter context.
 func (db *DB) GetFacets(ctx context.Context, params GetFacetsParams) (*GetFacetsResult, error) {
-	where, args := buildFacetsWhereClause(params)
+	config, _ := specfilter.LoadConfig(ctx, db.SpecFilterConfigLoader())
+	expandedSpecFilters := specfilter.ExpandFilterValues(params.SpecFilters, config)
+	where, args := buildFacetsWhereClause(params, expandedSpecFilters)
 	if where == "" {
 		where = " AND l.is_in_stock = true"
 	} else {
@@ -129,39 +132,65 @@ func (db *DB) GetFacets(ctx context.Context, params GetFacetsParams) (*GetFacets
 		return nil, err
 	}
 
-	// Group by key: product_count = sum of count (each product has one value per key, so no double-count)
-	keyProductCount := make(map[string]int)
-	keyValues := make(map[string][]SpecFacetValue)
-	for _, r := range kvs {
-		keyProductCount[r.key] += r.count
-		if len(keyValues[r.key]) < 50 {
-			keyValues[r.key] = append(keyValues[r.key], SpecFacetValue{Value: r.value, Count: r.count})
+	// Apply spec filter config normalization (key merge, visibility, value aliases)
+	kvsInput := make([]specfilter.KvInput, len(kvs))
+	for i, r := range kvs {
+		kvsInput[i] = specfilter.KvInput{Key: r.key, Value: r.value, Count: r.count}
+	}
+	var keyProductCount map[string]int
+	var keyValues map[string][]SpecFacetValue
+	var keyValuesSpec map[string][]specfilter.SpecFacetValue
+	var keyOrder []string
+	if config != nil {
+		keyProductCount, keyValuesSpec, keyOrder = specfilter.ApplyToFacets(kvsInput, config)
+	} else {
+		keyProductCount = make(map[string]int)
+		keyValues = make(map[string][]SpecFacetValue)
+		for _, r := range kvs {
+			keyProductCount[r.key] += r.count
+			if len(keyValues[r.key]) < 50 {
+				keyValues[r.key] = append(keyValues[r.key], SpecFacetValue{Value: r.value, Count: r.count})
+			}
+		}
+		keyOrder = make([]string, 0, len(keyProductCount))
+		for k := range keyProductCount {
+			if keyProductCount[k] >= 0 {
+				keyOrder = append(keyOrder, k)
+			}
+		}
+		sort.Slice(keyOrder, func(i, j int) bool {
+			return keyProductCount[keyOrder[i]] > keyProductCount[keyOrder[j]]
+		})
+		if len(keyOrder) > 20 {
+			keyOrder = keyOrder[:20]
 		}
 	}
 
-	// Build spec facets: only keys with >= 0 products, limit 20 keys
-	const minCoverage = 0
 	const maxKeys = 20
 	var specFacets []SpecFacet
-	keyOrder := make([]string, 0, len(keyProductCount))
-	for k := range keyProductCount {
-		if keyProductCount[k] >= minCoverage {
-			keyOrder = append(keyOrder, k)
-		}
-	}
-	// Sort by product count descending
-	sort.Slice(keyOrder, func(i, j int) bool {
-		return keyProductCount[keyOrder[i]] > keyProductCount[keyOrder[j]]
-	})
 	for i, k := range keyOrder {
 		if i >= maxKeys {
 			break
 		}
+		label := metadata.SpecKeyToLabel(k)
+		if config != nil {
+			if override := config.GetLabel(k); override != "" {
+				label = override
+			}
+		}
+		var values []SpecFacetValue
+		if config != nil {
+			for _, v := range keyValuesSpec[k] {
+				values = append(values, SpecFacetValue{Value: v.Value, Count: v.Count})
+			}
+		} else {
+			values = keyValues[k]
+		}
 		specFacets = append(specFacets, SpecFacet{
 			Key:          k,
-			Label:        metadata.SpecKeyToLabel(k),
+			Label:        label,
 			ProductCount: keyProductCount[k],
-			Values:       keyValues[k],
+			Values:       values,
 		})
 	}
 
@@ -201,7 +230,8 @@ func (db *DB) GetFacets(ctx context.Context, params GetFacetsParams) (*GetFacets
 }
 
 // buildFacetsWhereClause returns the WHERE fragment and args for the facets query.
-func buildFacetsWhereClause(params GetFacetsParams) (string, []interface{}) {
+// expandedSpecFilters: when non-nil, used for spec filters (supports multi-value per key); otherwise derived from params.SpecFilters.
+func buildFacetsWhereClause(params GetFacetsParams, expandedSpecFilters map[string][]string) (string, []interface{}) {
 	var sb strings.Builder
 	args := []interface{}{}
 	argNum := 1
@@ -240,13 +270,28 @@ func buildFacetsWhereClause(params GetFacetsParams) (string, []interface{}) {
 			argNum++
 		}
 	}
-	for k, v := range params.SpecFilters {
-		if k == "" || v == "" {
+	specFiltersToUse := expandedSpecFilters
+	if specFiltersToUse == nil && len(params.SpecFilters) > 0 {
+		specFiltersToUse = make(map[string][]string)
+		for k, v := range params.SpecFilters {
+			if k != "" && v != "" {
+				specFiltersToUse[k] = []string{v}
+			}
+		}
+	}
+	for k, values := range specFiltersToUse {
+		if k == "" || len(values) == 0 {
 			continue
 		}
-		sb.WriteString(fmt.Sprintf(" AND l.metadata->'specs'->>$%d ILIKE $%d", argNum, argNum+1))
-		args = append(args, k, v)
-		argNum += 2
+		if len(values) == 1 {
+			sb.WriteString(fmt.Sprintf(" AND l.metadata->'specs'->>$%d ILIKE $%d", argNum, argNum+1))
+			args = append(args, k, values[0])
+			argNum += 2
+		} else {
+			sb.WriteString(fmt.Sprintf(" AND (l.metadata->'specs'->>$%d)::text ILIKE ANY($%d::text[])", argNum, argNum+1))
+			args = append(args, k, pq.Array(values))
+			argNum += 2
+		}
 	}
 	if params.MinDiscount != nil && *params.MinDiscount > 0 {
 		sb.WriteString(fmt.Sprintf(" AND l.original_price IS NOT NULL AND l.original_price > 0 AND l.current_price < l.original_price AND (1 - l.current_price / l.original_price) * 100 >= $%d", argNum))

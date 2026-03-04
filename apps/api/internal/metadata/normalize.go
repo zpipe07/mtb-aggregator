@@ -45,6 +45,11 @@ var specKeyAliases = []struct {
 	{"damper", "damper"},
 	{"spring", "spring"},
 	{"intended use", "intended_use"},
+	{"available diameters", "diameter"},
+	{"available diameter", "diameter"},
+	{"seatpost diameter", "diameter"},
+	{"diameter", "diameter"},
+	{"useful links", "useful_links"},
 }
 
 // AliasSpecKeys normalizes raw spec key names to canonical keys. Values pass through unchanged.
@@ -111,6 +116,7 @@ var snakeRe = regexp.MustCompile(`[^a-zA-Z0-9]+`)
 // Unknown keys get auto-generated labels from snake_case via toTitleCase.
 var specKeyLabels = map[string]string{
 	"axle":         "Axle",
+	"diameter":     "Diameter",
 	"material":     "Material",
 	"hub_spacing": "Hub Spacing",
 	"wheel_size":  "Wheel Size",

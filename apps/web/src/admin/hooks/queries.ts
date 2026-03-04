@@ -11,6 +11,9 @@ import {
   fetchAdminListings,
   fetchAdminListing,
   fetchTaxonomyMappings,
+  fetchSpecFilterConfigs,
+  fetchSpecValueAliases,
+  fetchSpecKeys,
 } from "../api";
 import {
   adminDashboardKeys,
@@ -21,6 +24,7 @@ import {
   adminEnrichJobKeys,
   adminListingKeys,
   adminTaxonomyKeys,
+  adminSpecFilterKeys,
 } from "./queryKeys";
 
 export function useAdminDashboard() {
@@ -142,6 +146,30 @@ export function useTaxonomyMappings() {
   return useQuery({
     queryKey: adminTaxonomyKeys.all,
     queryFn: fetchTaxonomyMappings,
+    staleTime: 60 * 1000,
+  });
+}
+
+export function useSpecFilterConfigs() {
+  return useQuery({
+    queryKey: adminSpecFilterKeys.configs(),
+    queryFn: fetchSpecFilterConfigs,
+    staleTime: 60 * 1000,
+  });
+}
+
+export function useSpecValueAliases(specKey?: string) {
+  return useQuery({
+    queryKey: adminSpecFilterKeys.valueAliases(specKey),
+    queryFn: () => fetchSpecValueAliases(specKey),
+    staleTime: 60 * 1000,
+  });
+}
+
+export function useSpecKeys() {
+  return useQuery({
+    queryKey: adminSpecFilterKeys.specKeys(),
+    queryFn: fetchSpecKeys,
     staleTime: 60 * 1000,
   });
 }

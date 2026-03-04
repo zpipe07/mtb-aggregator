@@ -6,10 +6,12 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/lib/pq"
 	"github.com/mtb-aggregator/api/internal/metadata"
+	"github.com/mtb-aggregator/api/internal/specfilter"
 )
 
 type Store struct {
@@ -504,13 +506,21 @@ func (db *DB) GetDeals(ctx context.Context, params GetDealsParams) (*GetDealsRes
 	if len(specFilters) == 0 && params.SpecKey != "" && params.SpecValue != "" {
 		specFilters = map[string]string{params.SpecKey: params.SpecValue}
 	}
-	for k, v := range specFilters {
-		if k == "" || v == "" {
+	config, _ := specfilter.LoadConfig(ctx, db.SpecFilterConfigLoader())
+	expanded := specfilter.ExpandFilterValues(specFilters, config)
+	for k, values := range expanded {
+		if k == "" || len(values) == 0 {
 			continue
 		}
-		query += fmt.Sprintf(" AND l.metadata->'specs'->>$%d ILIKE $%d", argNum, argNum+1)
-		args = append(args, k, v)
-		argNum += 2
+		if len(values) == 1 {
+			query += fmt.Sprintf(" AND l.metadata->'specs'->>$%d ILIKE $%d", argNum, argNum+1)
+			args = append(args, k, values[0])
+			argNum += 2
+		} else {
+			query += fmt.Sprintf(" AND (l.metadata->'specs'->>$%d)::text ILIKE ANY($%d::text[])", argNum, argNum+1)
+			args = append(args, k, pq.Array(values))
+			argNum += 2
+		}
 	}
 	if params.MinDiscount != nil && *params.MinDiscount > 0 {
 		query += fmt.Sprintf(" AND l.original_price IS NOT NULL AND l.original_price > 0 AND l.current_price < l.original_price AND (1 - l.current_price / l.original_price) * 100 >= $%d", argNum)
@@ -1431,4 +1441,248 @@ func (db *DB) SeedCategoryMappingsIfEmpty(ctx context.Context, mappings []struct
 		}
 	}
 	return true, nil
+}
+
+// SpecFilterConfig is one row in spec_filter_config: visibility, merging, label, sort order per spec key.
+type SpecFilterConfig struct {
+	ID           int     `json:"id"`
+	SpecKey      string  `json:"spec_key"`
+	Visible      bool    `json:"visible"`
+	MergeInto    *string `json:"merge_into,omitempty"`
+	DisplayLabel *string `json:"display_label,omitempty"`
+	SortOrder    int     `json:"sort_order"`
+	CreatedAt    string  `json:"created_at"`
+	UpdatedAt    string  `json:"updated_at"`
+}
+
+// ListSpecFilterConfigs returns all spec_filter_config rows ordered by sort_order DESC, then spec_key.
+func (db *DB) ListSpecFilterConfigs(ctx context.Context) ([]SpecFilterConfig, error) {
+	rows, err := db.pool.Query(ctx, `
+		SELECT id, spec_key, visible, merge_into, display_label, sort_order, created_at::text, updated_at::text
+		FROM spec_filter_config ORDER BY sort_order DESC, spec_key
+	`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []SpecFilterConfig
+	for rows.Next() {
+		var c SpecFilterConfig
+		if err := rows.Scan(&c.ID, &c.SpecKey, &c.Visible, &c.MergeInto, &c.DisplayLabel, &c.SortOrder, &c.CreatedAt, &c.UpdatedAt); err != nil {
+			return nil, err
+		}
+		out = append(out, c)
+	}
+	return out, rows.Err()
+}
+
+// GetSpecFilterConfigByID returns one spec_filter_config by id, or nil if not found.
+func (db *DB) GetSpecFilterConfigByID(ctx context.Context, id int) (*SpecFilterConfig, error) {
+	var c SpecFilterConfig
+	err := db.pool.QueryRow(ctx, `
+		SELECT id, spec_key, visible, merge_into, display_label, sort_order, created_at::text, updated_at::text
+		FROM spec_filter_config WHERE id = $1
+	`, id).Scan(&c.ID, &c.SpecKey, &c.Visible, &c.MergeInto, &c.DisplayLabel, &c.SortOrder, &c.CreatedAt, &c.UpdatedAt)
+	if err != nil {
+		if err.Error() == "no rows in result set" {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &c, nil
+}
+
+// CreateSpecFilterConfig inserts a spec_filter_config row and returns its id.
+func (db *DB) CreateSpecFilterConfig(ctx context.Context, specKey string, visible bool, mergeInto, displayLabel *string, sortOrder int) (int, error) {
+	var id int
+	err := db.pool.QueryRow(ctx, `
+		INSERT INTO spec_filter_config (spec_key, visible, merge_into, display_label, sort_order)
+		VALUES ($1, $2, $3, $4, $5)
+		RETURNING id
+	`, specKey, visible, mergeInto, displayLabel, sortOrder).Scan(&id)
+	return id, err
+}
+
+// UpdateSpecFilterConfig updates a spec_filter_config by id.
+func (db *DB) UpdateSpecFilterConfig(ctx context.Context, id int, specKey string, visible bool, mergeInto, displayLabel *string, sortOrder int) error {
+	_, err := db.pool.Exec(ctx, `
+		UPDATE spec_filter_config SET spec_key = $1, visible = $2, merge_into = $3, display_label = $4, sort_order = $5, updated_at = NOW() WHERE id = $6
+	`, specKey, visible, mergeInto, displayLabel, sortOrder, id)
+	return err
+}
+
+// DeleteSpecFilterConfig deletes a spec_filter_config by id.
+func (db *DB) DeleteSpecFilterConfig(ctx context.Context, id int) error {
+	_, err := db.pool.Exec(ctx, `DELETE FROM spec_filter_config WHERE id = $1`, id)
+	return err
+}
+
+// SpecValueAlias is one row in spec_value_aliases: raw_value -> display_value for a spec key.
+type SpecValueAlias struct {
+	ID           int    `json:"id"`
+	SpecKey      string `json:"spec_key"`
+	RawValue     string `json:"raw_value"`
+	DisplayValue string `json:"display_value"`
+	CreatedAt    string `json:"created_at"`
+}
+
+// ListSpecValueAliases returns spec_value_aliases rows, optionally filtered by spec_key.
+func (db *DB) ListSpecValueAliases(ctx context.Context, specKey string) ([]SpecValueAlias, error) {
+	query := `
+		SELECT id, spec_key, raw_value, display_value, created_at::text
+		FROM spec_value_aliases
+	`
+	var rows pgx.Rows
+	var err error
+	if specKey != "" {
+		query += ` WHERE spec_key = $1`
+		query += ` ORDER BY spec_key, raw_value`
+		rows, err = db.pool.Query(ctx, query, specKey)
+	} else {
+		query += ` ORDER BY spec_key, raw_value`
+		rows, err = db.pool.Query(ctx, query)
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []SpecValueAlias
+	for rows.Next() {
+		var a SpecValueAlias
+		if err := rows.Scan(&a.ID, &a.SpecKey, &a.RawValue, &a.DisplayValue, &a.CreatedAt); err != nil {
+			return nil, err
+		}
+		out = append(out, a)
+	}
+	return out, rows.Err()
+}
+
+// GetSpecValueAliasByID returns one spec_value_aliases row by id, or nil if not found.
+func (db *DB) GetSpecValueAliasByID(ctx context.Context, id int) (*SpecValueAlias, error) {
+	var a SpecValueAlias
+	err := db.pool.QueryRow(ctx, `
+		SELECT id, spec_key, raw_value, display_value, created_at::text
+		FROM spec_value_aliases WHERE id = $1
+	`, id).Scan(&a.ID, &a.SpecKey, &a.RawValue, &a.DisplayValue, &a.CreatedAt)
+	if err != nil {
+		if err.Error() == "no rows in result set" {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &a, nil
+}
+
+// CreateSpecValueAlias inserts a spec_value_aliases row and returns its id.
+func (db *DB) CreateSpecValueAlias(ctx context.Context, specKey, rawValue, displayValue string) (int, error) {
+	var id int
+	err := db.pool.QueryRow(ctx, `
+		INSERT INTO spec_value_aliases (spec_key, raw_value, display_value)
+		VALUES ($1, $2, $3)
+		RETURNING id
+	`, specKey, rawValue, displayValue).Scan(&id)
+	return id, err
+}
+
+// UpdateSpecValueAlias updates a spec_value_aliases row by id.
+func (db *DB) UpdateSpecValueAlias(ctx context.Context, id int, specKey, rawValue, displayValue string) error {
+	_, err := db.pool.Exec(ctx, `
+		UPDATE spec_value_aliases SET spec_key = $1, raw_value = $2, display_value = $3 WHERE id = $4
+	`, specKey, rawValue, displayValue, id)
+	return err
+}
+
+// DeleteSpecValueAlias deletes a spec_value_aliases row by id.
+func (db *DB) DeleteSpecValueAlias(ctx context.Context, id int) error {
+	_, err := db.pool.Exec(ctx, `DELETE FROM spec_value_aliases WHERE id = $1`, id)
+	return err
+}
+
+// DiscoveredSpecKey is a spec key found in listings with its product count.
+type DiscoveredSpecKey struct {
+	SpecKey      string `json:"spec_key"`
+	ProductCount int    `json:"product_count"`
+}
+
+// GetDiscoveredSpecKeys returns all spec keys present in store_listings.metadata->specs with product counts.
+func (db *DB) GetDiscoveredSpecKeys(ctx context.Context) ([]DiscoveredSpecKey, error) {
+	rows, err := db.pool.Query(ctx, `
+		WITH with_specs AS (
+			SELECT l.id, l.metadata
+			FROM store_listings l
+			WHERE l.metadata->'specs' IS NOT NULL AND jsonb_typeof(l.metadata->'specs') = 'object' AND l.is_in_stock = true
+		)
+		SELECT spec.key, COUNT(DISTINCT w.id)::int as cnt
+		FROM with_specs w
+		CROSS JOIN LATERAL jsonb_each_text(w.metadata->'specs') AS spec(key, value)
+		WHERE spec.value IS NOT NULL AND trim(spec.value) <> ''
+		GROUP BY spec.key
+		ORDER BY cnt DESC
+	`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []DiscoveredSpecKey
+	for rows.Next() {
+		var d DiscoveredSpecKey
+		if err := rows.Scan(&d.SpecKey, &d.ProductCount); err != nil {
+			return nil, err
+		}
+		out = append(out, d)
+	}
+	return out, rows.Err()
+}
+
+// RenormalizeSpecs re-applies AliasSpecKeys to metadata.specs on all listings. Fixes historical key normalization without re-scraping.
+// Returns the number of rows updated.
+func (db *DB) RenormalizeSpecs(ctx context.Context) (int, error) {
+	rows, err := db.pool.Query(ctx, `SELECT id, metadata FROM store_listings WHERE metadata->'specs' IS NOT NULL AND jsonb_typeof(metadata->'specs') = 'object'`)
+	if err != nil {
+		return 0, err
+	}
+	defer rows.Close()
+
+	updated := 0
+	for rows.Next() {
+		var id int
+		var meta []byte
+		if err := rows.Scan(&id, &meta); err != nil {
+			return updated, err
+		}
+		var base map[string]interface{}
+		if err := json.Unmarshal(meta, &base); err != nil {
+			continue
+		}
+		specsRaw, ok := base["specs"]
+		if !ok {
+			continue
+		}
+		specsMap, ok := specsRaw.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		rawSpecs := make(map[string]string)
+		for k, v := range specsMap {
+			if s, ok := v.(string); ok {
+				rawSpecs[k] = s
+			}
+		}
+		aliased := metadata.AliasSpecKeys(rawSpecs)
+		specsObj := make(map[string]interface{})
+		for k, v := range aliased {
+			specsObj[k] = v
+		}
+		base["specs"] = specsObj
+		newMeta, err := json.Marshal(base)
+		if err != nil {
+			continue
+		}
+		_, err = db.pool.Exec(ctx, `UPDATE store_listings SET metadata = $1 WHERE id = $2`, newMeta, id)
+		if err != nil {
+			return updated, err
+		}
+		updated++
+	}
+	return updated, rows.Err()
 }

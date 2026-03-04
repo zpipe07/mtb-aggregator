@@ -40,3 +40,11 @@ export const adminListingKeys = {
 export const adminTaxonomyKeys = {
   all: ["admin", "taxonomy"] as const,
 };
+
+export const adminSpecFilterKeys = {
+  all: ["admin", "specFilter"] as const,
+  configs: () => [...adminSpecFilterKeys.all, "configs"] as const,
+  valueAliases: (specKey?: string) =>
+    [...adminSpecFilterKeys.all, "valueAliases", specKey ?? ""] as const,
+  specKeys: () => [...adminSpecFilterKeys.all, "specKeys"] as const,
+};

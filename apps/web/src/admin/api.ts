@@ -423,3 +423,160 @@ export async function triggerRecategorize(): Promise<{ updated: number }> {
   if (!res.ok) throw new Error("Recategorize failed");
   return res.json();
 }
+
+// --- Spec filter config ---
+
+export interface SpecFilterConfig {
+  id: number;
+  spec_key: string;
+  visible: boolean;
+  merge_into?: string | null;
+  display_label?: string | null;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SpecValueAlias {
+  id: number;
+  spec_key: string;
+  raw_value: string;
+  display_value: string;
+  created_at: string;
+}
+
+export interface DiscoveredSpecKey {
+  spec_key: string;
+  product_count: number;
+}
+
+export async function fetchSpecFilterConfigs(): Promise<SpecFilterConfig[]> {
+  const res = await fetch(`${API_BASE}/admin/spec-filter-config`, { headers: adminHeaders() });
+  if (!res.ok) throw new Error(res.status === 401 ? "Unauthorized" : "Failed to fetch spec filter config");
+  const data = await res.json();
+  return Array.isArray(data) ? data : [];
+}
+
+export async function createSpecFilterConfig(body: {
+  spec_key: string;
+  visible?: boolean;
+  merge_into?: string | null;
+  display_label?: string | null;
+  sort_order?: number;
+}): Promise<{ id: number }> {
+  const res = await fetch(`${API_BASE}/admin/spec-filter-config`, {
+    method: "POST",
+    headers: adminHeaders(),
+    body: JSON.stringify({
+      spec_key: body.spec_key,
+      visible: body.visible ?? true,
+      merge_into: body.merge_into ?? null,
+      display_label: body.display_label ?? null,
+      sort_order: body.sort_order ?? 0,
+    }),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || "Create failed");
+  }
+  return res.json();
+}
+
+export async function updateSpecFilterConfig(
+  id: number,
+  body: {
+    spec_key: string;
+    visible?: boolean;
+    merge_into?: string | null;
+    display_label?: string | null;
+    sort_order?: number;
+  }
+): Promise<void> {
+  const res = await fetch(`${API_BASE}/admin/spec-filter-config/${id}`, {
+    method: "PUT",
+    headers: adminHeaders(),
+    body: JSON.stringify({
+      spec_key: body.spec_key,
+      visible: body.visible ?? true,
+      merge_into: body.merge_into ?? null,
+      display_label: body.display_label ?? null,
+      sort_order: body.sort_order ?? 0,
+    }),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || "Update failed");
+  }
+}
+
+export async function deleteSpecFilterConfig(id: number): Promise<void> {
+  const res = await fetch(`${API_BASE}/admin/spec-filter-config/${id}`, {
+    method: "DELETE",
+    headers: adminHeaders(),
+  });
+  if (!res.ok) throw new Error("Delete failed");
+}
+
+export async function fetchSpecValueAliases(specKey?: string): Promise<SpecValueAlias[]> {
+  const search = specKey ? `?spec_key=${encodeURIComponent(specKey)}` : "";
+  const res = await fetch(`${API_BASE}/admin/spec-value-aliases${search}`, { headers: adminHeaders() });
+  if (!res.ok) throw new Error(res.status === 401 ? "Unauthorized" : "Failed to fetch spec value aliases");
+  const data = await res.json();
+  return Array.isArray(data) ? data : [];
+}
+
+export async function createSpecValueAlias(body: {
+  spec_key: string;
+  raw_value: string;
+  display_value: string;
+}): Promise<{ id: number }> {
+  const res = await fetch(`${API_BASE}/admin/spec-value-aliases`, {
+    method: "POST",
+    headers: adminHeaders(),
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || "Create failed");
+  }
+  return res.json();
+}
+
+export async function updateSpecValueAlias(
+  id: number,
+  body: { spec_key: string; raw_value: string; display_value: string }
+): Promise<void> {
+  const res = await fetch(`${API_BASE}/admin/spec-value-aliases/${id}`, {
+    method: "PUT",
+    headers: adminHeaders(),
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || "Update failed");
+  }
+}
+
+export async function deleteSpecValueAlias(id: number): Promise<void> {
+  const res = await fetch(`${API_BASE}/admin/spec-value-aliases/${id}`, {
+    method: "DELETE",
+    headers: adminHeaders(),
+  });
+  if (!res.ok) throw new Error("Delete failed");
+}
+
+export async function fetchSpecKeys(): Promise<DiscoveredSpecKey[]> {
+  const res = await fetch(`${API_BASE}/admin/spec-keys`, { headers: adminHeaders() });
+  if (!res.ok) throw new Error(res.status === 401 ? "Unauthorized" : "Failed to fetch spec keys");
+  const data = await res.json();
+  return Array.isArray(data) ? data : [];
+}
+
+export async function triggerRenormalizeSpecs(): Promise<{ updated: number }> {
+  const res = await fetch(`${API_BASE}/admin/renormalize-specs`, {
+    method: "POST",
+    headers: adminHeaders(),
+  });
+  if (!res.ok) throw new Error("Renormalize specs failed");
+  return res.json();
+}

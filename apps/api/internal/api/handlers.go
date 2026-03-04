@@ -999,3 +999,253 @@ func (h *Handlers) PostAdminTaxonomyRecategorize(w http.ResponseWriter, r *http.
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{"updated": updated})
 }
+
+// --- Spec filter config (admin) ---
+
+// GetAdminSpecFilterConfigs returns all spec_filter_config rows (admin).
+func (h *Handlers) GetAdminSpecFilterConfigs(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	list, err := h.DB.ListSpecFilterConfigs(r.Context())
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if list == nil {
+		list = []db.SpecFilterConfig{}
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(list)
+}
+
+// PostAdminSpecFilterConfig creates a spec_filter_config row (admin). Body: spec_key, visible, merge_into, display_label, sort_order.
+func (h *Handlers) PostAdminSpecFilterConfig(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var body struct {
+		SpecKey      string  `json:"spec_key"`
+		Visible      bool    `json:"visible"`
+		MergeInto    *string `json:"merge_into"`
+		DisplayLabel *string `json:"display_label"`
+		SortOrder    int     `json:"sort_order"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		http.Error(w, "invalid json", http.StatusBadRequest)
+		return
+	}
+	if body.SpecKey == "" {
+		http.Error(w, "spec_key required", http.StatusBadRequest)
+		return
+	}
+	id, err := h.DB.CreateSpecFilterConfig(r.Context(), body.SpecKey, body.Visible, body.MergeInto, body.DisplayLabel, body.SortOrder)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{"id": id})
+}
+
+// GetAdminSpecFilterConfigByID returns one spec_filter_config by id (admin).
+func (h *Handlers) GetAdminSpecFilterConfigByID(w http.ResponseWriter, r *http.Request, id int) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	c, err := h.DB.GetSpecFilterConfigByID(r.Context(), id)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if c == nil {
+		http.Error(w, "not found", http.StatusNotFound)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(c)
+}
+
+// PutAdminSpecFilterConfig updates a spec_filter_config by id (admin).
+func (h *Handlers) PutAdminSpecFilterConfig(w http.ResponseWriter, r *http.Request, id int) {
+	if r.Method != http.MethodPut {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var body struct {
+		SpecKey      string  `json:"spec_key"`
+		Visible      bool    `json:"visible"`
+		MergeInto    *string `json:"merge_into"`
+		DisplayLabel *string `json:"display_label"`
+		SortOrder    int     `json:"sort_order"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		http.Error(w, "invalid json", http.StatusBadRequest)
+		return
+	}
+	if body.SpecKey == "" {
+		http.Error(w, "spec_key required", http.StatusBadRequest)
+		return
+	}
+	if err := h.DB.UpdateSpecFilterConfig(r.Context(), id, body.SpecKey, body.Visible, body.MergeInto, body.DisplayLabel, body.SortOrder); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Write([]byte(`{"ok":true}`))
+}
+
+// DeleteAdminSpecFilterConfig deletes a spec_filter_config by id (admin).
+func (h *Handlers) DeleteAdminSpecFilterConfig(w http.ResponseWriter, r *http.Request, id int) {
+	if r.Method != http.MethodDelete {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if err := h.DB.DeleteSpecFilterConfig(r.Context(), id); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// GetAdminSpecValueAliases returns spec_value_aliases rows, optionally filtered by ?spec_key= (admin).
+func (h *Handlers) GetAdminSpecValueAliases(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	specKey := strings.TrimSpace(r.URL.Query().Get("spec_key"))
+	list, err := h.DB.ListSpecValueAliases(r.Context(), specKey)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if list == nil {
+		list = []db.SpecValueAlias{}
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(list)
+}
+
+// PostAdminSpecValueAlias creates a spec_value_aliases row (admin). Body: spec_key, raw_value, display_value.
+func (h *Handlers) PostAdminSpecValueAlias(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var body struct {
+		SpecKey      string `json:"spec_key"`
+		RawValue     string `json:"raw_value"`
+		DisplayValue string `json:"display_value"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		http.Error(w, "invalid json", http.StatusBadRequest)
+		return
+	}
+	if body.SpecKey == "" || body.RawValue == "" || body.DisplayValue == "" {
+		http.Error(w, "spec_key, raw_value, display_value required", http.StatusBadRequest)
+		return
+	}
+	id, err := h.DB.CreateSpecValueAlias(r.Context(), body.SpecKey, body.RawValue, body.DisplayValue)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{"id": id})
+}
+
+// GetAdminSpecValueAliasByID returns one spec_value_aliases row by id (admin).
+func (h *Handlers) GetAdminSpecValueAliasByID(w http.ResponseWriter, r *http.Request, id int) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	a, err := h.DB.GetSpecValueAliasByID(r.Context(), id)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if a == nil {
+		http.Error(w, "not found", http.StatusNotFound)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(a)
+}
+
+// PutAdminSpecValueAlias updates a spec_value_aliases row by id (admin).
+func (h *Handlers) PutAdminSpecValueAlias(w http.ResponseWriter, r *http.Request, id int) {
+	if r.Method != http.MethodPut {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var body struct {
+		SpecKey      string `json:"spec_key"`
+		RawValue     string `json:"raw_value"`
+		DisplayValue string `json:"display_value"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		http.Error(w, "invalid json", http.StatusBadRequest)
+		return
+	}
+	if body.SpecKey == "" || body.RawValue == "" || body.DisplayValue == "" {
+		http.Error(w, "spec_key, raw_value, display_value required", http.StatusBadRequest)
+		return
+	}
+	if err := h.DB.UpdateSpecValueAlias(r.Context(), id, body.SpecKey, body.RawValue, body.DisplayValue); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Write([]byte(`{"ok":true}`))
+}
+
+// DeleteAdminSpecValueAlias deletes a spec_value_aliases row by id (admin).
+func (h *Handlers) DeleteAdminSpecValueAlias(w http.ResponseWriter, r *http.Request, id int) {
+	if r.Method != http.MethodDelete {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if err := h.DB.DeleteSpecValueAlias(r.Context(), id); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// GetAdminSpecKeys returns discovered spec keys from listings with product counts (admin).
+func (h *Handlers) GetAdminSpecKeys(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	keys, err := h.DB.GetDiscoveredSpecKeys(r.Context())
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if keys == nil {
+		keys = []db.DiscoveredSpecKey{}
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(keys)
+}
+
+// PostAdminRenormalizeSpecs re-applies key aliases to all listings' metadata.specs (admin).
+func (h *Handlers) PostAdminRenormalizeSpecs(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	updated, err := h.DB.RenormalizeSpecs(r.Context())
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{"updated": updated})
+}

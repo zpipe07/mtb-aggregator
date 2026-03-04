@@ -12,6 +12,13 @@ import {
   updateTaxonomyMapping,
   deleteTaxonomyMapping,
   triggerRecategorize,
+  createSpecFilterConfig,
+  updateSpecFilterConfig,
+  deleteSpecFilterConfig,
+  createSpecValueAlias,
+  updateSpecValueAlias,
+  deleteSpecValueAlias,
+  triggerRenormalizeSpecs,
   type StoreFormBody,
 } from "../api";
 import {
@@ -22,6 +29,7 @@ import {
   adminEnrichJobKeys,
   adminListingKeys,
   adminTaxonomyKeys,
+  adminSpecFilterKeys,
 } from "./queryKeys";
 import { dealKeys } from "../../hooks/queryKeys";
 
@@ -161,6 +169,100 @@ export function useTriggerRecategorize() {
     mutationFn: triggerRecategorize,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: adminTaxonomyKeys.all });
+      queryClient.invalidateQueries({ queryKey: adminListingKeys.all });
+      queryClient.invalidateQueries({ queryKey: dealKeys.all });
+    },
+  });
+}
+
+export function useCreateSpecFilterConfig() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: createSpecFilterConfig,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminSpecFilterKeys.configs() });
+      queryClient.invalidateQueries({ queryKey: adminSpecFilterKeys.specKeys() });
+    },
+  });
+}
+
+export function useUpdateSpecFilterConfig() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      body,
+    }: {
+      id: number;
+      body: {
+        spec_key: string;
+        visible?: boolean;
+        merge_into?: string | null;
+        display_label?: string | null;
+        sort_order?: number;
+      };
+    }) => updateSpecFilterConfig(id, body),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminSpecFilterKeys.configs() });
+    },
+  });
+}
+
+export function useDeleteSpecFilterConfig() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: deleteSpecFilterConfig,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminSpecFilterKeys.configs() });
+    },
+  });
+}
+
+export function useCreateSpecValueAlias() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { spec_key: string; raw_value: string; display_value: string }) =>
+      createSpecValueAlias(body),
+    onSuccess: (_, body) => {
+      queryClient.invalidateQueries({ queryKey: adminSpecFilterKeys.valueAliases(body.spec_key) });
+      queryClient.invalidateQueries({ queryKey: adminSpecFilterKeys.valueAliases() });
+    },
+  });
+}
+
+export function useUpdateSpecValueAlias() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      body,
+    }: {
+      id: number;
+      body: { spec_key: string; raw_value: string; display_value: string };
+    }) => updateSpecValueAlias(id, body),
+    onSuccess: (_, { body }) => {
+      queryClient.invalidateQueries({ queryKey: adminSpecFilterKeys.valueAliases(body.spec_key) });
+      queryClient.invalidateQueries({ queryKey: adminSpecFilterKeys.valueAliases() });
+    },
+  });
+}
+
+export function useDeleteSpecValueAlias() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: deleteSpecValueAlias,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminSpecFilterKeys.all });
+    },
+  });
+}
+
+export function useTriggerRenormalizeSpecs() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: triggerRenormalizeSpecs,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminSpecFilterKeys.specKeys() });
       queryClient.invalidateQueries({ queryKey: adminListingKeys.all });
       queryClient.invalidateQueries({ queryKey: dealKeys.all });
     },
