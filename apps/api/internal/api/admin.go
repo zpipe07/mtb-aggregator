@@ -10,7 +10,7 @@ import (
 const adminPasswordEnv = "ADMIN_PASSWORD"
 
 // AllowedStoreTypes are store_type values that have a registered scraper parser. Update when adding parsers.
-var AllowedStoreTypes = []string{"jensonusa", "worldwidecyclery", "revelbikes"}
+var AllowedStoreTypes = []string{"jensonusa", "worldwidecyclery", "revelbikes", "backcountry"}
 
 // ValidateAdminAuth returns true if r has a valid admin Bearer token.
 func ValidateAdminAuth(r *http.Request) bool {

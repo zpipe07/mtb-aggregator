@@ -1,4 +1,9 @@
-import { chromium, type Browser } from "playwright";
+import { chromium as chromiumPlain, type Browser } from "playwright";
+import { chromium as chromiumExtra } from "playwright-extra";
+// @ts-ignore — no types shipped, plugin works at runtime
+import StealthPlugin from "puppeteer-extra-plugin-stealth";
+
+chromiumExtra.use(StealthPlugin());
 
 const BROWSER_WS_ENDPOINT = process.env.BROWSER_WS_ENDPOINT?.trim();
 const BROWSER_WS_TOKEN =
@@ -40,12 +45,13 @@ export async function getBrowser(): Promise<Browser> {
     );
     // Browserless (and similar services) expose CDP; Playwright's connect() uses its own
     // wire protocol and will timeout. connectOverCDP is required for CDP endpoints.
-    return chromium.connectOverCDP(wsEndpoint, {
+    // Remote CDP browser: stealth is applied server-side, use plain playwright
+    return chromiumPlain.connectOverCDP(wsEndpoint, {
       timeout: 90000,
     });
   }
-  console.log("[browser] Using local Chromium (BROWSER_WS_ENDPOINT not set)");
-  return chromium.launch({
+  console.log("[browser] Using local Chromium with stealth (BROWSER_WS_ENDPOINT not set)");
+  return chromiumExtra.launch({
     headless: true,
     args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"],
   });

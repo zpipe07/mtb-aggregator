@@ -14,16 +14,19 @@ export const ScrapeResultSchema = z.object({
 
 export type ScrapeResult = z.infer<typeof ScrapeResultSchema>;
 
+export const STORE_TYPES = ["jensonusa", "backcountry", "worldwidecyclery", "revelbikes"] as const;
+export type StoreType = (typeof STORE_TYPES)[number];
+
 export const ScrapeRequestSchema = z.object({
   url: z.string().url(),
-  store: z.enum(["jensonusa", "backcountry", "worldwidecyclery", "revelbikes"]),
+  store: z.enum(STORE_TYPES),
 });
 
 export type ScrapeRequest = z.infer<typeof ScrapeRequestSchema>;
 
 export const EnrichRequestSchema = z.object({
   url: z.string().url(),
-  store: z.enum(["jensonusa", "backcountry", "worldwidecyclery", "revelbikes"]),
+  store: z.enum(STORE_TYPES),
 });
 
 export type EnrichRequest = z.infer<typeof EnrichRequestSchema>;
