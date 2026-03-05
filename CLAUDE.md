@@ -1,0 +1,118 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Project Overview
+
+Mountain bike deals aggregator. Scrapes sale pages from MTB retailers, stores listings in Postgres, and serves them through a React UI.
+
+## Repository Structure
+
+pnpm monorepo with three apps and one shared package:
+
+- `apps/scraper` — Node.js/TypeScript Express server using Playwright to scrape retailer pages
+- `apps/api` — Go HTTP server (stdlib net/http + pgx); orchestrates scraping, enrichment, and serves the REST API
+- `apps/web` — React 18 + Vite + TanStack Query + Tailwind frontend
+- `packages/shared` — SQL schema, numbered migrations, seed data, and JSON config files (brand aliases, category taxonomy)
+
+## Development Setup
+
+**Prerequisites:** Docker (for Postgres), Node.js >=20, pnpm, Go 1.24+
+
+**First-time setup:**
+```bash
+pnpm install && cd apps/api && go mod download
+make db-up           # Start Postgres in Docker
+make db-migrate      # Apply base schema
+make db-migrate-docker  # Apply incremental migrations
+make db-seed         # Seed stores
+```
+
+**Running locally (three separate terminals):**
+```bash
+# Terminal 1 - Scraper (port 3000)
+pnpm --filter @mtb-aggregator/scraper run dev
+
+# Terminal 2 - API (port 8080)
+cd apps/api && go run main.go
+
+# Terminal 3 - Web (Vite dev server)
+cd apps/web && pnpm run dev
+```
+
+**Environment variables** — create a `.env` at repo root:
+- `DATABASE_URL` (defaults to `postgres://mtb:mtb@localhost:5432/mtb_deals`)
+- `SCRAPER_SERVICE_URL` (defaults to `http://localhost:3000`)
+- `ADMIN_PASSWORD` — required for admin UI login
+- `CRON_SECRET` — optional auth for cron trigger endpoints
+- `CORS_ORIGINS` — comma-separated allowed origins (defaults to `*`)
+- `SCRAPE_CRON_SPEC` / `ENRICH_CRON_SPEC` — override cron schedules (set to `disabled` to use external cron)
+
+## Commands
+
+```bash
+# Scraper tests (vitest)
+pnpm --filter @mtb-aggregator/scraper run test
+pnpm --filter @mtb-aggregator/scraper run test:watch
+
+# Manually trigger scraping/enrichment (API must be running)
+make scrape-now              # all stores
+make scrape-now-wwc          # worldwidecyclery only
+make scrape-now-revel        # revelbikes only
+make enrich-now              # enrich unenriched listings
+make enrich-now FORCE=1      # re-enrich all
+
+# Database migrations against remote DB (set DATABASE_URL in .env)
+make db-migrate-remote
+
+# One-time backfills
+make backfill-brands
+make backfill-canonical-categories
+
+# Build all
+make build-all
+```
+
+## Architecture
+
+### Data Flow
+
+1. **Scheduler** (Go, `apps/api/internal/scheduler/`) runs cron jobs — scrape every 4h, enrich nightly at 2am
+2. **Scrape job**: for each store, calls the scraper service `POST /scrape` with the store's `scrape_url` and `store_type`
+3. **Scraper service** uses Playwright parsers to extract listings from sale pages; returns `ScrapeResult[]`
+4. **API** upserts listings into Postgres, applying brand normalization and metadata extraction
+5. **Enrich job**: fetches PDP (product detail page) URLs through `POST /enrich` to get detailed specs (wheel size, travel, groupset, etc.) and a full category path
+6. **Category taxonomy** maps raw store category paths to canonical MTB categories (e.g. `["Components", "Brakes"]`)
+
+### Scraper Service (`apps/scraper/`)
+
+- Express server with `/scrape`, `/enrich`, `/health` endpoints
+- Parsers live in `apps/scraper/src/parsers/` — one file per store
+- `PARSERS` and `ENRICHERS` maps registered in `parsers/index.ts`
+- Adding a new store: create parser in `parsers/`, add to maps in `parsers/index.ts`, add store enum value to `ScrapeRequestSchema`/`EnrichRequestSchema` in `types.ts`, insert store record in DB
+
+### API (`apps/api/`)
+
+- Standard library `net/http`, no framework
+- All DB queries in `internal/db/db.go` using pgx
+- `internal/brand/` — brand normalization via `packages/shared/brand_aliases.json`
+- `internal/taxonomy/` — category mapping with in-memory cache, seeded from `packages/shared/category_taxonomy.json`
+- `internal/metadata/` — extracts structured specs from enriched category paths and raw spec data
+- `internal/specfilter/` — controls which spec keys appear as filters in the UI
+- Admin endpoints under `/admin/*` require Bearer token auth (password set via `ADMIN_PASSWORD`)
+- Public API: `GET /deals`, `/stores`, `/brands`, `/canonical-categories`, `/facets`, `/spec-values`, `/status`
+
+### Web (`apps/web/`)
+
+- React Router routes: `/` (HomePage), `/deals` (DealsPage), `/admin/*` (AdminSection)
+- Admin section includes: Dashboard, DataBrowser, StoreManager, TaxonomyManager, Operations, SpecFilterManager
+- Admin login state stored in `localStorage`; `AdminGate` handles auth gating
+- API base URL defaults to `http://localhost:8080`; configure via Vite proxy or env if needed
+
+### Database Migrations
+
+Base schema: `packages/shared/schema.sql`
+Incremental: `packages/shared/migrations/` — numbered `001` through `011`, applied in sorted order.
+
+For local Docker: `make db-migrate-docker`
+For remote (Neon, etc.): `make db-migrate-remote` (uses `go run ./cmd/migrate`)
