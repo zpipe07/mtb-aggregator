@@ -32,6 +32,7 @@ type ScrapeRequest struct {
 type EnrichResult struct {
 	CategoryPath []string          `json:"category_path"`
 	RawSpecs     map[string]string `json:"raw_specs"`
+	Unavailable  bool              `json:"unavailable"`
 }
 
 type Client struct {

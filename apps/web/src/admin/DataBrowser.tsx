@@ -75,6 +75,7 @@ export function DataBrowser() {
   const [storeId, setStoreId] = useState<number>(0);
   const [brand, setBrand] = useState("");
   const [hasEnrichment, setHasEnrichment] = useState<boolean | null>(null);
+  const [inStock, setInStock] = useState<boolean | null>(null);
   const [category, setCategory] = useState("");
   const [q, setQ] = useState("");
   const [sort, setSort] = useState("newest");
@@ -86,6 +87,7 @@ export function DataBrowser() {
     store_id: storeId || undefined,
     brand: brand || undefined,
     has_enrichment: hasEnrichment ?? undefined,
+    in_stock: inStock ?? undefined,
     category: category || undefined,
     q: q || undefined,
     sort,
@@ -183,6 +185,19 @@ export function DataBrowser() {
           <option value="yes">Enriched</option>
           <option value="no">Not enriched</option>
         </select>
+        <select
+          value={inStock === null ? "" : inStock ? "yes" : "no"}
+          onChange={(e) => {
+            const v = e.target.value;
+            setInStock(v === "" ? null : v === "yes");
+            setOffset(0);
+          }}
+          className="rounded border border-stone-300 px-3 py-2 text-sm"
+        >
+          <option value="">Stock: any</option>
+          <option value="yes">In stock</option>
+          <option value="no">Out of stock</option>
+        </select>
         <input
           type="text"
           placeholder="Category contains"
@@ -228,6 +243,7 @@ export function DataBrowser() {
                     <th className="px-4 py-2 text-right font-medium text-stone-600">Discount %</th>
                     <th className="px-4 py-2 text-left font-medium text-stone-600">Canonical category</th>
                     <th className="px-4 py-2 text-left font-medium text-stone-600">Metadata</th>
+                    <th className="px-4 py-2 text-center font-medium text-stone-600">Stock</th>
                     <th className="px-4 py-2 text-center font-medium text-stone-600">Enriched</th>
                     <th className="px-4 py-2 text-left font-medium text-stone-600">Last scraped</th>
                   </tr>
@@ -258,6 +274,13 @@ export function DataBrowser() {
                       </td>
                       <td className="px-4 py-2 text-stone-600 max-w-[10rem] truncate" title={metadataSummary(row.metadata)}>
                         {metadataSummary(row.metadata)}
+                      </td>
+                      <td className="px-4 py-2 text-center">
+                        {row.is_in_stock ? (
+                          <span className="text-green-600">In stock</span>
+                        ) : (
+                          <span className="text-amber-600 font-medium">Out of stock</span>
+                        )}
                       </td>
                       <td className="px-4 py-2 text-center">
                         {row.last_enriched_at ? (
@@ -338,6 +361,14 @@ export function DataBrowser() {
                 <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1">
                   <dt className="text-stone-500">Store</dt>
                   <dd>{detail.store_name}</dd>
+                  <dt className="text-stone-500">Stock status</dt>
+                  <dd>
+                    {detail.is_in_stock ? (
+                      <span className="text-green-600">In stock</span>
+                    ) : (
+                      <span className="text-amber-600 font-medium">Out of stock</span>
+                    )}
+                  </dd>
                   <dt className="text-stone-500">Brand</dt>
                   <dd>{detail.brand ?? "—"}</dd>
                   <dt className="text-stone-500">Price</dt>

@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/joho/godotenv"
 	"github.com/mtb-aggregator/api/internal/api"
@@ -45,6 +46,26 @@ func corsMiddleware(next http.Handler) http.Handler {
 			return
 		}
 		next.ServeHTTP(w, r)
+	})
+}
+
+// responseRecorder wraps http.ResponseWriter to capture status code for logging.
+type responseRecorder struct {
+	http.ResponseWriter
+	status int
+}
+
+func (r *responseRecorder) WriteHeader(code int) {
+	r.status = code
+	r.ResponseWriter.WriteHeader(code)
+}
+
+func loggingMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+		rec := &responseRecorder{ResponseWriter: w, status: http.StatusOK}
+		next.ServeHTTP(rec, r)
+		log.Printf("[http] %s %s %s %d %v", r.RemoteAddr, r.Method, r.URL.Path, rec.status, time.Since(start))
 	})
 }
 
@@ -108,10 +129,20 @@ func loadTaxonomyFromDB(ctx context.Context, database *db.DB) error {
 }
 
 func main() {
+	log.Println("[startup] initializing API")
+
 	// Load .env from cwd or monorepo root so ENRICH_BATCH_SIZE etc. are set when running locally
-	_ = godotenv.Load()
-	if p, _ := filepath.Abs("../../.env"); p != "" {
-		_ = godotenv.Load(p)
+	if err := godotenv.Load(); err != nil {
+		log.Printf("[startup] .env from cwd: %v (using env vars)", err)
+	} else {
+		log.Println("[startup] loaded .env from cwd")
+	}
+	if p, err := filepath.Abs("../../.env"); err == nil && p != "" {
+		if err := godotenv.Load(p); err != nil {
+			log.Printf("[startup] .env from monorepo root: %v", err)
+		} else {
+			log.Println("[startup] loaded .env from monorepo root")
+		}
 	}
 
 	if err := brand.Load(""); err != nil {
@@ -124,19 +155,23 @@ func main() {
 	connString := os.Getenv("DATABASE_URL")
 	if connString == "" {
 		connString = "postgres://mtb:mtb@localhost:5432/mtb_deals?sslmode=disable"
+		log.Println("[startup] using default DATABASE_URL")
+	} else {
+		log.Println("[startup] DATABASE_URL set from env")
 	}
 
 	scraperURL := os.Getenv("SCRAPER_SERVICE_URL")
 	if scraperURL == "" {
 		scraperURL = "http://localhost:3000"
 	}
-	log.Printf("scraper service URL: %s (scrape-now requires scraper running: pnpm --filter @mtb-aggregator/scraper run dev)", scraperURL)
+	log.Printf("[startup] scraper service URL: %s", scraperURL)
 
 	database, err := db.New(connString)
 	if err != nil {
-		log.Fatalf("database: %v", err)
+		log.Fatalf("[startup] database: %v", err)
 	}
 	defer database.Close()
+	log.Println("[startup] database connected")
 
 	// Seed category_mappings from JSON if table is empty, then load taxonomy from DB
 	ctx := context.Background()
@@ -160,6 +195,7 @@ func main() {
 	sched := scheduler.New(database, scraperURL)
 	scraperClient := scraper.NewClient(scraperURL)
 	handlers := &api.Handlers{DB: database, ScraperURL: scraperURL, Scraper: scraperClient}
+	log.Println("[startup] scheduler and handlers initialized")
 
 	// Cron: every 4 hours (configurable via SCRAPE_CRON_SPEC, "disabled" = use external cron)
 	cronSpec := os.Getenv("SCRAPE_CRON_SPEC")
@@ -168,8 +204,9 @@ func main() {
 	}
 	if !strings.EqualFold(cronSpec, "disabled") {
 		sched.Start(cronSpec, "cron")
+		log.Printf("[startup] scrape cron started: %s", cronSpec)
 	} else {
-		log.Println("scrape cron disabled (use external cron for /scrape-now)")
+		log.Println("[startup] scrape cron disabled (use external cron for /scrape-now)")
 	}
 
 	// Enrichment cron: nightly at 2am (ENRICH_CRON_SPEC, "disabled" = use external cron)
@@ -179,21 +216,29 @@ func main() {
 	}
 	if !strings.EqualFold(enrichCronSpec, "disabled") {
 		sched.StartEnrichment(enrichCronSpec)
+		log.Printf("[startup] enrich cron started: %s", enrichCronSpec)
 	} else {
-		log.Println("enrichment cron disabled (use external cron for /enrich-now)")
+		log.Println("[startup] enrichment cron disabled (use external cron for /enrich-now)")
 	}
 
 	// Manual trigger for testing: POST /scrape-now (optional ?store=worldwidecyclery; requires CRON_SECRET or admin auth if set)
 	http.HandleFunc("/scrape-now", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
+			log.Printf("[scrape-now] rejected: method %s", r.Method)
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 			return
 		}
 		if !validateCronOrAdmin(r) {
+			log.Printf("[scrape-now] forbidden: %s", r.RemoteAddr)
 			http.Error(w, "forbidden", http.StatusForbidden)
 			return
 		}
 		storeType := strings.TrimSpace(r.URL.Query().Get("store"))
+		storeLog := "all stores"
+		if storeType != "" {
+			storeLog = storeType
+		}
+		log.Printf("[scrape-now] triggered manually for %s", storeLog)
 		sched.RunScrapeJob(storeType, "manual")
 		w.Header().Set("Content-Type", "application/json")
 		w.Write([]byte(`{"status":"ok"}`))
@@ -202,15 +247,22 @@ func main() {
 	// Manual trigger for enrichment: POST /enrich-now (add ?force=1 to re-enrich all; requires CRON_SECRET or admin auth if set)
 	http.HandleFunc("/enrich-now", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
+			log.Printf("[enrich-now] rejected: method %s", r.Method)
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 			return
 		}
 		if !validateCronOrAdmin(r) {
+			log.Printf("[enrich-now] forbidden: %s", r.RemoteAddr)
 			http.Error(w, "forbidden", http.StatusForbidden)
 			return
 		}
 		force := r.URL.Query().Get("force") == "1"
 		store := strings.TrimSpace(r.URL.Query().Get("store"))
+		storeLog := "all stores"
+		if store != "" {
+			storeLog = store
+		}
+		log.Printf("[enrich-now] triggered manually for %s (force=%v)", storeLog, force)
 		sched.RunEnrichmentJobForStore(store, force, "manual")
 		w.Header().Set("Content-Type", "application/json")
 		w.Write([]byte(`{"status":"ok"}`))
@@ -516,8 +568,8 @@ func main() {
 	}
 
 	go func() {
-		log.Printf("API listening on port %s", port)
-		handler := corsMiddleware(http.DefaultServeMux)
+		log.Printf("[startup] API listening on port %s", port)
+		handler := loggingMiddleware(corsMiddleware(http.DefaultServeMux))
 		if err := http.ListenAndServe(":"+port, handler); err != nil {
 			log.Fatal(err)
 		}
@@ -525,7 +577,8 @@ func main() {
 
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
-	<-sig
+	s := <-sig
+	log.Printf("[shutdown] received signal %v", s)
 	sched.Stop()
-	log.Println("shutdown complete")
+	log.Println("[shutdown] complete")
 }

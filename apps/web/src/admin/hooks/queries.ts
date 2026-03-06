@@ -114,6 +114,7 @@ export interface AdminListingsParams {
   brand?: string;
   has_canonical_category?: boolean;
   has_enrichment?: boolean;
+  in_stock?: boolean;
   category?: string;
   canonical_category?: string;
   q?: string;

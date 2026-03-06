@@ -741,6 +741,9 @@ func (h *Handlers) GetAdminListings(w http.ResponseWriter, r *http.Request) {
 	if s := r.URL.Query().Get("has_enrichment"); s != "" {
 		params.HasEnrichment = boolPtr(s == "1" || strings.EqualFold(s, "true"))
 	}
+	if s := r.URL.Query().Get("in_stock"); s != "" {
+		params.InStock = boolPtr(s == "1" || strings.EqualFold(s, "true"))
+	}
 	if s := r.URL.Query().Get("category"); s != "" {
 		params.Category = strings.TrimSpace(s)
 	}
@@ -843,7 +846,7 @@ func (h *Handlers) PostAdminEnrichListing(w http.ResponseWriter, r *http.Request
 		})
 		return
 	}
-	if err := h.DB.UpdateListingEnrichment(r.Context(), id, result.CategoryPath, result.RawSpecs); err != nil {
+	if err := h.DB.UpdateListingEnrichment(r.Context(), id, result.CategoryPath, result.RawSpecs, result.Unavailable); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -851,6 +854,7 @@ func (h *Handlers) PostAdminEnrichListing(w http.ResponseWriter, r *http.Request
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"ok":            true,
 		"category_path": result.CategoryPath,
+		"unavailable":   result.Unavailable,
 	})
 }
 

@@ -1,4 +1,5 @@
 const API_BASE = import.meta.env.VITE_API_URL || "/api";
+console.log("API_BASE", API_BASE);
 
 export interface Deal {
   id: number;
@@ -55,8 +56,10 @@ export async function fetchDeals(params?: {
   if (params?.store) search.set("store", params.store);
   if (params?.brand) search.set("brand", params.brand);
   if (params?.category) search.set("category", params.category);
-  if (params?.canonical_category) search.set("canonical_category", params.canonical_category);
-  if (params?.min_discount != null) search.set("min_discount", String(params.min_discount));
+  if (params?.canonical_category)
+    search.set("canonical_category", params.canonical_category);
+  if (params?.min_discount != null)
+    search.set("min_discount", String(params.min_discount));
   if (params?.q) search.set("q", params.q);
   if (params?.sort) search.set("sort", params.sort);
   if (params?.limit != null) search.set("limit", String(params.limit));
@@ -101,7 +104,9 @@ export interface PriceHistoryResponse {
   price_dropped: boolean;
 }
 
-export async function fetchPriceHistory(dealId: number): Promise<PriceHistoryResponse> {
+export async function fetchPriceHistory(
+  dealId: number,
+): Promise<PriceHistoryResponse> {
   const res = await fetch(`${API_BASE}/deals/${dealId}/price-history`);
   if (!res.ok) throw new Error("Failed to fetch price history");
   return res.json();
@@ -170,13 +175,17 @@ export interface FacetsParams {
   specFilters?: Record<string, string>;
 }
 
-export async function fetchFacets(params?: FacetsParams): Promise<FacetsResponse> {
+export async function fetchFacets(
+  params?: FacetsParams,
+): Promise<FacetsResponse> {
   const search = new URLSearchParams();
   if (params?.store) search.set("store", params.store);
   if (params?.brand) search.set("brand", params.brand);
   if (params?.category) search.set("category", params.category);
-  if (params?.canonical_category) search.set("canonical_category", params.canonical_category);
-  if (params?.min_discount != null) search.set("min_discount", String(params.min_discount));
+  if (params?.canonical_category)
+    search.set("canonical_category", params.canonical_category);
+  if (params?.min_discount != null)
+    search.set("min_discount", String(params.min_discount));
   if (params?.q) search.set("q", params.q);
   if (params?.specFilters) {
     for (const [key, value] of Object.entries(params.specFilters)) {

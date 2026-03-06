@@ -227,12 +227,13 @@ type AdminListing struct {
 
 // GetAdminListingsParams for admin listing browser filters.
 type GetAdminListingsParams struct {
-	StoreID             int     // 0 = all
+	StoreID             int    // 0 = all
 	Brand               string
-	HasCanonicalCategory *bool  // true = has canonical category set; false = not set; nil = any
-	HasEnrichment       *bool  // true = last_enriched_at IS NOT NULL; false = NULL; nil = any
-	Category            string // match in category_path
-	CanonicalCategory   string // exact path match
+	HasCanonicalCategory *bool // true = has canonical category set; false = not set; nil = any
+	HasEnrichment       *bool // true = last_enriched_at IS NOT NULL; false = NULL; nil = any
+	InStock             *bool // true = is_in_stock; false = out of stock; nil = any
+	Category            string
+	CanonicalCategory   string
 	Search              string
 	Sort                string // newest, discount, price_asc, price_desc, relevance
 	Limit               int
@@ -289,6 +290,13 @@ func (db *DB) GetAdminListings(ctx context.Context, params GetAdminListingsParam
 			query += " AND l.last_enriched_at IS NOT NULL"
 		} else {
 			query += " AND l.last_enriched_at IS NULL"
+		}
+	}
+	if params.InStock != nil {
+		if *params.InStock {
+			query += " AND l.is_in_stock = true"
+		} else {
+			query += " AND l.is_in_stock = false"
 		}
 	}
 	if params.Category != "" {
@@ -461,7 +469,7 @@ func (db *DB) GetDeals(ctx context.Context, params GetDealsParams) (*GetDealsRes
 			COUNT(*) OVER() AS total_count
 		FROM store_listings l
 		JOIN stores s ON s.id = l.store_id
-		WHERE 1=1
+		WHERE 1=1 AND l.is_in_stock = true
 	`
 	args := []interface{}{}
 	argNum := 1
@@ -1191,7 +1199,16 @@ func (db *DB) GetListingsNeedingEnrichmentForStore(ctx context.Context, storeTyp
 	return listings, rows.Err()
 }
 
-func (db *DB) UpdateListingEnrichment(ctx context.Context, id int, categoryPath []string, rawSpecs map[string]string) error {
+func (db *DB) UpdateListingEnrichment(ctx context.Context, id int, categoryPath []string, rawSpecs map[string]string, unavailable bool) error {
+	if unavailable {
+		_, err := db.pool.Exec(ctx, `
+			UPDATE store_listings
+			SET is_in_stock = false, last_enriched_at = NOW()
+			WHERE id = $1
+		`, id)
+		return err
+	}
+
 	// Fetch existing metadata so we can merge PDP-derived specs into it.
 	var existingMeta []byte
 	if err := db.pool.QueryRow(ctx, `SELECT metadata FROM store_listings WHERE id = $1`, id).Scan(&existingMeta); err != nil {

@@ -300,6 +300,7 @@ export async function fetchAdminListings(params?: {
   brand?: string;
   has_canonical_category?: boolean;
   has_enrichment?: boolean;
+  in_stock?: boolean;
   category?: string;
   canonical_category?: string;
   q?: string;
@@ -312,6 +313,7 @@ export async function fetchAdminListings(params?: {
   if (params?.brand) search.set("brand", params.brand);
   if (params?.has_canonical_category != null) search.set("has_canonical_category", params.has_canonical_category ? "true" : "false");
   if (params?.has_enrichment != null) search.set("has_enrichment", params.has_enrichment ? "true" : "false");
+  if (params?.in_stock != null) search.set("in_stock", params.in_stock ? "true" : "false");
   if (params?.category) search.set("category", params.category);
   if (params?.canonical_category) search.set("canonical_category", params.canonical_category);
   if (params?.q) search.set("q", params.q);

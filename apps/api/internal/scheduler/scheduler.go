@@ -328,13 +328,16 @@ func (s *Scheduler) RunEnrichmentJob(force bool, triggeredBy string) {
 			continue
 		}
 
-		if err := s.db.UpdateListingEnrichment(ctx, l.ID, result.CategoryPath, result.RawSpecs); err != nil {
+		if err := s.db.UpdateListingEnrichment(ctx, l.ID, result.CategoryPath, result.RawSpecs, result.Unavailable); err != nil {
 			log.Printf("[enrichment] failed to update listing %d: %v", l.ID, err)
 			errStrs = append(errStrs, fmt.Sprintf("listing %d update: %v", l.ID, err))
 			continue
 		}
 
 		successCount++
+		if result.Unavailable {
+			log.Printf("[enrichment] listing %d: marked unavailable (out of stock)", l.ID)
+		}
 		if len(result.CategoryPath) > 0 {
 			log.Printf("[enrichment] listing %d: category_path=%v", l.ID, result.CategoryPath)
 		}
@@ -431,13 +434,16 @@ func (s *Scheduler) RunEnrichmentJobForStore(storeType string, force bool, trigg
 				errStrs = append(errStrs, fmt.Sprintf("listing %d: %v", l.ID, err))
 				continue
 			}
-			if err := s.db.UpdateListingEnrichment(ctx, l.ID, result.CategoryPath, result.RawSpecs); err != nil {
+			if err := s.db.UpdateListingEnrichment(ctx, l.ID, result.CategoryPath, result.RawSpecs, result.Unavailable); err != nil {
 				log.Printf("[enrichment] failed to update listing %d: %v", l.ID, err)
 				errStrs = append(errStrs, fmt.Sprintf("listing %d update: %v", l.ID, err))
 				continue
 			}
 			successCount++
 			totalSuccess++
+			if result.Unavailable {
+				log.Printf("[enrichment] listing %d: marked unavailable (out of stock)", l.ID)
+			}
 			if len(result.CategoryPath) > 0 {
 				log.Printf("[enrichment] listing %d: category_path=%v", l.ID, result.CategoryPath)
 			}
