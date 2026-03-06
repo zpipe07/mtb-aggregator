@@ -357,7 +357,28 @@ export function DataBrowser() {
             </div>
             {detail ? (
               <div className="space-y-4 text-sm">
-                <p className="font-medium text-stone-800">{detail.product_name}</p>
+                <div className="flex gap-4">
+                  {detail.image_url ? (
+                    <img
+                      src={detail.image_url}
+                      alt=""
+                      className="h-32 w-32 shrink-0 rounded border border-stone-200 object-cover"
+                    />
+                  ) : null}
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium text-stone-800">{detail.product_name}</p>
+                    {(detail.affiliate_url || detail.product_url) && (
+                      <a
+                        href={detail.affiliate_url || detail.product_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-2 inline-block text-stone-600 underline hover:text-stone-800"
+                      >
+                        View deal →
+                      </a>
+                    )}
+                  </div>
+                </div>
                 <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1">
                   <dt className="text-stone-500">Store</dt>
                   <dd>{detail.store_name}</dd>
