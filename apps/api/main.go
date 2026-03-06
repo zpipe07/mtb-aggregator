@@ -17,6 +17,7 @@ import (
 	"github.com/mtb-aggregator/api/internal/api"
 	"github.com/mtb-aggregator/api/internal/brand"
 	"github.com/mtb-aggregator/api/internal/db"
+	"github.com/mtb-aggregator/api/internal/normalization"
 	"github.com/mtb-aggregator/api/internal/scheduler"
 	"github.com/mtb-aggregator/api/internal/scraper"
 	"github.com/mtb-aggregator/api/internal/taxonomy"
@@ -128,6 +129,68 @@ func loadTaxonomyFromDB(ctx context.Context, database *db.DB) error {
 	return nil
 }
 
+var specKeyAliasesSeedStruct = struct {
+	Aliases []struct {
+		RawSubstr    string `json:"raw_substr"`
+		CanonicalKey string `json:"canonical_key"`
+	} `json:"aliases"`
+}{}
+
+// seedSpecKeyAliasesFromFile reads spec_key_aliases.json and seeds spec_key_aliases if the table is empty.
+func seedSpecKeyAliasesFromFile(ctx context.Context, database *db.DB) (bool, error) {
+	path := os.Getenv("SPEC_KEY_ALIASES_PATH")
+	if path == "" {
+		path = "../../packages/shared/spec_key_aliases.json"
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return false, err
+	}
+	if err := json.Unmarshal(data, &specKeyAliasesSeedStruct); err != nil {
+		return false, err
+	}
+	seedSlice := make([]struct{ RawSubstr, CanonicalKey string }, len(specKeyAliasesSeedStruct.Aliases))
+	for i := range specKeyAliasesSeedStruct.Aliases {
+		seedSlice[i].RawSubstr = specKeyAliasesSeedStruct.Aliases[i].RawSubstr
+		seedSlice[i].CanonicalKey = specKeyAliasesSeedStruct.Aliases[i].CanonicalKey
+	}
+	return database.SeedSpecKeyAliasesIfEmpty(ctx, seedSlice)
+}
+
+// loadNormalizationFromDB loads spec_key_aliases and spec_normalization_rules into the normalization engine.
+func loadNormalizationFromDB(ctx context.Context, database *db.DB) error {
+	// Key aliases
+	aliases, err := database.ListSpecKeyAliases(ctx)
+	if err != nil {
+		return err
+	}
+	normAliases := make([]normalization.KeyAlias, len(aliases))
+	for i := range aliases {
+		normAliases[i] = normalization.KeyAlias{RawSubstr: aliases[i].RawSubstr, CanonicalKey: aliases[i].CanonicalKey}
+	}
+	if len(normAliases) == 0 {
+		normAliases = normalization.DefaultKeyAliases()
+	}
+	normalization.SetKeyAliases(normAliases)
+
+	// Value rules
+	rules, err := database.ListSpecNormalizationRules(ctx)
+	if err != nil {
+		return err
+	}
+	normRules := make([]normalization.ValueRule, len(rules))
+	for i := range rules {
+		normRules[i] = normalization.ValueRule{
+			SpecKey:  rules[i].SpecKey,
+			RuleType: rules[i].RuleType,
+			Config:   rules[i].Config,
+			Priority: rules[i].Priority,
+		}
+	}
+	normalization.SetValueRules(normRules)
+	return nil
+}
+
 func main() {
 	log.Println("[startup] initializing API")
 
@@ -184,6 +247,17 @@ func main() {
 		log.Printf("[taxonomy] load from DB: %v", err)
 	} else {
 		log.Println("[taxonomy] loaded category mappings from DB")
+	}
+
+	if seeded, err := seedSpecKeyAliasesFromFile(ctx, database); err != nil {
+		log.Printf("[normalization] seed spec_key_aliases from file: %v", err)
+	} else if seeded {
+		log.Println("[normalization] seeded spec_key_aliases from JSON")
+	}
+	if err := loadNormalizationFromDB(ctx, database); err != nil {
+		log.Printf("[normalization] load from DB: %v", err)
+	} else {
+		log.Println("[normalization] loaded spec key aliases and normalization rules from DB")
 	}
 
 	if err := database.MarkStaleJobs(ctx); err != nil {
@@ -475,13 +549,95 @@ func main() {
 		}
 		handlers.GetAdminSpecKeys(w, r)
 	}))
-	// Admin: POST /admin/renormalize-specs — re-apply key aliases to all listings
+	// Admin: POST /admin/renormalize-specs — re-apply key aliases and value rules to all listings
 	http.HandleFunc("/admin/renormalize-specs", api.AdminRequired(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/admin/renormalize-specs" {
 			http.NotFound(w, r)
 			return
 		}
 		handlers.PostAdminRenormalizeSpecs(w, r)
+	}))
+	// Admin: GET /admin/normalization/unmapped — unmapped category paths (dashboard)
+	http.HandleFunc("/admin/normalization/unmapped", api.AdminRequired(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/admin/normalization/unmapped" {
+			http.NotFound(w, r)
+			return
+		}
+		handlers.GetAdminUnmappedItems(w, r)
+	}))
+	// Admin: GET/POST /admin/normalization/rules — spec value normalization rules
+	http.HandleFunc("/admin/normalization/rules", api.AdminRequired(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/admin/normalization/rules" {
+			http.NotFound(w, r)
+			return
+		}
+		switch r.Method {
+		case http.MethodGet:
+			handlers.GetAdminSpecNormalizationRules(w, r)
+		case http.MethodPost:
+			handlers.PostAdminSpecNormalizationRule(w, r)
+		default:
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		}
+	}))
+	// Admin: PUT/DELETE /admin/normalization/rules/:id
+	http.HandleFunc("/admin/normalization/rules/", api.AdminRequired(func(w http.ResponseWriter, r *http.Request) {
+		path := strings.TrimPrefix(r.URL.Path, "/admin/normalization/rules/")
+		path = strings.Trim(path, "/")
+		if path == "" {
+			http.NotFound(w, r)
+			return
+		}
+		id, err := strconv.Atoi(path)
+		if err != nil {
+			http.Error(w, "invalid id", http.StatusBadRequest)
+			return
+		}
+		switch r.Method {
+		case http.MethodPut:
+			handlers.PutAdminSpecNormalizationRule(w, r, id)
+		case http.MethodDelete:
+			handlers.DeleteAdminSpecNormalizationRule(w, r, id)
+		default:
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		}
+	}))
+	// Admin: GET/POST /admin/normalization/key-aliases — spec key aliases
+	http.HandleFunc("/admin/normalization/key-aliases", api.AdminRequired(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/admin/normalization/key-aliases" {
+			http.NotFound(w, r)
+			return
+		}
+		switch r.Method {
+		case http.MethodGet:
+			handlers.GetAdminSpecKeyAliases(w, r)
+		case http.MethodPost:
+			handlers.PostAdminSpecKeyAlias(w, r)
+		default:
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		}
+	}))
+	// Admin: PUT/DELETE /admin/normalization/key-aliases/:id
+	http.HandleFunc("/admin/normalization/key-aliases/", api.AdminRequired(func(w http.ResponseWriter, r *http.Request) {
+		path := strings.TrimPrefix(r.URL.Path, "/admin/normalization/key-aliases/")
+		path = strings.Trim(path, "/")
+		if path == "" {
+			http.NotFound(w, r)
+			return
+		}
+		id, err := strconv.Atoi(path)
+		if err != nil {
+			http.Error(w, "invalid id", http.StatusBadRequest)
+			return
+		}
+		switch r.Method {
+		case http.MethodPut:
+			handlers.PutAdminSpecKeyAlias(w, r, id)
+		case http.MethodDelete:
+			handlers.DeleteAdminSpecKeyAlias(w, r, id)
+		default:
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		}
 	}))
 	// Admin: GET/POST /admin/spec-filter-config — list or create
 	http.HandleFunc("/admin/spec-filter-config", api.AdminRequired(func(w http.ResponseWriter, r *http.Request) {

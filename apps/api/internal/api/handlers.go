@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/mtb-aggregator/api/internal/db"
+	"github.com/mtb-aggregator/api/internal/normalization"
 	"github.com/mtb-aggregator/api/internal/scraper"
 	"github.com/mtb-aggregator/api/internal/taxonomy"
 )
@@ -872,6 +873,37 @@ func (h *Handlers) reloadTaxonomyFromDB(ctx context.Context) error {
 	return nil
 }
 
+// reloadNormalizationFromDB loads spec_key_aliases and spec_normalization_rules into the normalization engine.
+func (h *Handlers) reloadNormalizationFromDB(ctx context.Context) error {
+	aliases, err := h.DB.ListSpecKeyAliases(ctx)
+	if err != nil {
+		return err
+	}
+	normAliases := make([]normalization.KeyAlias, len(aliases))
+	for i := range aliases {
+		normAliases[i] = normalization.KeyAlias{RawSubstr: aliases[i].RawSubstr, CanonicalKey: aliases[i].CanonicalKey}
+	}
+	if len(normAliases) == 0 {
+		normAliases = normalization.DefaultKeyAliases()
+	}
+	normalization.SetKeyAliases(normAliases)
+	rules, err := h.DB.ListSpecNormalizationRules(ctx)
+	if err != nil {
+		return err
+	}
+	normRules := make([]normalization.ValueRule, len(rules))
+	for i := range rules {
+		normRules[i] = normalization.ValueRule{
+			SpecKey:  rules[i].SpecKey,
+			RuleType: rules[i].RuleType,
+			Config:   rules[i].Config,
+			Priority: rules[i].Priority,
+		}
+	}
+	normalization.SetValueRules(normRules)
+	return nil
+}
+
 // GetAdminTaxonomy returns all category mappings (admin).
 func (h *Handlers) GetAdminTaxonomy(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
@@ -1239,7 +1271,7 @@ func (h *Handlers) GetAdminSpecKeys(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(keys)
 }
 
-// PostAdminRenormalizeSpecs re-applies key aliases to all listings' metadata.specs (admin).
+// PostAdminRenormalizeSpecs re-applies key aliases and value rules to all listings' metadata.specs (admin).
 func (h *Handlers) PostAdminRenormalizeSpecs(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
@@ -1252,4 +1284,240 @@ func (h *Handlers) PostAdminRenormalizeSpecs(w http.ResponseWriter, r *http.Requ
 	}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{"updated": updated})
+}
+
+// --- Normalization (spec key aliases, value rules, unmapped dashboard) ---
+
+// GetAdminUnmappedItems returns uncategorized category paths and counts (admin).
+func (h *Handlers) GetAdminUnmappedItems(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	limit := 20
+	if s := r.URL.Query().Get("limit"); s != "" {
+		if n, err := strconv.Atoi(s); err == nil && n > 0 && n <= 100 {
+			limit = n
+		}
+	}
+	paths, err := h.DB.GetUnmappedCategoryPaths(r.Context(), limit)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	uncategorizedCount, _ := h.DB.GetUncategorizedCount(r.Context())
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"uncategorized_count": uncategorizedCount,
+		"unmapped_category_paths": paths,
+	})
+}
+
+// GetAdminSpecNormalizationRules returns all spec normalization rules (admin).
+func (h *Handlers) GetAdminSpecNormalizationRules(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	list, err := h.DB.ListSpecNormalizationRules(r.Context())
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if list == nil {
+		list = []db.SpecNormalizationRule{}
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(list)
+}
+
+// PostAdminSpecNormalizationRule creates a spec normalization rule (admin).
+func (h *Handlers) PostAdminSpecNormalizationRule(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var body struct {
+		SpecKey  string                 `json:"spec_key"`
+		RuleType string                 `json:"rule_type"`
+		Config   map[string]interface{} `json:"config"`
+		Priority int                    `json:"priority"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		http.Error(w, "invalid json", http.StatusBadRequest)
+		return
+	}
+	if body.SpecKey == "" || body.RuleType == "" {
+		http.Error(w, "spec_key and rule_type required", http.StatusBadRequest)
+		return
+	}
+	validTypes := map[string]bool{"unit_normalize": true, "value_map": true, "regex_replace": true, "case_normalize": true}
+	if !validTypes[body.RuleType] {
+		http.Error(w, "rule_type must be unit_normalize, value_map, regex_replace, or case_normalize", http.StatusBadRequest)
+		return
+	}
+	if body.Config == nil {
+		body.Config = make(map[string]interface{})
+	}
+	id, err := h.DB.CreateSpecNormalizationRule(r.Context(), body.SpecKey, body.RuleType, body.Config, body.Priority)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if err := h.reloadNormalizationFromDB(r.Context()); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{"id": id})
+}
+
+// PutAdminSpecNormalizationRule updates a spec normalization rule (admin).
+func (h *Handlers) PutAdminSpecNormalizationRule(w http.ResponseWriter, r *http.Request, id int) {
+	if r.Method != http.MethodPut {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var body struct {
+		SpecKey  string                 `json:"spec_key"`
+		RuleType string                 `json:"rule_type"`
+		Config   map[string]interface{} `json:"config"`
+		Priority int                    `json:"priority"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		http.Error(w, "invalid json", http.StatusBadRequest)
+		return
+	}
+	if body.SpecKey == "" || body.RuleType == "" {
+		http.Error(w, "spec_key and rule_type required", http.StatusBadRequest)
+		return
+	}
+	if body.Config == nil {
+		body.Config = make(map[string]interface{})
+	}
+	if err := h.DB.UpdateSpecNormalizationRule(r.Context(), id, body.SpecKey, body.RuleType, body.Config, body.Priority); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if err := h.reloadNormalizationFromDB(r.Context()); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Write([]byte(`{"ok":true}`))
+}
+
+// DeleteAdminSpecNormalizationRule deletes a spec normalization rule (admin).
+func (h *Handlers) DeleteAdminSpecNormalizationRule(w http.ResponseWriter, r *http.Request, id int) {
+	if r.Method != http.MethodDelete {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if err := h.DB.DeleteSpecNormalizationRule(r.Context(), id); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if err := h.reloadNormalizationFromDB(r.Context()); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// GetAdminSpecKeyAliases returns all spec key aliases (admin).
+func (h *Handlers) GetAdminSpecKeyAliases(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	list, err := h.DB.ListSpecKeyAliases(r.Context())
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if list == nil {
+		list = []db.SpecKeyAlias{}
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(list)
+}
+
+// PostAdminSpecKeyAlias creates a spec key alias (admin).
+func (h *Handlers) PostAdminSpecKeyAlias(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var body struct {
+		RawSubstr    string `json:"raw_substr"`
+		CanonicalKey string `json:"canonical_key"`
+		Priority     int    `json:"priority"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		http.Error(w, "invalid json", http.StatusBadRequest)
+		return
+	}
+	if body.RawSubstr == "" || body.CanonicalKey == "" {
+		http.Error(w, "raw_substr and canonical_key required", http.StatusBadRequest)
+		return
+	}
+	id, err := h.DB.CreateSpecKeyAlias(r.Context(), body.RawSubstr, body.CanonicalKey, body.Priority)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if err := h.reloadNormalizationFromDB(r.Context()); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{"id": id})
+}
+
+// PutAdminSpecKeyAlias updates a spec key alias (admin).
+func (h *Handlers) PutAdminSpecKeyAlias(w http.ResponseWriter, r *http.Request, id int) {
+	if r.Method != http.MethodPut {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var body struct {
+		RawSubstr    string `json:"raw_substr"`
+		CanonicalKey string `json:"canonical_key"`
+		Priority     int    `json:"priority"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		http.Error(w, "invalid json", http.StatusBadRequest)
+		return
+	}
+	if body.RawSubstr == "" || body.CanonicalKey == "" {
+		http.Error(w, "raw_substr and canonical_key required", http.StatusBadRequest)
+		return
+	}
+	if err := h.DB.UpdateSpecKeyAlias(r.Context(), id, body.RawSubstr, body.CanonicalKey, body.Priority); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if err := h.reloadNormalizationFromDB(r.Context()); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Write([]byte(`{"ok":true}`))
+}
+
+// DeleteAdminSpecKeyAlias deletes a spec key alias (admin).
+func (h *Handlers) DeleteAdminSpecKeyAlias(w http.ResponseWriter, r *http.Request, id int) {
+	if r.Method != http.MethodDelete {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if err := h.DB.DeleteSpecKeyAlias(r.Context(), id); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if err := h.reloadNormalizationFromDB(r.Context()); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }

@@ -19,6 +19,12 @@ import {
   updateSpecValueAlias,
   deleteSpecValueAlias,
   triggerRenormalizeSpecs,
+  createSpecNormalizationRule,
+  updateSpecNormalizationRule,
+  deleteSpecNormalizationRule,
+  createSpecKeyAlias,
+  updateSpecKeyAlias,
+  deleteSpecKeyAlias,
   type StoreFormBody,
 } from "../api";
 import {
@@ -30,6 +36,7 @@ import {
   adminListingKeys,
   adminTaxonomyKeys,
   adminSpecFilterKeys,
+  adminNormalizationKeys,
 } from "./queryKeys";
 import { dealKeys } from "../../hooks/queryKeys";
 
@@ -265,6 +272,79 @@ export function useTriggerRenormalizeSpecs() {
       queryClient.invalidateQueries({ queryKey: adminSpecFilterKeys.specKeys() });
       queryClient.invalidateQueries({ queryKey: adminListingKeys.all });
       queryClient.invalidateQueries({ queryKey: dealKeys.all });
+      queryClient.invalidateQueries({ queryKey: adminNormalizationKeys.all });
+    },
+  });
+}
+
+export function useCreateSpecNormalizationRule() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: createSpecNormalizationRule,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminNormalizationKeys.all });
+    },
+  });
+}
+
+export function useUpdateSpecNormalizationRule() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      body,
+    }: {
+      id: number;
+      body: { spec_key: string; rule_type: string; config?: Record<string, unknown>; priority?: number };
+    }) => updateSpecNormalizationRule(id, body),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminNormalizationKeys.all });
+    },
+  });
+}
+
+export function useDeleteSpecNormalizationRule() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: deleteSpecNormalizationRule,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminNormalizationKeys.all });
+    },
+  });
+}
+
+export function useCreateSpecKeyAlias() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: createSpecKeyAlias,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminNormalizationKeys.all });
+    },
+  });
+}
+
+export function useUpdateSpecKeyAlias() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      body,
+    }: {
+      id: number;
+      body: { raw_substr: string; canonical_key: string; priority?: number };
+    }) => updateSpecKeyAlias(id, body),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminNormalizationKeys.all });
+    },
+  });
+}
+
+export function useDeleteSpecKeyAlias() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: deleteSpecKeyAlias,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminNormalizationKeys.all });
     },
   });
 }

@@ -2,6 +2,7 @@ package scheduler
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -12,6 +13,7 @@ import (
 
 	"github.com/mtb-aggregator/api/internal/brand"
 	"github.com/mtb-aggregator/api/internal/db"
+	"github.com/mtb-aggregator/api/internal/metadata"
 	"github.com/mtb-aggregator/api/internal/scraper"
 	"github.com/mtb-aggregator/api/internal/taxonomy"
 	"github.com/robfig/cron/v3"
@@ -215,6 +217,17 @@ func (s *Scheduler) scrapeStore(ctx context.Context, store db.Store, triggeredBy
 			}
 		}
 		canonicalCat := taxonomy.Map(r.CategoryPath)
+		var listingMeta []byte
+		if extracted := metadata.Extract(r.ProductName); len(extracted) > 0 {
+			var m map[string]interface{}
+			if json.Unmarshal(extracted, &m) == nil {
+				specs := make(map[string]string)
+				for k, v := range m {
+					specs[k] = fmt.Sprint(v)
+				}
+				listingMeta = metadata.MergeSpecs(nil, specs)
+			}
+		}
 		listing := db.Listing{
 			StoreID:           store.ID,
 			StoreSKU:          r.StoreSKU,
@@ -226,7 +239,7 @@ func (s *Scheduler) scrapeStore(ctx context.Context, store db.Store, triggeredBy
 			Brand:             normalizedBrand,
 			CategoryPath:      r.CategoryPath,
 			CanonicalCategory: canonicalCat,
-			Metadata:          nil,
+			Metadata:          listingMeta,
 			IsInStock:         r.IsInStock,
 		}
 

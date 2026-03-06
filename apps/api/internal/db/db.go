@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"strings"
 
 	"github.com/jackc/pgx/v5"
@@ -12,6 +13,7 @@ import (
 	"github.com/lib/pq"
 	"github.com/mtb-aggregator/api/internal/metadata"
 	"github.com/mtb-aggregator/api/internal/specfilter"
+	"github.com/mtb-aggregator/api/internal/taxonomy"
 )
 
 type Store struct {
@@ -1221,13 +1223,14 @@ func (db *DB) UpdateListingEnrichment(ctx context.Context, id int, categoryPath 
 
 	mergedMeta := metadata.MergeSpecs(existingMeta, rawSpecs)
 
-	// If we got a non-empty categoryPath, update category_path as well; otherwise leave it unchanged.
+	// If we got a non-empty categoryPath, update category_path and canonical_category; otherwise leave them unchanged.
 	if len(categoryPath) > 0 {
+		canonicalCat := taxonomy.Map(categoryPath)
 		_, err := db.pool.Exec(ctx, `
 			UPDATE store_listings
-			SET category_path = $1, metadata = $2, last_enriched_at = NOW()
-			WHERE id = $3
-		`, pq.Array(categoryPath), mergedMeta, id)
+			SET category_path = $1, canonical_category = $2, metadata = $3, last_enriched_at = NOW()
+			WHERE id = $4
+		`, pq.Array(categoryPath), pq.Array(canonicalCat), mergedMeta, id)
 		return err
 	}
 
@@ -1349,6 +1352,11 @@ func (db *DB) BackfillCanonicalCategories(ctx context.Context, mapFn func([]stri
 		updated++
 	}
 	return updated, rows.Err()
+}
+
+// mapsEqual performs deep equality for map[string]interface{} (e.g. metadata JSONB).
+func mapsEqual(a, b map[string]interface{}) bool {
+	return reflect.DeepEqual(a, b)
 }
 
 func sliceEqual(a, b []string) bool {
@@ -1651,7 +1659,7 @@ func (db *DB) GetDiscoveredSpecKeys(ctx context.Context) ([]DiscoveredSpecKey, e
 	return out, rows.Err()
 }
 
-// RenormalizeSpecs re-applies AliasSpecKeys to metadata.specs on all listings. Fixes historical key normalization without re-scraping.
+// RenormalizeSpecs re-applies key aliases and value normalization rules to metadata.specs on all listings.
 // Returns the number of rows updated.
 func (db *DB) RenormalizeSpecs(ctx context.Context) (int, error) {
 	rows, err := db.pool.Query(ctx, `SELECT id, metadata FROM store_listings WHERE metadata->'specs' IS NOT NULL AND jsonb_typeof(metadata->'specs') = 'object'`)
@@ -1686,13 +1694,23 @@ func (db *DB) RenormalizeSpecs(ctx context.Context) (int, error) {
 			}
 		}
 		aliased := metadata.AliasSpecKeys(rawSpecs)
+		normalized := metadata.NormalizeSpecValues(aliased)
 		specsObj := make(map[string]interface{})
-		for k, v := range aliased {
+		for k, v := range normalized {
 			specsObj[k] = v
 		}
 		base["specs"] = specsObj
 		newMeta, err := json.Marshal(base)
 		if err != nil {
+			continue
+		}
+		// Only update if the normalized metadata differs from the stored value.
+		// Use semantic comparison (unmarshal both) because JSON key ordering can vary.
+		var origMeta map[string]interface{}
+		if err := json.Unmarshal(meta, &origMeta); err != nil {
+			continue
+		}
+		if mapsEqual(origMeta, base) {
 			continue
 		}
 		_, err = db.pool.Exec(ctx, `UPDATE store_listings SET metadata = $1 WHERE id = $2`, newMeta, id)
@@ -1702,4 +1720,199 @@ func (db *DB) RenormalizeSpecs(ctx context.Context) (int, error) {
 		updated++
 	}
 	return updated, rows.Err()
+}
+
+// --- Spec key aliases ---
+
+// SpecKeyAlias maps raw key substring to canonical key. Used for key normalization.
+type SpecKeyAlias struct {
+	ID           int    `json:"id"`
+	RawSubstr    string `json:"raw_substr"`
+	CanonicalKey string `json:"canonical_key"`
+	Priority     int    `json:"priority"`
+	CreatedAt    string `json:"created_at"`
+	UpdatedAt    string `json:"updated_at"`
+}
+
+// ListSpecKeyAliases returns all spec_key_aliases ordered by priority DESC, then id.
+func (db *DB) ListSpecKeyAliases(ctx context.Context) ([]SpecKeyAlias, error) {
+	rows, err := db.pool.Query(ctx, `
+		SELECT id, raw_substr, canonical_key, priority, created_at::text, updated_at::text
+		FROM spec_key_aliases ORDER BY priority DESC, id
+	`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []SpecKeyAlias
+	for rows.Next() {
+		var a SpecKeyAlias
+		if err := rows.Scan(&a.ID, &a.RawSubstr, &a.CanonicalKey, &a.Priority, &a.CreatedAt, &a.UpdatedAt); err != nil {
+			return nil, err
+		}
+		out = append(out, a)
+	}
+	return out, rows.Err()
+}
+
+// SeedSpecKeyAliasesIfEmpty inserts aliases from the given slice only if spec_key_aliases is empty. Returns true if seeded.
+func (db *DB) SeedSpecKeyAliasesIfEmpty(ctx context.Context, aliases []struct{ RawSubstr, CanonicalKey string }) (bool, error) {
+	var n int
+	if err := db.pool.QueryRow(ctx, `SELECT COUNT(*) FROM spec_key_aliases`).Scan(&n); err != nil {
+		return false, err
+	}
+	if n > 0 {
+		return false, nil
+	}
+	for i, a := range aliases {
+		priority := 1000 - i
+		_, err := db.pool.Exec(ctx, `INSERT INTO spec_key_aliases (raw_substr, canonical_key, priority) VALUES ($1, $2, $3)`,
+			a.RawSubstr, a.CanonicalKey, priority)
+		if err != nil {
+			return false, err
+		}
+	}
+	return true, nil
+}
+
+// --- Spec normalization rules ---
+
+// SpecNormalizationRule is one value normalization rule: spec_key, rule_type, config.
+type SpecNormalizationRule struct {
+	ID        int                    `json:"id"`
+	SpecKey   string                 `json:"spec_key"`
+	RuleType  string                 `json:"rule_type"`
+	Config    map[string]interface{} `json:"config"`
+	Priority  int                    `json:"priority"`
+	CreatedAt string                 `json:"created_at"`
+	UpdatedAt string                 `json:"updated_at"`
+}
+
+// ListSpecNormalizationRules returns all rules ordered by priority DESC, then spec_key, id.
+func (db *DB) ListSpecNormalizationRules(ctx context.Context) ([]SpecNormalizationRule, error) {
+	rows, err := db.pool.Query(ctx, `
+		SELECT id, spec_key, rule_type, COALESCE(config, '{}'), priority, created_at::text, updated_at::text
+		FROM spec_normalization_rules ORDER BY priority DESC, spec_key, id
+	`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []SpecNormalizationRule
+	for rows.Next() {
+		var r SpecNormalizationRule
+		var configBytes []byte
+		if err := rows.Scan(&r.ID, &r.SpecKey, &r.RuleType, &configBytes, &r.Priority, &r.CreatedAt, &r.UpdatedAt); err != nil {
+			return nil, err
+		}
+		if len(configBytes) > 0 {
+			_ = json.Unmarshal(configBytes, &r.Config)
+		}
+		if r.Config == nil {
+			r.Config = make(map[string]interface{})
+		}
+		out = append(out, r)
+	}
+	return out, rows.Err()
+}
+
+// CreateSpecNormalizationRule inserts a rule and returns its id.
+func (db *DB) CreateSpecNormalizationRule(ctx context.Context, specKey, ruleType string, config map[string]interface{}, priority int) (int, error) {
+	configJSON, _ := json.Marshal(config)
+	if configJSON == nil {
+		configJSON = []byte("{}")
+	}
+	var id int
+	err := db.pool.QueryRow(ctx, `
+		INSERT INTO spec_normalization_rules (spec_key, rule_type, config, priority)
+		VALUES ($1, $2, $3, $4)
+		RETURNING id
+	`, specKey, ruleType, configJSON, priority).Scan(&id)
+	return id, err
+}
+
+// UpdateSpecNormalizationRule updates a rule by id.
+func (db *DB) UpdateSpecNormalizationRule(ctx context.Context, id int, specKey, ruleType string, config map[string]interface{}, priority int) error {
+	configJSON, _ := json.Marshal(config)
+	if configJSON == nil {
+		configJSON = []byte("{}")
+	}
+	_, err := db.pool.Exec(ctx, `
+		UPDATE spec_normalization_rules SET spec_key = $1, rule_type = $2, config = $3, priority = $4, updated_at = NOW() WHERE id = $5
+	`, specKey, ruleType, configJSON, priority, id)
+	return err
+}
+
+// DeleteSpecNormalizationRule deletes a rule by id.
+func (db *DB) DeleteSpecNormalizationRule(ctx context.Context, id int) error {
+	_, err := db.pool.Exec(ctx, `DELETE FROM spec_normalization_rules WHERE id = $1`, id)
+	return err
+}
+
+// CreateSpecKeyAlias inserts a spec_key_alias and returns its id.
+func (db *DB) CreateSpecKeyAlias(ctx context.Context, rawSubstr, canonicalKey string, priority int) (int, error) {
+	var id int
+	err := db.pool.QueryRow(ctx, `
+		INSERT INTO spec_key_aliases (raw_substr, canonical_key, priority) VALUES ($1, $2, $3) RETURNING id
+	`, rawSubstr, canonicalKey, priority).Scan(&id)
+	return id, err
+}
+
+// UpdateSpecKeyAlias updates a spec_key_alias by id.
+func (db *DB) UpdateSpecKeyAlias(ctx context.Context, id int, rawSubstr, canonicalKey string, priority int) error {
+	_, err := db.pool.Exec(ctx, `
+		UPDATE spec_key_aliases SET raw_substr = $1, canonical_key = $2, priority = $3, updated_at = NOW() WHERE id = $4
+	`, rawSubstr, canonicalKey, priority, id)
+	return err
+}
+
+// DeleteSpecKeyAlias deletes a spec_key_alias by id.
+func (db *DB) DeleteSpecKeyAlias(ctx context.Context, id int) error {
+	_, err := db.pool.Exec(ctx, `DELETE FROM spec_key_aliases WHERE id = $1`, id)
+	return err
+}
+
+// UnmappedCategoryPath is a raw category_path value with count of listings that have no canonical_category.
+type UnmappedCategoryPath struct {
+	CategoryPath string `json:"category_path"`
+	Count        int    `json:"count"`
+}
+
+// GetUnmappedCategoryPaths returns distinct category_path values (joined as string) for listings
+// where canonical_category IS NULL, with counts. Used for the unmapped items dashboard.
+func (db *DB) GetUnmappedCategoryPaths(ctx context.Context, limit int) ([]UnmappedCategoryPath, error) {
+	if limit <= 0 || limit > 100 {
+		limit = 20
+	}
+	rows, err := db.pool.Query(ctx, `
+		SELECT COALESCE(array_to_string(category_path, ' > '), '(empty)') AS path, COUNT(*)::int
+		FROM store_listings
+		WHERE (canonical_category IS NULL OR array_length(canonical_category, 1) IS NULL)
+		GROUP BY COALESCE(array_to_string(category_path, ' > '), '(empty)')
+		ORDER BY COUNT(*) DESC
+		LIMIT $1
+	`, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []UnmappedCategoryPath
+	for rows.Next() {
+		var u UnmappedCategoryPath
+		if err := rows.Scan(&u.CategoryPath, &u.Count); err != nil {
+			return nil, err
+		}
+		out = append(out, u)
+	}
+	return out, rows.Err()
+}
+
+// GetUncategorizedCount returns the count of in-stock listings with no canonical_category.
+func (db *DB) GetUncategorizedCount(ctx context.Context) (int, error) {
+	var n int
+	err := db.pool.QueryRow(ctx, `
+		SELECT COUNT(*)::int FROM store_listings
+		WHERE (canonical_category IS NULL OR array_length(canonical_category, 1) IS NULL) AND is_in_stock = true
+	`).Scan(&n)
+	return n, err
 }

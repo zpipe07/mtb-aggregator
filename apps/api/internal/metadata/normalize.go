@@ -4,85 +4,23 @@ import (
 	"encoding/json"
 	"regexp"
 	"strings"
+
+	"github.com/mtb-aggregator/api/internal/normalization"
 )
 
-// specKeyAliases maps raw key substrings (lowercase) to canonical key names.
-// First match wins; keys are matched case-insensitively after trimming.
-// Unknown keys are stored with a snake_cased version of the original.
-var specKeyAliases = []struct {
-	substr string
-	canon  string
-}{
-	{"rear axle", "axle"},
-	{"axle width", "axle"},
-	{"axle type", "axle"},
-	{"axle", "axle"},
-	{"frame material", "material"},
-	{"material", "material"},
-	{"hub spacing", "hub_spacing"},
-	{"rear hub spacing", "hub_spacing"},
-	{"wheel size", "wheel_size"},
-	{"travel", "travel"},
-	{"suspension travel", "travel"},
-	{"fork travel", "travel"},
-	{"rear travel", "travel"},
-	{"tooth count", "tooth_count"},
-	{"teeth", "tooth_count"},
-	{"number of teeth", "tooth_count"},
-	{"weight", "weight"},
-	{"claimed weight", "weight"},
-	{"offset", "offset"},
-	{"fork offset", "offset"},
-	{"rake", "offset"},
-	{"steerer", "steerer"},
-	{"steerer tube", "steerer"},
-	{"drivetrain speeds", "speeds"},
-	{"speeds", "speeds"},
-	{"brake type", "brake_type"},
-	{"piston count", "brake_type"},
-	{"pistons", "brake_type"},
-	{"stanchion", "stanchion"},
-	{"damper", "damper"},
-	{"spring", "spring"},
-	{"intended use", "intended_use"},
-	{"available diameters", "diameter"},
-	{"available diameter", "diameter"},
-	{"seatpost diameter", "diameter"},
-	{"diameter", "diameter"},
-	{"useful links", "useful_links"},
-}
-
-// AliasSpecKeys normalizes raw spec key names to canonical keys. Values pass through unchanged.
+// AliasSpecKeys normalizes raw spec key names to canonical keys using DB-loaded aliases.
 // Unknown keys are stored with a snake_cased version of the original key.
 func AliasSpecKeys(raw map[string]string) map[string]string {
-	out := make(map[string]string)
-	if len(raw) == 0 {
-		return out
-	}
-	for k, v := range raw {
-		key := strings.TrimSpace(k)
-		value := strings.TrimSpace(v)
-		if key == "" || value == "" {
-			continue
-		}
-		keyLower := strings.ToLower(key)
-		canon := ""
-		for _, a := range specKeyAliases {
-			if strings.Contains(keyLower, a.substr) {
-				canon = a.canon
-				break
-			}
-		}
-		if canon == "" {
-			canon = toSnakeCase(key)
-		}
-		out[canon] = value
-	}
-	return out
+	return normalization.AliasSpecKeys(raw)
 }
 
-// MergeSpecs merges raw PDP specs into existing metadata by aliasing keys and storing
-// all of them under metadata.specs. Values are stored as-is (no value parsing).
+// NormalizeSpecValues applies value normalization rules to spec values (unit formatting, value maps, etc.).
+func NormalizeSpecValues(specs map[string]string) map[string]string {
+	return normalization.NormalizeSpecValues(specs)
+}
+
+// MergeSpecs merges raw PDP specs into existing metadata by aliasing keys, normalizing values,
+// and storing under metadata.specs.
 func MergeSpecs(existing []byte, rawSpecs map[string]string) []byte {
 	if len(rawSpecs) == 0 {
 		return existing
@@ -91,6 +29,7 @@ func MergeSpecs(existing []byte, rawSpecs map[string]string) []byte {
 	if len(aliased) == 0 {
 		return existing
 	}
+	normalized := NormalizeSpecValues(aliased)
 
 	var base map[string]interface{}
 	if len(existing) > 0 {
@@ -101,7 +40,7 @@ func MergeSpecs(existing []byte, rawSpecs map[string]string) []byte {
 	}
 
 	specsObj := make(map[string]interface{})
-	for k, v := range aliased {
+	for k, v := range normalized {
 		specsObj[k] = v
 	}
 	base["specs"] = specsObj

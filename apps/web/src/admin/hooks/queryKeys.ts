@@ -48,3 +48,10 @@ export const adminSpecFilterKeys = {
     [...adminSpecFilterKeys.all, "valueAliases", specKey ?? ""] as const,
   specKeys: () => [...adminSpecFilterKeys.all, "specKeys"] as const,
 };
+
+export const adminNormalizationKeys = {
+  all: ["admin", "normalization"] as const,
+  unmapped: () => [...adminNormalizationKeys.all, "unmapped"] as const,
+  rules: () => [...adminNormalizationKeys.all, "rules"] as const,
+  keyAliases: () => [...adminNormalizationKeys.all, "keyAliases"] as const,
+};
