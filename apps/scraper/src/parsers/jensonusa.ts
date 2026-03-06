@@ -8,6 +8,7 @@ import { parseProductDto, type JensonProductDto } from "./jensonusa-dto.js";
 export interface EnrichResult {
   category_path: string[] | null;
   raw_specs: Record<string, string> | null;
+  unavailable?: boolean;
 }
 
 const BASE_URL = "https://www.jensonusa.com";
@@ -231,6 +232,14 @@ export async function enrichJensonUSA(productUrl: string): Promise<EnrichResult>
     try {
       await page.goto(productUrl, { waitUntil: "load", timeout: 60000 });
       await new Promise((r) => setTimeout(r, 3000));
+
+      const isUnavailable = await page.evaluate(() => {
+        return document.body.innerText.includes("This item is unavailable");
+      });
+      if (isUnavailable) {
+        console.log(`[scraper] jensonusa enrich: product unavailable ${productUrl}`);
+        return { category_path: null, raw_specs: null, unavailable: true };
+      }
 
       const script = `
         (function() {

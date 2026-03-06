@@ -300,6 +300,7 @@ export async function fetchAdminListings(params?: {
   brand?: string;
   has_canonical_category?: boolean;
   has_enrichment?: boolean;
+  in_stock?: boolean;
   category?: string;
   canonical_category?: string;
   q?: string;
@@ -312,6 +313,7 @@ export async function fetchAdminListings(params?: {
   if (params?.brand) search.set("brand", params.brand);
   if (params?.has_canonical_category != null) search.set("has_canonical_category", params.has_canonical_category ? "true" : "false");
   if (params?.has_enrichment != null) search.set("has_enrichment", params.has_enrichment ? "true" : "false");
+  if (params?.in_stock != null) search.set("in_stock", params.in_stock ? "true" : "false");
   if (params?.category) search.set("category", params.category);
   if (params?.canonical_category) search.set("canonical_category", params.canonical_category);
   if (params?.q) search.set("q", params.q);
@@ -579,4 +581,155 @@ export async function triggerRenormalizeSpecs(): Promise<{ updated: number }> {
   });
   if (!res.ok) throw new Error("Renormalize specs failed");
   return res.json();
+}
+
+// --- Normalization (spec key aliases, value rules, unmapped dashboard) ---
+
+export interface UnmappedCategoryPath {
+  category_path: string;
+  count: number;
+}
+
+export interface UnmappedItemsResponse {
+  uncategorized_count: number;
+  unmapped_category_paths: UnmappedCategoryPath[];
+}
+
+export async function fetchUnmappedItems(limit?: number): Promise<UnmappedItemsResponse> {
+  const params = limit != null ? `?limit=${limit}` : "";
+  const res = await fetch(`${API_BASE}/admin/normalization/unmapped${params}`, {
+    headers: adminHeaders(),
+  });
+  if (!res.ok) throw new Error("Failed to fetch unmapped items");
+  return res.json();
+}
+
+export interface SpecNormalizationRule {
+  id: number;
+  spec_key: string;
+  rule_type: string;
+  config: Record<string, unknown>;
+  priority: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export async function fetchSpecNormalizationRules(): Promise<SpecNormalizationRule[]> {
+  const res = await fetch(`${API_BASE}/admin/normalization/rules`, {
+    headers: adminHeaders(),
+  });
+  if (!res.ok) throw new Error("Failed to fetch normalization rules");
+  const data = await res.json();
+  return Array.isArray(data) ? data : [];
+}
+
+export async function createSpecNormalizationRule(body: {
+  spec_key: string;
+  rule_type: string;
+  config?: Record<string, unknown>;
+  priority?: number;
+}): Promise<{ id: number }> {
+  const res = await fetch(`${API_BASE}/admin/normalization/rules`, {
+    method: "POST",
+    headers: adminHeaders(),
+    body: JSON.stringify({
+      spec_key: body.spec_key,
+      rule_type: body.rule_type,
+      config: body.config ?? {},
+      priority: body.priority ?? 0,
+    }),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || "Create failed");
+  }
+  return res.json();
+}
+
+export async function updateSpecNormalizationRule(
+  id: number,
+  body: { spec_key: string; rule_type: string; config?: Record<string, unknown>; priority?: number }
+): Promise<void> {
+  const res = await fetch(`${API_BASE}/admin/normalization/rules/${id}`, {
+    method: "PUT",
+    headers: adminHeaders(),
+    body: JSON.stringify({
+      spec_key: body.spec_key,
+      rule_type: body.rule_type,
+      config: body.config ?? {},
+      priority: body.priority ?? 0,
+    }),
+  });
+  if (!res.ok) throw new Error("Update failed");
+}
+
+export async function deleteSpecNormalizationRule(id: number): Promise<void> {
+  const res = await fetch(`${API_BASE}/admin/normalization/rules/${id}`, {
+    method: "DELETE",
+    headers: adminHeaders(),
+  });
+  if (!res.ok) throw new Error("Delete failed");
+}
+
+export interface SpecKeyAlias {
+  id: number;
+  raw_substr: string;
+  canonical_key: string;
+  priority: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export async function fetchSpecKeyAliases(): Promise<SpecKeyAlias[]> {
+  const res = await fetch(`${API_BASE}/admin/normalization/key-aliases`, {
+    headers: adminHeaders(),
+  });
+  if (!res.ok) throw new Error("Failed to fetch spec key aliases");
+  const data = await res.json();
+  return Array.isArray(data) ? data : [];
+}
+
+export async function createSpecKeyAlias(body: {
+  raw_substr: string;
+  canonical_key: string;
+  priority?: number;
+}): Promise<{ id: number }> {
+  const res = await fetch(`${API_BASE}/admin/normalization/key-aliases`, {
+    method: "POST",
+    headers: adminHeaders(),
+    body: JSON.stringify({
+      raw_substr: body.raw_substr,
+      canonical_key: body.canonical_key,
+      priority: body.priority ?? 0,
+    }),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || "Create failed");
+  }
+  return res.json();
+}
+
+export async function updateSpecKeyAlias(
+  id: number,
+  body: { raw_substr: string; canonical_key: string; priority?: number }
+): Promise<void> {
+  const res = await fetch(`${API_BASE}/admin/normalization/key-aliases/${id}`, {
+    method: "PUT",
+    headers: adminHeaders(),
+    body: JSON.stringify({
+      raw_substr: body.raw_substr,
+      canonical_key: body.canonical_key,
+      priority: body.priority ?? 0,
+    }),
+  });
+  if (!res.ok) throw new Error("Update failed");
+}
+
+export async function deleteSpecKeyAlias(id: number): Promise<void> {
+  const res = await fetch(`${API_BASE}/admin/normalization/key-aliases/${id}`, {
+    method: "DELETE",
+    headers: adminHeaders(),
+  });
+  if (!res.ok) throw new Error("Delete failed");
 }

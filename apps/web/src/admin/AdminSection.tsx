@@ -7,6 +7,7 @@ import { StoreManager } from "./StoreManager";
 import { DataBrowser } from "./DataBrowser";
 import { TaxonomyManager } from "./TaxonomyManager";
 import { SpecFilterManager } from "./SpecFilterManager";
+import { NormalizationManager } from "./NormalizationManager";
 import { Operations } from "./Operations";
 import { getStoredAdminToken } from "./api";
 
@@ -25,6 +26,7 @@ export function AdminSection() {
         <Route path="data" element={<DataBrowser />} />
         <Route path="taxonomy" element={<TaxonomyManager />} />
         <Route path="spec-filters" element={<SpecFilterManager />} />
+        <Route path="normalization" element={<NormalizationManager />} />
         <Route path="operations" element={<Operations />} />
         <Route path="*" element={<Navigate to="/admin" replace />} />
       </Route>

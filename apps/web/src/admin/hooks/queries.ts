@@ -14,6 +14,9 @@ import {
   fetchSpecFilterConfigs,
   fetchSpecValueAliases,
   fetchSpecKeys,
+  fetchUnmappedItems,
+  fetchSpecNormalizationRules,
+  fetchSpecKeyAliases,
 } from "../api";
 import {
   adminDashboardKeys,
@@ -25,6 +28,7 @@ import {
   adminListingKeys,
   adminTaxonomyKeys,
   adminSpecFilterKeys,
+  adminNormalizationKeys,
 } from "./queryKeys";
 
 export function useAdminDashboard() {
@@ -114,6 +118,7 @@ export interface AdminListingsParams {
   brand?: string;
   has_canonical_category?: boolean;
   has_enrichment?: boolean;
+  in_stock?: boolean;
   category?: string;
   canonical_category?: string;
   q?: string;
@@ -170,6 +175,30 @@ export function useSpecKeys() {
   return useQuery({
     queryKey: adminSpecFilterKeys.specKeys(),
     queryFn: fetchSpecKeys,
+    staleTime: 60 * 1000,
+  });
+}
+
+export function useUnmappedItems(limit?: number) {
+  return useQuery({
+    queryKey: [...adminNormalizationKeys.unmapped(), limit ?? 20],
+    queryFn: () => fetchUnmappedItems(limit ?? 20),
+    staleTime: 60 * 1000,
+  });
+}
+
+export function useSpecNormalizationRules() {
+  return useQuery({
+    queryKey: adminNormalizationKeys.rules(),
+    queryFn: fetchSpecNormalizationRules,
+    staleTime: 60 * 1000,
+  });
+}
+
+export function useSpecKeyAliases() {
+  return useQuery({
+    queryKey: adminNormalizationKeys.keyAliases(),
+    queryFn: fetchSpecKeyAliases,
     staleTime: 60 * 1000,
   });
 }
