@@ -59,7 +59,7 @@ export function DealsPage() {
         return next;
       });
     },
-    [setSearchParams]
+    [setSearchParams],
   );
 
   const { data: storesData } = useStores();
@@ -72,18 +72,27 @@ export function DealsPage() {
     store: storeFilter || undefined,
     brand: brandFilter || undefined,
     canonical_category: canonicalCategoryFilter || undefined,
-    min_discount: minDiscount ? parseFloat(minDiscount) || undefined : undefined,
+    min_discount: minDiscount
+      ? parseFloat(minDiscount) || undefined
+      : undefined,
     specFilters: Object.keys(specFilters).length > 0 ? specFilters : undefined,
     q: searchQuery.trim() || undefined,
     sort,
   };
-  const { data: dealsData, isPending: loading, isError, error } = useDeals(dealsParams);
+  const {
+    data: dealsData,
+    isPending: loading,
+    isError,
+    error,
+  } = useDeals(dealsParams);
 
   const facetsParams = {
     store: storeFilter || undefined,
     brand: brandFilter || undefined,
     canonical_category: canonicalCategoryFilter || undefined,
-    min_discount: minDiscount ? parseFloat(minDiscount) || undefined : undefined,
+    min_discount: minDiscount
+      ? parseFloat(minDiscount) || undefined
+      : undefined,
     specFilters: Object.keys(specFilters).length > 0 ? specFilters : undefined,
     q: searchQuery.trim() || undefined,
   };
@@ -97,19 +106,28 @@ export function DealsPage() {
 
   const activeFilterCount =
     [storeFilter, brandFilter, canonicalCategoryFilter, minDiscount].filter(
-      Boolean
+      Boolean,
     ).length + Object.values(specFilters).filter(Boolean).length;
 
   const activeFilters = useMemo(() => {
     const chips: { key: string; label: string; onRemove: () => void }[] = [];
     if (storeFilter) {
-      chips.push({ key: "store", label: `Store: ${storeFilter}`, onRemove: () => setStoreFilter("") });
+      chips.push({
+        key: "store",
+        label: `Store: ${storeFilter}`,
+        onRemove: () => setStoreFilter(""),
+      });
     }
     if (brandFilter) {
-      chips.push({ key: "brand", label: `Brand: ${brandFilter}`, onRemove: () => setBrandFilter("") });
+      chips.push({
+        key: "brand",
+        label: `Brand: ${brandFilter}`,
+        onRemove: () => setBrandFilter(""),
+      });
     }
     if (canonicalCategoryFilter) {
-      const leafLabel = canonicalCategoryFilter.split(" > ").pop() ?? canonicalCategoryFilter;
+      const leafLabel =
+        canonicalCategoryFilter.split(" > ").pop() ?? canonicalCategoryFilter;
       chips.push({
         key: "canonical_category",
         label: `Category: ${leafLabel}`,
@@ -170,15 +188,19 @@ export function DealsPage() {
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 lg:py-8">
       <div className="flex gap-8">
-        {/* Desktop sidebar - hidden on mobile */}
+        {/* Desktop sidebar - hidden on mobile, sticky with scrollable filters */}
         <aside className="hidden lg:block w-60 flex-shrink-0">
-          <div className="sticky top-6">
-            <h2 className="text-sm font-semibold text-stone-900 mb-4">Filters</h2>
-            <FilterSidebar {...filterSidebarProps} />
+          <div className="sticky top-6 max-h-[calc(100vh-3rem)] flex flex-col">
+            <h2 className="text-sm font-semibold text-stone-900 mb-4 flex-shrink-0">
+              Filters
+            </h2>
+            <div className="overflow-y-auto pr-1 -mr-1 flex-grow-1">
+              <FilterSidebar {...filterSidebarProps} />
+            </div>
           </div>
         </aside>
 
-        {/* Main content */}
+        {/* Main content - scrolls with page normally */}
         <div className="flex-1 min-w-0">
           <Toolbar
             searchValue={searchQuery}
@@ -211,12 +233,17 @@ export function DealsPage() {
             </div>
           )}
 
-          {isError && <ErrorMessage message={error?.message ?? "Failed to load"} />}
+          {isError && (
+            <ErrorMessage message={error?.message ?? "Failed to load"} />
+          )}
 
           {loading ? (
             <LoadingState />
           ) : (
-            <DealGrid deals={deals} onSelectDeal={(d) => setSelectedDealId(d.id)} />
+            <DealGrid
+              deals={deals}
+              onSelectDeal={(d) => setSelectedDealId(d.id)}
+            />
           )}
 
           {!loading && !isError && deals.length === 0 && <EmptyState />}
