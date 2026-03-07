@@ -194,7 +194,7 @@ export function DealsPage() {
             <h2 className="text-sm font-semibold text-stone-900 mb-4 flex-shrink-0">
               Filters
             </h2>
-            <div className="overflow-y-auto pr-1 -mr-1 flex-grow-1">
+            <div className="overflow-y-auto pr-1 -mr-1 grow">
               <FilterSidebar {...filterSidebarProps} />
             </div>
           </div>

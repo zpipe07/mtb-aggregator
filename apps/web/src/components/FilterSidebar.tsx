@@ -40,7 +40,10 @@ export function FilterSidebar({
 }: FilterSidebarProps) {
   const storeOptions = [
     { value: "", label: "All stores" },
-    ...(stores ?? []).map((s) => ({ value: s.name, label: `${s.name} (${s.deal_count})` })),
+    ...(stores ?? []).map((s) => ({
+      value: s.name,
+      label: `${s.name} (${s.deal_count})`,
+    })),
   ];
   const brandOptions = [
     { value: "", label: "All brands" },
@@ -50,18 +53,6 @@ export function FilterSidebar({
 
   return (
     <div className="space-y-6">
-      <FilterSelect
-        label="Store"
-        value={storeFilter}
-        onChange={onStoreChange}
-        options={storeOptions}
-      />
-      <FilterSelect
-        label="Brand"
-        value={brandFilter}
-        onChange={onBrandChange}
-        options={brandOptions}
-      />
       {hasCanonicalOptions && (
         <CategoryDrillDown
           label="Category"
@@ -70,6 +61,21 @@ export function FilterSidebar({
           options={canonicalCategories ?? []}
         />
       )}
+
+      <FilterSelect
+        label="Brand"
+        value={brandFilter}
+        onChange={onBrandChange}
+        options={brandOptions}
+      />
+
+      <FilterSelect
+        label="Store"
+        value={storeFilter}
+        onChange={onStoreChange}
+        options={storeOptions}
+      />
+
       <FilterInput
         label="Min discount %"
         value={minDiscount}

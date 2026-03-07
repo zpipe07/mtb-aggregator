@@ -9,12 +9,14 @@ import { Link } from "react-router-dom";
 
 /** Curated category labels for home page CTAs when API has few/empty categories */
 const FALLBACK_CATEGORIES: { path: string; label: string }[] = [
-  { path: "Bikes > E-Bikes", label: "E-Bikes" },
+  { path: "Bikes > Electric", label: "E-Bikes" },
   { path: "Bikes > Mountain", label: "Mountain Bikes" },
   { path: "Gear > Shoes", label: "Shoes" },
   { path: "Gear > Helmets", label: "Helmets" },
-  { path: "Components > Drivetrain", label: "Drivetrain" },
-  { path: "Accessories > Bags", label: "Bags" },
+  { path: "Components > Brakes", label: "Brakes" },
+  { path: "Components > Shocks", label: "Shocks" },
+  { path: "Components > Wheels", label: "Wheels" },
+  { path: "Components > Pedals", label: "Pedals" },
 ];
 
 function buildCategoryCards(canonicalCategories: string[]) {
@@ -31,7 +33,8 @@ export function HomePage() {
 
   const { data: canonicalData } = useCanonicalCategories();
   const canonicalCategories = canonicalData ?? [];
-  const categoryCards = buildCategoryCards(canonicalCategories);
+  // const categoryCards = buildCategoryCards(canonicalCategories);
+  const categoryCards = buildCategoryCards([]);
 
   const { data: topDealsData, isPending: topDealsLoading } = useDeals({
     sort: "discount",
@@ -82,7 +85,7 @@ export function HomePage() {
         <h2 className="text-xl font-semibold text-stone-900 mb-6">
           Shop by category
         </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
           {categoryCards.map(({ path, label }) => (
             <CategoryCard
               key={path}
