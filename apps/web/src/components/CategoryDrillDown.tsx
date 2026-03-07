@@ -16,7 +16,10 @@ function buildTree(paths: string[]): TreeNode[] {
   const pathSet = new Set(paths);
 
   for (const path of paths) {
-    const segments = path.split(" > ").map((s) => s.trim()).filter(Boolean);
+    const segments = path
+      .split(" > ")
+      .map((s) => s.trim())
+      .filter(Boolean);
     if (segments.length === 0) continue;
 
     let current = root;
@@ -39,7 +42,8 @@ function buildTree(paths: string[]): TreeNode[] {
       }
 
       const entry = current.get(segment)!;
-      entry.node.isSelectable = entry.node.isSelectable || pathSet.has(fullPath);
+      entry.node.isSelectable =
+        entry.node.isSelectable || pathSet.has(fullPath);
 
       parentPath = fullPath;
       current = entry.children;
@@ -102,7 +106,8 @@ export function CategoryDrillDown({
   const tree = buildTree(options);
   const currentChildren = getChildrenAt(tree, breadcrumb);
   const currentPath = getPathAt(breadcrumb);
-  const isCurrentPathSelectable = currentPath !== "" && options.includes(currentPath);
+  const isCurrentPathSelectable =
+    currentPath !== "" && options.includes(currentPath);
 
   const displayLabel = value
     ? (value.split(" > ").pop() ?? value)
@@ -114,7 +119,7 @@ export function CategoryDrillDown({
       setIsOpen(false);
       setBreadcrumb([]);
     },
-    [onChange]
+    [onChange],
   );
 
   const handleDrill = useCallback((segment: string) => {
@@ -153,7 +158,10 @@ export function CategoryDrillDown({
   useEffect(() => {
     if (!isOpen) return;
     const onPointerDown = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(e.target as Node)
+      ) {
         setIsOpen(false);
         setBreadcrumb([]);
       }
@@ -164,7 +172,9 @@ export function CategoryDrillDown({
 
   return (
     <div ref={containerRef} className={className}>
-      <label className="block text-sm font-medium text-stone-600 mb-1">{label}</label>
+      <label className="block text-sm font-medium text-stone-600 mb-1">
+        {label}
+      </label>
       <div className="relative">
         <button
           type="button"
@@ -180,18 +190,23 @@ export function CategoryDrillDown({
             viewBox="0 0 24 24"
             stroke="currentColor"
           >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M19 9l-7 7-7-7"
+            />
           </svg>
         </button>
         {isOpen && (
           <div
             role="listbox"
-            className="absolute z-50 mt-1 w-full min-w-[200px] max-h-80 overflow-y-auto rounded-lg border border-stone-200 bg-white shadow-lg py-2"
+            className="absolute z-50 mt-1 w-full min-w-[200px] max-h-80 overflow-y-auto rounded-lg border border-stone-200 bg-white shadow-lg p-2"
           >
             <button
               type="button"
               onClick={() => handleSelect("")}
-              className={`w-full text-left px-3 py-2 mx-2 rounded-lg transition-colors ${!value ? "bg-stone-100 font-medium text-stone-900" : "text-stone-700 hover:bg-stone-50"}`}
+              className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${!value ? "bg-stone-100 font-medium text-stone-900" : "text-stone-700 hover:bg-stone-50"}`}
             >
               All categories
             </button>
@@ -201,16 +216,26 @@ export function CategoryDrillDown({
                 <button
                   type="button"
                   onClick={handleBack}
-                  className="p-1.5 -m-1.5 rounded text-stone-500 hover:bg-stone-100 hover:text-stone-700"
+                  className="p-1.5 -m-1.5 rounded text-stone-500 hover:bg-stone-100 hover:text-stone-700 mr-auto flex items-center gap-1"
                   aria-label="Go back"
                 >
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M15 19l-7-7 7-7"
+                    />
                   </svg>
+                  <span className="text-sm text-stone-600 truncate flex-1">
+                    {breadcrumb.join(" › ")}
+                  </span>
                 </button>
-                <span className="text-sm text-stone-600 truncate flex-1">
-                  {breadcrumb.join(" › ")}
-                </span>
                 {isCurrentPathSelectable && (
                   <button
                     type="button"
@@ -244,7 +269,12 @@ export function CategoryDrillDown({
                           viewBox="0 0 24 24"
                           stroke="currentColor"
                         >
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M9 5l7 7-7 7"
+                          />
                         </svg>
                       </button>
                       {node.isSelectable && (
