@@ -2,6 +2,7 @@ export { NavHeader } from "./NavHeader";
 export { PublicLayout } from "./PublicLayout";
 export { SearchBar } from "./SearchBar";
 export { Toolbar } from "./Toolbar";
+export { CategoryDrillDown } from "./CategoryDrillDown";
 export { FilterSidebar } from "./FilterSidebar";
 export { FilterDrawer } from "./FilterDrawer";
 export { FilterChips } from "./FilterChips";

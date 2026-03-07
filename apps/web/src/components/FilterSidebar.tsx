@@ -1,24 +1,7 @@
 import type { SpecFacet, Store } from "../api";
 import { FilterSelect } from "./FilterSelect";
 import { FilterInput } from "./FilterInput";
-
-/** Group canonical categories by top-level; option labels strip the top-level to avoid redundancy. */
-function groupCanonicalCategories(list: string[]): { group: string; options: { value: string; label: string }[] }[] {
-  const byGroup = new Map<string, string[]>();
-  for (const path of list) {
-    const top = path.split(" > ")[0]?.trim() || "Other";
-    if (!byGroup.has(top)) byGroup.set(top, []);
-    byGroup.get(top)!.push(path);
-  }
-  const order = ["Bikes", "Components", "Gear", "Accessories", "Other"];
-  return order.filter((g) => byGroup.has(g)).map((group) => ({
-    group,
-    options: (byGroup.get(group) ?? []).map((p) => {
-      const rest = p.split(" > ").slice(1).join(" > ").trim();
-      return { value: p, label: rest || p };
-    }),
-  }));
-}
+import { CategoryDrillDown } from "./CategoryDrillDown";
 
 export type FilterSidebarProps = {
   stores: Store[];
@@ -63,8 +46,7 @@ export function FilterSidebar({
     { value: "", label: "All brands" },
     ...(brands ?? []).map((b) => ({ value: b, label: b })),
   ];
-  const groupedCanonical = groupCanonicalCategories(canonicalCategories ?? []);
-  const hasCanonicalOptions = groupedCanonical.some((g) => g.options.length > 0);
+  const hasCanonicalOptions = (canonicalCategories ?? []).length > 0;
 
   return (
     <div className="space-y-6">
@@ -81,25 +63,12 @@ export function FilterSidebar({
         options={brandOptions}
       />
       {hasCanonicalOptions && (
-        <div>
-          <label className="block text-sm font-medium text-stone-600 mb-1">Category</label>
-          <select
-            value={canonicalCategoryFilter}
-            onChange={(e) => onCanonicalCategoryChange(e.target.value)}
-            className="w-full rounded-lg border border-stone-300 px-3 py-2 bg-white text-stone-800"
-          >
-            <option value="">All categories</option>
-            {groupedCanonical.map(({ group, options }) => (
-              <optgroup key={group} label={group}>
-                {options.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </optgroup>
-            ))}
-          </select>
-        </div>
+        <CategoryDrillDown
+          label="Category"
+          value={canonicalCategoryFilter}
+          onChange={onCanonicalCategoryChange}
+          options={canonicalCategories ?? []}
+        />
       )}
       <FilterInput
         label="Min discount %"
