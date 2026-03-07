@@ -1,6 +1,6 @@
 import { useState, FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
-import { useDeals, useCanonicalCategories } from "../hooks/queries";
+import { useDeals } from "../hooks/queries";
 import { SearchBar } from "../components/SearchBar";
 import { DealGrid } from "../components/DealGrid";
 import { CategoryCard } from "../components/CategoryCard";
@@ -31,9 +31,6 @@ export function HomePage() {
   const navigate = useNavigate();
   const [searchValue, setSearchValue] = useState("");
 
-  const { data: canonicalData } = useCanonicalCategories();
-  const canonicalCategories = canonicalData ?? [];
-  // const categoryCards = buildCategoryCards(canonicalCategories);
   const categoryCards = buildCategoryCards([]);
 
   const { data: topDealsData, isPending: topDealsLoading } = useDeals({
