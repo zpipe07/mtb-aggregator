@@ -1021,6 +1021,42 @@ func (h *Handlers) DeleteAdminTaxonomy(w http.ResponseWriter, r *http.Request, i
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// PutAdminTaxonomyReorder updates priorities for multiple mappings in one transaction (admin). Body: { "updates": [{ "id", "priority" }] }.
+func (h *Handlers) PutAdminTaxonomyReorder(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPut {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var body struct {
+		Updates []struct {
+			ID       int `json:"id"`
+			Priority int `json:"priority"`
+		} `json:"updates"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		http.Error(w, "invalid json", http.StatusBadRequest)
+		return
+	}
+	if len(body.Updates) == 0 {
+		http.Error(w, "updates required (non-empty array)", http.StatusBadRequest)
+		return
+	}
+	updates := make([]struct{ ID int; Priority int }, len(body.Updates))
+	for i, u := range body.Updates {
+		updates[i] = struct{ ID int; Priority int }{ID: u.ID, Priority: u.Priority}
+	}
+	if err := h.DB.BatchUpdateCategoryMappingPriorities(r.Context(), updates); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if err := h.reloadTaxonomyFromDB(r.Context()); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Write([]byte(`{"ok":true}`))
+}
+
 // PostAdminTaxonomyRecategorize runs a full backfill of canonical_category on all listings (admin).
 func (h *Handlers) PostAdminTaxonomyRecategorize(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {

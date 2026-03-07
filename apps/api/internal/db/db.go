@@ -1441,6 +1441,27 @@ func (db *DB) UpdateCategoryMapping(ctx context.Context, id int, rawKeywords, ca
 	return err
 }
 
+// BatchUpdateCategoryMappingPriorities updates priority for multiple mappings in a single transaction.
+func (db *DB) BatchUpdateCategoryMappingPriorities(ctx context.Context, updates []struct{ ID int; Priority int }) error {
+	if len(updates) == 0 {
+		return nil
+	}
+	tx, err := db.pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+	for _, u := range updates {
+		_, err := tx.Exec(ctx, `
+			UPDATE category_mappings SET priority = $1, updated_at = NOW() WHERE id = $2
+		`, u.Priority, u.ID)
+		if err != nil {
+			return err
+		}
+	}
+	return tx.Commit(ctx)
+}
+
 // DeleteCategoryMapping deletes a mapping by id.
 func (db *DB) DeleteCategoryMapping(ctx context.Context, id int) error {
 	_, err := db.pool.Exec(ctx, `DELETE FROM category_mappings WHERE id = $1`, id)

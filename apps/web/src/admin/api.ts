@@ -417,6 +417,20 @@ export async function deleteTaxonomyMapping(id: number): Promise<void> {
   if (!res.ok) throw new Error("Delete failed");
 }
 
+export async function reorderTaxonomyMappings(
+  updates: { id: number; priority: number }[]
+): Promise<void> {
+  const res = await fetch(`${API_BASE}/admin/taxonomy/reorder`, {
+    method: "PUT",
+    headers: adminHeaders(),
+    body: JSON.stringify({ updates }),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || "Reorder failed");
+  }
+}
+
 export async function triggerRecategorize(): Promise<{ updated: number }> {
   const res = await fetch(`${API_BASE}/admin/taxonomy/recategorize`, {
     method: "POST",

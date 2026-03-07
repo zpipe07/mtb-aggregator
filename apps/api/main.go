@@ -524,6 +524,10 @@ func main() {
 			handlers.PostAdminTaxonomyRecategorize(w, r)
 			return
 		}
+		if path == "reorder" {
+			handlers.PutAdminTaxonomyReorder(w, r)
+			return
+		}
 		id, err := strconv.Atoi(path)
 		if err != nil {
 			http.Error(w, "invalid id", http.StatusBadRequest)

@@ -11,6 +11,7 @@ import {
   createTaxonomyMapping,
   updateTaxonomyMapping,
   deleteTaxonomyMapping,
+  reorderTaxonomyMappings,
   triggerRecategorize,
   createSpecFilterConfig,
   updateSpecFilterConfig,
@@ -178,6 +179,36 @@ export function useTriggerRecategorize() {
       queryClient.invalidateQueries({ queryKey: adminTaxonomyKeys.all });
       queryClient.invalidateQueries({ queryKey: adminListingKeys.all });
       queryClient.invalidateQueries({ queryKey: dealKeys.all });
+    },
+  });
+}
+
+export function useReorderTaxonomyMappings() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (updates: { id: number; priority: number }[]) =>
+      reorderTaxonomyMappings(updates),
+    onMutate: async (updates) => {
+      await queryClient.cancelQueries({ queryKey: adminTaxonomyKeys.all });
+      const previous = queryClient.getQueryData<Array<{ id: number; priority: number; [k: string]: unknown }>>(
+        adminTaxonomyKeys.all
+      );
+      const priorityMap = new Map(updates.map((u) => [u.id, u.priority]));
+      if (previous) {
+        const optimistic = previous
+          .map((m) => ({ ...m, priority: priorityMap.get(m.id) ?? m.priority }))
+          .sort((a, b) => b.priority - a.priority);
+        queryClient.setQueryData(adminTaxonomyKeys.all, optimistic);
+      }
+      return { previous };
+    },
+    onError: (_err, _updates, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(adminTaxonomyKeys.all, context.previous);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: adminTaxonomyKeys.all });
     },
   });
 }

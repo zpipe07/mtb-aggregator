@@ -1,11 +1,30 @@
 import { useState } from "react";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { useTaxonomyMappings } from "./hooks/queries";
 import {
   useCreateTaxonomyMapping,
   useUpdateTaxonomyMapping,
   useDeleteTaxonomyMapping,
+  useReorderTaxonomyMappings,
   useTriggerRecategorize,
 } from "./hooks/mutations";
+import type { CategoryMapping } from "./api";
 
 function MappingForm({
   initial,
@@ -108,22 +127,95 @@ function MappingForm({
   );
 }
 
+function SortableRow({
+  m,
+  editingId,
+  onEdit,
+  onDelete,
+  renderForm,
+}: {
+  m: CategoryMapping;
+  editingId: number | null;
+  onEdit: () => void;
+  onDelete: () => void;
+  renderForm: () => React.ReactNode;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: m.id,
+    disabled: editingId !== null,
+  });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+  return (
+    <tr
+      ref={setNodeRef}
+      style={style}
+      className={`border-b border-stone-100 ${isDragging ? "bg-stone-100 opacity-80" : ""}`}
+    >
+      {editingId === m.id ? (
+        <td colSpan={5} className="px-4 py-3 bg-stone-50">
+          {renderForm()}
+        </td>
+      ) : (
+        <>
+          <td className="w-10 px-2 py-2">
+            <button
+              type="button"
+              className="cursor-grab touch-none p-1 text-stone-400 hover:text-stone-600 active:cursor-grabbing"
+              aria-label="Drag to reorder"
+              {...attributes}
+              {...listeners}
+            >
+              <span className="inline-block" aria-hidden>⋮⋮</span>
+            </button>
+          </td>
+          <td className="px-4 py-2 font-medium text-stone-800">
+            {m.canonical.length ? m.canonical.join(" > ") : "—"}
+          </td>
+          <td className="px-4 py-2 text-stone-600 max-w-md">
+            <span className="truncate block" title={m.raw_keywords.join(", ")}>
+              {m.raw_keywords.join(", ")}
+            </span>
+          </td>
+          <td className="px-4 py-2 text-right text-stone-600">{m.priority}</td>
+          <td className="px-4 py-2 text-right">
+            <button type="button" onClick={onEdit} className="text-stone-600 hover:text-stone-900 mr-2">
+              Edit
+            </button>
+            <button type="button" onClick={onDelete} className="text-red-600 hover:text-red-800">
+              Delete
+            </button>
+          </td>
+        </>
+      )}
+    </tr>
+  );
+}
+
 export function TaxonomyManager() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [adding, setAdding] = useState(false);
-  const [swapping, setSwapping] = useState(false);
 
   const { data: mappings = [], isPending: loading, isError, error } = useTaxonomyMappings();
   const sorted = [...mappings].sort((a, b) => b.priority - a.priority);
   const createMutation = useCreateTaxonomyMapping();
   const updateMutation = useUpdateTaxonomyMapping();
   const deleteMutation = useDeleteTaxonomyMapping();
+  const reorderMutation = useReorderTaxonomyMappings();
   const recategorizeMutation = useTriggerRecategorize();
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
 
   const displayError =
     createMutation.error?.message ??
     updateMutation.error?.message ??
     deleteMutation.error?.message ??
+    reorderMutation.error?.message ??
     recategorizeMutation.error?.message ??
     (isError ? error?.message ?? "Failed to load" : null);
 
@@ -153,25 +245,18 @@ export function TaxonomyManager() {
     recategorizeMutation.mutate(undefined);
   }
 
-  async function handleSwapPriority(
-    a: { id: number; canonical: string[]; raw_keywords: string[]; priority: number },
-    b: { id: number; canonical: string[]; raw_keywords: string[]; priority: number }
-  ) {
-    setSwapping(true);
-    try {
-      await Promise.all([
-        updateMutation.mutateAsync({
-          id: a.id,
-          body: { canonical: a.canonical, raw_keywords: a.raw_keywords, priority: b.priority },
-        }),
-        updateMutation.mutateAsync({
-          id: b.id,
-          body: { canonical: b.canonical, raw_keywords: b.raw_keywords, priority: a.priority },
-        }),
-      ]);
-    } finally {
-      setSwapping(false);
-    }
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = sorted.findIndex((m) => m.id === active.id);
+    const newIndex = sorted.findIndex((m) => m.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+    const reordered = arrayMove(sorted, oldIndex, newIndex);
+    const updates = reordered.map((m, i) => ({
+      id: m.id,
+      priority: reordered.length - 1 - i,
+    }));
+    reorderMutation.mutate(updates);
   }
 
   const emptyForm = { canonical: [] as string[], raw_keywords: [] as string[], priority: 0 };
@@ -192,6 +277,7 @@ export function TaxonomyManager() {
               createMutation.reset();
               updateMutation.reset();
               deleteMutation.reset();
+              reorderMutation.reset();
               recategorizeMutation.reset();
             }}
             className="ml-2 underline"
@@ -240,86 +326,48 @@ export function TaxonomyManager() {
         <p className="text-stone-600">Loading…</p>
       ) : (
         <div className="rounded-lg border border-stone-200 bg-white shadow-sm overflow-hidden">
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-stone-200 bg-stone-50">
+                <th className="w-10 px-2 py-2" aria-label="Drag handle" />
                 <th className="px-4 py-2 text-left font-medium text-stone-600">Canonical</th>
                 <th className="px-4 py-2 text-left font-medium text-stone-600">Raw keywords</th>
                 <th className="px-4 py-2 text-right font-medium text-stone-600">Priority</th>
                 <th className="px-4 py-2 text-right font-medium text-stone-600">Actions</th>
               </tr>
             </thead>
-            <tbody>
-              {sorted.map((m, i) => (
-                <tr key={m.id} className="border-b border-stone-100">
-                  {editingId === m.id ? (
-                    <td colSpan={4} className="px-4 py-3 bg-stone-50">
-                      <MappingForm
-                        initial={{
-                          canonical: m.canonical,
-                          raw_keywords: m.raw_keywords,
-                          priority: m.priority,
-                        }}
-                        onSubmit={(body) => handleUpdate(m.id, body)}
-                        onCancel={() => setEditingId(null)}
-                        submitLabel="Save"
-                      />
-                    </td>
-                  ) : (
-                    <>
-                      <td className="px-4 py-2 font-medium text-stone-800">
-                        {m.canonical.length ? m.canonical.join(" > ") : "—"}
-                      </td>
-                      <td className="px-4 py-2 text-stone-600 max-w-md">
-                        <span className="truncate block" title={m.raw_keywords.join(", ")}>
-                          {m.raw_keywords.join(", ")}
-                        </span>
-                      </td>
-                      <td className="px-4 py-2 text-right text-stone-600">
-                        <div className="inline-flex items-center gap-1 justify-end">
-                          <button
-                            type="button"
-                            onClick={() => handleSwapPriority(sorted[i - 1], m)}
-                            disabled={i === 0 || swapping}
-                            className="text-stone-500 hover:text-stone-800 disabled:opacity-40 disabled:cursor-not-allowed"
-                            aria-label="Move up"
-                          >
-                            ↑
-                          </button>
-                          <span>{m.priority}</span>
-                          <button
-                            type="button"
-                            onClick={() => handleSwapPriority(m, sorted[i + 1])}
-                            disabled={i === sorted.length - 1 || swapping}
-                            className="text-stone-500 hover:text-stone-800 disabled:opacity-40 disabled:cursor-not-allowed"
-                            aria-label="Move down"
-                          >
-                            ↓
-                          </button>
-                        </div>
-                      </td>
-                      <td className="px-4 py-2 text-right">
-                        <button
-                          type="button"
-                          onClick={() => setEditingId(m.id)}
-                          className="text-stone-600 hover:text-stone-900 mr-2"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleDelete(m.id)}
-                          className="text-red-600 hover:text-red-800"
-                        >
-                          Delete
-                        </button>
-                      </td>
-                    </>
-                  )}
-                </tr>
-              ))}
-            </tbody>
+            <SortableContext items={sorted.map((m) => m.id)} strategy={verticalListSortingStrategy}>
+              <tbody>
+                {sorted.map((m) => (
+                  <SortableRow
+                    key={m.id}
+                    m={m}
+                    editingId={editingId}
+                    onEdit={() => setEditingId(m.id)}
+                    onDelete={() => handleDelete(m.id)}
+                    renderForm={() => (
+                        <MappingForm
+                          initial={{
+                            canonical: m.canonical,
+                            raw_keywords: m.raw_keywords,
+                            priority: m.priority,
+                          }}
+                          onSubmit={(body) => handleUpdate(m.id, body)}
+                          onCancel={() => setEditingId(null)}
+                          submitLabel="Save"
+                        />
+                      )}
+                    />
+                  ))}
+              </tbody>
+            </SortableContext>
           </table>
+          </DndContext>
           {mappings.length === 0 && !adding && (
             <p className="px-4 py-6 text-center text-stone-500">No mappings. Add one or run the API to seed from JSON.</p>
           )}
