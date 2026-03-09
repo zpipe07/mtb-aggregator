@@ -190,7 +190,7 @@ export function DealsPage() {
       <div className="flex gap-8">
         {/* Desktop sidebar - hidden on mobile, sticky with scrollable filters */}
         <aside className="hidden lg:block w-60 flex-shrink-0">
-          <div className="sticky top-6 max-h-[calc(100vh-3rem)] flex flex-col">
+          <div className="sticky top-6 max-h-[calc(100vh-3rem)] flex flex-col min-h-[500px]">
             <h2 className="text-sm font-semibold text-stone-900 mb-4 flex-shrink-0">
               Filters
             </h2>
