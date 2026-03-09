@@ -34,7 +34,7 @@ export function FilterDrawer(props: FilterDrawerProps) {
         aria-hidden
       />
       <div
-        className="fixed inset-x-0 bottom-0 z-50 lg:hidden bg-white rounded-t-2xl shadow-xl min-h-[75vh] max-h-[85vh] overflow-hidden flex flex-col"
+        className="fixed inset-x-0 bottom-0 z-50 lg:hidden bg-white rounded-t-2xl shadow-xl h-[85vh] overflow-hidden flex flex-col"
         role="dialog"
         aria-modal="true"
         aria-label="Filters"
