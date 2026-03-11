@@ -14,7 +14,7 @@ import {
   useAdminListings,
   useAdminListing,
 } from "./hooks/queries";
-import { useEnrichListing } from "./hooks/mutations";
+import { useEnrichListing, useSetListingHidden } from "./hooks/mutations";
 import type { AdminListing } from "./api";
 
 const PAGE_SIZE = 25;
@@ -76,6 +76,7 @@ export function DataBrowser() {
   const [brand, setBrand] = useState("");
   const [hasEnrichment, setHasEnrichment] = useState<boolean | null>(null);
   const [inStock, setInStock] = useState<boolean | null>(null);
+  const [visibility, setVisibility] = useState<"all" | "visible" | "hidden">("all");
   const [category, setCategory] = useState("");
   const [q, setQ] = useState("");
   const [sort, setSort] = useState("newest");
@@ -88,6 +89,7 @@ export function DataBrowser() {
     brand: brand || undefined,
     has_enrichment: hasEnrichment ?? undefined,
     in_stock: inStock ?? undefined,
+    hidden: visibility === "all" ? undefined : visibility === "hidden",
     category: category || undefined,
     q: q || undefined,
     sort,
@@ -99,6 +101,7 @@ export function DataBrowser() {
   const { data: priceHistory } = usePriceHistory(selectedId);
 
   const enrichMutation = useEnrichListing();
+  const setHiddenMutation = useSetListingHidden();
 
   const listings = listingsData?.listings ?? [];
   const totalCount = listingsData?.total_count ?? 0;
@@ -114,19 +117,27 @@ export function DataBrowser() {
     enrichMutation.mutate(selectedId);
   }
 
+  function handleSetHidden(hidden: boolean) {
+    if (selectedId == null) return;
+    setHiddenMutation.mutate({ id: selectedId, hidden });
+  }
+
   return (
     <div>
       <h2 className="text-xl font-semibold text-stone-800 mb-4">Data</h2>
 
-      {(isError || enrichMutation.isError) && (
+      {(isError || enrichMutation.isError || setHiddenMutation.isError) && (
         <div className="mb-4 rounded border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
           {enrichMutation.isError
             ? enrichMutation.error?.message ?? "Enrich failed"
-            : error?.message ?? "Failed to load"}
+            : setHiddenMutation.isError
+              ? setHiddenMutation.error?.message ?? "Update failed"
+              : error?.message ?? "Failed to load"}
           <button
             type="button"
             onClick={() => {
               enrichMutation.reset();
+              setHiddenMutation.reset();
               if (isError) refetch();
             }}
             className="ml-2 underline"
@@ -198,6 +209,18 @@ export function DataBrowser() {
           <option value="yes">In stock</option>
           <option value="no">Out of stock</option>
         </select>
+        <select
+          value={visibility}
+          onChange={(e) => {
+            setVisibility(e.target.value as "all" | "visible" | "hidden");
+            setOffset(0);
+          }}
+          className="rounded border border-stone-300 px-3 py-2 text-sm"
+        >
+          <option value="all">Visibility: all</option>
+          <option value="visible">Visible only</option>
+          <option value="hidden">Hidden only</option>
+        </select>
         <input
           type="text"
           placeholder="Category contains"
@@ -236,6 +259,7 @@ export function DataBrowser() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-stone-200 bg-stone-50">
+                    <th className="px-4 py-2 text-left font-medium text-stone-600 w-8" aria-label="Visibility" />
                     <th className="px-4 py-2 text-left font-medium text-stone-600">Product</th>
                     <th className="px-4 py-2 text-left font-medium text-stone-600">Store</th>
                     <th className="px-4 py-2 text-left font-medium text-stone-600">Brand</th>
@@ -252,9 +276,16 @@ export function DataBrowser() {
                   {listings.map((row) => (
                     <tr
                       key={row.id}
-                      className="border-b border-stone-100 hover:bg-stone-50 cursor-pointer"
+                      className={`border-b border-stone-100 hover:bg-stone-50 cursor-pointer ${row.hidden ? "opacity-60 bg-stone-50" : ""}`}
                       onClick={() => setSelectedId(row.id)}
                     >
+                      <td className="px-2 py-2 text-center" onClick={(e) => e.stopPropagation()}>
+                        {row.hidden ? (
+                          <span className="text-stone-400" title="Hidden from public feed">Hidden</span>
+                        ) : (
+                          <span className="text-stone-300" title="Visible">—</span>
+                        )}
+                      </td>
                       <td className="px-4 py-2 font-medium text-stone-800 max-w-xs truncate" title={row.product_name}>
                         {row.product_name}
                       </td>
@@ -338,6 +369,16 @@ export function DataBrowser() {
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-stone-800">Listing detail</h3>
               <div className="flex items-center gap-2">
+                {detail && (
+                  <button
+                    type="button"
+                    onClick={() => handleSetHidden(!detail.hidden)}
+                    disabled={setHiddenMutation.isPending}
+                    className="rounded border border-stone-300 px-3 py-1.5 text-sm hover:bg-stone-50 disabled:opacity-50"
+                  >
+                    {setHiddenMutation.isPending ? "…" : detail.hidden ? "Unhide" : "Hide"}
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={handleEnrich}
@@ -382,6 +423,14 @@ export function DataBrowser() {
                 <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1">
                   <dt className="text-stone-500">Store</dt>
                   <dd>{detail.store_name}</dd>
+                  <dt className="text-stone-500">Visibility</dt>
+                  <dd>
+                    {detail.hidden ? (
+                      <span className="text-amber-600 font-medium">Hidden (excluded from public feed)</span>
+                    ) : (
+                      <span className="text-green-600">Visible</span>
+                    )}
+                  </dd>
                   <dt className="text-stone-500">Stock status</dt>
                   <dd>
                     {detail.is_in_stock ? (

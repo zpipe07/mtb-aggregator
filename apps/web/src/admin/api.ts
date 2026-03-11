@@ -284,6 +284,7 @@ export interface AdminListing {
   canonical_category?: string[];
   metadata?: Record<string, unknown>;
   is_in_stock: boolean;
+  hidden?: boolean;
   discount_pct?: number | null;
   last_scraped: string;
   created_at?: string;
@@ -301,6 +302,7 @@ export async function fetchAdminListings(params?: {
   has_canonical_category?: boolean;
   has_enrichment?: boolean;
   in_stock?: boolean;
+  hidden?: boolean;
   category?: string;
   canonical_category?: string;
   q?: string;
@@ -314,6 +316,7 @@ export async function fetchAdminListings(params?: {
   if (params?.has_canonical_category != null) search.set("has_canonical_category", params.has_canonical_category ? "true" : "false");
   if (params?.has_enrichment != null) search.set("has_enrichment", params.has_enrichment ? "true" : "false");
   if (params?.in_stock != null) search.set("in_stock", params.in_stock ? "true" : "false");
+  if (params?.hidden != null) search.set("hidden", params.hidden ? "true" : "false");
   if (params?.category) search.set("category", params.category);
   if (params?.canonical_category) search.set("canonical_category", params.canonical_category);
   if (params?.q) search.set("q", params.q);
@@ -335,6 +338,20 @@ export async function fetchAdminListing(id: number): Promise<AdminListing | null
   if (res.status === 404) return null;
   if (!res.ok) throw new Error("Failed to fetch listing");
   return res.json();
+}
+
+/** Set hidden flag for a listing. Hidden listings are excluded from the public deals feed. */
+export async function setListingHidden(id: number, hidden: boolean): Promise<void> {
+  const res = await fetch(`${API_BASE}/admin/listings/${id}`, {
+    method: "PATCH",
+    headers: adminHeaders(),
+    body: JSON.stringify({ hidden }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const msg = typeof data?.error === "string" ? data.error : res.status === 404 ? "Listing not found" : "Update failed";
+    throw new Error(msg);
+  }
 }
 
 /** Run enrichment for a single listing. Returns { ok, category_path } or throws with error message. */

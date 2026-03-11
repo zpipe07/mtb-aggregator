@@ -8,6 +8,7 @@ import {
   updateStore,
   deleteStore,
   enrichListing,
+  setListingHidden,
   createTaxonomyMapping,
   updateTaxonomyMapping,
   deleteTaxonomyMapping,
@@ -127,6 +128,18 @@ export function useEnrichListing() {
     onSuccess: (_, listingId) => {
       queryClient.invalidateQueries({ queryKey: adminListingKeys.all });
       queryClient.invalidateQueries({ queryKey: adminListingKeys.detail(listingId) });
+    },
+  });
+}
+
+export function useSetListingHidden() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, hidden }: { id: number; hidden: boolean }) => setListingHidden(id, hidden),
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: adminListingKeys.all });
+      queryClient.invalidateQueries({ queryKey: adminListingKeys.detail(id) });
+      queryClient.invalidateQueries({ queryKey: dealKeys.all });
     },
   });
 }
