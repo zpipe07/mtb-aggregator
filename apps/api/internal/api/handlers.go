@@ -745,6 +745,9 @@ func (h *Handlers) GetAdminListings(w http.ResponseWriter, r *http.Request) {
 	if s := r.URL.Query().Get("in_stock"); s != "" {
 		params.InStock = boolPtr(s == "1" || strings.EqualFold(s, "true"))
 	}
+	if s := r.URL.Query().Get("hidden"); s != "" {
+		params.Hidden = boolPtr(s == "1" || strings.EqualFold(s, "true"))
+	}
 	if s := r.URL.Query().Get("category"); s != "" {
 		params.Category = strings.TrimSpace(s)
 	}
@@ -783,6 +786,36 @@ func (h *Handlers) GetAdminListings(w http.ResponseWriter, r *http.Request) {
 }
 
 func boolPtr(b bool) *bool { return &b }
+
+// PatchAdminListingHidden sets the hidden flag for a listing (admin). Body: {"hidden": true|false}.
+func (h *Handlers) PatchAdminListingHidden(w http.ResponseWriter, r *http.Request, id int) {
+	if r.Method != http.MethodPatch {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var body struct {
+		Hidden *bool `json:"hidden"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		http.Error(w, "invalid json", http.StatusBadRequest)
+		return
+	}
+	if body.Hidden == nil {
+		http.Error(w, "hidden field required", http.StatusBadRequest)
+		return
+	}
+	err := h.DB.SetListingHidden(r.Context(), id, *body.Hidden)
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			http.Error(w, "not found", http.StatusNotFound)
+			return
+		}
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]bool{"ok": true})
+}
 
 // GetAdminListingByID returns one listing by id for admin detail (admin).
 func (h *Handlers) GetAdminListingByID(w http.ResponseWriter, r *http.Request, id int) {

@@ -40,7 +40,7 @@ func corsMiddleware(next http.Handler) http.Handler {
 				}
 			}
 		}
-		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, X-Cron-Secret, Authorization")
 		if r.Method == http.MethodOptions {
 			w.WriteHeader(http.StatusNoContent)
@@ -492,6 +492,10 @@ func main() {
 				return
 			}
 			handlers.PostAdminEnrichListing(w, r, id)
+			return
+		}
+		if r.Method == http.MethodPatch {
+			handlers.PatchAdminListingHidden(w, r, id)
 			return
 		}
 		handlers.GetAdminListingByID(w, r, id)

@@ -119,6 +119,7 @@ export interface AdminListingsParams {
   has_canonical_category?: boolean;
   has_enrichment?: boolean;
   in_stock?: boolean;
+  hidden?: boolean;
   category?: string;
   canonical_category?: string;
   q?: string;

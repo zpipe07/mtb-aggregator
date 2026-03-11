@@ -51,6 +51,7 @@ cd apps/api && go run main.go
 # Terminal 4: Run web app
 pnpm --filter @mtb-aggregator/web run dev
 ```
+
 Then open http://localhost:5173
 
 ### Trigger a scrape manually
@@ -74,15 +75,15 @@ Runs up to 50 listings per batch. Enrichment also runs nightly at 2am (configura
 
 ### API Endpoints
 
-| Endpoint | Description |
-|----------|-------------|
-| `GET /deals` | List deals (`?store=`, `?brand=`, `?min_discount=`, `?limit=`, `?offset=`) |
-| `GET /deals/:id` | Single deal by ID |
-| `GET /stores` | List stores with deal counts |
-| `GET /status` | Health: last scrape per store, scraper reachable |
-| `GET /brands` | List distinct brands |
+| Endpoint           | Description                                                                 |
+| ------------------ | --------------------------------------------------------------------------- |
+| `GET /deals`       | List deals (`?store=`, `?brand=`, `?min_discount=`, `?limit=`, `?offset=`)  |
+| `GET /deals/:id`   | Single deal by ID                                                           |
+| `GET /stores`      | List stores with deal counts                                                |
+| `GET /status`      | Health: last scrape per store, scraper reachable                            |
+| `GET /brands`      | List distinct brands                                                        |
 | `POST /scrape-now` | Trigger scrape job (optional `?store=worldwidecyclery` to scrape one store) |
-| `POST /enrich-now` | Trigger enrichment job (PDP category extraction) |
+| `POST /enrich-now` | Trigger enrichment job (PDP category extraction)                            |
 
 ### Testing the Scraper
 
@@ -152,17 +153,18 @@ mtb-aggregator/
 
 ## Makefile Commands
 
-| Command      | Description                    |
-| ------------ | ------------------------------ |
-| `make install` | Install all dependencies     |
-| `make db-up`   | Start PostgreSQL (Docker)     |
-| `make db-up-local` | Use local Postgres (no Docker) |
-| `make db-down` | Stop PostgreSQL (Docker)      |
-| `make db-migrate` | Apply schema (Docker)      |
-| `make db-seed` | Seed stores (Docker)        |
-| `make db-migrate-local` | Apply schema + seed (local) |
-| `make scrape-now` | Trigger scrape all stores (API must be running) |
-| `make scrape-now-wwc` | Trigger scrape for Worldwide Cyclery only |
-| `pnpm --filter @mtb-aggregator/web run dev` | Start React dev server |
-| `make dev`     | Start db (see dev workflow)  |
-| `make build-all` | Build scraper + API          |
+| Command                                         | Description                                     |
+| ----------------------------------------------- | ----------------------------------------------- |
+| `make install`                                  | Install all dependencies                        |
+| `make db-up`                                    | Start PostgreSQL (Docker)                       |
+| `make db-up-local`                              | Use local Postgres (no Docker)                  |
+| `make db-down`                                  | Stop PostgreSQL (Docker)                        |
+| `make db-migrate`                               | Apply schema (Docker)                           |
+| `make db-seed`                                  | Seed stores (Docker)                            |
+| `make db-migrate-local`                         | Apply schema + seed (local)                     |
+| `make scrape-now`                               | Trigger scrape all stores (API must be running) |
+| `make scrape-now-wwc`                           | Trigger scrape for Worldwide Cyclery only       |
+| `pnpm --filter @mtb-aggregator/web run dev`     | Start React dev server                          |
+| `pnpm --filter @mtb-aggregator/scraper run dev` | Start Scraper node server                       |
+| `make dev`                                      | Start db (see dev workflow)                     |
+| `make build-all`                                | Build scraper + API                             |

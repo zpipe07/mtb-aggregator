@@ -220,11 +220,12 @@ type Deal struct {
 	LastScraped   string   `json:"last_scraped"`
 }
 
-// AdminListing extends Deal with created_at and last_enriched_at for the admin data browser.
+// AdminListing extends Deal with created_at, last_enriched_at, and hidden for the admin data browser.
 type AdminListing struct {
 	Deal
 	CreatedAt      string `json:"created_at"`
 	LastEnrichedAt string `json:"last_enriched_at"`
+	Hidden         bool   `json:"hidden"`
 }
 
 // GetAdminListingsParams for admin listing browser filters.
@@ -234,6 +235,7 @@ type GetAdminListingsParams struct {
 	HasCanonicalCategory *bool // true = has canonical category set; false = not set; nil = any
 	HasEnrichment       *bool // true = last_enriched_at IS NOT NULL; false = NULL; nil = any
 	InStock             *bool // true = is_in_stock; false = out of stock; nil = any
+	Hidden              *bool // true = hidden only; false = visible only; nil = any
 	Category            string
 	CanonicalCategory   string
 	Search              string
@@ -260,7 +262,7 @@ func (db *DB) GetAdminListings(ctx context.Context, params GetAdminListingsParam
 
 	query := `
 		SELECT l.id, l.store_id, s.name, l.store_sku, l.product_name, l.current_price, l.original_price,
-			l.product_url, l.affiliate_url, l.image_url, l.brand, COALESCE(l.category_path, '{}'), COALESCE(l.canonical_category, '{}'), l.metadata, l.is_in_stock, l.last_scraped::text,
+			l.product_url, l.affiliate_url, l.image_url, l.brand, COALESCE(l.category_path, '{}'), COALESCE(l.canonical_category, '{}'), l.metadata, l.is_in_stock, l.hidden, l.last_scraped::text,
 			l.created_at::text, l.last_enriched_at::text,
 			COUNT(*) OVER() AS total_count
 		FROM store_listings l
@@ -300,6 +302,11 @@ func (db *DB) GetAdminListings(ctx context.Context, params GetAdminListingsParam
 		} else {
 			query += " AND l.is_in_stock = false"
 		}
+	}
+	if params.Hidden != nil {
+		query += fmt.Sprintf(" AND l.hidden = $%d", argNum)
+		args = append(args, *params.Hidden)
+		argNum++
 	}
 	if params.Category != "" {
 		query += fmt.Sprintf(" AND EXISTS (SELECT 1 FROM unnest(COALESCE(l.category_path, '{}')) AS c WHERE c ILIKE $%d)", argNum)
@@ -359,7 +366,7 @@ func (db *DB) GetAdminListings(ctx context.Context, params GetAdminListingsParam
 		var meta []byte
 		var createdAt, lastEnrichedAt []byte
 		if err := rows.Scan(&a.ID, &a.StoreID, &a.StoreName, &a.StoreSKU, &a.ProductName, &a.CurrentPrice, &a.OriginalPrice,
-			&a.ProductURL, &a.AffiliateURL, &a.ImageURL, &a.Brand, &cp, &canCat, &meta, &a.IsInStock, &lastScraped,
+			&a.ProductURL, &a.AffiliateURL, &a.ImageURL, &a.Brand, &cp, &canCat, &meta, &a.IsInStock, &a.Hidden, &lastScraped,
 			&createdAt, &lastEnrichedAt, &totalCount); err != nil {
 			return nil, 0, err
 		}
@@ -396,13 +403,13 @@ func (db *DB) GetAdminListingByID(ctx context.Context, id int) (*AdminListing, e
 	var createdAt, lastEnrichedAt *string
 	err := db.pool.QueryRow(ctx, `
 		SELECT l.id, l.store_id, s.name, l.store_sku, l.product_name, l.current_price, l.original_price,
-			l.product_url, l.affiliate_url, l.image_url, l.brand, COALESCE(l.category_path, '{}'), COALESCE(l.canonical_category, '{}'), l.metadata, l.is_in_stock, l.last_scraped::text,
+			l.product_url, l.affiliate_url, l.image_url, l.brand, COALESCE(l.category_path, '{}'), COALESCE(l.canonical_category, '{}'), l.metadata, l.is_in_stock, l.hidden, l.last_scraped::text,
 			l.created_at::text, l.last_enriched_at::text
 		FROM store_listings l
 		JOIN stores s ON s.id = l.store_id
 		WHERE l.id = $1
 	`, id).Scan(&a.ID, &a.StoreID, &a.StoreName, &a.StoreSKU, &a.ProductName, &a.CurrentPrice, &a.OriginalPrice,
-		&a.ProductURL, &a.AffiliateURL, &a.ImageURL, &a.Brand, &cp, &canCat, &meta, &a.IsInStock, &lastScraped,
+		&a.ProductURL, &a.AffiliateURL, &a.ImageURL, &a.Brand, &cp, &canCat, &meta, &a.IsInStock, &a.Hidden, &lastScraped,
 		&createdAt, &lastEnrichedAt)
 	if err != nil {
 		if err.Error() == "no rows in result set" {
@@ -427,6 +434,18 @@ func (db *DB) GetAdminListingByID(ctx context.Context, id int) (*AdminListing, e
 		}
 	}
 	return &a, nil
+}
+
+// SetListingHidden sets the hidden flag for a listing by id. Returns error if not found.
+func (db *DB) SetListingHidden(ctx context.Context, id int, hidden bool) error {
+	cmd, err := db.pool.Exec(ctx, `UPDATE store_listings SET hidden = $1 WHERE id = $2`, hidden, id)
+	if err != nil {
+		return err
+	}
+	if cmd.RowsAffected() == 0 {
+		return fmt.Errorf("listing not found")
+	}
+	return nil
 }
 
 // GetDealsParams for filtering, search, and sort
@@ -471,7 +490,7 @@ func (db *DB) GetDeals(ctx context.Context, params GetDealsParams) (*GetDealsRes
 			COUNT(*) OVER() AS total_count
 		FROM store_listings l
 		JOIN stores s ON s.id = l.store_id
-		WHERE 1=1 AND l.is_in_stock = true
+		WHERE 1=1 AND l.is_in_stock = true AND l.hidden = false
 	`
 	args := []interface{}{}
 	argNum := 1
@@ -608,7 +627,7 @@ func (db *DB) GetDealByID(ctx context.Context, id int) (*Deal, error) {
 			l.product_url, l.affiliate_url, l.image_url, l.brand, COALESCE(l.category_path, '{}'), COALESCE(l.canonical_category, '{}'), l.metadata, l.is_in_stock, l.last_scraped::text
 		FROM store_listings l
 		JOIN stores s ON s.id = l.store_id
-		WHERE l.id = $1
+		WHERE l.id = $1 AND l.hidden = false
 	`, id).Scan(&d.ID, &d.StoreID, &d.StoreName, &d.StoreSKU, &d.ProductName, &d.CurrentPrice, &d.OriginalPrice,
 		&d.ProductURL, &d.AffiliateURL, &d.ImageURL, &d.Brand, &cp, &canCat, &meta, &d.IsInStock, &lastScraped)
 	if err != nil {
