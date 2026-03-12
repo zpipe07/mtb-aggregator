@@ -17,6 +17,7 @@ import {
   fetchUnmappedItems,
   fetchSpecNormalizationRules,
   fetchSpecKeyAliases,
+  fetchLLMProfiles,
 } from "../api";
 import {
   adminDashboardKeys,
@@ -29,6 +30,7 @@ import {
   adminTaxonomyKeys,
   adminSpecFilterKeys,
   adminNormalizationKeys,
+  adminLLMProfileKeys,
 } from "./queryKeys";
 
 export function useAdminDashboard() {
@@ -200,6 +202,14 @@ export function useSpecKeyAliases() {
   return useQuery({
     queryKey: adminNormalizationKeys.keyAliases(),
     queryFn: fetchSpecKeyAliases,
+    staleTime: 60 * 1000,
+  });
+}
+
+export function useLLMProfiles() {
+  return useQuery({
+    queryKey: adminLLMProfileKeys.all,
+    queryFn: fetchLLMProfiles,
     staleTime: 60 * 1000,
   });
 }

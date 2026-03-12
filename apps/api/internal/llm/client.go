@@ -165,8 +165,10 @@ func (c *Client) buildUserMessage(input ExtractInput) string {
 }
 
 // buildOpenAISchema converts our ExtractionSchema to OpenAI JSON schema format.
+// OpenAI strict mode requires "required" to include every key in properties.
 func (c *Client) buildOpenAISchema(es ExtractionSchema) (map[string]interface{}, error) {
 	properties := make(map[string]interface{})
+	required := make([]string, 0, len(es.Fields))
 	for _, f := range es.Fields {
 		prop := make(map[string]interface{})
 		prop["description"] = f.Description
@@ -191,11 +193,12 @@ func (c *Client) buildOpenAISchema(es ExtractionSchema) (map[string]interface{},
 			prop["type"] = []string{"string", "null"}
 		}
 		properties[f.Key] = prop
+		required = append(required, f.Key)
 	}
 	return map[string]interface{}{
 		"type":                 "object",
 		"properties":           properties,
-		"required":             []string{},
+		"required":             required,
 		"additionalProperties": false,
 	}, nil
 }

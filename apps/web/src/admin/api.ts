@@ -764,3 +764,94 @@ export async function deleteSpecKeyAlias(id: number): Promise<void> {
   });
   if (!res.ok) throw new Error("Delete failed");
 }
+
+// --- LLM Prompt Profiles ---
+
+export interface LLMPromptProfile {
+  id: number;
+  canonical_category: string[];
+  name: string;
+  system_prompt: string;
+  extraction_schema: Record<string, unknown>;
+  enabled: boolean;
+}
+
+export async function fetchLLMProfiles(): Promise<LLMPromptProfile[]> {
+  const res = await fetch(`${API_BASE}/admin/llm-profiles`, { headers: adminHeaders() });
+  if (!res.ok) throw new Error(res.status === 401 ? "Unauthorized" : "Failed to fetch LLM profiles");
+  const data = await res.json();
+  return Array.isArray(data) ? data : [];
+}
+
+export async function fetchLLMProfile(id: number): Promise<LLMPromptProfile> {
+  const res = await fetch(`${API_BASE}/admin/llm-profiles/${id}`, { headers: adminHeaders() });
+  if (!res.ok) throw new Error(res.status === 401 ? "Unauthorized" : "Failed to fetch profile");
+  return res.json();
+}
+
+export async function createLLMProfile(body: {
+  canonical_category: string[];
+  name: string;
+  system_prompt: string;
+  extraction_schema: Record<string, unknown>;
+  enabled?: boolean;
+}): Promise<{ id: number }> {
+  const res = await fetch(`${API_BASE}/admin/llm-profiles`, {
+    method: "POST",
+    headers: adminHeaders(),
+    body: JSON.stringify({
+      canonical_category: body.canonical_category,
+      name: body.name,
+      system_prompt: body.system_prompt,
+      extraction_schema: body.extraction_schema,
+      enabled: body.enabled ?? true,
+    }),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || "Create failed");
+  }
+  return res.json();
+}
+
+export async function updateLLMProfile(
+  id: number,
+  body: {
+    canonical_category?: string[];
+    name?: string;
+    system_prompt?: string;
+    extraction_schema?: Record<string, unknown>;
+    enabled?: boolean;
+  }
+): Promise<void> {
+  const res = await fetch(`${API_BASE}/admin/llm-profiles/${id}`, {
+    method: "PUT",
+    headers: adminHeaders(),
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || "Update failed");
+  }
+}
+
+export async function deleteLLMProfile(id: number): Promise<void> {
+  const res = await fetch(`${API_BASE}/admin/llm-profiles/${id}`, {
+    method: "DELETE",
+    headers: adminHeaders(),
+  });
+  if (!res.ok) throw new Error("Delete failed");
+}
+
+export async function testLLMProfile(profileId: number, listingId: number): Promise<{ result: Record<string, unknown> | null; message?: string }> {
+  const res = await fetch(`${API_BASE}/admin/llm-profiles/${profileId}/test`, {
+    method: "POST",
+    headers: adminHeaders(),
+    body: JSON.stringify({ listing_id: listingId }),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || "Test failed");
+  }
+  return res.json();
+}

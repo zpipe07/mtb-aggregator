@@ -27,6 +27,10 @@ import {
   createSpecKeyAlias,
   updateSpecKeyAlias,
   deleteSpecKeyAlias,
+  createLLMProfile,
+  updateLLMProfile,
+  deleteLLMProfile,
+  testLLMProfile,
   type StoreFormBody,
 } from "../api";
 import {
@@ -39,6 +43,7 @@ import {
   adminTaxonomyKeys,
   adminSpecFilterKeys,
   adminNormalizationKeys,
+  adminLLMProfileKeys,
 } from "./queryKeys";
 import { dealKeys } from "../../hooks/queryKeys";
 
@@ -390,5 +395,55 @@ export function useDeleteSpecKeyAlias() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: adminNormalizationKeys.all });
     },
+  });
+}
+
+export function useCreateLLMProfile() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: createLLMProfile,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminLLMProfileKeys.all });
+    },
+  });
+}
+
+export function useUpdateLLMProfile() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      body,
+    }: {
+      id: number;
+      body: {
+        canonical_category?: string[];
+        name?: string;
+        system_prompt?: string;
+        extraction_schema?: Record<string, unknown>;
+        enabled?: boolean;
+      };
+    }) => updateLLMProfile(id, body),
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: adminLLMProfileKeys.all });
+      queryClient.invalidateQueries({ queryKey: adminLLMProfileKeys.detail(id) });
+    },
+  });
+}
+
+export function useDeleteLLMProfile() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: deleteLLMProfile,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminLLMProfileKeys.all });
+    },
+  });
+}
+
+export function useTestLLMProfile() {
+  return useMutation({
+    mutationFn: ({ profileId, listingId }: { profileId: number; listingId: number }) =>
+      testLLMProfile(profileId, listingId),
   });
 }

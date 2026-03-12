@@ -18,6 +18,7 @@ import (
 	"github.com/mtb-aggregator/api/internal/brand"
 	"github.com/mtb-aggregator/api/internal/db"
 	"github.com/mtb-aggregator/api/internal/normalization"
+	"github.com/mtb-aggregator/api/internal/llm"
 	"github.com/mtb-aggregator/api/internal/scheduler"
 	"github.com/mtb-aggregator/api/internal/scraper"
 	"github.com/mtb-aggregator/api/internal/taxonomy"
@@ -268,7 +269,8 @@ func main() {
 
 	sched := scheduler.New(database, scraperURL)
 	scraperClient := scraper.NewClient(scraperURL)
-	handlers := &api.Handlers{DB: database, ScraperURL: scraperURL, Scraper: scraperClient}
+	llmClient := llm.New("", "")
+	handlers := &api.Handlers{DB: database, ScraperURL: scraperURL, Scraper: scraperClient, LLM: llmClient}
 	log.Println("[startup] scheduler and handlers initialized")
 
 	// Cron: every 4 hours (configurable via SCRAPE_CRON_SPEC, "disabled" = use external cron)
@@ -721,6 +723,59 @@ func main() {
 			handlers.PutAdminSpecValueAlias(w, r, id)
 		case http.MethodDelete:
 			handlers.DeleteAdminSpecValueAlias(w, r, id)
+		default:
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		}
+	}))
+
+	// Admin: GET/POST /admin/llm-profiles — list or create LLM prompt profiles
+	http.HandleFunc("/admin/llm-profiles", api.AdminRequired(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/admin/llm-profiles" {
+			http.NotFound(w, r)
+			return
+		}
+		switch r.Method {
+		case http.MethodGet:
+			handlers.GetLLMProfiles(w, r)
+		case http.MethodPost:
+			handlers.PostLLMProfile(w, r)
+		default:
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		}
+	}))
+	// Admin: GET/PUT/DELETE /admin/llm-profiles/:id, POST /admin/llm-profiles/:id/test
+	http.HandleFunc("/admin/llm-profiles/", api.AdminRequired(func(w http.ResponseWriter, r *http.Request) {
+		path := strings.TrimPrefix(r.URL.Path, "/admin/llm-profiles/")
+		path = strings.Trim(path, "/")
+		if path == "" {
+			http.NotFound(w, r)
+			return
+		}
+		parts := strings.SplitN(path, "/", 2)
+		id, err := strconv.Atoi(parts[0])
+		if err != nil {
+			http.Error(w, "invalid id", http.StatusBadRequest)
+			return
+		}
+		if len(parts) > 1 && parts[1] == "test" {
+			if r.Method == http.MethodPost {
+				handlers.PostLLMProfileTest(w, r, id)
+			} else {
+				http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			}
+			return
+		}
+		if len(parts) > 1 {
+			http.NotFound(w, r)
+			return
+		}
+		switch r.Method {
+		case http.MethodGet:
+			handlers.GetLLMProfileByID(w, r, id)
+		case http.MethodPut:
+			handlers.PutLLMProfile(w, r, id)
+		case http.MethodDelete:
+			handlers.DeleteLLMProfile(w, r, id)
 		default:
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		}

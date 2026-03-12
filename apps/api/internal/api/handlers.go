@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/mtb-aggregator/api/internal/db"
+	"github.com/mtb-aggregator/api/internal/llm"
 	"github.com/mtb-aggregator/api/internal/normalization"
 	"github.com/mtb-aggregator/api/internal/scraper"
 	"github.com/mtb-aggregator/api/internal/taxonomy"
@@ -18,6 +19,7 @@ type Handlers struct {
 	DB          *db.DB
 	ScraperURL  string
 	Scraper     *scraper.Client
+	LLM         *llm.Client
 }
 
 func (h *Handlers) GetDeals(w http.ResponseWriter, r *http.Request) {
