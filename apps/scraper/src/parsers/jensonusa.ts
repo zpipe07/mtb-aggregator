@@ -9,6 +9,7 @@ export interface EnrichResult {
   category_path: string[] | null;
   raw_specs: Record<string, string> | null;
   unavailable?: boolean;
+  description?: string | null;
 }
 
 const BASE_URL = "https://www.jensonusa.com";
@@ -41,48 +42,55 @@ export async function scrapeJensonUSA(url: string): Promise<ScrapeResult[]> {
     const page = await context.newPage();
 
     try {
-    // Use ps=100 for clearance to get more items per page (fewer page requests)
-    let currentUrl = url;
-    if (url.includes("jensonusa.com/clearance") && !url.includes("ps=")) {
-      currentUrl = url.includes("?") ? `${url}&ps=100` : `${url}?ps=100`;
-    }
+      // Use ps=100 for clearance to get more items per page (fewer page requests)
+      let currentUrl = url;
+      if (url.includes("jensonusa.com/clearance") && !url.includes("ps=")) {
+        currentUrl = url.includes("?") ? `${url}&ps=100` : `${url}?ps=100`;
+      }
 
-    const allResults: ScrapeResult[] = [];
-    let pageNum = 0;
+      const allResults: ScrapeResult[] = [];
+      let pageNum = 0;
 
-    while (pageNum < MAX_PAGES) {
-      pageNum++;
-      console.log(`[scraper] JensonUSA page ${pageNum}: fetching ${currentUrl}`);
+      while (pageNum < MAX_PAGES) {
+        pageNum++;
+        console.log(
+          `[scraper] JensonUSA page ${pageNum}: fetching ${currentUrl}`,
+        );
 
-      let gotoOk = false;
-      for (let attempt = 1; attempt <= PAGE_GOTO_RETRIES + 1; attempt++) {
-        try {
-          await page.goto(currentUrl, { waitUntil: "load", timeout: 60000 });
-          gotoOk = true;
-          break;
-        } catch (gotoErr) {
-          const msg = gotoErr instanceof Error ? gotoErr.message : String(gotoErr);
-          console.warn(`[scraper] page.goto attempt ${attempt} failed: ${msg}`);
-          if (attempt <= PAGE_GOTO_RETRIES) {
-            console.log(`[scraper] retrying in ${RETRY_DELAY_MS / 1000}s...`);
-            await new Promise((r) => setTimeout(r, RETRY_DELAY_MS));
-          } else {
-            console.warn(`[scraper] giving up on page ${pageNum}, returning ${allResults.length} results so far`);
+        let gotoOk = false;
+        for (let attempt = 1; attempt <= PAGE_GOTO_RETRIES + 1; attempt++) {
+          try {
+            await page.goto(currentUrl, { waitUntil: "load", timeout: 60000 });
+            gotoOk = true;
             break;
+          } catch (gotoErr) {
+            const msg =
+              gotoErr instanceof Error ? gotoErr.message : String(gotoErr);
+            console.warn(
+              `[scraper] page.goto attempt ${attempt} failed: ${msg}`,
+            );
+            if (attempt <= PAGE_GOTO_RETRIES) {
+              console.log(`[scraper] retrying in ${RETRY_DELAY_MS / 1000}s...`);
+              await new Promise((r) => setTimeout(r, RETRY_DELAY_MS));
+            } else {
+              console.warn(
+                `[scraper] giving up on page ${pageNum}, returning ${allResults.length} results so far`,
+              );
+              break;
+            }
           }
         }
-      }
-      if (!gotoOk) break;
+        if (!gotoOk) break;
 
-      // Wait for dynamic content (products often load via JS after initial render)
-      await new Promise((r) => setTimeout(r, 8000));
+        // Wait for dynamic content (products often load via JS after initial render)
+        await new Promise((r) => setTimeout(r, 8000));
 
-      // Polite delay before scraping
-      await new Promise((r) => setTimeout(r, SCRAPE_DELAY_MS));
+        // Polite delay before scraping
+        await new Promise((r) => setTimeout(r, SCRAPE_DELAY_MS));
 
-      // Extract raw DTO + container text from each card. Parsing happens in Node via parseProductDto
-      // so we can unit-test the DTO structure (listPrice, msrpPrice) and catch field changes.
-      const extractScript = `
+        // Extract raw DTO + container text from each card. Parsing happens in Node via parseProductDto
+        // so we can unit-test the DTO structure (listPrice, msrpPrice) and catch field changes.
+        const extractScript = `
       const parsePriceFromText = (text) => {
         const m = (text || '').replace(/,/g, '').match(/\\$?([\\d.]+)/);
         return m ? parseFloat(m[1]) : null;
@@ -132,65 +140,72 @@ export async function scrapeJensonUSA(url: string): Promise<ScrapeResult[]> {
       return { raw };
     `;
 
-    const extracted = (await page.evaluate(
-      `(function() { ${extractScript} })()`
-    )) as {
-      raw: Array<{
-        dto: JensonProductDto;
-        containerText: string;
-        imageUrlFromDom: string | null;
-      }>;
-    };
+        const extracted = (await page.evaluate(
+          `(function() { ${extractScript} })()`,
+        )) as {
+          raw: Array<{
+            dto: JensonProductDto;
+            containerText: string;
+            imageUrlFromDom: string | null;
+          }>;
+        };
 
-    const results: ScrapeResult[] = [];
-    for (const { dto, containerText, imageUrlFromDom } of extracted.raw) {
-      const parsed = parseProductDto(dto, containerText, imageUrlFromDom);
-      if (parsed) {
-        results.push({
-          store_sku: parsed.sku,
-          product_name: parsed.name,
-          current_price: parsed.currentPrice!,
-          original_price: parsed.originalPrice,
-          product_url: parsed.url,
-          image_url: parsed.imageUrl,
-          brand: parsed.brand,
-          category_path: parsed.category_path,
-          is_in_stock: true,
-        });
+        const results: ScrapeResult[] = [];
+        for (const { dto, containerText, imageUrlFromDom } of extracted.raw) {
+          const parsed = parseProductDto(dto, containerText, imageUrlFromDom);
+          if (parsed) {
+            results.push({
+              store_sku: parsed.sku,
+              product_name: parsed.name,
+              current_price: parsed.currentPrice!,
+              original_price: parsed.originalPrice,
+              product_url: parsed.url,
+              image_url: parsed.imageUrl,
+              brand: parsed.brand,
+              category_path: parsed.category_path,
+              is_in_stock: true,
+            });
+          }
+        }
+
+        allResults.push(...results);
+        const nextUrl = buildNextPageUrl(currentUrl);
+        console.log(
+          `[scraper] JensonUSA page ${pageNum}: got ${results.length} listings, nextPageUrl=${nextUrl ?? "none"}, total=${allResults.length} (MAX_PAGES=${MAX_PAGES})`,
+        );
+
+        if (pageNum >= MAX_PAGES || results.length < 48 || !nextUrl) {
+          break;
+        }
+        currentUrl = nextUrl;
+        await new Promise((r) => setTimeout(r, SCRAPE_DELAY_MS));
       }
-    }
 
-      allResults.push(...results);
-      const nextUrl = buildNextPageUrl(currentUrl);
-      console.log(`[scraper] JensonUSA page ${pageNum}: got ${results.length} listings, nextPageUrl=${nextUrl ?? "none"}, total=${allResults.length} (MAX_PAGES=${MAX_PAGES})`);
-
-      if (pageNum >= MAX_PAGES || results.length < 48 || !nextUrl) {
-        break;
+      const deduped = deduplicateBySku(allResults);
+      console.log(
+        `[scraper] JensonUSA done: ${deduped.length} listings after dedup`,
+      );
+      warnIfNoOriginalPrice(deduped, "JensonUSA");
+      return deduped;
+    } catch (err) {
+      try {
+        const context = browser.contexts()[0];
+        const page = context?.pages()[0];
+        if (page) {
+          await mkdir(LOGS_DIR, { recursive: true });
+          const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+          const screenshotPath = join(
+            LOGS_DIR,
+            `jensonusa-error-${timestamp}.png`,
+          );
+          await page.screenshot({ path: screenshotPath });
+          console.error("Screenshot saved to", screenshotPath);
+        }
+      } catch (screenshotErr) {
+        console.error("Failed to save screenshot:", screenshotErr);
       }
-      currentUrl = nextUrl;
-      await new Promise((r) => setTimeout(r, SCRAPE_DELAY_MS));
+      throw err;
     }
-
-    const deduped = deduplicateBySku(allResults);
-    console.log(`[scraper] JensonUSA done: ${deduped.length} listings after dedup`);
-    warnIfNoOriginalPrice(deduped, "JensonUSA");
-    return deduped;
-  } catch (err) {
-    try {
-      const context = browser.contexts()[0];
-      const page = context?.pages()[0];
-      if (page) {
-        await mkdir(LOGS_DIR, { recursive: true });
-        const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-        const screenshotPath = join(LOGS_DIR, `jensonusa-error-${timestamp}.png`);
-        await page.screenshot({ path: screenshotPath });
-        console.error("Screenshot saved to", screenshotPath);
-      }
-    } catch (screenshotErr) {
-      console.error("Failed to save screenshot:", screenshotErr);
-    }
-    throw err;
-  }
   });
 }
 
@@ -210,18 +225,20 @@ function warnIfNoOriginalPrice(results: ScrapeResult[], store: string): void {
   if (results.length >= threshold && withOriginal === 0) {
     console.warn(
       `[scraper] WARNING: ${results.length} ${store} listings scraped but 0 have original_price (MSRP). ` +
-        `Check that the DTO uses msrpPrice - the site may have changed structure.`
+        `Check that the DTO uses msrpPrice - the site may have changed structure.`,
     );
     if (process.env.SCRAPER_STRICT_ORIGINAL_PRICE === "1") {
       throw new Error(
-        `Scrape failed: no original_price in ${results.length} results. Set SCRAPER_STRICT_ORIGINAL_PRICE=0 to warn only.`
+        `Scrape failed: no original_price in ${results.length} results. Set SCRAPER_STRICT_ORIGINAL_PRICE=0 to warn only.`,
       );
     }
   }
 }
 
 /** Extract category and raw specs from PDP. JensonUSA uses breadcrumb links and a specs table/section. */
-export async function enrichJensonUSA(productUrl: string): Promise<EnrichResult> {
+export async function enrichJensonUSA(
+  productUrl: string,
+): Promise<EnrichResult> {
   return runWithBrowser(async (browser) => {
     const context = await browser.newContext({
       userAgent: USER_AGENT,
@@ -237,7 +254,9 @@ export async function enrichJensonUSA(productUrl: string): Promise<EnrichResult>
         return document.body.innerText.includes("This item is unavailable");
       });
       if (isUnavailable) {
-        console.log(`[scraper] jensonusa enrich: product unavailable ${productUrl}`);
+        console.log(
+          `[scraper] jensonusa enrich: product unavailable ${productUrl}`,
+        );
         return { category_path: null, raw_specs: null, unavailable: true };
       }
 
@@ -362,9 +381,25 @@ export async function enrichJensonUSA(productUrl: string): Promise<EnrichResult>
             return Object.keys(specs).length > 0 ? specs : null;
           }
 
+          function extractDescription() {
+            var sel = [
+              '#product-description',
+              '[itemprop="description"]'
+            ];
+            for (var si = 0; si < sel.length; si++) {
+              var el = document.querySelector(sel[si]);
+              if (el) {
+                var t = (el.textContent || '').replace(/\\s+/g, ' ').trim();
+                if (t && t.length > 50 && t.length < 12000) return t;
+              }
+            }
+            return null;
+          }
+
           return {
             categoryPath: extractBreadcrumb(),
-            rawSpecs: extractSpecs()
+            rawSpecs: extractSpecs(),
+            description: extractDescription()
           };
         })()
       `;
@@ -372,6 +407,7 @@ export async function enrichJensonUSA(productUrl: string): Promise<EnrichResult>
       const result = (await page.evaluate(script)) as {
         categoryPath: string[] | null;
         rawSpecs: Record<string, string> | null;
+        description: string | null;
       };
 
       await new Promise((r) => setTimeout(r, ENRICH_DELAY_MS));
@@ -379,6 +415,7 @@ export async function enrichJensonUSA(productUrl: string): Promise<EnrichResult>
       return {
         category_path: result.categoryPath,
         raw_specs: result.rawSpecs,
+        description: result.description ?? undefined,
       };
     } catch (err) {
       try {
@@ -387,7 +424,10 @@ export async function enrichJensonUSA(productUrl: string): Promise<EnrichResult>
         if (p) {
           await mkdir(LOGS_DIR, { recursive: true });
           const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-          const screenshotPath = join(LOGS_DIR, `jensonusa-enrich-error-${timestamp}.png`);
+          const screenshotPath = join(
+            LOGS_DIR,
+            `jensonusa-enrich-error-${timestamp}.png`,
+          );
           await p.screenshot({ path: screenshotPath });
           console.error("Enrich screenshot saved to", screenshotPath);
         }

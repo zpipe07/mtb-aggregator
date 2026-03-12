@@ -1220,7 +1220,7 @@ func (db *DB) GetListingsNeedingEnrichmentForStore(ctx context.Context, storeTyp
 	return listings, rows.Err()
 }
 
-func (db *DB) UpdateListingEnrichment(ctx context.Context, id int, categoryPath []string, rawSpecs map[string]string, unavailable bool) error {
+func (db *DB) UpdateListingEnrichment(ctx context.Context, id int, categoryPath []string, rawSpecs map[string]string, unavailable bool, description *string) error {
 	if unavailable {
 		_, err := db.pool.Exec(ctx, `
 			UPDATE store_listings
@@ -1241,6 +1241,9 @@ func (db *DB) UpdateListingEnrichment(ctx context.Context, id int, categoryPath 
 	}
 
 	mergedMeta := metadata.MergeSpecs(existingMeta, rawSpecs)
+	if description != nil && *description != "" {
+		mergedMeta = metadata.MergeDescription(mergedMeta, *description)
+	}
 
 	// If we got a non-empty categoryPath, update category_path and canonical_category; otherwise leave them unchanged.
 	if len(categoryPath) > 0 {

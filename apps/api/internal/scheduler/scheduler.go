@@ -341,7 +341,7 @@ func (s *Scheduler) RunEnrichmentJob(force bool, triggeredBy string) {
 			continue
 		}
 
-		if err := s.db.UpdateListingEnrichment(ctx, l.ID, result.CategoryPath, result.RawSpecs, result.Unavailable); err != nil {
+		if err := s.db.UpdateListingEnrichment(ctx, l.ID, result.CategoryPath, result.RawSpecs, result.Unavailable, result.Description); err != nil {
 			log.Printf("[enrichment] failed to update listing %d: %v", l.ID, err)
 			errStrs = append(errStrs, fmt.Sprintf("listing %d update: %v", l.ID, err))
 			continue
@@ -447,7 +447,7 @@ func (s *Scheduler) RunEnrichmentJobForStore(storeType string, force bool, trigg
 				errStrs = append(errStrs, fmt.Sprintf("listing %d: %v", l.ID, err))
 				continue
 			}
-			if err := s.db.UpdateListingEnrichment(ctx, l.ID, result.CategoryPath, result.RawSpecs, result.Unavailable); err != nil {
+			if err := s.db.UpdateListingEnrichment(ctx, l.ID, result.CategoryPath, result.RawSpecs, result.Unavailable, result.Description); err != nil {
 				log.Printf("[enrichment] failed to update listing %d: %v", l.ID, err)
 				errStrs = append(errStrs, fmt.Sprintf("listing %d update: %v", l.ID, err))
 				continue

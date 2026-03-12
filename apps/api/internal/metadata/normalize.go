@@ -49,6 +49,24 @@ func MergeSpecs(existing []byte, rawSpecs map[string]string) []byte {
 	return b
 }
 
+// MergeDescription merges a PDP description into existing metadata JSONB.
+// Used for LLM spec extraction; description is stored at metadata.description.
+func MergeDescription(existing []byte, description string) []byte {
+	if description == "" {
+		return existing
+	}
+	var base map[string]interface{}
+	if len(existing) > 0 {
+		_ = json.Unmarshal(existing, &base)
+	}
+	if base == nil {
+		base = make(map[string]interface{})
+	}
+	base["description"] = description
+	b, _ := json.Marshal(base)
+	return b
+}
+
 var snakeRe = regexp.MustCompile(`[^a-zA-Z0-9]+`)
 
 // specKeyLabels maps canonical spec keys to human-readable display labels.

@@ -33,6 +33,7 @@ type EnrichResult struct {
 	CategoryPath []string          `json:"category_path"`
 	RawSpecs     map[string]string `json:"raw_specs"`
 	Unavailable  bool              `json:"unavailable"`
+	Description  *string           `json:"description,omitempty"`
 }
 
 type Client struct {

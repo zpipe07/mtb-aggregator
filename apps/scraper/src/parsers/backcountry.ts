@@ -303,14 +303,57 @@ export async function enrichBackcountry(productUrl: string): Promise<EnrichResul
     const html = await res.text();
     const categoryPath = extractBreadcrumbs(html);
     const rawSpecs = extractSpecs(html);
+    const description = extractDescription(html);
 
     await new Promise((r) => setTimeout(r, ENRICH_DELAY_MS));
 
-    return { category_path: categoryPath, raw_specs: rawSpecs };
+    return {
+      category_path: categoryPath,
+      raw_specs: rawSpecs,
+      description: description ?? undefined,
+    };
   } catch (err) {
     console.error("[scraper] Backcountry enrich failed:", err);
     return { category_path: null, raw_specs: null };
   }
+}
+
+/**
+ * Extract description text from PDP HTML. Tries description-specific sections first,
+ * then falls back to stripping spec tables/dl from main content.
+ */
+function extractDescription(html: string): string | null {
+  const $ = cheerio.load(html);
+  const clean = (t: string | null | undefined) => (t || "").replace(/\s+/g, " ").trim();
+
+  const descSelectors = [
+    '[data-testid="product-description"]',
+    ".product-description",
+    "#product-description",
+    '[id*="description"]',
+    ".product-details",
+    ".product-overview",
+    "main [class*='description']",
+  ];
+  for (const sel of descSelectors) {
+    const el = $(sel).first();
+    if (el.length) {
+      const clone = el.clone();
+      clone.find("table, dl").remove();
+      const text = clean(clone.text());
+      if (text && text.length >= 50 && text.length < 12000) return text;
+    }
+  }
+
+  // Fallback: strip tables/dl from main or body, use remaining text
+  const container = $("main").length ? $("main").first() : $("body").first();
+  if (container.length) {
+    const clone = container.clone();
+    clone.find("table, dl").remove();
+    const text = clean(clone.text());
+    if (text && text.length >= 50) return text.length > 8000 ? text.slice(0, 8000) : text;
+  }
+  return null;
 }
 
 function extractBreadcrumbs(html: string): string[] | null {

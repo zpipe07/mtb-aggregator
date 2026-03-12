@@ -880,7 +880,7 @@ func (h *Handlers) PostAdminEnrichListing(w http.ResponseWriter, r *http.Request
 		})
 		return
 	}
-	if err := h.DB.UpdateListingEnrichment(r.Context(), id, result.CategoryPath, result.RawSpecs, result.Unavailable); err != nil {
+	if err := h.DB.UpdateListingEnrichment(r.Context(), id, result.CategoryPath, result.RawSpecs, result.Unavailable, result.Description); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
