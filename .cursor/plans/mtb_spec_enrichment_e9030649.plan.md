@@ -7,7 +7,7 @@ todos:
     status: completed
   - id: llm-client
     content: "Step 2: Build OpenAI LLM client in Go (net/http, JSON schema mode)"
-    status: pending
+    status: completed
   - id: prompt-profiles
     content: "Step 3: DB-driven prompt profiles per canonical category (migration, CRUD, admin UI)"
     status: pending
