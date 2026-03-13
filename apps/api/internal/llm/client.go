@@ -60,11 +60,16 @@ type ExtractionSchema struct {
 }
 
 // SchemaField defines a single extractable field.
+// Display metadata (label, sort_order, filterable) controls how the field appears as a filter.
 type SchemaField struct {
 	Key         string   `json:"key"`
 	Type        string   `json:"type"` // "integer", "number", "string", "enum"
 	Description string   `json:"description"`
 	Values      []string `json:"values,omitempty"` // for type "enum"
+	// Display metadata for filter UI (optional)
+	Label      string `json:"label,omitempty"`       // display label; fallback to key title-case
+	SortOrder  int    `json:"sort_order,omitempty"` // higher = shown first
+	Filterable *bool  `json:"filterable,omitempty"` // default true; false for confidence/metadata fields
 }
 
 // ExtractInput is the product context passed to the LLM.
