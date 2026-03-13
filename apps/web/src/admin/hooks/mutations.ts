@@ -9,6 +9,8 @@ import {
   deleteStore,
   enrichListing,
   setListingHidden,
+  setListingLLMOverrides,
+  runLLMExtractionForCategory,
   createTaxonomyMapping,
   updateTaxonomyMapping,
   deleteTaxonomyMapping,
@@ -145,6 +147,30 @@ export function useSetListingHidden() {
       queryClient.invalidateQueries({ queryKey: adminListingKeys.all });
       queryClient.invalidateQueries({ queryKey: adminListingKeys.detail(id) });
       queryClient.invalidateQueries({ queryKey: dealKeys.all });
+    },
+  });
+}
+
+export function useSetListingLLMOverrides() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, overrides }: { id: number; overrides: Record<string, string | null> }) =>
+      setListingLLMOverrides(id, overrides),
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: adminListingKeys.all });
+      queryClient.invalidateQueries({ queryKey: adminListingKeys.detail(id) });
+      queryClient.invalidateQueries({ queryKey: dealKeys.all });
+    },
+  });
+}
+
+export function useRunLLMExtractionForCategory() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: runLLMExtractionForCategory,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminListingKeys.all });
+      queryClient.invalidateQueries({ queryKey: adminLLMProfileKeys.all });
     },
   });
 }

@@ -211,3 +211,23 @@ type openAIChatResponse struct {
 	} `json:"choices"`
 	Refusal *string `json:"refusal,omitempty"`
 }
+
+// ListingDataProvider provides listing data for LLM extraction. Implemented by db.DB.
+type ListingDataProvider interface {
+	GetListingForLLM(ctx context.Context, id int) (*ListingForLLM, error)
+	GetLLMPromptProfileForCategory(ctx context.Context, canonicalCategory []string) (*LLMPromptProfileRow, error)
+	UpdateListingLLMSpecs(ctx context.Context, id int, llmResult map[string]interface{}) error
+}
+
+// ListingForLLM holds data needed for LLM extraction.
+type ListingForLLM struct {
+	ProductName       string
+	Metadata          []byte
+	CanonicalCategory []string
+}
+
+// LLMPromptProfileRow is the minimal profile data needed for extraction.
+type LLMPromptProfileRow struct {
+	SystemPrompt    string
+	ExtractionSchema json.RawMessage
+}

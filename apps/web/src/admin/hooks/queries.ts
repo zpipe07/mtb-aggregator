@@ -124,6 +124,7 @@ export interface AdminListingsParams {
   hidden?: boolean;
   category?: string;
   canonical_category?: string;
+  llm_confidence_below?: number;
   q?: string;
   sort?: string;
   limit?: number;

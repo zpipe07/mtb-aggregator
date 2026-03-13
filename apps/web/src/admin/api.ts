@@ -309,6 +309,7 @@ export async function fetchAdminListings(params?: {
   sort?: string;
   limit?: number;
   offset?: number;
+  llm_confidence_below?: number;
 }): Promise<AdminListingsResponse> {
   const search = new URLSearchParams();
   if (params?.store_id != null) search.set("store_id", String(params.store_id));
@@ -319,6 +320,7 @@ export async function fetchAdminListings(params?: {
   if (params?.hidden != null) search.set("hidden", params.hidden ? "true" : "false");
   if (params?.category) search.set("category", params.category);
   if (params?.canonical_category) search.set("canonical_category", params.canonical_category);
+  if (params?.llm_confidence_below != null) search.set("llm_confidence_below", String(params.llm_confidence_below));
   if (params?.q) search.set("q", params.q);
   if (params?.sort) search.set("sort", params.sort);
   if (params?.limit != null) search.set("limit", String(params.limit));
@@ -352,6 +354,35 @@ export async function setListingHidden(id: number, hidden: boolean): Promise<voi
     const msg = typeof data?.error === "string" ? data.error : res.status === 404 ? "Listing not found" : "Update failed";
     throw new Error(msg);
   }
+}
+
+/** Set LLM overrides for a listing. Body is the overrides map e.g. { mtb_class: "Trail" }. Pass null for a key to clear. */
+export async function setListingLLMOverrides(id: number, overrides: Record<string, string | null>): Promise<void> {
+  const res = await fetch(`${API_BASE}/admin/listings/${id}/llm-overrides`, {
+    method: "POST",
+    headers: adminHeaders(),
+    body: JSON.stringify(overrides),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const msg = typeof data?.error === "string" ? data.error : "Update failed";
+    throw new Error(msg);
+  }
+}
+
+/** Re-run LLM extraction for all listings in a canonical category. */
+export async function runLLMExtractionForCategory(canonicalCategory: string[]): Promise<{ ok: boolean; processed: number }> {
+  const res = await fetch(`${API_BASE}/admin/llm/run`, {
+    method: "POST",
+    headers: adminHeaders(),
+    body: JSON.stringify({ canonical_category: canonicalCategory }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const msg = typeof data?.error === "string" ? data.error : "Re-run failed";
+    throw new Error(msg);
+  }
+  return data;
 }
 
 /** Run enrichment for a single listing. Returns { ok, category_path } or throws with error message. */

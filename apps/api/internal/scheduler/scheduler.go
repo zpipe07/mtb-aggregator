@@ -13,6 +13,7 @@ import (
 
 	"github.com/mtb-aggregator/api/internal/brand"
 	"github.com/mtb-aggregator/api/internal/db"
+	"github.com/mtb-aggregator/api/internal/llm"
 	"github.com/mtb-aggregator/api/internal/metadata"
 	"github.com/mtb-aggregator/api/internal/scraper"
 	"github.com/mtb-aggregator/api/internal/taxonomy"
@@ -52,13 +53,15 @@ type Scheduler struct {
 	cron    *cron.Cron
 	db      *db.DB
 	scraper *scraper.Client
+	llm     *llm.Client
 }
 
-func New(database *db.DB, scraperURL string) *Scheduler {
+func New(database *db.DB, scraperURL string, llmClient *llm.Client) *Scheduler {
 	return &Scheduler{
 		cron:    cron.New(),
 		db:      database,
 		scraper: scraper.NewClient(scraperURL),
+		llm:     llmClient,
 	}
 }
 
@@ -354,6 +357,7 @@ func (s *Scheduler) RunEnrichmentJob(force bool, triggeredBy string) {
 		if len(result.CategoryPath) > 0 {
 			log.Printf("[enrichment] listing %d: category_path=%v", l.ID, result.CategoryPath)
 		}
+		s.runLLMExtractionIfApplicable(ctx, l.ID)
 	}
 
 	status := "completed"
@@ -362,6 +366,63 @@ func (s *Scheduler) RunEnrichmentJob(force bool, triggeredBy string) {
 		_ = s.db.UpdateEnrichJob(ctx, jobID, status, &p, &successCount, errStrs)
 	}
 	log.Printf("[enrichment] enriched %d/%d listings", successCount, len(listings))
+}
+
+// runLLMExtractionIfApplicable runs LLM spec extraction for a listing if a matching profile exists.
+// Non-fatal: logs errors but does not fail the enrichment job.
+func (s *Scheduler) runLLMExtractionIfApplicable(ctx context.Context, listingID int) {
+	if s.llm == nil {
+		return
+	}
+	listing, err := s.db.GetListingForLLM(ctx, listingID)
+	if err != nil || listing == nil {
+		return
+	}
+	if len(listing.CanonicalCategory) == 0 {
+		return
+	}
+	profile, err := s.db.GetLLMPromptProfileForCategory(ctx, listing.CanonicalCategory)
+	if err != nil || profile == nil {
+		return
+	}
+	var meta struct {
+		Description string                 `json:"description"`
+		Specs       map[string]interface{} `json:"specs"`
+	}
+	_ = json.Unmarshal(listing.Metadata, &meta)
+	specs := make(map[string]string)
+	if meta.Specs != nil {
+		for k, v := range meta.Specs {
+			if v != nil {
+				specs[k] = fmt.Sprint(v)
+			}
+		}
+	}
+	input := llm.ExtractInput{
+		ProductName:  listing.ProductName,
+		Description:  meta.Description,
+		Specs:        specs,
+		CategoryPath: listing.CanonicalCategory,
+	}
+	var llmProfile llm.Profile
+	if err := json.Unmarshal(profile.ExtractionSchema, &llmProfile.ExtractionSchema); err != nil {
+		log.Printf("[enrichment] listing %d: invalid extraction_schema: %v", listingID, err)
+		return
+	}
+	llmProfile.SystemPrompt = profile.SystemPrompt
+	result, err := s.llm.Extract(ctx, llmProfile, input)
+	if err != nil {
+		log.Printf("[enrichment] listing %d: LLM extract failed: %v", listingID, err)
+		return
+	}
+	if result == nil {
+		return
+	}
+	if err := s.db.UpdateListingLLMSpecs(ctx, listingID, result); err != nil {
+		log.Printf("[enrichment] listing %d: failed to save LLM specs: %v", listingID, err)
+		return
+	}
+	log.Printf("[enrichment] listing %d: LLM extracted specs", listingID)
 }
 
 // RunEnrichmentJobForStore runs enrichment for all listings of a single store (by store_type), in batches.
@@ -460,6 +521,7 @@ func (s *Scheduler) RunEnrichmentJobForStore(storeType string, force bool, trigg
 			if len(result.CategoryPath) > 0 {
 				log.Printf("[enrichment] listing %d: category_path=%v", l.ID, result.CategoryPath)
 			}
+			s.runLLMExtractionIfApplicable(ctx, l.ID)
 		}
 		totalProcessed += len(listings)
 		log.Printf("[enrichment] %s: batch done %d/%d", storeType, successCount, len(listings))

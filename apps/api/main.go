@@ -267,9 +267,9 @@ func main() {
 		log.Println("[jobs] marked any orphaned running jobs as stale")
 	}
 
-	sched := scheduler.New(database, scraperURL)
 	scraperClient := scraper.NewClient(scraperURL)
 	llmClient := llm.New("", "")
+	sched := scheduler.New(database, scraperURL, llmClient)
 	handlers := &api.Handlers{DB: database, ScraperURL: scraperURL, Scraper: scraperClient, LLM: llmClient}
 	log.Println("[startup] scheduler and handlers initialized")
 
@@ -494,6 +494,14 @@ func main() {
 				return
 			}
 			handlers.PostAdminEnrichListing(w, r, id)
+			return
+		}
+		if len(parts) > 1 && parts[1] == "llm-overrides" {
+			if r.Method != http.MethodPost {
+				http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+				return
+			}
+			handlers.PostAdminListingLLMOverrides(w, r, id)
 			return
 		}
 		if r.Method == http.MethodPatch {
@@ -724,6 +732,19 @@ func main() {
 		case http.MethodDelete:
 			handlers.DeleteAdminSpecValueAlias(w, r, id)
 		default:
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		}
+	}))
+
+	// Admin: POST /admin/llm/run — re-run LLM extraction for all listings in a canonical category
+	http.HandleFunc("/admin/llm/run", api.AdminRequired(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/admin/llm/run" {
+			http.NotFound(w, r)
+			return
+		}
+		if r.Method == http.MethodPost {
+			handlers.PostAdminLLMRun(w, r)
+		} else {
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		}
 	}))

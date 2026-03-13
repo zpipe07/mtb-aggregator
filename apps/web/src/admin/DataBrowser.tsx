@@ -14,7 +14,7 @@ import {
   useAdminListings,
   useAdminListing,
 } from "./hooks/queries";
-import { useEnrichListing, useSetListingHidden } from "./hooks/mutations";
+import { useEnrichListing, useSetListingHidden, useSetListingLLMOverrides } from "./hooks/mutations";
 import type { AdminListing } from "./api";
 
 const PAGE_SIZE = 25;
@@ -58,17 +58,152 @@ function getMetadataObj(metadata: AdminListing["metadata"]): Record<string, unkn
   return null;
 }
 
-/** Short one-line summary for table: pull from metadata.specs (wheel_size, travel, material). */
+/** Get displayed spec value: llm_overrides[key] ?? specs[key]. */
+function getDisplayedSpec(metadata: AdminListing["metadata"], key: string): string | undefined {
+  const obj = getMetadataObj(metadata);
+  if (!obj) return undefined;
+  const overrides = obj.llm_overrides as Record<string, string> | undefined;
+  if (overrides && typeof overrides[key] === "string") return overrides[key];
+  const specs = obj.specs as Record<string, unknown> | undefined;
+  if (specs && specs[key] != null) return String(specs[key]);
+  return undefined;
+}
+
+/** Check if a spec key has an override. */
+function hasOverride(metadata: AdminListing["metadata"], key: string): boolean {
+  const obj = getMetadataObj(metadata);
+  const overrides = obj?.llm_overrides as Record<string, unknown> | undefined;
+  return !!(overrides && key in overrides);
+}
+
+/** Short one-line summary for table: pull from metadata.specs/llm_overrides. */
 function metadataSummary(metadata: AdminListing["metadata"]): string {
   const obj = getMetadataObj(metadata);
   if (!obj) return "—";
   const specs = obj.specs as Record<string, unknown> | undefined;
-  if (!specs || typeof specs !== "object" || Object.keys(specs).length === 0) return "—";
-  const parts: string[] = [];
-  if (specs.wheel_size != null) parts.push(String(specs.wheel_size));
-  if (specs.travel != null) parts.push(String(specs.travel));
-  if (specs.material != null) parts.push(String(specs.material));
-  return parts.length > 0 ? parts.slice(0, 3).join(" · ") : "—";
+  const overrides = obj.llm_overrides as Record<string, unknown> | undefined;
+  const get = (k: string) =>
+    (overrides && typeof overrides[k] === "string" ? overrides[k] : specs?.[k]) != null
+      ? String(overrides?.[k] ?? specs?.[k])
+      : null;
+  const parts: (string | null)[] = [get("wheel_size"), get("front_travel_mm") ?? get("rear_travel_mm"), get("mtb_class")];
+  const filtered = parts.filter((p): p is string => p != null && p !== "");
+  return filtered.length > 0 ? filtered.slice(0, 3).join(" · ") : "—";
+}
+
+/** Get llm_confidence from metadata (0–1). */
+function getLLMConfidence(metadata: AdminListing["metadata"]): number | null {
+  const obj = getMetadataObj(metadata);
+  if (!obj) return null;
+  const v = obj.llm_confidence;
+  if (typeof v === "number" && v >= 0 && v <= 1) return v;
+  return null;
+}
+
+/** Get all spec keys from metadata (specs + llm_overrides). */
+function getAllSpecKeys(metadata: AdminListing["metadata"]): string[] {
+  const obj = getMetadataObj(metadata);
+  if (!obj) return [];
+  const specs = obj.specs as Record<string, unknown> | undefined;
+  const overrides = obj.llm_overrides as Record<string, unknown> | undefined;
+  const keys = new Set<string>([
+    ...(specs && typeof specs === "object" ? Object.keys(specs) : []),
+    ...(overrides && typeof overrides === "object" ? Object.keys(overrides) : []),
+  ]);
+  return [...keys].sort();
+}
+
+function ListingSpecOverrides({
+  listingId,
+  metadata,
+  mutation,
+}: {
+  listingId: number;
+  metadata: AdminListing["metadata"];
+  mutation: ReturnType<typeof useSetListingLLMOverrides>;
+}) {
+  const [edits, setEdits] = useState<Record<string, string>>({});
+  const keys = getAllSpecKeys(metadata);
+  if (keys.length === 0) return null;
+
+  const overridesToSave: Record<string, string | null> = {};
+  for (const key of keys) {
+    const displayed = getDisplayedSpec(metadata, key) ?? "";
+    const current = key in edits ? edits[key] : displayed;
+    if (current !== displayed) {
+      if (current === "" && hasOverride(metadata, key)) overridesToSave[key] = null;
+      else if (current !== "") overridesToSave[key] = current;
+    }
+  }
+  const hasChanges = Object.keys(overridesToSave).length > 0;
+
+  function handleSave() {
+    if (!hasChanges) return;
+    mutation.mutate({ id: listingId, overrides: overridesToSave });
+    setEdits({});
+  }
+
+  return (
+    <div>
+      <h4 className="font-medium text-stone-700 mb-2">Specifications (LLM overrides)</h4>
+      <p className="text-xs text-stone-500 mb-2">
+        Edit values to override LLM-extracted specs. Overridden values appear highlighted.
+      </p>
+      <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 mb-2">
+        {keys.map((key) => {
+          const displayed = getDisplayedSpec(metadata, key) ?? "";
+          const value = key in edits ? edits[key] : displayed;
+          const isOverridden = hasOverride(metadata, key);
+          return (
+            <span key={key} className="contents">
+              <dt className="text-stone-500 flex items-center gap-1">
+                {key.replace(/_/g, " ")}
+                {isOverridden && (
+                  <span className="text-xs bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded">override</span>
+                )}
+              </dt>
+              <dd>
+                <input
+                  type="text"
+                  value={value}
+                  onChange={(e) => setEdits((prev) => ({ ...prev, [key]: e.target.value }))}
+                  className={`w-full max-w-xs rounded border px-2 py-1 text-sm ${
+                    isOverridden ? "border-blue-300 bg-blue-50" : "border-stone-300"
+                  }`}
+                  placeholder="—"
+                />
+              </dd>
+            </span>
+          );
+        })}
+      </dl>
+      {hasChanges && (
+        <div className="flex gap-2 mt-2">
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={mutation.isPending}
+            className="rounded bg-stone-700 px-3 py-1.5 text-sm text-white hover:bg-stone-600 disabled:opacity-50"
+          >
+            {mutation.isPending ? "Saving…" : "Save overrides"}
+          </button>
+          <button
+            type="button"
+            onClick={() => setEdits({})}
+            className="rounded border border-stone-300 px-3 py-1.5 text-sm hover:bg-stone-50"
+          >
+            Reset
+          </button>
+        </div>
+      )}
+      <details className="mt-1">
+        <summary className="text-stone-500 cursor-pointer text-xs">Raw metadata JSON</summary>
+        <pre className="rounded bg-stone-100 p-2 text-xs overflow-auto max-h-24 mt-1">
+          {JSON.stringify(metadata, null, 2)}
+        </pre>
+      </details>
+    </div>
+  );
 }
 
 export function DataBrowser() {
@@ -82,6 +217,7 @@ export function DataBrowser() {
   const [sort, setSort] = useState("newest");
   const [offset, setOffset] = useState(0);
   const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [llmConfidenceBelow, setLlmConfidenceBelow] = useState<number | null>(null);
 
   const { data: stores = [] } = useAdminStores();
   const { data: listingsData, isPending: loading, isError, error, refetch } = useAdminListings({
@@ -91,6 +227,7 @@ export function DataBrowser() {
     in_stock: inStock ?? undefined,
     hidden: visibility === "all" ? undefined : visibility === "hidden",
     category: category || undefined,
+    llm_confidence_below: llmConfidenceBelow ?? undefined,
     q: q || undefined,
     sort,
     limit: PAGE_SIZE,
@@ -102,6 +239,7 @@ export function DataBrowser() {
 
   const enrichMutation = useEnrichListing();
   const setHiddenMutation = useSetListingHidden();
+  const setLLMOverridesMutation = useSetListingLLMOverrides();
 
   const listings = listingsData?.listings ?? [];
   const totalCount = listingsData?.total_count ?? 0;
@@ -126,18 +264,21 @@ export function DataBrowser() {
     <div>
       <h2 className="text-xl font-semibold text-stone-800 mb-4">Data</h2>
 
-      {(isError || enrichMutation.isError || setHiddenMutation.isError) && (
+      {(isError || enrichMutation.isError || setHiddenMutation.isError || setLLMOverridesMutation.isError) && (
         <div className="mb-4 rounded border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
           {enrichMutation.isError
             ? enrichMutation.error?.message ?? "Enrich failed"
             : setHiddenMutation.isError
               ? setHiddenMutation.error?.message ?? "Update failed"
-              : error?.message ?? "Failed to load"}
+              : setLLMOverridesMutation.isError
+                ? setLLMOverridesMutation.error?.message ?? "Override failed"
+                : error?.message ?? "Failed to load"}
           <button
             type="button"
             onClick={() => {
               enrichMutation.reset();
               setHiddenMutation.reset();
+              setLLMOverridesMutation.reset();
               if (isError) refetch();
             }}
             className="ml-2 underline"
@@ -232,6 +373,20 @@ export function DataBrowser() {
           className="rounded border border-stone-300 px-3 py-2 text-sm w-40"
         />
         <select
+          value={llmConfidenceBelow === null ? "" : String(llmConfidenceBelow)}
+          onChange={(e) => {
+            const v = e.target.value;
+            setLlmConfidenceBelow(v === "" ? null : Number(v));
+            setOffset(0);
+          }}
+          className="rounded border border-stone-300 px-3 py-2 text-sm"
+        >
+          <option value="">LLM conf: any</option>
+          <option value="0.9">&lt; 0.9</option>
+          <option value="0.7">&lt; 0.7</option>
+          <option value="0.5">&lt; 0.5</option>
+        </select>
+        <select
           value={sort}
           onChange={(e) => {
             setSort(e.target.value);
@@ -267,6 +422,10 @@ export function DataBrowser() {
                     <th className="px-4 py-2 text-right font-medium text-stone-600">Discount %</th>
                     <th className="px-4 py-2 text-left font-medium text-stone-600">Canonical category</th>
                     <th className="px-4 py-2 text-left font-medium text-stone-600">Metadata</th>
+                    <th className="px-4 py-2 text-left font-medium text-stone-600">MTB class</th>
+                    <th className="px-4 py-2 text-left font-medium text-stone-600">Travel</th>
+                    <th className="px-4 py-2 text-left font-medium text-stone-600">Wheel</th>
+                    <th className="px-4 py-2 text-right font-medium text-stone-600">LLM conf</th>
                     <th className="px-4 py-2 text-center font-medium text-stone-600">Stock</th>
                     <th className="px-4 py-2 text-center font-medium text-stone-600">Enriched</th>
                     <th className="px-4 py-2 text-left font-medium text-stone-600">Last scraped</th>
@@ -305,6 +464,22 @@ export function DataBrowser() {
                       </td>
                       <td className="px-4 py-2 text-stone-600 max-w-[10rem] truncate" title={metadataSummary(row.metadata)}>
                         {metadataSummary(row.metadata)}
+                      </td>
+                      <td className="px-4 py-2 text-stone-600 max-w-20 truncate">
+                        {getDisplayedSpec(row.metadata, "mtb_class") ?? "—"}
+                      </td>
+                      <td className="px-4 py-2 text-stone-600 max-w-20 truncate">
+                        {[getDisplayedSpec(row.metadata, "front_travel_mm"), getDisplayedSpec(row.metadata, "rear_travel_mm")]
+                          .filter(Boolean)
+                          .join("/") || "—"}
+                      </td>
+                      <td className="px-4 py-2 text-stone-600 max-w-16 truncate">
+                        {getDisplayedSpec(row.metadata, "wheel_size") ?? "—"}
+                      </td>
+                      <td className="px-4 py-2 text-right text-stone-600">
+                        {getLLMConfidence(row.metadata) != null
+                          ? `${Math.round(getLLMConfidence(row.metadata)! * 100)}%`
+                          : "—"}
                       </td>
                       <td className="px-4 py-2 text-center">
                         {row.is_in_stock ? (
@@ -456,30 +631,11 @@ export function DataBrowser() {
                   <dt className="text-stone-500">Canonical category</dt>
                   <dd>{canonCatDisplay(detail.canonical_category)}</dd>
                 </dl>
-                {(() => {
-                  const meta = getMetadataObj(detail.metadata);
-                  const specs = meta?.specs as Record<string, unknown> | undefined;
-                  if (!specs || typeof specs !== "object" || Object.keys(specs).length === 0) return null;
-                  return (
-                    <div>
-                      <h4 className="font-medium text-stone-700 mb-2">Specifications</h4>
-                      <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 mb-2">
-                        {Object.entries(specs).map(([key, value]) => (
-                          <span key={key} className="contents">
-                            <dt className="text-stone-500">{key.replace(/_/g, " ")}</dt>
-                            <dd>{value != null ? String(value) : "—"}</dd>
-                          </span>
-                        ))}
-                      </dl>
-                      <details className="mt-1">
-                        <summary className="text-stone-500 cursor-pointer text-xs">Raw metadata JSON</summary>
-                        <pre className="rounded bg-stone-100 p-2 text-xs overflow-auto max-h-24 mt-1">
-                          {JSON.stringify(detail.metadata, null, 2)}
-                        </pre>
-                      </details>
-                    </div>
-                  );
-                })()}
+                <ListingSpecOverrides
+                  listingId={detail.id}
+                  metadata={detail.metadata}
+                  mutation={setLLMOverridesMutation}
+                />
                 {chartData.length > 0 && (
                   <div>
                     <h4 className="font-medium text-stone-700 mb-2">Price history</h4>

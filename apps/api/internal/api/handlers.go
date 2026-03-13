@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -772,6 +773,11 @@ func (h *Handlers) GetAdminListings(w http.ResponseWriter, r *http.Request) {
 			params.Offset = n
 		}
 	}
+	if s := r.URL.Query().Get("llm_confidence_below"); s != "" {
+		if f, err := strconv.ParseFloat(s, 64); err == nil && f >= 0 && f <= 1 {
+			params.LLMConfidenceBelow = &f
+		}
+	}
 	listings, totalCount, err := h.DB.GetAdminListings(r.Context(), params)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -808,6 +814,33 @@ func (h *Handlers) PatchAdminListingHidden(w http.ResponseWriter, r *http.Reques
 	}
 	err := h.DB.SetListingHidden(r.Context(), id, *body.Hidden)
 	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			http.Error(w, "not found", http.StatusNotFound)
+			return
+		}
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]bool{"ok": true})
+}
+
+// PostAdminListingLLMOverrides sets manual overrides for LLM-derived specs (admin). Body: {"mtb_class": "Trail", ...}.
+func (h *Handlers) PostAdminListingLLMOverrides(w http.ResponseWriter, r *http.Request, id int) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var body map[string]interface{}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		http.Error(w, "invalid json", http.StatusBadRequest)
+		return
+	}
+	if len(body) == 0 {
+		http.Error(w, "llm_overrides object required", http.StatusBadRequest)
+		return
+	}
+	if err := h.DB.UpdateListingLLMOverrides(r.Context(), id, body); err != nil {
 		if strings.Contains(err.Error(), "not found") {
 			http.Error(w, "not found", http.StatusNotFound)
 			return
@@ -886,12 +919,69 @@ func (h *Handlers) PostAdminEnrichListing(w http.ResponseWriter, r *http.Request
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	h.runLLMExtractionIfApplicable(r.Context(), id)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"ok":            true,
 		"category_path": result.CategoryPath,
 		"unavailable":   result.Unavailable,
 	})
+}
+
+// runLLMExtractionIfApplicable runs LLM spec extraction for a listing if a matching profile exists.
+// Non-fatal: logs errors but does not fail the enrichment. Used by PostAdminEnrichListing.
+func (h *Handlers) runLLMExtractionIfApplicable(ctx context.Context, listingID int) {
+	if h.LLM == nil {
+		return
+	}
+	listing, err := h.DB.GetListingForLLM(ctx, listingID)
+	if err != nil || listing == nil {
+		return
+	}
+	if len(listing.CanonicalCategory) == 0 {
+		return
+	}
+	profile, err := h.DB.GetLLMPromptProfileForCategory(ctx, listing.CanonicalCategory)
+	if err != nil || profile == nil {
+		return
+	}
+	var meta struct {
+		Description string                 `json:"description"`
+		Specs       map[string]interface{} `json:"specs"`
+	}
+	_ = json.Unmarshal(listing.Metadata, &meta)
+	specs := make(map[string]string)
+	if meta.Specs != nil {
+		for k, v := range meta.Specs {
+			if v != nil {
+				specs[k] = fmt.Sprint(v)
+			}
+		}
+	}
+	input := llm.ExtractInput{
+		ProductName:  listing.ProductName,
+		Description:  meta.Description,
+		Specs:        specs,
+		CategoryPath: listing.CanonicalCategory,
+	}
+	var llmProfile llm.Profile
+	if err := json.Unmarshal(profile.ExtractionSchema, &llmProfile.ExtractionSchema); err != nil {
+		log.Printf("[admin] listing %d: invalid extraction_schema: %v", listingID, err)
+		return
+	}
+	llmProfile.SystemPrompt = profile.SystemPrompt
+	result, err := h.LLM.Extract(ctx, llmProfile, input)
+	if err != nil {
+		log.Printf("[admin] listing %d: LLM extract failed: %v", listingID, err)
+		return
+	}
+	if result == nil {
+		return
+	}
+	if err := h.DB.UpdateListingLLMSpecs(ctx, listingID, result); err != nil {
+		log.Printf("[admin] listing %d: failed to save LLM specs: %v", listingID, err)
+		return
+	}
 }
 
 // reloadTaxonomyFromDB loads category_mappings from DB into the taxonomy in-memory cache.

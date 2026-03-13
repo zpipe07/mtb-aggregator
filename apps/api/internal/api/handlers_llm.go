@@ -237,3 +237,34 @@ func (h *Handlers) PostLLMProfileTest(w http.ResponseWriter, r *http.Request, pr
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{"result": result})
 }
+
+// PostAdminLLMRun re-runs LLM extraction for all listings in a canonical category. Body: {"canonical_category": ["Bikes", "Mountain"]}.
+func (h *Handlers) PostAdminLLMRun(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var body struct {
+		CanonicalCategory []string `json:"canonical_category"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		http.Error(w, "invalid json", http.StatusBadRequest)
+		return
+	}
+	if len(body.CanonicalCategory) == 0 {
+		http.Error(w, "canonical_category required", http.StatusBadRequest)
+		return
+	}
+	ids, err := h.DB.ListListingIDsByCanonicalCategory(r.Context(), body.CanonicalCategory)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	processed := 0
+	for _, id := range ids {
+		h.runLLMExtractionIfApplicable(r.Context(), id)
+		processed++
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{"ok": true, "processed": processed})
+}

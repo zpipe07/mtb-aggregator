@@ -2,6 +2,7 @@ package metadata
 
 import (
 	"encoding/json"
+	"fmt"
 	"regexp"
 	"strings"
 
@@ -67,27 +68,101 @@ func MergeDescription(existing []byte, description string) []byte {
 	return b
 }
 
+// MergeLLMSpecs merges LLM extraction output into existing metadata. Only fills gaps:
+// does not overwrite existing spec-table data or keys in llm_overrides. Stores confidence at metadata.llm_confidence.
+func MergeLLMSpecs(existing []byte, llmResult map[string]interface{}) []byte {
+	if len(llmResult) == 0 {
+		return existing
+	}
+	var base map[string]interface{}
+	if len(existing) > 0 {
+		_ = json.Unmarshal(existing, &base)
+	}
+	if base == nil {
+		base = make(map[string]interface{})
+	}
+	specsObj, _ := base["specs"].(map[string]interface{})
+	if specsObj == nil {
+		specsObj = make(map[string]interface{})
+		base["specs"] = specsObj
+	}
+	// Keys in llm_overrides are manual corrections; don't overwrite with LLM result.
+	overrides, _ := base["llm_overrides"].(map[string]interface{})
+	for k, v := range llmResult {
+		if k == "confidence" {
+			base["llm_confidence"] = v
+			continue
+		}
+		if v == nil {
+			continue
+		}
+		if overrides != nil && overrides[k] != nil {
+			continue // respect manual override
+		}
+		existingVal := specsObj[k]
+		if existingVal != nil && fmt.Sprint(existingVal) != "" {
+			continue // don't overwrite
+		}
+		specsObj[k] = fmt.Sprint(v)
+	}
+	b, _ := json.Marshal(base)
+	return b
+}
+
+// MergeLLMOverrides merges manual overrides into metadata.llm_overrides.
+// Override values take precedence over specs when displaying. Pass nil to clear a key.
+func MergeLLMOverrides(existing []byte, overrides map[string]interface{}) []byte {
+	if len(overrides) == 0 {
+		return existing
+	}
+	var base map[string]interface{}
+	if len(existing) > 0 {
+		_ = json.Unmarshal(existing, &base)
+	}
+	if base == nil {
+		base = make(map[string]interface{})
+	}
+	ov, _ := base["llm_overrides"].(map[string]interface{})
+	if ov == nil {
+		ov = make(map[string]interface{})
+		base["llm_overrides"] = ov
+	}
+	for k, v := range overrides {
+		if v == nil {
+			delete(ov, k)
+		} else {
+			ov[k] = fmt.Sprint(v)
+		}
+	}
+	b, _ := json.Marshal(base)
+	return b
+}
+
 var snakeRe = regexp.MustCompile(`[^a-zA-Z0-9]+`)
 
 // specKeyLabels maps canonical spec keys to human-readable display labels.
 // Unknown keys get auto-generated labels from snake_case via toTitleCase.
 var specKeyLabels = map[string]string{
-	"axle":         "Axle",
-	"diameter":     "Diameter",
-	"material":     "Material",
-	"hub_spacing": "Hub Spacing",
-	"wheel_size":  "Wheel Size",
-	"travel":      "Travel",
-	"tooth_count": "Tooth Count",
-	"weight":      "Weight",
-	"offset":      "Offset",
-	"steerer":     "Steerer",
-	"speeds":      "Drivetrain Speeds",
-	"brake_type":  "Brake Type",
-	"stanchion":   "Stanchion",
-	"damper":      "Damper",
-	"spring":      "Spring",
-	"intended_use": "Intended Use",
+	"axle":              "Axle",
+	"diameter":          "Diameter",
+	"material":          "Material",
+	"hub_spacing":       "Hub Spacing",
+	"wheel_size":        "Wheel Size",
+	"travel":            "Travel",
+	"tooth_count":       "Tooth Count",
+	"weight":            "Weight",
+	"offset":            "Offset",
+	"steerer":           "Steerer",
+	"speeds":            "Drivetrain Speeds",
+	"brake_type":        "Brake Type",
+	"stanchion":         "Stanchion",
+	"damper":            "Damper",
+	"spring":            "Spring",
+	"intended_use":      "Intended Use",
+	"mtb_class":         "MTB Class",
+	"front_travel_mm":   "Front Travel (mm)",
+	"rear_travel_mm":    "Rear Travel (mm)",
+	"frame_material":    "Frame Material",
 }
 
 // SpecKeyToLabel returns a human-readable label for a canonical spec key.
