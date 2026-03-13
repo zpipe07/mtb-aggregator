@@ -12,7 +12,6 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/lib/pq"
 	"github.com/mtb-aggregator/api/internal/metadata"
-	"github.com/mtb-aggregator/api/internal/specfilter"
 	"github.com/mtb-aggregator/api/internal/taxonomy"
 )
 
@@ -536,23 +535,27 @@ func (db *DB) GetDeals(ctx context.Context, params GetDealsParams) (*GetDealsRes
 			argNum++
 		}
 	}
-	// Spec filters: use SpecFilters map if non-empty, else fall back to legacy SpecKey/SpecValue
+	// Spec filters: query metadata.llm_specs (LLM-derived). Use SpecFilters map if non-empty, else legacy SpecKey/SpecValue.
 	specFilters := params.SpecFilters
 	if len(specFilters) == 0 && params.SpecKey != "" && params.SpecValue != "" {
 		specFilters = map[string]string{params.SpecKey: params.SpecValue}
 	}
-	config, _ := specfilter.LoadConfig(ctx, db.SpecFilterConfigLoader())
-	expanded := specfilter.ExpandFilterValues(specFilters, config)
+	expanded := make(map[string][]string)
+	for k, v := range specFilters {
+		if k != "" && v != "" {
+			expanded[k] = []string{v}
+		}
+	}
 	for k, values := range expanded {
 		if k == "" || len(values) == 0 {
 			continue
 		}
 		if len(values) == 1 {
-			query += fmt.Sprintf(" AND l.metadata->'specs'->>$%d ILIKE $%d", argNum, argNum+1)
+			query += fmt.Sprintf(" AND l.metadata->'llm_specs'->>$%d ILIKE $%d", argNum, argNum+1)
 			args = append(args, k, values[0])
 			argNum += 2
 		} else {
-			query += fmt.Sprintf(" AND (l.metadata->'specs'->>$%d)::text ILIKE ANY($%d::text[])", argNum, argNum+1)
+			query += fmt.Sprintf(" AND (l.metadata->'llm_specs'->>$%d)::text ILIKE ANY($%d::text[])", argNum, argNum+1)
 			args = append(args, k, pq.Array(values))
 			argNum += 2
 		}
