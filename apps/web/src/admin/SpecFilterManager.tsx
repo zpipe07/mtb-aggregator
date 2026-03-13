@@ -329,6 +329,19 @@ export function SpecFilterManager() {
 
   return (
     <div>
+      <div
+        className="mb-4 rounded border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900"
+        role="status"
+      >
+        <strong>Deprecated.</strong> Spec filters are now driven by LLM Prompt Profiles per category.
+        Use{" "}
+        <a href="/admin/llm-profiles" className="font-medium underline hover:text-amber-700">
+          LLM Prompt Profiles
+        </a>{" "}
+        to control which specs appear as filters; add <code>label</code>, <code>sort_order</code>, and{" "}
+        <code>filterable</code> to extraction schema fields. This page is retained for legacy PDP-based specs
+        and may be removed in a future release.
+      </div>
       <h2 className="text-xl font-semibold text-stone-800 mb-4">Spec filter normalization</h2>
       <p className="text-sm text-stone-600 mb-4">
         Control which spec keys appear as filters, merge duplicate keys (e.g. &quot;Available Diameters&quot; → &quot;Diameter&quot;),

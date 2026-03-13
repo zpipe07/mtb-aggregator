@@ -68,6 +68,12 @@ make db-migrate-remote
 # One-time backfills
 make backfill-brands
 make backfill-canonical-categories
+make backfill-llm-specs
+make backfill-llm-specs  # populate metadata.llm_specs from specs after migration 016
+make backfill-llm-specs
+make backfill-llm-specs  # populate metadata.llm_specs from metadata.specs (run after migration 016)
+make backfill-llm-specs    # populate llm_specs from specs (after migration 016)
+make backfill-llm-specs   # after migration 016: populate llm_specs from specs for pre-split listings
 
 # Build all
 make build-all
@@ -98,14 +104,14 @@ make build-all
 - `internal/brand/` — brand normalization via `packages/shared/brand_aliases.json`
 - `internal/taxonomy/` — category mapping with in-memory cache, seeded from `packages/shared/category_taxonomy.json`
 - `internal/metadata/` — extracts structured specs from enriched category paths and raw spec data
-- `internal/specfilter/` — controls which spec keys appear as filters in the UI
+- Spec filters are LLM-driven: `llm_prompt_profiles` extraction schema (label, sort_order, filterable per field) controls which specs appear as filters per category. The legacy SpecFilterManager (spec_filter_config) is deprecated.
 - Admin endpoints under `/admin/*` require Bearer token auth (password set via `ADMIN_PASSWORD`)
 - Public API: `GET /deals`, `/stores`, `/brands`, `/canonical-categories`, `/facets`, `/spec-values`, `/status`
 
 ### Web (`apps/web/`)
 
 - React Router routes: `/` (HomePage), `/deals` (DealsPage), `/admin/*` (AdminSection)
-- Admin section includes: Dashboard, DataBrowser, StoreManager, TaxonomyManager, Operations, SpecFilterManager
+- Admin section includes: Dashboard, DataBrowser, StoreManager, TaxonomyManager, Operations, SpecFilterManager (deprecated), PromptProfileManager (LLM profiles = filter config)
 - Admin login state stored in `localStorage`; `AdminGate` handles auth gating
 - API base URL defaults to `http://localhost:8080`; configure via Vite proxy or env if needed
 
