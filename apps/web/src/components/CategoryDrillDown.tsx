@@ -1,13 +1,71 @@
 import { useRef, useState, useCallback, useEffect } from "react";
+import type { CategoryTreeNode } from "../api";
 
 type TreeNode = {
   path: string;
   label: string;
+  slug?: string;
   children: TreeNode[];
   isSelectable: boolean;
 };
 
 const TOP_ORDER = ["Bikes", "Components", "Gear", "Accessories", "Other"];
+
+/** Convert API tree to internal TreeNode with slug. Breadcrumb/navigation use slug. */
+function fromCategoryTree(
+  nodes: CategoryTreeNode[],
+  parentSlugs: string[] = [],
+): TreeNode[] {
+  return nodes
+    .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+    .map((n) => {
+      const slug = n.slug;
+      const slugPath = parentSlugs.length > 0 ? [...parentSlugs, slug] : [slug];
+      const children = fromCategoryTree(n.children ?? [], slugPath);
+      return {
+        path: slug,
+        label: n.name,
+        slug,
+        children,
+        isSelectable: true,
+      };
+    });
+}
+
+function getChildrenAtBySlug(
+  nodes: TreeNode[],
+  breadcrumbSlugs: string[],
+): TreeNode[] {
+  if (breadcrumbSlugs.length === 0) return nodes;
+  const [first, ...rest] = breadcrumbSlugs;
+  const node = nodes.find((n) => n.slug === first || n.path === first);
+  if (!node) return [];
+  return getChildrenAtBySlug(node.children, rest);
+}
+
+function findLabelBySlug(nodes: TreeNode[], slug: string): string | null {
+  for (const n of nodes) {
+    if (n.slug === slug) return n.label;
+    if (n.children.length > 0) {
+      const found = findLabelBySlug(n.children, slug);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+function getBreadcrumbSlugsForSlug(
+  nodes: TreeNode[],
+  targetSlug: string,
+  acc: string[] = [],
+): string[] | null {
+  for (const n of nodes) {
+    if (n.slug === targetSlug) return acc;
+    const found = getBreadcrumbSlugsForSlug(n.children, targetSlug, [...acc, n.slug!]);
+    if (found) return found;
+  }
+  return null;
+}
 
 /** Parse flat "Parent > Child > Grandchild" paths into a tree. */
 function buildTree(paths: string[]): TreeNode[] {

@@ -36,6 +36,9 @@ import {
   updateCategoryClassifier,
   testCategoryClassifier,
   runCategoryClassifier,
+  createAdminCategory,
+  updateAdminCategory,
+  deleteAdminCategory,
   type StoreFormBody,
 } from "../api";
 import {
@@ -50,8 +53,9 @@ import {
   adminNormalizationKeys,
   adminLLMProfileKeys,
   adminCategoryClassifierKeys,
+  adminCategoryKeys,
 } from "./queryKeys";
-import { dealKeys } from "../../hooks/queryKeys";
+import { dealKeys, categoryTreeKeys } from "../../hooks/queryKeys";
 
 export function useTriggerScrape() {
   const queryClient = useQueryClient();
@@ -507,6 +511,45 @@ export function useRunCategoryClassifier() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: adminListingKeys.all });
       queryClient.invalidateQueries({ queryKey: adminCategoryClassifierKeys.all });
+    },
+  });
+}
+
+export function useCreateAdminCategory() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: createAdminCategory,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminCategoryKeys.all });
+      queryClient.invalidateQueries({ queryKey: dealKeys.all });
+    },
+  });
+}
+
+export function useUpdateAdminCategory() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      body,
+    }: {
+      id: number;
+      body: { slug: string; name: string; sort_order?: number };
+    }) => updateAdminCategory(id, body),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminCategoryKeys.all });
+      queryClient.invalidateQueries({ queryKey: dealKeys.all });
+    },
+  });
+}
+
+export function useDeleteAdminCategory() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: deleteAdminCategory,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminCategoryKeys.all });
+      queryClient.invalidateQueries({ queryKey: dealKeys.all });
     },
   });
 }

@@ -6,6 +6,7 @@ const navItems = [
   { to: "/admin/stores", end: false, label: "Stores" },
   { to: "/admin/data", end: false, label: "Data" },
   { to: "/admin/taxonomy", end: false, label: "Taxonomy" },
+  { to: "/admin/categories", end: false, label: "Categories" },
   { to: "/admin/spec-filters", end: false, label: "Spec Filters" },
   { to: "/admin/normalization", end: false, label: "Normalization" },
   { to: "/admin/llm-profiles", end: false, label: "LLM Profiles" },
