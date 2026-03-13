@@ -1466,6 +1466,106 @@ func (db *DB) BackfillCanonicalCategories(ctx context.Context, mapFn func([]stri
 	return updated, rows.Err()
 }
 
+// BackfillLLMSpecs populates metadata.llm_specs from metadata.specs for listings that were
+// LLM-enriched before the llm_specs split. For each listing with llm_confidence but no llm_specs,
+// copies profile-defined field values from specs into llm_specs. Returns the number of rows updated.
+func (db *DB) BackfillLLMSpecs(ctx context.Context) (int, error) {
+	profiles, err := db.ListLLMPromptProfiles(ctx)
+	if err != nil {
+		return 0, fmt.Errorf("list profiles: %w", err)
+	}
+	profileKeys := make(map[string]map[string]struct{}) // "Bikes>Mountain" -> set of keys
+	for _, p := range profiles {
+		if !p.Enabled {
+			continue
+		}
+		keys := extractSchemaKeys(p.ExtractionSchema)
+		if len(keys) > 0 {
+			catKey := strings.Join(p.CanonicalCategory, ">")
+			profileKeys[catKey] = keys
+		}
+	}
+	if len(profileKeys) == 0 {
+		return 0, nil
+	}
+
+	rows, err := db.pool.Query(ctx, `
+		SELECT l.id, l.canonical_category, l.metadata
+		FROM store_listings l
+		WHERE l.metadata->'llm_confidence' IS NOT NULL
+		  AND (l.metadata->'llm_specs' IS NULL OR jsonb_typeof(l.metadata->'llm_specs') != 'object')
+		  AND l.metadata->'specs' IS NOT NULL
+		  AND jsonb_typeof(l.metadata->'specs') = 'object'
+	`)
+	if err != nil {
+		return 0, fmt.Errorf("query listings: %w", err)
+	}
+	defer rows.Close()
+
+	updated := 0
+	for rows.Next() {
+		var id int
+		var cat pgtype.FlatArray[string]
+		var meta []byte
+		if err := rows.Scan(&id, &cat, &meta); err != nil {
+			return updated, err
+		}
+		catKey := strings.Join([]string(cat), ">")
+		allowed, ok := profileKeys[catKey]
+		if !ok {
+			continue
+		}
+		var base map[string]interface{}
+		if err := json.Unmarshal(meta, &base); err != nil {
+			continue
+		}
+		specs, _ := base["specs"].(map[string]interface{})
+		if specs == nil {
+			continue
+		}
+		llmSpecs := make(map[string]interface{})
+		for k, v := range specs {
+			if _, ok := allowed[k]; ok && v != nil && fmt.Sprint(v) != "" {
+				llmSpecs[k] = fmt.Sprint(v)
+			}
+		}
+		if len(llmSpecs) == 0 {
+			continue
+		}
+		base["llm_specs"] = llmSpecs
+		newMeta, err := json.Marshal(base)
+		if err != nil {
+			continue
+		}
+		_, err = db.pool.Exec(ctx, `UPDATE store_listings SET metadata = $1 WHERE id = $2`, newMeta, id)
+		if err != nil {
+			return updated, err
+		}
+		updated++
+	}
+	return updated, rows.Err()
+}
+
+// extractSchemaKeys returns the set of extractable field keys from extraction_schema JSON,
+// excluding "confidence".
+func extractSchemaKeys(raw json.RawMessage) map[string]struct{} {
+	var schema struct {
+		Fields []struct {
+			Key string `json:"key"`
+		} `json:"fields"`
+	}
+	if err := json.Unmarshal(raw, &schema); err != nil {
+		return nil
+	}
+	out := make(map[string]struct{})
+	for _, f := range schema.Fields {
+		if f.Key != "" && f.Key != "confidence" {
+			out[f.Key] = struct{}{}
+		}
+	}
+	return out
+}
+
 // mapsEqual performs deep equality for map[string]interface{} (e.g. metadata JSONB).
 func mapsEqual(a, b map[string]interface{}) bool {
 	return reflect.DeepEqual(a, b)

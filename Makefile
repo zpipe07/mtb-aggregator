@@ -1,4 +1,4 @@
-.PHONY: dev db-up db-down db-migrate db-migrate-docker db-seed db-up-local db-migrate-local db-migrate-remote db-seed-remote backfill-brands backfill-canonical-categories scrape scrape-now scrape-now-wwc scrape-now-revel build-all install
+.PHONY: dev db-up db-down db-migrate db-migrate-docker db-seed db-up-local db-migrate-local db-migrate-remote db-seed-remote backfill-brands backfill-canonical-categories backfill-llm-specs scrape scrape-now scrape-now-wwc scrape-now-revel build-all install
 
 # Ensure Make can find docker (Docker Desktop CLI locations)
 export PATH := /Applications/Docker.app/Contents/Resources/bin:/usr/local/bin:/opt/homebrew/bin:$(PATH)
@@ -76,6 +76,10 @@ backfill-brands:
 # Set canonical_category on existing listings from category_path using category_taxonomy.json (run once or after updating mappings)
 backfill-canonical-categories:
 	cd apps/api && go run ./cmd/backfill-canonical-categories
+
+# Populate metadata.llm_specs from metadata.specs for listings enriched before the llm_specs split (run once after migration 016)
+backfill-llm-specs:
+	cd apps/api && go run ./cmd/backfill-llm-specs
 
 # Run scraper manually (for testing)
 scrape:
