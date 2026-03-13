@@ -350,6 +350,7 @@ func main() {
 	http.HandleFunc("/stores", handlers.GetStores)
 	http.HandleFunc("/brands", handlers.GetBrands)
 	http.HandleFunc("/categories", handlers.GetCategories)
+	http.HandleFunc("/categories/tree", handlers.GetCategoryTree)
 	http.HandleFunc("/canonical-categories", handlers.GetCanonicalCategories)
 	http.HandleFunc("/spec-values", handlers.GetSpecValues)
 	http.HandleFunc("/facets", handlers.GetFacets)
@@ -558,6 +559,10 @@ func main() {
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		}
 	}))
+
+	// Admin: GET/POST /admin/categories — category tree and create; GET/PUT/DELETE /admin/categories/:id
+	http.HandleFunc("/admin/categories", api.AdminRequired(handlers.CategoriesAdminHandler))
+	http.HandleFunc("/admin/categories/", api.AdminRequired(handlers.CategoriesAdminHandler))
 
 	// Admin: GET /admin/spec-keys — discover spec keys in listings
 	http.HandleFunc("/admin/spec-keys", api.AdminRequired(func(w http.ResponseWriter, r *http.Request) {
