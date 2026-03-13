@@ -62,11 +62,35 @@ func (db *DB) GetLLMPromptProfileByID(ctx context.Context, id int) (*LLMPromptPr
 	return &p, nil
 }
 
-// GetLLMPromptProfileForCategory returns an enabled profile whose canonical_category exactly matches.
-// Used during enrichment to find the profile for a listing.
+// GetLLMPromptProfileForCategoryID returns an enabled profile for the given category_id.
+func (db *DB) GetLLMPromptProfileForCategoryID(ctx context.Context, categoryID int) (*LLMPromptProfile, error) {
+	var p LLMPromptProfile
+	var cat pgtype.FlatArray[string]
+	err := db.pool.QueryRow(ctx, `
+		SELECT id, canonical_category, name, system_prompt, extraction_schema, enabled
+		FROM llm_prompt_profiles
+		WHERE category_id = $1 AND enabled = true
+	`, categoryID).Scan(&p.ID, &cat, &p.Name, &p.SystemPrompt, &p.ExtractionSchema, &p.Enabled)
+	if err != nil {
+		if err.Error() == "no rows in result set" {
+			return nil, nil
+		}
+		return nil, err
+	}
+	p.CanonicalCategory = cat
+	return &p, nil
+}
+
+// GetLLMPromptProfileForCategory returns an enabled profile for the given canonical path.
+// Resolves path to category_id and looks up by category_id first; falls back to canonical_category match.
 func (db *DB) GetLLMPromptProfileForCategory(ctx context.Context, canonicalCategory []string) (*LLMPromptProfile, error) {
 	if len(canonicalCategory) == 0 {
 		return nil, nil
+	}
+	if id, err := db.ResolveCategoryIDFromPath(ctx, canonicalCategory); err == nil && id != nil {
+		if p, err := db.GetLLMPromptProfileForCategoryID(ctx, *id); err == nil && p != nil {
+			return p, nil
+		}
 	}
 	var p LLMPromptProfile
 	var cat pgtype.FlatArray[string]

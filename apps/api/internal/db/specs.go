@@ -18,10 +18,13 @@ type GetFacetsParams struct {
 	StoreName         string
 	Brand             string
 	Category          string
-	CanonicalCategory string
+	CanonicalCategory string // legacy: "Bikes > Mountain"
+	CategorySlug      string // preferred: slug for subtree filter
 	MinDiscount       *float64
 	Search            string
 	SpecFilters       map[string]string // key -> value, e.g. {"wheel_size": "29"}
+	// CategoryFilterIDs is populated by GetFacets from CategorySlug or CanonicalCategory for WHERE clause.
+	CategoryFilterIDs []int
 }
 
 // SpecFacetValue is one value option for a spec facet with its count.
@@ -95,27 +98,41 @@ func parseFilterableFields(extractionSchema json.RawMessage) []filterableField {
 // profile defines which specs appear as filters. When no category or no profile matches,
 // spec facets are empty.
 func (db *DB) GetFacets(ctx context.Context, params GetFacetsParams) (*GetFacetsResult, error) {
-	// Resolve canonical category path and LLM profile
-	var canonicalPath []string
-	if params.CanonicalCategory != "" {
+	// Resolve category filter and LLM profile: prefer CategorySlug (subtree), else CanonicalCategory (path)
+	var profile *LLMPromptProfile
+	var categoryFilterIDs []int
+	if params.CategorySlug != "" {
+		cat, err := db.GetCategoryBySlug(ctx, strings.TrimSpace(params.CategorySlug))
+		if err == nil && cat != nil {
+			categoryFilterIDs, _ = db.GetCategorySubtreeIDs(ctx, cat.ID)
+			if p, err := db.GetLLMPromptProfileForCategoryID(ctx, cat.ID); err == nil && p != nil {
+				profile = p
+			}
+		}
+	} else if params.CanonicalCategory != "" {
+		var path []string
 		for _, p := range strings.Split(params.CanonicalCategory, " > ") {
 			if t := strings.TrimSpace(p); t != "" {
-				canonicalPath = append(canonicalPath, t)
+				path = append(path, t)
+			}
+		}
+		if len(path) > 0 {
+			if cid, err := db.ResolveCategoryIDFromPath(ctx, path); err == nil && cid != nil {
+				categoryFilterIDs = []int{*cid}
+				if p, err := db.GetLLMPromptProfileForCategory(ctx, path); err == nil && p != nil {
+					profile = p
+				}
 			}
 		}
 	}
+	params.CategoryFilterIDs = categoryFilterIDs
 
-	var profile *LLMPromptProfile
 	var specFiltersForWhere map[string][]string
-	if len(canonicalPath) > 0 {
-		p, err := db.GetLLMPromptProfileForCategory(ctx, canonicalPath)
-		if err == nil && p != nil {
-			profile = p
-			specFiltersForWhere = make(map[string][]string)
-			for k, v := range params.SpecFilters {
-				if k != "" && v != "" {
-					specFiltersForWhere[k] = []string{v}
-				}
+	if profile != nil {
+		specFiltersForWhere = make(map[string][]string)
+		for k, v := range params.SpecFilters {
+			if k != "" && v != "" {
+				specFiltersForWhere[k] = []string{v}
 			}
 		}
 	}
@@ -304,7 +321,11 @@ func buildFacetsWhereClause(params GetFacetsParams, specFilters map[string][]str
 		args = append(args, params.Category)
 		argNum++
 	}
-	if params.CanonicalCategory != "" {
+	if len(params.CategoryFilterIDs) > 0 {
+		sb.WriteString(fmt.Sprintf(" AND l.category_id = ANY($%d)", argNum))
+		args = append(args, pq.Array(params.CategoryFilterIDs))
+		argNum++
+	} else if params.CanonicalCategory != "" {
 		path := strings.Split(params.CanonicalCategory, " > ")
 		trimmed := make([]string, 0, len(path))
 		for _, p := range path {

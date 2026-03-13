@@ -39,6 +39,9 @@ func (h *Handlers) GetDeals(w http.ResponseWriter, r *http.Request) {
 	if s := r.URL.Query().Get("category"); s != "" {
 		params.Category = s
 	}
+	if s := r.URL.Query().Get("category_slug"); s != "" {
+		params.CategorySlug = strings.TrimSpace(s)
+	}
 	if s := r.URL.Query().Get("canonical_category"); s != "" {
 		params.CanonicalCategory = strings.TrimSpace(s)
 	}
@@ -248,6 +251,9 @@ func (h *Handlers) GetFacets(w http.ResponseWriter, r *http.Request) {
 	}
 	if s := r.URL.Query().Get("canonical_category"); s != "" {
 		params.CanonicalCategory = strings.TrimSpace(s)
+	}
+	if s := r.URL.Query().Get("category_slug"); s != "" {
+		params.CategorySlug = strings.TrimSpace(s)
 	}
 	if s := r.URL.Query().Get("min_discount"); s != "" {
 		if f, err := strconv.ParseFloat(s, 64); err == nil {

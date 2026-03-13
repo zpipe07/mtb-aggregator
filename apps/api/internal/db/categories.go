@@ -3,6 +3,8 @@ package db
 import (
 	"context"
 	"fmt"
+
+	"github.com/lib/pq"
 )
 
 // Category is one row in the categories table.
@@ -150,4 +152,53 @@ func (db *DB) DeleteCategory(ctx context.Context, id int) error {
 	}
 	_, err := db.pool.Exec(ctx, `DELETE FROM categories WHERE id = $1`, id)
 	return err
+}
+
+// ResolveCategoryIDFromPath returns the category ID whose path (root to node names) matches the given array, or nil if not found.
+func (db *DB) ResolveCategoryIDFromPath(ctx context.Context, path []string) (*int, error) {
+	if len(path) == 0 {
+		return nil, nil
+	}
+	var id int
+	err := db.pool.QueryRow(ctx, `
+		WITH RECURSIVE cat_tree(id, path) AS (
+			SELECT id, (ARRAY[name])::text[] FROM categories WHERE parent_id IS NULL
+			UNION ALL
+			SELECT c.id, (ct.path || c.name)::text[]
+			FROM categories c JOIN cat_tree ct ON c.parent_id = ct.id
+		)
+		SELECT id FROM cat_tree WHERE path = $1
+	`, pq.Array(path)).Scan(&id)
+	if err != nil {
+		if err.Error() == "no rows in result set" {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &id, nil
+}
+
+// GetCategorySubtreeIDs returns the given category ID plus all descendant IDs, for subtree filtering (e.g. "Bikes" includes Bikes, Mountain, Electric, etc.).
+func (db *DB) GetCategorySubtreeIDs(ctx context.Context, categoryID int) ([]int, error) {
+	rows, err := db.pool.Query(ctx, `
+		WITH RECURSIVE subtree(id) AS (
+			SELECT id FROM categories WHERE id = $1
+			UNION ALL
+			SELECT c.id FROM categories c JOIN subtree s ON c.parent_id = s.id
+		)
+		SELECT id FROM subtree
+	`, categoryID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var ids []int
+	for rows.Next() {
+		var id int
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		ids = append(ids, id)
+	}
+	return ids, rows.Err()
 }

@@ -92,7 +92,7 @@ func (db *DB) GetListingForCategoryClassification(ctx context.Context, id int) (
 	}, nil
 }
 
-// UpdateListingCanonicalCategory updates canonical_category and merges llm_category into metadata.
+// UpdateListingCanonicalCategory updates canonical_category, category_id, and merges llm_category into metadata.
 func (db *DB) UpdateListingCanonicalCategory(ctx context.Context, id int, canonical []string, llmCategory map[string]interface{}) error {
 	var existing []byte
 	if err := db.pool.QueryRow(ctx, `SELECT COALESCE(metadata, '{}') FROM store_listings WHERE id = $1`, id).Scan(&existing); err != nil {
@@ -102,9 +102,15 @@ func (db *DB) UpdateListingCanonicalCategory(ctx context.Context, id int, canoni
 		return err
 	}
 	merged := metadata.MergeLLMCategory(existing, llmCategory)
+	var categoryID interface{}
+	if len(canonical) > 0 {
+		if cid, err := db.ResolveCategoryIDFromPath(ctx, canonical); err == nil && cid != nil {
+			categoryID = *cid
+		}
+	}
 	_, err := db.pool.Exec(ctx, `
-		UPDATE store_listings SET canonical_category = $1, metadata = $2 WHERE id = $3
-	`, pq.Array(canonical), merged, id)
+		UPDATE store_listings SET canonical_category = $1, category_id = $2, metadata = $3 WHERE id = $4
+	`, pq.Array(canonical), categoryID, merged, id)
 	return err
 }
 

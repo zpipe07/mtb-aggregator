@@ -169,10 +169,20 @@ func (db *DB) GetLastPrice(ctx context.Context, storeID int, storeSKU string) (f
 }
 
 func (db *DB) UpsertListing(ctx context.Context, listing Listing) (int, error) {
+	var categoryID interface{}
+	if len(listing.CanonicalCategory) > 0 {
+		if id, err := db.ResolveCategoryIDFromPath(ctx, listing.CanonicalCategory); err == nil && id != nil {
+			categoryID = *id
+		} else {
+			categoryID = nil
+		}
+	} else {
+		categoryID = nil
+	}
 	var id int
 	err := db.pool.QueryRow(ctx, `
-		INSERT INTO store_listings (store_id, store_sku, product_name, current_price, original_price, product_url, image_url, brand, category_path, canonical_category, metadata, is_in_stock, last_scraped)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW())
+		INSERT INTO store_listings (store_id, store_sku, product_name, current_price, original_price, product_url, image_url, brand, category_path, canonical_category, category_id, metadata, is_in_stock, last_scraped)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, NOW())
 		ON CONFLICT (store_id, store_sku) DO UPDATE SET
 			product_name = EXCLUDED.product_name,
 			current_price = EXCLUDED.current_price,
@@ -182,12 +192,13 @@ func (db *DB) UpsertListing(ctx context.Context, listing Listing) (int, error) {
 			brand = EXCLUDED.brand,
 			category_path = CASE WHEN EXCLUDED.category_path IS NOT NULL AND array_length(EXCLUDED.category_path, 1) > 0 THEN EXCLUDED.category_path ELSE store_listings.category_path END,
 			canonical_category = EXCLUDED.canonical_category,
+			category_id = EXCLUDED.category_id,
 			metadata = EXCLUDED.metadata,
 			is_in_stock = EXCLUDED.is_in_stock,
 			last_scraped = NOW()
 		RETURNING id
 	`, listing.StoreID, listing.StoreSKU, listing.ProductName, listing.CurrentPrice, listing.OriginalPrice,
-		listing.ProductURL, listing.ImageURL, listing.Brand, pq.Array(listing.CategoryPath), pq.Array(listing.CanonicalCategory), listing.Metadata, listing.IsInStock).Scan(&id)
+		listing.ProductURL, listing.ImageURL, listing.Brand, pq.Array(listing.CategoryPath), pq.Array(listing.CanonicalCategory), categoryID, listing.Metadata, listing.IsInStock).Scan(&id)
 	return id, err
 }
 
@@ -459,7 +470,8 @@ type GetDealsParams struct {
 	StoreName         string
 	Brand             string
 	Category          string
-	CanonicalCategory string // e.g. "Bikes > Mountain" (exact path match)
+	CanonicalCategory string // legacy: "Bikes > Mountain" (exact path match)
+	CategorySlug      string // preferred: slug for subtree filter (e.g. "bikes" includes all bike subcategories)
 	MinDiscount       *float64
 	Search            string // full-text search query (q)
 	Sort              string // newest, discount, price_asc, price_desc, relevance
@@ -520,8 +532,18 @@ func (db *DB) GetDeals(ctx context.Context, params GetDealsParams) (*GetDealsRes
 		args = append(args, params.Category)
 		argNum++
 	}
-	if params.CanonicalCategory != "" {
-		// Parse "Bikes > Mountain" into array and match exactly
+	// Category filter: prefer category_id (slug or resolved from legacy canonical_category)
+	if params.CategorySlug != "" {
+		cat, err := db.GetCategoryBySlug(ctx, strings.TrimSpace(params.CategorySlug))
+		if err == nil && cat != nil {
+			subtreeIDs, err := db.GetCategorySubtreeIDs(ctx, cat.ID)
+			if err == nil && len(subtreeIDs) > 0 {
+				query += fmt.Sprintf(" AND l.category_id = ANY($%d)", argNum)
+				args = append(args, pq.Array(subtreeIDs))
+				argNum++
+			}
+		}
+	} else if params.CanonicalCategory != "" {
 		path := strings.Split(params.CanonicalCategory, " > ")
 		trimmed := make([]string, 0, len(path))
 		for _, p := range path {
@@ -530,9 +552,16 @@ func (db *DB) GetDeals(ctx context.Context, params GetDealsParams) (*GetDealsRes
 			}
 		}
 		if len(trimmed) > 0 {
-			query += fmt.Sprintf(" AND l.canonical_category = $%d", argNum)
-			args = append(args, pq.Array(trimmed))
-			argNum++
+			categoryID, err := db.ResolveCategoryIDFromPath(ctx, trimmed)
+			if err == nil && categoryID != nil {
+				query += fmt.Sprintf(" AND l.category_id = $%d", argNum)
+				args = append(args, *categoryID)
+				argNum++
+			} else {
+				query += fmt.Sprintf(" AND l.canonical_category = $%d", argNum)
+				args = append(args, pq.Array(trimmed))
+				argNum++
+			}
 		}
 	}
 	// Spec filters: query metadata.llm_specs (LLM-derived). Use SpecFilters map if non-empty, else legacy SpecKey/SpecValue.
@@ -1254,14 +1283,24 @@ func (db *DB) UpdateListingEnrichment(ctx context.Context, id int, categoryPath 
 		mergedMeta = metadata.MergeDescription(mergedMeta, *description)
 	}
 
-	// If we got a non-empty categoryPath, update category_path and canonical_category; otherwise leave them unchanged.
+	// If we got a non-empty categoryPath, update category_path, canonical_category, and category_id; otherwise leave them unchanged.
 	if len(categoryPath) > 0 {
 		canonicalCat := taxonomy.Map(categoryPath)
+		var categoryID interface{}
+		if len(canonicalCat) > 0 {
+			if cid, err := db.ResolveCategoryIDFromPath(ctx, canonicalCat); err == nil && cid != nil {
+				categoryID = *cid
+			} else {
+				categoryID = nil
+			}
+		} else {
+			categoryID = nil
+		}
 		_, err := db.pool.Exec(ctx, `
 			UPDATE store_listings
-			SET category_path = $1, canonical_category = $2, metadata = $3, last_enriched_at = NOW()
-			WHERE id = $4
-		`, pq.Array(categoryPath), pq.Array(canonicalCat), mergedMeta, id)
+			SET category_path = $1, canonical_category = $2, category_id = $3, metadata = $4, last_enriched_at = NOW()
+			WHERE id = $5
+		`, pq.Array(categoryPath), pq.Array(canonicalCat), categoryID, mergedMeta, id)
 		return err
 	}
 
