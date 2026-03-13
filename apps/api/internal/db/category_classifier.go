@@ -49,23 +49,37 @@ func (db *DB) GetCategoryClassifier(ctx context.Context) (*CategoryClassifierCon
 }
 
 // UpsertCategoryClassifier inserts or updates the singleton classifier config.
+// Resolves each valid_categories path to category_id and persists valid_category_ids.
 func (db *DB) UpsertCategoryClassifier(ctx context.Context, config *CategoryClassifierConfig) error {
 	validJSON, err := json.Marshal(config.ValidCategories)
 	if err != nil {
 		return err
 	}
+	var validCategoryIDs []int
+	for _, path := range config.ValidCategories {
+		if len(path) == 0 {
+			continue
+		}
+		if cid, err := db.ResolveCategoryIDFromPath(ctx, path); err == nil && cid != nil {
+			validCategoryIDs = append(validCategoryIDs, *cid)
+		}
+	}
+	validIDs := pq.Array(validCategoryIDs)
+	if validIDs == nil {
+		validIDs = pq.Array([]int{})
+	}
 	if config.ID > 0 {
 		_, err = db.pool.Exec(ctx, `
 			UPDATE llm_category_classifier
-			SET system_prompt = $1, valid_categories = $2, confidence_threshold = $3, enabled = $4, updated_at = NOW()
-			WHERE id = $5
-		`, config.SystemPrompt, validJSON, config.ConfidenceThreshold, config.Enabled, config.ID)
+			SET system_prompt = $1, valid_categories = $2, valid_category_ids = $3, confidence_threshold = $4, enabled = $5, updated_at = NOW()
+			WHERE id = $6
+		`, config.SystemPrompt, validJSON, validIDs, config.ConfidenceThreshold, config.Enabled, config.ID)
 		return err
 	}
 	_, err = db.pool.Exec(ctx, `
-		INSERT INTO llm_category_classifier (system_prompt, valid_categories, confidence_threshold, enabled)
-		VALUES ($1, $2, $3, $4)
-	`, config.SystemPrompt, validJSON, config.ConfidenceThreshold, config.Enabled)
+		INSERT INTO llm_category_classifier (system_prompt, valid_categories, valid_category_ids, confidence_threshold, enabled)
+		VALUES ($1, $2, $3, $4, $5)
+	`, config.SystemPrompt, validJSON, validIDs, config.ConfidenceThreshold, config.Enabled)
 	return err
 }
 

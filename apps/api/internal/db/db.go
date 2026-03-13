@@ -1676,19 +1676,33 @@ func (db *DB) GetCategoryMapping(ctx context.Context, id int) (*CategoryMapping,
 }
 
 // CreateCategoryMapping inserts a mapping and returns its id.
+// Resolves canonical path to category_id and persists both for consistent category_id usage.
 func (db *DB) CreateCategoryMapping(ctx context.Context, rawKeywords, canonical []string, priority int) (int, error) {
+	var categoryID *int
+	if len(canonical) > 0 {
+		if cid, err := db.ResolveCategoryIDFromPath(ctx, canonical); err == nil {
+			categoryID = cid
+		}
+	}
 	var id int
 	err := db.pool.QueryRow(ctx, `
-		INSERT INTO category_mappings (raw_keywords, canonical, priority) VALUES ($1, $2, $3) RETURNING id
-	`, pq.Array(rawKeywords), pq.Array(canonical), priority).Scan(&id)
+		INSERT INTO category_mappings (raw_keywords, canonical, category_id, priority) VALUES ($1, $2, $3, $4) RETURNING id
+	`, pq.Array(rawKeywords), pq.Array(canonical), categoryID, priority).Scan(&id)
 	return id, err
 }
 
 // UpdateCategoryMapping updates a mapping by id.
+// Resolves canonical path to category_id and persists both.
 func (db *DB) UpdateCategoryMapping(ctx context.Context, id int, rawKeywords, canonical []string, priority int) error {
+	var categoryID *int
+	if len(canonical) > 0 {
+		if cid, err := db.ResolveCategoryIDFromPath(ctx, canonical); err == nil {
+			categoryID = cid
+		}
+	}
 	_, err := db.pool.Exec(ctx, `
-		UPDATE category_mappings SET raw_keywords = $1, canonical = $2, priority = $3, updated_at = NOW() WHERE id = $4
-	`, pq.Array(rawKeywords), pq.Array(canonical), priority, id)
+		UPDATE category_mappings SET raw_keywords = $1, canonical = $2, category_id = $3, priority = $4, updated_at = NOW() WHERE id = $5
+	`, pq.Array(rawKeywords), pq.Array(canonical), categoryID, priority, id)
 	return err
 }
 

@@ -110,23 +110,37 @@ func (db *DB) GetLLMPromptProfileForCategory(ctx context.Context, canonicalCateg
 }
 
 // CreateLLMPromptProfile inserts a profile and returns its id.
+// Resolves canonical_category path to category_id and persists both.
 func (db *DB) CreateLLMPromptProfile(ctx context.Context, canonicalCategory []string, name, systemPrompt string, extractionSchema json.RawMessage, enabled bool) (int, error) {
+	var categoryID *int
+	if len(canonicalCategory) > 0 {
+		if cid, err := db.ResolveCategoryIDFromPath(ctx, canonicalCategory); err == nil {
+			categoryID = cid
+		}
+	}
 	var id int
 	err := db.pool.QueryRow(ctx, `
-		INSERT INTO llm_prompt_profiles (canonical_category, name, system_prompt, extraction_schema, enabled)
-		VALUES ($1, $2, $3, $4, $5)
+		INSERT INTO llm_prompt_profiles (canonical_category, category_id, name, system_prompt, extraction_schema, enabled)
+		VALUES ($1, $2, $3, $4, $5, $6)
 		RETURNING id
-	`, pq.Array(canonicalCategory), name, systemPrompt, extractionSchema, enabled).Scan(&id)
+	`, pq.Array(canonicalCategory), categoryID, name, systemPrompt, extractionSchema, enabled).Scan(&id)
 	return id, err
 }
 
 // UpdateLLMPromptProfile updates a profile by id.
+// Resolves canonical_category path to category_id and persists both.
 func (db *DB) UpdateLLMPromptProfile(ctx context.Context, id int, canonicalCategory []string, name, systemPrompt string, extractionSchema json.RawMessage, enabled bool) error {
+	var categoryID *int
+	if len(canonicalCategory) > 0 {
+		if cid, err := db.ResolveCategoryIDFromPath(ctx, canonicalCategory); err == nil {
+			categoryID = cid
+		}
+	}
 	_, err := db.pool.Exec(ctx, `
 		UPDATE llm_prompt_profiles
-		SET canonical_category = $1, name = $2, system_prompt = $3, extraction_schema = $4, enabled = $5, updated_at = NOW()
-		WHERE id = $6
-	`, pq.Array(canonicalCategory), name, systemPrompt, extractionSchema, enabled, id)
+		SET canonical_category = $1, category_id = $2, name = $3, system_prompt = $4, extraction_schema = $5, enabled = $6, updated_at = NOW()
+		WHERE id = $7
+	`, pq.Array(canonicalCategory), categoryID, name, systemPrompt, extractionSchema, enabled, id)
 	return err
 }
 
