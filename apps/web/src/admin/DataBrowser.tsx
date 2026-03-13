@@ -100,6 +100,26 @@ function getLLMConfidence(metadata: AdminListing["metadata"]): number | null {
   return null;
 }
 
+/** Get LLM category classification from metadata.llm_category. */
+function getLLMCategory(metadata: AdminListing["metadata"]): { canonical_category: string[]; confidence: number; reasoning?: string } | null {
+  const obj = getMetadataObj(metadata);
+  if (!obj) return null;
+  const llmCat = obj.llm_category as Record<string, unknown> | undefined;
+  if (!llmCat || !Array.isArray(llmCat.canonical_category)) return null;
+  const confidence = typeof llmCat.confidence === "number" ? llmCat.confidence : 0;
+  const reasoning = typeof llmCat.reasoning === "string" ? llmCat.reasoning : undefined;
+  return { canonical_category: llmCat.canonical_category as string[], confidence, reasoning };
+}
+
+/** Check if LLM category differs from current canonical (taxonomy or previously applied LLM). */
+function llmCategoryDiffers(row: { canonical_category?: string[] | null; metadata?: AdminListing["metadata"] }): boolean {
+  const llm = getLLMCategory(row.metadata ?? undefined);
+  if (!llm) return false;
+  const curr = row.canonical_category ?? [];
+  if (llm.canonical_category.length !== curr.length) return true;
+  return llm.canonical_category.some((c, i) => c !== curr[i]);
+}
+
 /** Get all spec keys from metadata (specs + llm_overrides). */
 function getAllSpecKeys(metadata: AdminListing["metadata"]): string[] {
   const obj = getMetadataObj(metadata);
@@ -421,6 +441,7 @@ export function DataBrowser() {
                     <th className="px-4 py-2 text-right font-medium text-stone-600">Price</th>
                     <th className="px-4 py-2 text-right font-medium text-stone-600">Discount %</th>
                     <th className="px-4 py-2 text-left font-medium text-stone-600">Canonical category</th>
+                    <th className="px-4 py-2 text-left font-medium text-stone-600">LLM Cat</th>
                     <th className="px-4 py-2 text-left font-medium text-stone-600">Metadata</th>
                     <th className="px-4 py-2 text-left font-medium text-stone-600">MTB class</th>
                     <th className="px-4 py-2 text-left font-medium text-stone-600">Travel</th>
@@ -432,11 +453,14 @@ export function DataBrowser() {
                   </tr>
                 </thead>
                 <tbody>
-                  {listings.map((row) => (
+                  {listings.map((row) => {
+                    const diff = llmCategoryDiffers(row);
+                    return (
                     <tr
                       key={row.id}
-                      className={`border-b border-stone-100 hover:bg-stone-50 cursor-pointer ${row.hidden ? "opacity-60 bg-stone-50" : ""}`}
+                      className={`border-b border-stone-100 hover:bg-stone-50 cursor-pointer ${row.hidden ? "opacity-60 bg-stone-50" : ""} ${diff ? "bg-amber-50" : ""}`}
                       onClick={() => setSelectedId(row.id)}
+                      title={diff ? "LLM suggested a different category" : undefined}
                     >
                       <td className="px-2 py-2 text-center" onClick={(e) => e.stopPropagation()}>
                         {row.hidden ? (
@@ -461,6 +485,11 @@ export function DataBrowser() {
                       </td>
                       <td className="px-4 py-2 text-stone-600 max-w-xs truncate" title={canonCatDisplay(row.canonical_category)}>
                         {canonCatDisplay(row.canonical_category)}
+                      </td>
+                      <td className="px-4 py-2 text-stone-600 max-w-xs truncate" title={getLLMCategory(row.metadata)?.reasoning}>
+                        {getLLMCategory(row.metadata)
+                          ? `${canonCatDisplay(getLLMCategory(row.metadata)!.canonical_category)} ${Math.round(getLLMCategory(row.metadata)!.confidence * 100)}%`
+                          : "—"}
                       </td>
                       <td className="px-4 py-2 text-stone-600 max-w-[10rem] truncate" title={metadataSummary(row.metadata)}>
                         {metadataSummary(row.metadata)}
@@ -497,7 +526,7 @@ export function DataBrowser() {
                       </td>
                       <td className="px-4 py-2 text-stone-600">{formatDate(row.last_scraped)}</td>
                     </tr>
-                  ))}
+                  );})}
                 </tbody>
               </table>
             </div>

@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -68,10 +69,33 @@ type SchemaField struct {
 
 // ExtractInput is the product context passed to the LLM.
 type ExtractInput struct {
+	ProductName  string            `json:"product_name"`
+	Description  string            `json:"description"`
+	Specs       map[string]string `json:"specs"`
+	CategoryPath []string          `json:"category_path"`
+}
+
+// ClassifyInput is the product context for category classification (same shape as ExtractInput).
+// CategoryPath here is the raw breadcrumb path from the store.
+type ClassifyInput struct {
 	ProductName   string            `json:"product_name"`
 	Description   string            `json:"description"`
 	Specs         map[string]string `json:"specs"`
-	CategoryPath  []string          `json:"category_path"`
+	CategoryPath  []string          `json:"category_path"` // raw breadcrumbs from store
+}
+
+// ClassifyConfig configures the category classifier.
+type ClassifyConfig struct {
+	SystemPrompt        string     `json:"system_prompt"`
+	ValidCategories     [][]string `json:"valid_categories"`
+	ConfidenceThreshold float64    `json:"confidence_threshold"`
+}
+
+// ClassifyResult is the output of category classification.
+type ClassifyResult struct {
+	CanonicalCategory []string
+	Confidence        float64
+	Reasoning         string
 }
 
 // Extract runs the LLM with the given profile and input, returns extracted fields as a map.
@@ -142,6 +166,147 @@ func (c *Client) Extract(ctx context.Context, profile Profile, input ExtractInpu
 		return nil, fmt.Errorf("parse extracted json: %w", err)
 	}
 	return result, nil
+}
+
+// categoryPathSeparator is used to stringify/parse category paths for the LLM enum.
+const categoryPathSeparator = " > "
+
+// Classify runs the LLM to determine the canonical category for a product.
+// Returns (nil, nil) when API key is not set.
+func (c *Client) Classify(ctx context.Context, config ClassifyConfig, input ClassifyInput) (*ClassifyResult, error) {
+	if c.apiKey == "" {
+		return nil, nil
+	}
+	if len(config.ValidCategories) == 0 {
+		return nil, fmt.Errorf("valid_categories cannot be empty")
+	}
+
+	userContent := c.buildClassifyUserMessage(input)
+	schema := c.buildClassifySchema(config.ValidCategories)
+
+	reqBody := map[string]interface{}{
+		"model": c.model,
+		"messages": []map[string]string{
+			{"role": "system", "content": config.SystemPrompt},
+			{"role": "user", "content": userContent},
+		},
+		"response_format": map[string]interface{}{
+			"type": "json_schema",
+			"json_schema": map[string]interface{}{
+				"name":   "classification_result",
+				"strict": true,
+				"schema": schema,
+			},
+		},
+	}
+	bodyBytes, err := json.Marshal(reqBody)
+	if err != nil {
+		return nil, fmt.Errorf("marshal request: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+"/chat/completions", bytes.NewReader(bodyBytes))
+	if err != nil {
+		return nil, fmt.Errorf("create request: %w", err)
+	}
+	req.Header.Set("Authorization", "Bearer "+c.apiKey)
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("openai api %d: %s", resp.StatusCode, string(body))
+	}
+
+	var apiResp openAIChatResponse
+	if err := json.NewDecoder(resp.Body).Decode(&apiResp); err != nil {
+		return nil, fmt.Errorf("decode response: %w", err)
+	}
+	if len(apiResp.Choices) == 0 {
+		return nil, fmt.Errorf("no choices in response")
+	}
+	content := apiResp.Choices[0].Message.Content
+	if content == "" {
+		return nil, fmt.Errorf("empty content in response")
+	}
+
+	var rawResult map[string]interface{}
+	if err := json.Unmarshal([]byte(content), &rawResult); err != nil {
+		return nil, fmt.Errorf("parse extracted json: %w", err)
+	}
+
+	catStr, _ := rawResult["canonical_category"].(string)
+	if catStr == "" {
+		return nil, fmt.Errorf("LLM returned empty canonical_category")
+	}
+	canonical := strings.Split(catStr, categoryPathSeparator)
+	// Trim spaces from each segment
+	for i := range canonical {
+		canonical[i] = strings.TrimSpace(canonical[i])
+	}
+
+	conf, _ := rawResult["confidence"].(float64)
+	reasoning, _ := rawResult["reasoning"].(string)
+
+	return &ClassifyResult{
+		CanonicalCategory: canonical,
+		Confidence:        conf,
+		Reasoning:         reasoning,
+	}, nil
+}
+
+func (c *Client) buildClassifyUserMessage(input ClassifyInput) string {
+	var buf bytes.Buffer
+	buf.WriteString("Classify this product into the correct canonical category:\n\n")
+	buf.WriteString("Product name: " + input.ProductName + "\n\n")
+	if input.Description != "" {
+		buf.WriteString("Description:\n" + input.Description + "\n\n")
+	}
+	if len(input.Specs) > 0 {
+		buf.WriteString("Existing specs:\n")
+		for k, v := range input.Specs {
+			buf.WriteString("  - " + k + ": " + v + "\n")
+		}
+		buf.WriteString("\n")
+	}
+	if len(input.CategoryPath) > 0 {
+		buf.WriteString("Store breadcrumb path: " + fmt.Sprint(input.CategoryPath) + "\n")
+	}
+	return buf.String()
+}
+
+func (c *Client) buildClassifySchema(validCategories [][]string) map[string]interface{} {
+	enumStrs := make([]interface{}, 0, len(validCategories))
+	for _, path := range validCategories {
+		s := strings.Join(path, categoryPathSeparator)
+		if s != "" {
+			enumStrs = append(enumStrs, s)
+		}
+	}
+	return map[string]interface{}{
+		"type": "object",
+		"properties": map[string]interface{}{
+			"canonical_category": map[string]interface{}{
+				"type":        "string",
+				"description": "The canonical category path from the valid list",
+				"enum":        enumStrs,
+			},
+			"confidence": map[string]interface{}{
+				"type":        "number",
+				"description": "Confidence 0-1 in the classification",
+			},
+			"reasoning": map[string]interface{}{
+				"type":        "string",
+				"description": "Brief reasoning for the classification",
+			},
+		},
+		"required":             []string{"canonical_category", "confidence", "reasoning"},
+		"additionalProperties": false,
+	}
 }
 
 func (c *Client) buildUserMessage(input ExtractInput) string {

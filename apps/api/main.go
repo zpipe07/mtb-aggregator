@@ -736,6 +736,44 @@ func main() {
 		}
 	}))
 
+	// Admin: GET/PUT /admin/category-classifier, POST /admin/category-classifier/test, POST /admin/category-classifier/run
+	http.HandleFunc("/admin/category-classifier/test", api.AdminRequired(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/admin/category-classifier/test" {
+			http.NotFound(w, r)
+			return
+		}
+		if r.Method == http.MethodPost {
+			handlers.PostCategoryClassifierTest(w, r)
+		} else {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		}
+	}))
+	http.HandleFunc("/admin/category-classifier/run", api.AdminRequired(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/admin/category-classifier/run" {
+			http.NotFound(w, r)
+			return
+		}
+		if r.Method == http.MethodPost {
+			handlers.PostCategoryClassifierRun(w, r)
+		} else {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		}
+	}))
+	http.HandleFunc("/admin/category-classifier", api.AdminRequired(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/admin/category-classifier" {
+			http.NotFound(w, r)
+			return
+		}
+		switch r.Method {
+		case http.MethodGet:
+			handlers.GetCategoryClassifier(w, r)
+		case http.MethodPut:
+			handlers.PutCategoryClassifier(w, r)
+		default:
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		}
+	}))
+
 	// Admin: POST /admin/llm/run — re-run LLM extraction for all listings in a canonical category
 	http.HandleFunc("/admin/llm/run", api.AdminRequired(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/admin/llm/run" {

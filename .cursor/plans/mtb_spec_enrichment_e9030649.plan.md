@@ -10,13 +10,13 @@ todos:
     status: completed
   - id: prompt-profiles
     content: "Step 3: DB-driven prompt profiles per canonical category (migration, CRUD, admin UI)"
-    status: pending
+    status: completed
   - id: wire-llm-enrichment
     content: "Step 4: Wire LLM extraction into enrichment pipeline using matching prompt profile"
-    status: pending
+    status: completed
   - id: admin-review
     content: "Step 5: Admin UI for reviewing LLM results, manual overrides, and re-classify trigger"
-    status: pending
+    status: completed
   - id: taxonomy-extension
     content: "Step 6 (optional): Extend canonical_category to three levels for MTB sub-types"
     status: pending
@@ -24,6 +24,25 @@ isProject: false
 ---
 
 # Enhanced MTB Spec Extraction and Classification
+
+## Implementation Progress
+
+**Steps 1–5 completed.** Summary of what's implemented:
+
+| Step                        | Status   | Details                                                                                                                                                                                                                        |
+| --------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1. Capture descriptions     | Done     | `EnrichResult.description` in scraper + API; all enrichers extract description                                                                                                                                                 |
+| 2. LLM client               | Done     | `apps/api/internal/llm/` — OpenAI client, JSON schema mode, `Extract()`                                                                                                                                                        |
+| 3. Prompt profiles          | Done     | Migration `014_llm_prompt_profiles`, full CRUD, Prompt Profile Manager at `/admin/llm-profiles`, test button                                                                                                                   |
+| 4. Wire LLM into enrichment | Done     | `runLLMExtractionIfApplicable` in handlers; scheduler + `POST /admin/listings/:id/enrich` trigger LLM when profile matches                                                                                                     |
+| 5. Admin review & overrides | Done     | DataBrowser: LLM columns, confidence filter, `ListingSpecOverrides` with editable specs; NormalizationManager: LLM Extraction section with re-run per profile; `POST /admin/listings/:id/llm-overrides`, `POST /admin/llm/run` |
+| 6. Taxonomy extension       | Optional | Not started                                                                                                                                                                                                                    |
+
+**Key routes:** `POST /admin/llm/run`, `POST /admin/listings/:id/llm-overrides`, `GET /admin/listings?llm_confidence_below=0.7`
+
+**Metadata shape:** `metadata.specs` holds merged specs (PDP + LLM); `metadata.llm_overrides` stores manual overrides (spec key → value); `metadata.llm_confidence` holds 0–1 from LLM. Displayed value = `llm_overrides[key] ?? specs[key]`.
+
+---
 
 ## Problem
 

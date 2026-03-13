@@ -886,3 +886,72 @@ export async function testLLMProfile(profileId: number, listingId: number): Prom
   }
   return res.json();
 }
+
+// --- Category Classifier ---
+
+export interface CategoryClassifierConfig {
+  id: number;
+  system_prompt: string;
+  valid_categories: string[][];
+  confidence_threshold: number;
+  enabled: boolean;
+}
+
+export async function fetchCategoryClassifier(): Promise<CategoryClassifierConfig | null> {
+  const res = await fetch(`${API_BASE}/admin/category-classifier`, { headers: adminHeaders() });
+  if (!res.ok) throw new Error(res.status === 401 ? "Unauthorized" : "Failed to fetch category classifier");
+  const data = await res.json();
+  if (data.config === null || (data.id == null && data.config == null)) return null;
+  return data as CategoryClassifierConfig;
+}
+
+export async function updateCategoryClassifier(body: {
+  system_prompt?: string;
+  valid_categories?: string[][];
+  confidence_threshold?: number;
+  enabled?: boolean;
+}): Promise<void> {
+  const res = await fetch(`${API_BASE}/admin/category-classifier`, {
+    method: "PUT",
+    headers: adminHeaders(),
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || "Update failed");
+  }
+}
+
+export async function testCategoryClassifier(listingId: number): Promise<{
+  result: { canonical_category: string[]; confidence: number; reasoning: string } | null;
+  message?: string;
+}> {
+  const res = await fetch(`${API_BASE}/admin/category-classifier/test`, {
+    method: "POST",
+    headers: adminHeaders(),
+    body: JSON.stringify({ listing_id: listingId }),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || "Test failed");
+  }
+  return res.json();
+}
+
+export async function runCategoryClassifier(params?: {
+  store?: string;
+  canonical_category?: string[];
+  limit?: number;
+}): Promise<{ ok: boolean; processed: number }> {
+  const res = await fetch(`${API_BASE}/admin/category-classifier/run`, {
+    method: "POST",
+    headers: adminHeaders(),
+    body: JSON.stringify(params ?? {}),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const msg = typeof data?.error === "string" ? data.error : "Batch run failed";
+    throw new Error(msg);
+  }
+  return data;
+}

@@ -109,6 +109,24 @@ func MergeLLMSpecs(existing []byte, llmResult map[string]interface{}) []byte {
 	return b
 }
 
+// MergeLLMCategory stores LLM category classification result in metadata.llm_category for admin review.
+// Format: { "canonical_category": [...], "confidence": 0.95, "reasoning": "..." }
+func MergeLLMCategory(existing []byte, llmCategory map[string]interface{}) []byte {
+	if len(llmCategory) == 0 {
+		return existing
+	}
+	var base map[string]interface{}
+	if len(existing) > 0 {
+		_ = json.Unmarshal(existing, &base)
+	}
+	if base == nil {
+		base = make(map[string]interface{})
+	}
+	base["llm_category"] = llmCategory
+	b, _ := json.Marshal(base)
+	return b
+}
+
 // MergeLLMOverrides merges manual overrides into metadata.llm_overrides.
 // Override values take precedence over specs when displaying. Pass nil to clear a key.
 func MergeLLMOverrides(existing []byte, overrides map[string]interface{}) []byte {

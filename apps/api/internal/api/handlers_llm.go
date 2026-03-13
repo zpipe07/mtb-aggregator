@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/mtb-aggregator/api/internal/llm"
@@ -236,6 +237,193 @@ func (h *Handlers) PostLLMProfileTest(w http.ResponseWriter, r *http.Request, pr
 	}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{"result": result})
+}
+
+// GetCategoryClassifier returns the singleton category classifier config (admin).
+func (h *Handlers) GetCategoryClassifier(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	cfg, err := h.DB.GetCategoryClassifier(r.Context())
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if cfg == nil {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{"config": nil})
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"id":                   cfg.ID,
+		"system_prompt":        cfg.SystemPrompt,
+		"valid_categories":     cfg.ValidCategories,
+		"confidence_threshold": cfg.ConfidenceThreshold,
+		"enabled":              cfg.Enabled,
+	})
+}
+
+// PutCategoryClassifier updates the singleton category classifier config (admin).
+func (h *Handlers) PutCategoryClassifier(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPut && r.Method != http.MethodPatch {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var body struct {
+		SystemPrompt        string     `json:"system_prompt"`
+		ValidCategories     [][]string `json:"valid_categories"`
+		ConfidenceThreshold *float64   `json:"confidence_threshold"`
+		Enabled             *bool      `json:"enabled"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		http.Error(w, "invalid json", http.StatusBadRequest)
+		return
+	}
+	cfg, err := h.DB.GetCategoryClassifier(r.Context())
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if cfg == nil {
+		http.Error(w, "category classifier config not found (run migration first)", http.StatusNotFound)
+		return
+	}
+	if body.SystemPrompt != "" {
+		cfg.SystemPrompt = body.SystemPrompt
+	}
+	if len(body.ValidCategories) > 0 {
+		cfg.ValidCategories = body.ValidCategories
+	}
+	if body.ConfidenceThreshold != nil {
+		cfg.ConfidenceThreshold = *body.ConfidenceThreshold
+	}
+	if body.Enabled != nil {
+		cfg.Enabled = *body.Enabled
+	}
+	if err := h.DB.UpsertCategoryClassifier(r.Context(), cfg); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"ok": "updated"})
+}
+
+// PostCategoryClassifierTest runs classification on a single listing (admin). Body: {"listing_id": 123}.
+func (h *Handlers) PostCategoryClassifierTest(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if h.LLM == nil {
+		http.Error(w, "LLM client not configured (set OPENAI_API_KEY)", http.StatusServiceUnavailable)
+		return
+	}
+	var body struct {
+		ListingID int `json:"listing_id"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		http.Error(w, "invalid json", http.StatusBadRequest)
+		return
+	}
+	if body.ListingID <= 0 {
+		http.Error(w, "listing_id required", http.StatusBadRequest)
+		return
+	}
+	cfg, err := h.DB.GetCategoryClassifier(r.Context())
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if cfg == nil || !cfg.Enabled {
+		http.Error(w, "category classifier not configured or disabled", http.StatusNotFound)
+		return
+	}
+	listing, err := h.DB.GetListingForCategoryClassification(r.Context(), body.ListingID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if listing == nil {
+		http.Error(w, "listing not found", http.StatusNotFound)
+		return
+	}
+	var meta struct {
+		Description string                 `json:"description"`
+		Specs      map[string]interface{} `json:"specs"`
+	}
+	_ = json.Unmarshal(listing.Metadata, &meta)
+	specs := make(map[string]string)
+	if meta.Specs != nil {
+		for k, v := range meta.Specs {
+			if v != nil {
+				specs[k] = fmt.Sprint(v)
+			}
+		}
+	}
+	input := llm.ClassifyInput{
+		ProductName:  listing.ProductName,
+		Description:  meta.Description,
+		Specs:        specs,
+		CategoryPath: listing.CategoryPath,
+	}
+	config := llm.ClassifyConfig{
+		SystemPrompt:        cfg.SystemPrompt,
+		ValidCategories:     cfg.ValidCategories,
+		ConfidenceThreshold: cfg.ConfidenceThreshold,
+	}
+	result, err := h.LLM.Classify(r.Context(), config, input)
+	if err != nil {
+		http.Error(w, "classification failed: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if result == nil {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{"result": nil, "message": "LLM client disabled (no API key)"})
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"result": map[string]interface{}{
+			"canonical_category": result.CanonicalCategory,
+			"confidence":         result.Confidence,
+			"reasoning":          result.Reasoning,
+		},
+	})
+}
+
+// PostCategoryClassifierRun re-runs category classification on listings. Body: {"store": "worldwidecyclery", "canonical_category": ["Bikes", "Mountain"], "limit": 100}.
+func (h *Handlers) PostCategoryClassifierRun(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var body struct {
+		Store             string   `json:"store"`
+		CanonicalCategory []string `json:"canonical_category"`
+		Limit             int      `json:"limit"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		http.Error(w, "invalid json", http.StatusBadRequest)
+		return
+	}
+	limit := body.Limit
+	if limit <= 0 {
+		limit = 500
+	}
+	ids, err := h.DB.ListListingIDsForCategoryClassifierRun(r.Context(), body.Store, body.CanonicalCategory, limit)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	processed := 0
+	for _, id := range ids {
+		h.runLLMCategoryClassification(r.Context(), id)
+		processed++
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{"ok": true, "processed": processed})
 }
 
 // PostAdminLLMRun re-runs LLM extraction for all listings in a canonical category. Body: {"canonical_category": ["Bikes", "Mountain"]}.

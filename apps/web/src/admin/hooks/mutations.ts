@@ -33,6 +33,9 @@ import {
   updateLLMProfile,
   deleteLLMProfile,
   testLLMProfile,
+  updateCategoryClassifier,
+  testCategoryClassifier,
+  runCategoryClassifier,
   type StoreFormBody,
 } from "../api";
 import {
@@ -46,6 +49,7 @@ import {
   adminSpecFilterKeys,
   adminNormalizationKeys,
   adminLLMProfileKeys,
+  adminCategoryClassifierKeys,
 } from "./queryKeys";
 import { dealKeys } from "../../hooks/queryKeys";
 
@@ -471,5 +475,38 @@ export function useTestLLMProfile() {
   return useMutation({
     mutationFn: ({ profileId, listingId }: { profileId: number; listingId: number }) =>
       testLLMProfile(profileId, listingId),
+  });
+}
+
+export function useUpdateCategoryClassifier() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: {
+      system_prompt?: string;
+      valid_categories?: string[][];
+      confidence_threshold?: number;
+      enabled?: boolean;
+    }) => updateCategoryClassifier(body),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminCategoryClassifierKeys.all });
+    },
+  });
+}
+
+export function useTestCategoryClassifier() {
+  return useMutation({
+    mutationFn: (listingId: number) => testCategoryClassifier(listingId),
+  });
+}
+
+export function useRunCategoryClassifier() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (params?: { store?: string; canonical_category?: string[]; limit?: number }) =>
+      runCategoryClassifier(params),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminListingKeys.all });
+      queryClient.invalidateQueries({ queryKey: adminCategoryClassifierKeys.all });
+    },
   });
 }

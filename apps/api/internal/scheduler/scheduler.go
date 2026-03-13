@@ -357,6 +357,7 @@ func (s *Scheduler) RunEnrichmentJob(force bool, triggeredBy string) {
 		if len(result.CategoryPath) > 0 {
 			log.Printf("[enrichment] listing %d: category_path=%v", l.ID, result.CategoryPath)
 		}
+		s.runLLMCategoryClassification(ctx, l.ID)
 		s.runLLMExtractionIfApplicable(ctx, l.ID)
 	}
 
@@ -366,6 +367,70 @@ func (s *Scheduler) RunEnrichmentJob(force bool, triggeredBy string) {
 		_ = s.db.UpdateEnrichJob(ctx, jobID, status, &p, &successCount, errStrs)
 	}
 	log.Printf("[enrichment] enriched %d/%d listings", successCount, len(listings))
+}
+
+// runLLMCategoryClassification runs LLM category classification to refine canonical_category.
+// Runs before runLLMExtractionIfApplicable so spec extraction uses the corrected category.
+func (s *Scheduler) runLLMCategoryClassification(ctx context.Context, listingID int) {
+	if s.llm == nil {
+		return
+	}
+	cfg, err := s.db.GetCategoryClassifier(ctx)
+	if err != nil || cfg == nil || !cfg.Enabled {
+		return
+	}
+	listing, err := s.db.GetListingForCategoryClassification(ctx, listingID)
+	if err != nil || listing == nil {
+		return
+	}
+	var meta struct {
+		Description string                 `json:"description"`
+		Specs       map[string]interface{} `json:"specs"`
+	}
+	_ = json.Unmarshal(listing.Metadata, &meta)
+	specs := make(map[string]string)
+	if meta.Specs != nil {
+		for k, v := range meta.Specs {
+			if v != nil {
+				specs[k] = fmt.Sprint(v)
+			}
+		}
+	}
+	input := llm.ClassifyInput{
+		ProductName:  listing.ProductName,
+		Description:  meta.Description,
+		Specs:        specs,
+		CategoryPath: listing.CategoryPath,
+	}
+	config := llm.ClassifyConfig{
+		SystemPrompt:        cfg.SystemPrompt,
+		ValidCategories:     cfg.ValidCategories,
+		ConfidenceThreshold: cfg.ConfidenceThreshold,
+	}
+	result, err := s.llm.Classify(ctx, config, input)
+	if err != nil {
+		log.Printf("[enrichment] listing %d: LLM classify failed: %v", listingID, err)
+		return
+	}
+	if result == nil {
+		return
+	}
+	llmCategory := map[string]interface{}{
+		"canonical_category": result.CanonicalCategory,
+		"confidence":         result.Confidence,
+		"reasoning":           result.Reasoning,
+	}
+	if result.Confidence >= config.ConfidenceThreshold {
+		if err := s.db.UpdateListingCanonicalCategory(ctx, listingID, result.CanonicalCategory, llmCategory); err != nil {
+			log.Printf("[enrichment] listing %d: failed to update category: %v", listingID, err)
+			return
+		}
+		log.Printf("[enrichment] listing %d: LLM classified as %v (conf=%.2f)", listingID, result.CanonicalCategory, result.Confidence)
+	} else {
+		if err := s.db.UpdateListingLLMCategoryMetadata(ctx, listingID, llmCategory); err != nil {
+			log.Printf("[enrichment] listing %d: failed to store LLM category metadata: %v", listingID, err)
+		}
+	}
 }
 
 // runLLMExtractionIfApplicable runs LLM spec extraction for a listing if a matching profile exists.
@@ -521,6 +586,7 @@ func (s *Scheduler) RunEnrichmentJobForStore(storeType string, force bool, trigg
 			if len(result.CategoryPath) > 0 {
 				log.Printf("[enrichment] listing %d: category_path=%v", l.ID, result.CategoryPath)
 			}
+			s.runLLMCategoryClassification(ctx, l.ID)
 			s.runLLMExtractionIfApplicable(ctx, l.ID)
 		}
 		totalProcessed += len(listings)

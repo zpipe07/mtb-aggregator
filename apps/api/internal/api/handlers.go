@@ -919,6 +919,7 @@ func (h *Handlers) PostAdminEnrichListing(w http.ResponseWriter, r *http.Request
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	h.runLLMCategoryClassification(r.Context(), id)
 	h.runLLMExtractionIfApplicable(r.Context(), id)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
@@ -926,6 +927,67 @@ func (h *Handlers) PostAdminEnrichListing(w http.ResponseWriter, r *http.Request
 		"category_path": result.CategoryPath,
 		"unavailable":   result.Unavailable,
 	})
+}
+
+// runLLMCategoryClassification runs LLM category classification to refine canonical_category.
+func (h *Handlers) runLLMCategoryClassification(ctx context.Context, listingID int) {
+	if h.LLM == nil {
+		return
+	}
+	cfg, err := h.DB.GetCategoryClassifier(ctx)
+	if err != nil || cfg == nil || !cfg.Enabled {
+		return
+	}
+	listing, err := h.DB.GetListingForCategoryClassification(ctx, listingID)
+	if err != nil || listing == nil {
+		return
+	}
+	var meta struct {
+		Description string                 `json:"description"`
+		Specs       map[string]interface{} `json:"specs"`
+	}
+	_ = json.Unmarshal(listing.Metadata, &meta)
+	specs := make(map[string]string)
+	if meta.Specs != nil {
+		for k, v := range meta.Specs {
+			if v != nil {
+				specs[k] = fmt.Sprint(v)
+			}
+		}
+	}
+	input := llm.ClassifyInput{
+		ProductName:  listing.ProductName,
+		Description:  meta.Description,
+		Specs:        specs,
+		CategoryPath: listing.CategoryPath,
+	}
+	config := llm.ClassifyConfig{
+		SystemPrompt:        cfg.SystemPrompt,
+		ValidCategories:     cfg.ValidCategories,
+		ConfidenceThreshold: cfg.ConfidenceThreshold,
+	}
+	result, err := h.LLM.Classify(ctx, config, input)
+	if err != nil {
+		log.Printf("[admin] listing %d: LLM classify failed: %v", listingID, err)
+		return
+	}
+	if result == nil {
+		return
+	}
+	llmCategory := map[string]interface{}{
+		"canonical_category": result.CanonicalCategory,
+		"confidence":         result.Confidence,
+		"reasoning":          result.Reasoning,
+	}
+	if result.Confidence >= config.ConfidenceThreshold {
+		if err := h.DB.UpdateListingCanonicalCategory(ctx, listingID, result.CanonicalCategory, llmCategory); err != nil {
+			log.Printf("[admin] listing %d: failed to update category: %v", listingID, err)
+		} else {
+			log.Printf("[admin] listing %d: LLM classified as %v (conf=%.2f)", listingID, result.CanonicalCategory, result.Confidence)
+		}
+	} else {
+		_ = h.DB.UpdateListingLLMCategoryMetadata(ctx, listingID, llmCategory)
+	}
 }
 
 // runLLMExtractionIfApplicable runs LLM spec extraction for a listing if a matching profile exists.
