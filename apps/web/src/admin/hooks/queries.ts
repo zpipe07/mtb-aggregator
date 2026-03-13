@@ -17,6 +17,8 @@ import {
   fetchUnmappedItems,
   fetchSpecNormalizationRules,
   fetchSpecKeyAliases,
+  fetchLLMProfiles,
+  fetchCategoryClassifier,
 } from "../api";
 import {
   adminDashboardKeys,
@@ -29,6 +31,8 @@ import {
   adminTaxonomyKeys,
   adminSpecFilterKeys,
   adminNormalizationKeys,
+  adminLLMProfileKeys,
+  adminCategoryClassifierKeys,
 } from "./queryKeys";
 
 export function useAdminDashboard() {
@@ -122,6 +126,7 @@ export interface AdminListingsParams {
   hidden?: boolean;
   category?: string;
   canonical_category?: string;
+  llm_confidence_below?: number;
   q?: string;
   sort?: string;
   limit?: number;
@@ -200,6 +205,22 @@ export function useSpecKeyAliases() {
   return useQuery({
     queryKey: adminNormalizationKeys.keyAliases(),
     queryFn: fetchSpecKeyAliases,
+    staleTime: 60 * 1000,
+  });
+}
+
+export function useLLMProfiles() {
+  return useQuery({
+    queryKey: adminLLMProfileKeys.all,
+    queryFn: fetchLLMProfiles,
+    staleTime: 60 * 1000,
+  });
+}
+
+export function useCategoryClassifier() {
+  return useQuery({
+    queryKey: adminCategoryClassifierKeys.all,
+    queryFn: fetchCategoryClassifier,
     staleTime: 60 * 1000,
   });
 }

@@ -309,6 +309,7 @@ export async function fetchAdminListings(params?: {
   sort?: string;
   limit?: number;
   offset?: number;
+  llm_confidence_below?: number;
 }): Promise<AdminListingsResponse> {
   const search = new URLSearchParams();
   if (params?.store_id != null) search.set("store_id", String(params.store_id));
@@ -319,6 +320,7 @@ export async function fetchAdminListings(params?: {
   if (params?.hidden != null) search.set("hidden", params.hidden ? "true" : "false");
   if (params?.category) search.set("category", params.category);
   if (params?.canonical_category) search.set("canonical_category", params.canonical_category);
+  if (params?.llm_confidence_below != null) search.set("llm_confidence_below", String(params.llm_confidence_below));
   if (params?.q) search.set("q", params.q);
   if (params?.sort) search.set("sort", params.sort);
   if (params?.limit != null) search.set("limit", String(params.limit));
@@ -352,6 +354,35 @@ export async function setListingHidden(id: number, hidden: boolean): Promise<voi
     const msg = typeof data?.error === "string" ? data.error : res.status === 404 ? "Listing not found" : "Update failed";
     throw new Error(msg);
   }
+}
+
+/** Set LLM overrides for a listing. Body is the overrides map e.g. { mtb_class: "Trail" }. Pass null for a key to clear. */
+export async function setListingLLMOverrides(id: number, overrides: Record<string, string | null>): Promise<void> {
+  const res = await fetch(`${API_BASE}/admin/listings/${id}/llm-overrides`, {
+    method: "POST",
+    headers: adminHeaders(),
+    body: JSON.stringify(overrides),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const msg = typeof data?.error === "string" ? data.error : "Update failed";
+    throw new Error(msg);
+  }
+}
+
+/** Re-run LLM extraction for all listings in a canonical category. */
+export async function runLLMExtractionForCategory(canonicalCategory: string[]): Promise<{ ok: boolean; processed: number }> {
+  const res = await fetch(`${API_BASE}/admin/llm/run`, {
+    method: "POST",
+    headers: adminHeaders(),
+    body: JSON.stringify({ canonical_category: canonicalCategory }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const msg = typeof data?.error === "string" ? data.error : "Re-run failed";
+    throw new Error(msg);
+  }
+  return data;
 }
 
 /** Run enrichment for a single listing. Returns { ok, category_path } or throws with error message. */
@@ -763,4 +794,164 @@ export async function deleteSpecKeyAlias(id: number): Promise<void> {
     headers: adminHeaders(),
   });
   if (!res.ok) throw new Error("Delete failed");
+}
+
+// --- LLM Prompt Profiles ---
+
+export interface LLMPromptProfile {
+  id: number;
+  canonical_category: string[];
+  name: string;
+  system_prompt: string;
+  extraction_schema: Record<string, unknown>;
+  enabled: boolean;
+}
+
+export async function fetchLLMProfiles(): Promise<LLMPromptProfile[]> {
+  const res = await fetch(`${API_BASE}/admin/llm-profiles`, { headers: adminHeaders() });
+  if (!res.ok) throw new Error(res.status === 401 ? "Unauthorized" : "Failed to fetch LLM profiles");
+  const data = await res.json();
+  return Array.isArray(data) ? data : [];
+}
+
+export async function fetchLLMProfile(id: number): Promise<LLMPromptProfile> {
+  const res = await fetch(`${API_BASE}/admin/llm-profiles/${id}`, { headers: adminHeaders() });
+  if (!res.ok) throw new Error(res.status === 401 ? "Unauthorized" : "Failed to fetch profile");
+  return res.json();
+}
+
+export async function createLLMProfile(body: {
+  canonical_category: string[];
+  name: string;
+  system_prompt: string;
+  extraction_schema: Record<string, unknown>;
+  enabled?: boolean;
+}): Promise<{ id: number }> {
+  const res = await fetch(`${API_BASE}/admin/llm-profiles`, {
+    method: "POST",
+    headers: adminHeaders(),
+    body: JSON.stringify({
+      canonical_category: body.canonical_category,
+      name: body.name,
+      system_prompt: body.system_prompt,
+      extraction_schema: body.extraction_schema,
+      enabled: body.enabled ?? true,
+    }),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || "Create failed");
+  }
+  return res.json();
+}
+
+export async function updateLLMProfile(
+  id: number,
+  body: {
+    canonical_category?: string[];
+    name?: string;
+    system_prompt?: string;
+    extraction_schema?: Record<string, unknown>;
+    enabled?: boolean;
+  }
+): Promise<void> {
+  const res = await fetch(`${API_BASE}/admin/llm-profiles/${id}`, {
+    method: "PUT",
+    headers: adminHeaders(),
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || "Update failed");
+  }
+}
+
+export async function deleteLLMProfile(id: number): Promise<void> {
+  const res = await fetch(`${API_BASE}/admin/llm-profiles/${id}`, {
+    method: "DELETE",
+    headers: adminHeaders(),
+  });
+  if (!res.ok) throw new Error("Delete failed");
+}
+
+export async function testLLMProfile(profileId: number, listingId: number): Promise<{ result: Record<string, unknown> | null; message?: string }> {
+  const res = await fetch(`${API_BASE}/admin/llm-profiles/${profileId}/test`, {
+    method: "POST",
+    headers: adminHeaders(),
+    body: JSON.stringify({ listing_id: listingId }),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || "Test failed");
+  }
+  return res.json();
+}
+
+// --- Category Classifier ---
+
+export interface CategoryClassifierConfig {
+  id: number;
+  system_prompt: string;
+  valid_categories: string[][];
+  confidence_threshold: number;
+  enabled: boolean;
+}
+
+export async function fetchCategoryClassifier(): Promise<CategoryClassifierConfig | null> {
+  const res = await fetch(`${API_BASE}/admin/category-classifier`, { headers: adminHeaders() });
+  if (!res.ok) throw new Error(res.status === 401 ? "Unauthorized" : "Failed to fetch category classifier");
+  const data = await res.json();
+  if (data.config === null || (data.id == null && data.config == null)) return null;
+  return data as CategoryClassifierConfig;
+}
+
+export async function updateCategoryClassifier(body: {
+  system_prompt?: string;
+  valid_categories?: string[][];
+  confidence_threshold?: number;
+  enabled?: boolean;
+}): Promise<void> {
+  const res = await fetch(`${API_BASE}/admin/category-classifier`, {
+    method: "PUT",
+    headers: adminHeaders(),
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || "Update failed");
+  }
+}
+
+export async function testCategoryClassifier(listingId: number): Promise<{
+  result: { canonical_category: string[]; confidence: number; reasoning: string } | null;
+  message?: string;
+}> {
+  const res = await fetch(`${API_BASE}/admin/category-classifier/test`, {
+    method: "POST",
+    headers: adminHeaders(),
+    body: JSON.stringify({ listing_id: listingId }),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || "Test failed");
+  }
+  return res.json();
+}
+
+export async function runCategoryClassifier(params?: {
+  store?: string;
+  canonical_category?: string[];
+  limit?: number;
+}): Promise<{ ok: boolean; processed: number }> {
+  const res = await fetch(`${API_BASE}/admin/category-classifier/run`, {
+    method: "POST",
+    headers: adminHeaders(),
+    body: JSON.stringify(params ?? {}),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const msg = typeof data?.error === "string" ? data.error : "Batch run failed";
+    throw new Error(msg);
+  }
+  return data;
 }

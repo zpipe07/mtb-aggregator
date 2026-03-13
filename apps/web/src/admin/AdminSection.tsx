@@ -6,6 +6,8 @@ import { Dashboard } from "./Dashboard";
 import { StoreManager } from "./StoreManager";
 import { DataBrowser } from "./DataBrowser";
 import { TaxonomyManager } from "./TaxonomyManager";
+import { PromptProfileManager } from "./PromptProfileManager";
+import { CategoryClassifierManager } from "./CategoryClassifierManager";
 import { SpecFilterManager } from "./SpecFilterManager";
 import { NormalizationManager } from "./NormalizationManager";
 import { Operations } from "./Operations";
@@ -25,6 +27,8 @@ export function AdminSection() {
         <Route path="stores" element={<StoreManager />} />
         <Route path="data" element={<DataBrowser />} />
         <Route path="taxonomy" element={<TaxonomyManager />} />
+        <Route path="llm-profiles" element={<PromptProfileManager />} />
+        <Route path="category-classifier" element={<CategoryClassifierManager />} />
         <Route path="spec-filters" element={<SpecFilterManager />} />
         <Route path="normalization" element={<NormalizationManager />} />
         <Route path="operations" element={<Operations />} />

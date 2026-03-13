@@ -230,18 +230,19 @@ type AdminListing struct {
 
 // GetAdminListingsParams for admin listing browser filters.
 type GetAdminListingsParams struct {
-	StoreID             int    // 0 = all
-	Brand               string
-	HasCanonicalCategory *bool // true = has canonical category set; false = not set; nil = any
-	HasEnrichment       *bool // true = last_enriched_at IS NOT NULL; false = NULL; nil = any
-	InStock             *bool // true = is_in_stock; false = out of stock; nil = any
-	Hidden              *bool // true = hidden only; false = visible only; nil = any
-	Category            string
-	CanonicalCategory   string
-	Search              string
-	Sort                string // newest, discount, price_asc, price_desc, relevance
-	Limit               int
-	Offset              int
+	StoreID               int     // 0 = all
+	Brand                 string
+	HasCanonicalCategory  *bool   // true = has canonical category set; false = not set; nil = any
+	HasEnrichment         *bool   // true = last_enriched_at IS NOT NULL; false = NULL; nil = any
+	InStock               *bool   // true = is_in_stock; false = out of stock; nil = any
+	Hidden                *bool   // true = hidden only; false = visible only; nil = any
+	Category              string
+	CanonicalCategory     string
+	Search                string
+	Sort                  string  // newest, discount, price_asc, price_desc, relevance
+	LLMConfidenceBelow    *float64 // filter: (metadata->>'llm_confidence')::float < value (e.g. 0.7 for low confidence)
+	Limit                 int
+	Offset                int
 }
 
 // GetAdminListings returns listings for the admin data browser with full detail.
@@ -330,6 +331,11 @@ func (db *DB) GetAdminListings(ctx context.Context, params GetAdminListingsParam
 	if params.Search != "" {
 		query += fmt.Sprintf(" AND l.search_vector @@ plainto_tsquery('english', $%d)", argNum)
 		args = append(args, params.Search)
+		argNum++
+	}
+	if params.LLMConfidenceBelow != nil {
+		query += fmt.Sprintf(" AND (l.metadata->>'llm_confidence')::float < $%d", argNum)
+		args = append(args, *params.LLMConfidenceBelow)
 		argNum++
 	}
 
@@ -1220,7 +1226,7 @@ func (db *DB) GetListingsNeedingEnrichmentForStore(ctx context.Context, storeTyp
 	return listings, rows.Err()
 }
 
-func (db *DB) UpdateListingEnrichment(ctx context.Context, id int, categoryPath []string, rawSpecs map[string]string, unavailable bool) error {
+func (db *DB) UpdateListingEnrichment(ctx context.Context, id int, categoryPath []string, rawSpecs map[string]string, unavailable bool, description *string) error {
 	if unavailable {
 		_, err := db.pool.Exec(ctx, `
 			UPDATE store_listings
@@ -1241,6 +1247,9 @@ func (db *DB) UpdateListingEnrichment(ctx context.Context, id int, categoryPath 
 	}
 
 	mergedMeta := metadata.MergeSpecs(existingMeta, rawSpecs)
+	if description != nil && *description != "" {
+		mergedMeta = metadata.MergeDescription(mergedMeta, *description)
+	}
 
 	// If we got a non-empty categoryPath, update category_path and canonical_category; otherwise leave them unchanged.
 	if len(categoryPath) > 0 {
@@ -1286,6 +1295,87 @@ func (db *DB) GetListingEnrichmentInfo(ctx context.Context, id int) (productURL,
 		return "", "", err
 	}
 	return productURL, storeType, nil
+}
+
+// ListingForLLM holds data needed to run LLM extraction (product name, metadata, canonical category).
+// Used after enrichment to optionally run LLM spec extraction.
+type ListingForLLM struct {
+	ProductName       string
+	Metadata          []byte
+	CanonicalCategory []string
+}
+
+// GetListingForLLM returns listing data needed for LLM extraction. Call after UpdateListingEnrichment.
+func (db *DB) GetListingForLLM(ctx context.Context, id int) (*ListingForLLM, error) {
+	var productName string
+	var meta []byte
+	var cat pgtype.FlatArray[string]
+	err := db.pool.QueryRow(ctx, `
+		SELECT COALESCE(product_name, ''), COALESCE(metadata, '{}'), COALESCE(canonical_category, '{}'::text[])
+		FROM store_listings
+		WHERE id = $1
+	`, id).Scan(&productName, &meta, &cat)
+	if err != nil {
+		if err.Error() == "no rows in result set" {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &ListingForLLM{
+		ProductName:       productName,
+		Metadata:          meta,
+		CanonicalCategory: cat,
+	}, nil
+}
+
+// UpdateListingLLMSpecs merges LLM extraction output into a listing's metadata and persists.
+// Only fills spec gaps; does not overwrite existing spec-table data.
+func (db *DB) UpdateListingLLMSpecs(ctx context.Context, id int, llmResult map[string]interface{}) error {
+	var existing []byte
+	if err := db.pool.QueryRow(ctx, `SELECT COALESCE(metadata, '{}') FROM store_listings WHERE id = $1`, id).Scan(&existing); err != nil {
+		if err.Error() == "no rows in result set" {
+			return nil
+		}
+		return err
+	}
+	merged := metadata.MergeLLMSpecs(existing, llmResult)
+	_, err := db.pool.Exec(ctx, `UPDATE store_listings SET metadata = $1 WHERE id = $2`, merged, id)
+	return err
+}
+
+// UpdateListingLLMOverrides merges manual overrides into a listing's metadata.llm_overrides.
+func (db *DB) UpdateListingLLMOverrides(ctx context.Context, id int, overrides map[string]interface{}) error {
+	var existing []byte
+	if err := db.pool.QueryRow(ctx, `SELECT COALESCE(metadata, '{}') FROM store_listings WHERE id = $1`, id).Scan(&existing); err != nil {
+		if err.Error() == "no rows in result set" {
+			return nil
+		}
+		return err
+	}
+	merged := metadata.MergeLLMOverrides(existing, overrides)
+	_, err := db.pool.Exec(ctx, `UPDATE store_listings SET metadata = $1 WHERE id = $2`, merged, id)
+	return err
+}
+
+// ListListingIDsByCanonicalCategory returns listing IDs with the given canonical_category. Used for re-running LLM extraction.
+func (db *DB) ListListingIDsByCanonicalCategory(ctx context.Context, canonicalCategory []string) ([]int, error) {
+	if len(canonicalCategory) == 0 {
+		return nil, nil
+	}
+	rows, err := db.pool.Query(ctx, `SELECT id FROM store_listings WHERE canonical_category = $1`, pq.Array(canonicalCategory))
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var ids []int
+	for rows.Next() {
+		var id int
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		ids = append(ids, id)
+	}
+	return ids, rows.Err()
 }
 
 // BackfillBrands updates store_listings.brand using the given normalizer (e.g. brand.Normalize).

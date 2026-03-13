@@ -55,3 +55,12 @@ export const adminNormalizationKeys = {
   rules: () => [...adminNormalizationKeys.all, "rules"] as const,
   keyAliases: () => [...adminNormalizationKeys.all, "keyAliases"] as const,
 };
+
+export const adminLLMProfileKeys = {
+  all: ["admin", "llmProfiles"] as const,
+  detail: (id: number) => [...adminLLMProfileKeys.all, id] as const,
+};
+
+export const adminCategoryClassifierKeys = {
+  all: ["admin", "categoryClassifier"] as const,
+};

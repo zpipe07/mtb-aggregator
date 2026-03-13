@@ -4,6 +4,7 @@ import {
   useUnmappedItems,
   useSpecNormalizationRules,
   useSpecKeyAliases,
+  useLLMProfiles,
 } from "./hooks/queries";
 import {
   useCreateSpecNormalizationRule,
@@ -13,6 +14,7 @@ import {
   useUpdateSpecKeyAlias,
   useDeleteSpecKeyAlias,
   useTriggerRenormalizeSpecs,
+  useRunLLMExtractionForCategory,
 } from "./hooks/mutations";
 import type { SpecNormalizationRule, SpecKeyAlias } from "./api";
 
@@ -262,6 +264,8 @@ export function NormalizationManager() {
   const updateAlias = useUpdateSpecKeyAlias();
   const deleteAlias = useDeleteSpecKeyAlias();
   const renormalize = useTriggerRenormalizeSpecs();
+  const { data: llmProfiles = [], isPending: llmProfilesLoading } = useLLMProfiles();
+  const runLLM = useRunLLMExtractionForCategory();
 
   const sortedRules = [...rules].sort((a, b) => b.priority - a.priority);
   const sortedAliases = [...keyAliases].sort((a, b) => b.priority - a.priority);
@@ -327,6 +331,63 @@ export function NormalizationManager() {
         )}
         {renormalize.error && (
           <p className="text-sm text-red-600 mt-2">{renormalize.error.message}</p>
+        )}
+      </section>
+
+      {/* LLM Extraction */}
+      <section className="rounded-lg border border-stone-200 bg-white p-4">
+        <h2 className="text-lg font-medium text-stone-800 mb-3">LLM Extraction</h2>
+        <p className="text-sm text-stone-600 mb-3">
+          Re-run LLM spec extraction for all listings in a canonical category. Configure prompt
+          profiles in{" "}
+          <Link to="/admin/llm-profiles" className="text-stone-700 underline">
+            LLM Profiles
+          </Link>
+          .
+        </p>
+        {llmProfilesLoading ? (
+          <p className="text-sm text-stone-500">Loading profiles…</p>
+        ) : llmProfiles.length === 0 ? (
+          <p className="text-sm text-stone-500">
+            No LLM profiles yet.{" "}
+            <Link to="/admin/llm-profiles" className="text-stone-700 underline">
+              Create one
+            </Link>
+            .
+          </p>
+        ) : (
+          <div className="space-y-2">
+            {llmProfiles
+              .filter((p) => p.enabled)
+              .map((profile) => (
+                <div
+                  key={profile.id}
+                  className="flex items-center justify-between rounded border border-stone-200 bg-stone-50 px-3 py-2"
+                >
+                  <span className="text-sm font-medium text-stone-800">{profile.name}</span>
+                  <span className="text-xs text-stone-500 mr-2">
+                    {profile.canonical_category.join(" > ")}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => runLLM.mutate(profile.canonical_category)}
+                    disabled={runLLM.isPending}
+                    className="rounded border border-stone-300 px-3 py-1.5 text-sm hover:bg-stone-100 disabled:opacity-50"
+                  >
+                    {runLLM.isPending ? "Running…" : "Re-run"}
+                  </button>
+                </div>
+              ))}
+            {llmProfiles.filter((p) => p.enabled).length === 0 && (
+              <p className="text-sm text-stone-500">No enabled profiles.</p>
+            )}
+            {runLLM.data?.processed != null && (
+              <p className="text-sm text-stone-600">{runLLM.data.processed} listings processed</p>
+            )}
+            {runLLM.error && (
+              <p className="text-sm text-red-600">{runLLM.error.message}</p>
+            )}
+          </div>
         )}
       </section>
 

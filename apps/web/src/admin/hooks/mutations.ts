@@ -9,6 +9,8 @@ import {
   deleteStore,
   enrichListing,
   setListingHidden,
+  setListingLLMOverrides,
+  runLLMExtractionForCategory,
   createTaxonomyMapping,
   updateTaxonomyMapping,
   deleteTaxonomyMapping,
@@ -27,6 +29,13 @@ import {
   createSpecKeyAlias,
   updateSpecKeyAlias,
   deleteSpecKeyAlias,
+  createLLMProfile,
+  updateLLMProfile,
+  deleteLLMProfile,
+  testLLMProfile,
+  updateCategoryClassifier,
+  testCategoryClassifier,
+  runCategoryClassifier,
   type StoreFormBody,
 } from "../api";
 import {
@@ -39,6 +48,8 @@ import {
   adminTaxonomyKeys,
   adminSpecFilterKeys,
   adminNormalizationKeys,
+  adminLLMProfileKeys,
+  adminCategoryClassifierKeys,
 } from "./queryKeys";
 import { dealKeys } from "../../hooks/queryKeys";
 
@@ -140,6 +151,30 @@ export function useSetListingHidden() {
       queryClient.invalidateQueries({ queryKey: adminListingKeys.all });
       queryClient.invalidateQueries({ queryKey: adminListingKeys.detail(id) });
       queryClient.invalidateQueries({ queryKey: dealKeys.all });
+    },
+  });
+}
+
+export function useSetListingLLMOverrides() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, overrides }: { id: number; overrides: Record<string, string | null> }) =>
+      setListingLLMOverrides(id, overrides),
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: adminListingKeys.all });
+      queryClient.invalidateQueries({ queryKey: adminListingKeys.detail(id) });
+      queryClient.invalidateQueries({ queryKey: dealKeys.all });
+    },
+  });
+}
+
+export function useRunLLMExtractionForCategory() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: runLLMExtractionForCategory,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminListingKeys.all });
+      queryClient.invalidateQueries({ queryKey: adminLLMProfileKeys.all });
     },
   });
 }
@@ -389,6 +424,89 @@ export function useDeleteSpecKeyAlias() {
     mutationFn: deleteSpecKeyAlias,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: adminNormalizationKeys.all });
+    },
+  });
+}
+
+export function useCreateLLMProfile() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: createLLMProfile,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminLLMProfileKeys.all });
+    },
+  });
+}
+
+export function useUpdateLLMProfile() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      body,
+    }: {
+      id: number;
+      body: {
+        canonical_category?: string[];
+        name?: string;
+        system_prompt?: string;
+        extraction_schema?: Record<string, unknown>;
+        enabled?: boolean;
+      };
+    }) => updateLLMProfile(id, body),
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: adminLLMProfileKeys.all });
+      queryClient.invalidateQueries({ queryKey: adminLLMProfileKeys.detail(id) });
+    },
+  });
+}
+
+export function useDeleteLLMProfile() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: deleteLLMProfile,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminLLMProfileKeys.all });
+    },
+  });
+}
+
+export function useTestLLMProfile() {
+  return useMutation({
+    mutationFn: ({ profileId, listingId }: { profileId: number; listingId: number }) =>
+      testLLMProfile(profileId, listingId),
+  });
+}
+
+export function useUpdateCategoryClassifier() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: {
+      system_prompt?: string;
+      valid_categories?: string[][];
+      confidence_threshold?: number;
+      enabled?: boolean;
+    }) => updateCategoryClassifier(body),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminCategoryClassifierKeys.all });
+    },
+  });
+}
+
+export function useTestCategoryClassifier() {
+  return useMutation({
+    mutationFn: (listingId: number) => testCategoryClassifier(listingId),
+  });
+}
+
+export function useRunCategoryClassifier() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (params?: { store?: string; canonical_category?: string[]; limit?: number }) =>
+      runCategoryClassifier(params),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminListingKeys.all });
+      queryClient.invalidateQueries({ queryKey: adminCategoryClassifierKeys.all });
     },
   });
 }

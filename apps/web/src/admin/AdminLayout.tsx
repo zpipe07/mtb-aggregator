@@ -8,6 +8,8 @@ const navItems = [
   { to: "/admin/taxonomy", end: false, label: "Taxonomy" },
   { to: "/admin/spec-filters", end: false, label: "Spec Filters" },
   { to: "/admin/normalization", end: false, label: "Normalization" },
+  { to: "/admin/llm-profiles", end: false, label: "LLM Profiles" },
+  { to: "/admin/category-classifier", end: false, label: "Category Classifier" },
   { to: "/admin/operations", end: false, label: "Operations" },
 ];
 

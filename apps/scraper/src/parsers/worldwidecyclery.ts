@@ -40,7 +40,10 @@ interface ShopifyCollectionResponse {
 /**
  * Fetch one page of products from Shopify collection JSON API.
  */
-async function fetchPage(collectionUrl: string, page: number): Promise<ShopifyProduct[]> {
+async function fetchPage(
+  collectionUrl: string,
+  page: number,
+): Promise<ShopifyProduct[]> {
   const url = new URL(collectionUrl);
   const origin = url.origin;
   const pathname = url.pathname.replace(/\/$/, "");
@@ -64,7 +67,9 @@ async function fetchPage(collectionUrl: string, page: number): Promise<ShopifyPr
  * Scrape Worldwide Cyclery deals via Shopify's collection products.json API.
  * No browser required; uses fetch + JSON.
  */
-export async function scrapeWorldwideCyclery(collectionUrl: string): Promise<ScrapeResult[]> {
+export async function scrapeWorldwideCyclery(
+  collectionUrl: string,
+): Promise<ScrapeResult[]> {
   const results: ScrapeResult[] = [];
   const url = new URL(collectionUrl);
   const origin = url.origin;
@@ -84,17 +89,20 @@ export async function scrapeWorldwideCyclery(collectionUrl: string): Promise<Scr
         const originalPrice = variant.compare_at_price
           ? parseFloat(variant.compare_at_price)
           : null;
-        if (originalPrice !== null && (!Number.isFinite(originalPrice) || originalPrice <= 0)) {
+        if (
+          originalPrice !== null &&
+          (!Number.isFinite(originalPrice) || originalPrice <= 0)
+        ) {
           continue;
         }
 
         const productUrl = `${origin}/products/${product.handle}`;
         const imageUrl =
-          variant.featured_image?.src ??
-          product.images?.[0]?.src ??
-          null;
+          variant.featured_image?.src ?? product.images?.[0]?.src ?? null;
         const storeSku = variant.sku?.trim() || `v${variant.id}`;
-        const categoryPath = product.product_type ? [product.product_type] : null;
+        const categoryPath = product.product_type
+          ? [product.product_type]
+          : null;
 
         results.push({
           store_sku: storeSku,
@@ -115,7 +123,9 @@ export async function scrapeWorldwideCyclery(collectionUrl: string): Promise<Scr
   }
 
   const deduped = dedupeBySku(results);
-  console.log(`[scraper] Worldwide Cyclery: ${deduped.length} listings (${page} page(s))`);
+  console.log(
+    `[scraper] Worldwide Cyclery: ${deduped.length} listings (${page} page(s))`,
+  );
   return deduped;
 }
 
@@ -133,17 +143,25 @@ function dedupeBySku(results: ScrapeResult[]): ScrapeResult[] {
  * Extracts specs from body_html tables/definition lists and returns them as raw key-value pairs.
  * Extracts category breadcrumbs from the product page HTML (JSON-LD, DOM, or collection links).
  */
-export async function enrichWorldwideCyclery(productUrl: string): Promise<EnrichResult> {
+export async function enrichWorldwideCyclery(
+  productUrl: string,
+): Promise<EnrichResult> {
   try {
     const [detail, html] = await Promise.all([
       fetchWorldwideProductDetail(productUrl),
       fetchWorldwideProductHtml(productUrl),
     ]);
-    const rawSpecs = detail.body_html ? extractSpecsFromHtml(detail.body_html) : null;
+    const rawSpecs = detail.body_html
+      ? extractSpecsFromHtml(detail.body_html)
+      : null;
     const categoryPath = html ? extractBreadcrumbsFromHtml(html) : null;
+    const description = detail.body_html
+      ? extractDescriptionFromHtml(detail.body_html)
+      : null;
     return {
       category_path: categoryPath,
       raw_specs: rawSpecs,
+      description: description ?? undefined,
     };
   } catch (err) {
     console.error("[scraper] Worldwide Cyclery enrich failed:", err);
@@ -154,7 +172,9 @@ export async function enrichWorldwideCyclery(productUrl: string): Promise<Enrich
   }
 }
 
-async function fetchWorldwideProductDetail(productUrl: string): Promise<ShopifyProductDetail> {
+async function fetchWorldwideProductDetail(
+  productUrl: string,
+): Promise<ShopifyProductDetail> {
   const url = new URL(productUrl);
   const origin = url.origin || BASE_URL;
   const parts = url.pathname.split("/").filter(Boolean);
@@ -175,7 +195,9 @@ async function fetchWorldwideProductDetail(productUrl: string): Promise<ShopifyP
   return data.product ?? {};
 }
 
-async function fetchWorldwideProductHtml(productUrl: string): Promise<string | null> {
+async function fetchWorldwideProductHtml(
+  productUrl: string,
+): Promise<string | null> {
   const res = await fetch(productUrl, {
     headers: {
       Accept: "text/html",
@@ -207,7 +229,10 @@ function extractBreadcrumbsFromHtml(html: string): string[] | null {
           ? parsed["@graph"]
           : [parsed];
       for (const json of candidates) {
-        if (json?.["@type"] === "BreadcrumbList" && Array.isArray(json.itemListElement)) {
+        if (
+          json?.["@type"] === "BreadcrumbList" &&
+          Array.isArray(json.itemListElement)
+        ) {
           const items: string[] = [];
           for (const el2 of json.itemListElement) {
             const name = el2.name ?? el2.item?.name;
@@ -215,7 +240,8 @@ function extractBreadcrumbsFromHtml(html: string): string[] | null {
           }
           if (items.length >= 2) {
             let trimmed = items.slice(0, -1); // exclude product name
-            if (trimmed[0] && /^home$/i.test(trimmed[0])) trimmed = trimmed.slice(1);
+            if (trimmed[0] && /^home$/i.test(trimmed[0]))
+              trimmed = trimmed.slice(1);
             if (trimmed.length > 0) {
               result = trimmed;
               return;
@@ -255,7 +281,9 @@ function extractBreadcrumbsFromHtml(html: string): string[] | null {
   const collectionsLabel = $('*:contains("Collections:")').first();
   if (collectionsLabel.length) {
     const container = collectionsLabel.closest("div, section, p");
-    const links = (container.length ? container : collectionsLabel).find("a[href*='/collections/']");
+    const links = (container.length ? container : collectionsLabel).find(
+      "a[href*='/collections/']",
+    );
     const items: string[] = [];
     links.each((_, el) => {
       const t = clean($(el).text());
@@ -264,12 +292,28 @@ function extractBreadcrumbsFromHtml(html: string): string[] | null {
     if (items.length > 0) {
       // Prefer the most specific (longest) collection path; split "Cat1 / Cat2" into array if desired
       const best = items.reduce((a, b) => (a.length >= b.length ? a : b));
-      const parts = best.split(/\s*\/\s*/).map((p) => clean(p)).filter(Boolean);
+      const parts = best
+        .split(/\s*\/\s*/)
+        .map((p) => clean(p))
+        .filter(Boolean);
       return parts.length > 0 ? parts : [best];
     }
   }
 
   return null;
+}
+
+/**
+ * Extract description text from body_html by stripping spec tables/dl and returning
+ * remaining text. Used for LLM spec extraction.
+ */
+function extractDescriptionFromHtml(html: string): string | null {
+  const $ = cheerio.load(html);
+  const clone = $.root().clone();
+  clone.find("table, dl").remove();
+  const text = clone.text().replace(/\s+/g, " ").trim();
+  if (!text || text.length < 50) return null;
+  return text.length > 8000 ? text.slice(0, 8000) : text;
 }
 
 function extractSpecsFromHtml(html: string): Record<string, string> | null {
@@ -307,13 +351,12 @@ function extractSpecsFromHtml(html: string): Record<string, string> | null {
   $("table").each((_, el) => {
     const table = $(el);
     const heading = clean(
-      table
-        .prevAll("h1,h2,h3,h4,strong")
-        .first()
-        .text(),
+      table.prevAll("h1,h2,h3,h4,strong").first().text(),
     ).toLowerCase();
     const isSpecTable =
-      heading.includes("spec") || heading.includes("item specifications") || heading.includes("details");
+      heading.includes("spec") ||
+      heading.includes("item specifications") ||
+      heading.includes("details");
     if (isSpecTable) {
       collectFromTable(table);
     }
@@ -331,10 +374,7 @@ function extractSpecsFromHtml(html: string): Record<string, string> | null {
     $("dl").each((_, el) => {
       const dl = $(el);
       const heading = clean(
-        dl
-          .prevAll("h1,h2,h3,h4,strong")
-          .first()
-          .text(),
+        dl.prevAll("h1,h2,h3,h4,strong").first().text(),
       ).toLowerCase();
       if (heading.includes("spec")) {
         collectFromDl(dl);
