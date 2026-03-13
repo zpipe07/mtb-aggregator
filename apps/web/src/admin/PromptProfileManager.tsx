@@ -6,6 +6,7 @@ import {
   useDeleteLLMProfile,
   useTestLLMProfile,
 } from "./hooks/mutations";
+import { CategoryPicker } from "./CategoryPicker";
 
 function ProfileForm({
   initial,
@@ -30,7 +31,7 @@ function ProfileForm({
   onCancel: () => void;
   submitLabel: string;
 }) {
-  const [canonicalStr, setCanonicalStr] = useState(initial.canonical_category.join(" > "));
+  const [canonicalCategory, setCanonicalCategory] = useState<string[]>(initial.canonical_category);
   const [name, setName] = useState(initial.name);
   const [systemPrompt, setSystemPrompt] = useState(initial.system_prompt);
   const [schemaStr, setSchemaStr] = useState(
@@ -43,11 +44,7 @@ function ProfileForm({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    const canonical_category = canonicalStr
-      .split(">")
-      .map((s) => s.trim())
-      .filter(Boolean);
-    if (canonical_category.length === 0 || !name.trim() || !systemPrompt.trim()) {
+    if (canonicalCategory.length === 0 || !name.trim() || !systemPrompt.trim()) {
       setError("Canonical category, name, and system prompt are required");
       return;
     }
@@ -65,7 +62,7 @@ function ProfileForm({
     setBusy(true);
     try {
       await onSubmit({
-        canonical_category,
+        canonical_category: canonicalCategory,
         name: name.trim(),
         system_prompt: systemPrompt.trim(),
         extraction_schema,
@@ -86,19 +83,11 @@ function ProfileForm({
         </p>
       )}
       <div>
-        <label
-          htmlFor="profile-category"
-          className="block text-sm font-medium text-stone-700 mb-1"
-        >
-          Canonical category (e.g. Bikes &gt; Mountain)
-        </label>
-        <input
+        <CategoryPicker
           id="profile-category"
-          type="text"
-          value={canonicalStr}
-          onChange={(e) => setCanonicalStr(e.target.value)}
-          placeholder="Bikes > Mountain"
-          className="w-full rounded border border-stone-300 px-3 py-2 text-stone-900"
+          label="Canonical category"
+          value={canonicalCategory}
+          onChange={setCanonicalCategory}
         />
       </div>
       <div>

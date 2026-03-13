@@ -55,7 +55,7 @@ import {
   adminCategoryClassifierKeys,
   adminCategoryKeys,
 } from "./queryKeys";
-import { dealKeys, categoryTreeKeys } from "../../hooks/queryKeys";
+import { dealKeys } from "../../hooks/queryKeys";
 
 export function useTriggerScrape() {
   const queryClient = useQueryClient();

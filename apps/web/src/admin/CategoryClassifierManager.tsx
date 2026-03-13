@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useCategoryClassifier } from "./hooks/queries";
 import {
   useUpdateCategoryClassifier,
   useTestCategoryClassifier,
   useRunCategoryClassifier,
 } from "./hooks/mutations";
+import { CategoryMultiPicker } from "./CategoryPicker";
 
 export function CategoryClassifierManager() {
   const { data: config, isLoading } = useCategoryClassifier();
@@ -17,7 +18,9 @@ export function CategoryClassifierManager() {
     config?.confidence_threshold ?? 0.8
   );
   const [enabled, setEnabled] = useState(config?.enabled ?? true);
-  const [validCategoriesStr, setValidCategoriesStr] = useState("");
+  const [validCategories, setValidCategories] = useState<string[][]>(
+    config?.valid_categories ?? []
+  );
   const [testListingId, setTestListingId] = useState("");
   const [testResult, setTestResult] = useState<{
     canonical_category: string[];
@@ -28,31 +31,22 @@ export function CategoryClassifierManager() {
   const [runLimit, setRunLimit] = useState(100);
 
   // Sync form when config loads
-  if (config && systemPrompt === "" && config.system_prompt !== "") {
-    setSystemPrompt(config.system_prompt);
-    setConfidenceThreshold(config.confidence_threshold);
-    setEnabled(config.enabled);
-    setValidCategoriesStr(
-      config.valid_categories.map((p) => p.join(" > ")).join("\n")
-    );
-  }
+  useEffect(() => {
+    if (config) {
+      setSystemPrompt(config.system_prompt);
+      setConfidenceThreshold(config.confidence_threshold);
+      setEnabled(config.enabled);
+      setValidCategories(config.valid_categories ?? []);
+    }
+  }, [config]);
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
-    const valid_categories = validCategoriesStr
-      .split("\n")
-      .map((line) =>
-        line
-          .split(">")
-          .map((s) => s.trim())
-          .filter(Boolean)
-      )
-      .filter((arr) => arr.length > 0);
     await updateMutation.mutateAsync({
       system_prompt: systemPrompt,
       confidence_threshold: confidenceThreshold,
       enabled,
-      valid_categories: valid_categories.length > 0 ? valid_categories : undefined,
+      valid_categories: validCategories.length > 0 ? validCategories : undefined,
     });
   }
 
@@ -161,19 +155,12 @@ export function CategoryClassifierManager() {
           </div>
         </div>
         <div>
-          <label
-            htmlFor="valid-categories"
-            className="block text-sm font-medium text-stone-700 mb-1"
-          >
-            Valid categories (one per line, e.g. Bikes &gt; Mountain)
-          </label>
-          <textarea
+          <CategoryMultiPicker
             id="valid-categories"
-            rows={12}
-            value={validCategoriesStr}
-            onChange={(e) => setValidCategoriesStr(e.target.value)}
-            placeholder="Bikes > Mountain&#10;Bikes > Electric&#10;Components > Drivetrain"
-            className="w-full rounded border border-stone-300 px-3 py-2 text-stone-900 font-mono text-sm"
+            label="Valid categories"
+            value={validCategories}
+            onChange={setValidCategories}
+            helpText="Categories the classifier may output. Add multiple paths."
           />
         </div>
         <button
