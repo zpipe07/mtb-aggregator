@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/lib/pq"
 )
 
@@ -176,6 +177,35 @@ func (db *DB) ResolveCategoryIDFromPath(ctx context.Context, path []string) (*in
 		return nil, err
 	}
 	return &id, nil
+}
+
+// GetAllCategoryPaths returns all category paths from root to each node (including intermediates),
+// ordered by depth then sort_order. Used by the LLM category classifier to derive valid outputs from the live tree.
+func (db *DB) GetAllCategoryPaths(ctx context.Context) ([][]string, error) {
+	rows, err := db.pool.Query(ctx, `
+		WITH RECURSIVE cat_tree(id, path, depth, sort_order) AS (
+			SELECT id, (ARRAY[name])::text[], depth, sort_order FROM categories WHERE parent_id IS NULL
+			UNION ALL
+			SELECT c.id, (ct.path || c.name)::text[], c.depth, c.sort_order
+			FROM categories c JOIN cat_tree ct ON c.parent_id = ct.id
+		)
+		SELECT path FROM cat_tree ORDER BY depth, sort_order, id
+	`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var paths [][]string
+	for rows.Next() {
+		var path pgtype.FlatArray[string]
+		if err := rows.Scan(&path); err != nil {
+			return nil, err
+		}
+		if len(path) > 0 {
+			paths = append(paths, []string(path))
+		}
+	}
+	return paths, rows.Err()
 }
 
 // GetCategorySubtreeIDs returns the given category ID plus all descendant IDs, for subtree filtering (e.g. "Bikes" includes Bikes, Mountain, Electric, etc.).

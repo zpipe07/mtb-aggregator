@@ -191,8 +191,8 @@ func (db *DB) UpsertListing(ctx context.Context, listing Listing) (int, error) {
 			image_url = EXCLUDED.image_url,
 			brand = EXCLUDED.brand,
 			category_path = CASE WHEN EXCLUDED.category_path IS NOT NULL AND array_length(EXCLUDED.category_path, 1) > 0 THEN EXCLUDED.category_path ELSE store_listings.category_path END,
-			canonical_category = EXCLUDED.canonical_category,
-			category_id = EXCLUDED.category_id,
+			canonical_category = CASE WHEN store_listings.canonical_category IS NOT NULL AND array_length(store_listings.canonical_category, 1) > 0 THEN store_listings.canonical_category ELSE EXCLUDED.canonical_category END,
+			category_id = COALESCE(store_listings.category_id, EXCLUDED.category_id),
 			metadata = EXCLUDED.metadata,
 			is_in_stock = EXCLUDED.is_in_stock,
 			last_scraped = NOW()
@@ -1485,7 +1485,7 @@ func (db *DB) BackfillMetadata(ctx context.Context, extractFn func(productName s
 	return updated, rows.Err()
 }
 
-// BackfillCanonicalCategories sets canonical_category from category_path using the given mapper (e.g. taxonomy.Map).
+// BackfillCanonicalCategories sets canonical_category and category_id from category_path using the given mapper (e.g. taxonomy.Map).
 // Returns the number of rows updated.
 func (db *DB) BackfillCanonicalCategories(ctx context.Context, mapFn func([]string) []string) (int, error) {
 	rows, err := db.pool.Query(ctx, `SELECT id, COALESCE(category_path, '{}'), COALESCE(canonical_category, '{}') FROM store_listings`)
@@ -1506,7 +1506,13 @@ func (db *DB) BackfillCanonicalCategories(ctx context.Context, mapFn func([]stri
 		if sliceEqual(canonical, []string(existing)) {
 			continue
 		}
-		_, err := db.pool.Exec(ctx, `UPDATE store_listings SET canonical_category = $1 WHERE id = $2`, pq.Array(canonical), id)
+		var categoryID interface{}
+		if len(canonical) > 0 {
+			if cid, err := db.ResolveCategoryIDFromPath(ctx, canonical); err == nil && cid != nil {
+				categoryID = *cid
+			}
+		}
+		_, err := db.pool.Exec(ctx, `UPDATE store_listings SET canonical_category = $1, category_id = $2 WHERE id = $3`, pq.Array(canonical), categoryID, id)
 		if err != nil {
 			return updated, err
 		}

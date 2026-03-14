@@ -259,7 +259,6 @@ func (h *Handlers) GetCategoryClassifier(w http.ResponseWriter, r *http.Request)
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"id":                   cfg.ID,
 		"system_prompt":        cfg.SystemPrompt,
-		"valid_categories":     cfg.ValidCategories,
 		"confidence_threshold": cfg.ConfidenceThreshold,
 		"enabled":              cfg.Enabled,
 	})
@@ -272,10 +271,9 @@ func (h *Handlers) PutCategoryClassifier(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	var body struct {
-		SystemPrompt        string     `json:"system_prompt"`
-		ValidCategories     [][]string `json:"valid_categories"`
-		ConfidenceThreshold *float64   `json:"confidence_threshold"`
-		Enabled             *bool      `json:"enabled"`
+		SystemPrompt        string   `json:"system_prompt"`
+		ConfidenceThreshold *float64 `json:"confidence_threshold"`
+		Enabled             *bool    `json:"enabled"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		http.Error(w, "invalid json", http.StatusBadRequest)
@@ -292,9 +290,6 @@ func (h *Handlers) PutCategoryClassifier(w http.ResponseWriter, r *http.Request)
 	}
 	if body.SystemPrompt != "" {
 		cfg.SystemPrompt = body.SystemPrompt
-	}
-	if len(body.ValidCategories) > 0 {
-		cfg.ValidCategories = body.ValidCategories
 	}
 	if body.ConfidenceThreshold != nil {
 		cfg.ConfidenceThreshold = *body.ConfidenceThreshold
@@ -340,6 +335,15 @@ func (h *Handlers) PostCategoryClassifierTest(w http.ResponseWriter, r *http.Req
 		http.Error(w, "category classifier not configured or disabled", http.StatusNotFound)
 		return
 	}
+	validPaths, err := h.DB.GetAllCategoryPaths(r.Context())
+	if err != nil {
+		http.Error(w, "failed to load categories: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if len(validPaths) == 0 {
+		http.Error(w, "no categories in tree (run migrations 017 and 018 to seed categories)", http.StatusInternalServerError)
+		return
+	}
 	listing, err := h.DB.GetListingForCategoryClassification(r.Context(), body.ListingID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -370,7 +374,7 @@ func (h *Handlers) PostCategoryClassifierTest(w http.ResponseWriter, r *http.Req
 	}
 	config := llm.ClassifyConfig{
 		SystemPrompt:        cfg.SystemPrompt,
-		ValidCategories:     cfg.ValidCategories,
+		ValidCategories:     validPaths,
 		ConfidenceThreshold: cfg.ConfidenceThreshold,
 	}
 	result, err := h.LLM.Classify(r.Context(), config, input)

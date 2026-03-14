@@ -971,7 +971,6 @@ export async function testLLMProfile(profileId: number, listingId: number): Prom
 export interface CategoryClassifierConfig {
   id: number;
   system_prompt: string;
-  valid_categories: string[][];
   confidence_threshold: number;
   enabled: boolean;
 }
@@ -986,7 +985,6 @@ export async function fetchCategoryClassifier(): Promise<CategoryClassifierConfi
 
 export async function updateCategoryClassifier(body: {
   system_prompt?: string;
-  valid_categories?: string[][];
   confidence_threshold?: number;
   enabled?: boolean;
 }): Promise<void> {
