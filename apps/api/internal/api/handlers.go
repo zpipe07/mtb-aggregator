@@ -216,6 +216,9 @@ func (h *Handlers) GetCanonicalCategories(w http.ResponseWriter, r *http.Request
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
+	// Deprecated: use GET /categories/tree for structured category data. Kept for backward compat.
+	w.Header().Set("Deprecation", "true")
+	w.Header().Set("Link", "</categories/tree>; rel=\"successor\"")
 
 	list, err := h.DB.GetCanonicalCategories(r.Context())
 	if err != nil {

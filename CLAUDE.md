@@ -67,13 +67,8 @@ make db-migrate-remote
 
 # One-time backfills
 make backfill-brands
-make backfill-canonical-categories
-make backfill-llm-specs
-make backfill-llm-specs  # populate metadata.llm_specs from specs after migration 016
-make backfill-llm-specs
-make backfill-llm-specs  # populate metadata.llm_specs from metadata.specs (run after migration 016)
-make backfill-llm-specs    # populate llm_specs from specs (after migration 016)
-make backfill-llm-specs   # after migration 016: populate llm_specs from specs for pre-split listings
+make backfill-canonical-categories   # recategorize listings after taxonomy changes
+make backfill-llm-specs              # populate llm_specs from specs (after migration 016)
 
 # Build all
 make build-all
@@ -102,23 +97,24 @@ make build-all
 - Standard library `net/http`, no framework
 - All DB queries in `internal/db/db.go` using pgx
 - `internal/brand/` — brand normalization via `packages/shared/brand_aliases.json`
-- `internal/taxonomy/` — category mapping with in-memory cache, seeded from `packages/shared/category_taxonomy.json`
+- `internal/taxonomy/` — category mapping with in-memory cache, loaded from `category_mappings` in DB (seeded from `category_taxonomy.json` when empty)
+- `internal/db/categories.go` — structured category tree (id, slug, name, parent_id). Single source of truth; `category_id` FKs on listings, profiles, mappings
 - `internal/metadata/` — extracts structured specs from enriched category paths and raw spec data
 - Spec filters are LLM-driven: `llm_prompt_profiles` extraction schema (label, sort_order, filterable per field) controls which specs appear as filters per category. The legacy SpecFilterManager (spec_filter_config) is deprecated.
 - Admin endpoints under `/admin/*` require Bearer token auth (password set via `ADMIN_PASSWORD`)
-- Public API: `GET /deals`, `/stores`, `/brands`, `/canonical-categories`, `/facets`, `/spec-values`, `/status`
+- Public API: `GET /deals`, `/stores`, `/brands`, `/categories/tree`, `/facets`, `/spec-values`, `/status`. Deprecated: `/canonical-categories` (use `/categories/tree`)
 
 ### Web (`apps/web/`)
 
 - React Router routes: `/` (HomePage), `/deals` (DealsPage), `/admin/*` (AdminSection)
-- Admin section includes: Dashboard, DataBrowser, StoreManager, TaxonomyManager, Operations, SpecFilterManager (deprecated), PromptProfileManager (LLM profiles = filter config)
+- Admin section includes: Dashboard, DataBrowser, StoreManager, TaxonomyManager, Categories (tree CRUD), SpecFilterManager (deprecated), PromptProfileManager, CategoryClassifierManager, NormalizationManager, Operations. Taxonomy, profiles, and classifier use category pickers backed by the structured tree.
 - Admin login state stored in `localStorage`; `AdminGate` handles auth gating
 - API base URL defaults to `http://localhost:8080`; configure via Vite proxy or env if needed
 
 ### Database Migrations
 
 Base schema: `packages/shared/schema.sql`
-Incremental: `packages/shared/migrations/` — numbered `001` through `011`, applied in sorted order.
+Incremental: `packages/shared/migrations/` — numbered `001` onward, applied in sorted order.
 
 For local Docker: `make db-migrate-docker`
 For remote (Neon, etc.): `make db-migrate-remote` (uses `go run ./cmd/migrate`)

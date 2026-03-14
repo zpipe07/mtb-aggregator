@@ -7,7 +7,6 @@ import {
   fetchStores,
   fetchBrands,
   fetchCategories,
-  fetchCanonicalCategories,
   fetchCategoryTree,
   DEFAULT_PAGE_SIZE,
   type DealListResponse,
@@ -20,7 +19,6 @@ import {
   storeKeys,
   brandKeys,
   categoryKeys,
-  canonicalCategoryKeys,
   categoryTreeKeys,
 } from "./queryKeys";
 
@@ -106,14 +104,6 @@ export function useCategories() {
   return useQuery({
     queryKey: categoryKeys.all,
     queryFn: fetchCategories,
-    staleTime: REFERENCE_STALE,
-  });
-}
-
-export function useCanonicalCategories() {
-  return useQuery({
-    queryKey: canonicalCategoryKeys.all,
-    queryFn: fetchCanonicalCategories,
     staleTime: REFERENCE_STALE,
   });
 }

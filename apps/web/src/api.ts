@@ -136,15 +136,7 @@ export async function fetchCategories(): Promise<string[]> {
   return Array.isArray(data) ? data : [];
 }
 
-/** Canonical category paths for faceted filter, e.g. ["Bikes > Mountain", "Components > Brakes"] */
-export async function fetchCanonicalCategories(): Promise<string[]> {
-  const res = await fetch(`${API_BASE}/canonical-categories`);
-  if (!res.ok) throw new Error("Failed to fetch canonical categories");
-  const data = await res.json();
-  return Array.isArray(data) ? data : [];
-}
-
-/** Structured category tree from GET /categories/tree. Preferred for filter UI and links. */
+/** Structured category tree from GET /categories/tree. Used for filter UI and links. */
 export interface CategoryTreeNode {
   id: number;
   slug: string;

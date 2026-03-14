@@ -15,7 +15,6 @@ export const storeKeys = {
 
 export const brandKeys = { all: ["brands"] as const };
 export const categoryKeys = { all: ["categories"] as const };
-export const canonicalCategoryKeys = { all: ["canonicalCategories"] as const };
 export const categoryTreeKeys = { all: ["categoryTree"] as const };
 export const specValueKeys = {
   all: ["specValues"] as const,

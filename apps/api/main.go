@@ -212,9 +212,7 @@ func main() {
 	if err := brand.Load(""); err != nil {
 		log.Printf("[brand] could not load aliases (brand normalization disabled): %v", err)
 	}
-	if err := taxonomy.Load(""); err != nil {
-		log.Printf("[taxonomy] could not load category taxonomy (canonical category disabled): %v", err)
-	}
+	// Taxonomy is loaded from DB (loadTaxonomyFromDB); taxonomy.Load() from JSON is no longer used.
 
 	connString := os.Getenv("DATABASE_URL")
 	if connString == "" {
