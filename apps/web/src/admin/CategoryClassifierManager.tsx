@@ -5,7 +5,6 @@ import {
   useTestCategoryClassifier,
   useRunCategoryClassifier,
 } from "./hooks/mutations";
-import { CategoryMultiPicker } from "./CategoryPicker";
 
 export function CategoryClassifierManager() {
   const { data: config, isLoading } = useCategoryClassifier();
@@ -18,9 +17,6 @@ export function CategoryClassifierManager() {
     config?.confidence_threshold ?? 0.8
   );
   const [enabled, setEnabled] = useState(config?.enabled ?? true);
-  const [validCategories, setValidCategories] = useState<string[][]>(
-    config?.valid_categories ?? []
-  );
   const [testListingId, setTestListingId] = useState("");
   const [testResult, setTestResult] = useState<{
     canonical_category: string[];
@@ -36,7 +32,6 @@ export function CategoryClassifierManager() {
       setSystemPrompt(config.system_prompt);
       setConfidenceThreshold(config.confidence_threshold);
       setEnabled(config.enabled);
-      setValidCategories(config.valid_categories ?? []);
     }
   }, [config]);
 
@@ -46,7 +41,6 @@ export function CategoryClassifierManager() {
       system_prompt: systemPrompt,
       confidence_threshold: confidenceThreshold,
       enabled,
-      valid_categories: validCategories.length > 0 ? validCategories : undefined,
     });
   }
 
@@ -93,7 +87,9 @@ export function CategoryClassifierManager() {
       <p className="text-sm text-stone-600 max-w-2xl">
         Uses an LLM to refine product categories when taxonomy.Map() is ambiguous.
         Runs after enrichment; when confidence is above the threshold, canonical_category
-        is updated. Configure OPENAI_API_KEY to enable.
+        is updated. The classifier uses the current Category Tree automatically — categories
+        you add or edit in the tree are immediately eligible for classification. Configure
+        OPENAI_API_KEY to enable.
       </p>
 
       <form onSubmit={handleSave} className="space-y-4 max-w-2xl">
@@ -153,15 +149,6 @@ export function CategoryClassifierManager() {
               Enabled
             </label>
           </div>
-        </div>
-        <div>
-          <CategoryMultiPicker
-            id="valid-categories"
-            label="Valid categories"
-            value={validCategories}
-            onChange={setValidCategories}
-            helpText="Categories the classifier may output. Add multiple paths."
-          />
         </div>
         <button
           type="submit"

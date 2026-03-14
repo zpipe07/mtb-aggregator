@@ -487,7 +487,6 @@ export function useUpdateCategoryClassifier() {
   return useMutation({
     mutationFn: (body: {
       system_prompt?: string;
-      valid_categories?: string[][];
       confidence_threshold?: number;
       enabled?: boolean;
     }) => updateCategoryClassifier(body),
