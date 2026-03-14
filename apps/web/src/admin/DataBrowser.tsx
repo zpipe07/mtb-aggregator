@@ -58,12 +58,14 @@ function getMetadataObj(metadata: AdminListing["metadata"]): Record<string, unkn
   return null;
 }
 
-/** Get displayed spec value: llm_overrides[key] ?? specs[key]. */
+/** Get displayed spec value: llm_overrides[key] ?? llm_specs[key] ?? specs[key] (legacy). */
 function getDisplayedSpec(metadata: AdminListing["metadata"], key: string): string | undefined {
   const obj = getMetadataObj(metadata);
   if (!obj) return undefined;
   const overrides = obj.llm_overrides as Record<string, string> | undefined;
   if (overrides && typeof overrides[key] === "string") return overrides[key];
+  const llmSpecs = obj.llm_specs as Record<string, unknown> | undefined;
+  if (llmSpecs && llmSpecs[key] != null) return String(llmSpecs[key]);
   const specs = obj.specs as Record<string, unknown> | undefined;
   if (specs && specs[key] != null) return String(specs[key]);
   return undefined;
@@ -76,16 +78,17 @@ function hasOverride(metadata: AdminListing["metadata"], key: string): boolean {
   return !!(overrides && key in overrides);
 }
 
-/** Short one-line summary for table: pull from metadata.specs/llm_overrides. */
+/** Short one-line summary for table: pull from llm_overrides ?? llm_specs ?? specs (legacy). */
 function metadataSummary(metadata: AdminListing["metadata"]): string {
   const obj = getMetadataObj(metadata);
   if (!obj) return "—";
+  const llmSpecs = obj.llm_specs as Record<string, unknown> | undefined;
   const specs = obj.specs as Record<string, unknown> | undefined;
   const overrides = obj.llm_overrides as Record<string, unknown> | undefined;
-  const get = (k: string) =>
-    (overrides && typeof overrides[k] === "string" ? overrides[k] : specs?.[k]) != null
-      ? String(overrides?.[k] ?? specs?.[k])
-      : null;
+  const get = (k: string) => {
+    const v = (overrides && typeof overrides[k] === "string" ? overrides[k] : null) ?? llmSpecs?.[k] ?? specs?.[k];
+    return v != null ? String(v) : null;
+  };
   const parts: (string | null)[] = [get("wheel_size"), get("front_travel_mm") ?? get("rear_travel_mm"), get("mtb_class")];
   const filtered = parts.filter((p): p is string => p != null && p !== "");
   return filtered.length > 0 ? filtered.slice(0, 3).join(" · ") : "—";
@@ -120,14 +123,16 @@ function llmCategoryDiffers(row: { canonical_category?: string[] | null; metadat
   return llm.canonical_category.some((c, i) => c !== curr[i]);
 }
 
-/** Get all spec keys from metadata (specs + llm_overrides). */
+/** Get all spec keys from metadata (specs + llm_specs + llm_overrides). */
 function getAllSpecKeys(metadata: AdminListing["metadata"]): string[] {
   const obj = getMetadataObj(metadata);
   if (!obj) return [];
   const specs = obj.specs as Record<string, unknown> | undefined;
+  const llmSpecs = obj.llm_specs as Record<string, unknown> | undefined;
   const overrides = obj.llm_overrides as Record<string, unknown> | undefined;
   const keys = new Set<string>([
     ...(specs && typeof specs === "object" ? Object.keys(specs) : []),
+    ...(llmSpecs && typeof llmSpecs === "object" ? Object.keys(llmSpecs) : []),
     ...(overrides && typeof overrides === "object" ? Object.keys(overrides) : []),
   ]);
   return [...keys].sort();

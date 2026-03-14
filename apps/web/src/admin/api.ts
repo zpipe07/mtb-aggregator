@@ -165,6 +165,83 @@ export async function deleteStore(id: number): Promise<void> {
   if (!res.ok) throw new Error("Delete failed");
 }
 
+// --- Categories (structured category tree) ---
+
+export interface AdminCategoryTreeNode {
+  id: number;
+  slug: string;
+  name: string;
+  parent_id: number | null;
+  sort_order: number;
+  depth: number;
+  children: AdminCategoryTreeNode[];
+}
+
+export async function fetchAdminCategoryTree(): Promise<AdminCategoryTreeNode[]> {
+  const res = await fetch(`${API_BASE}/admin/categories`, { headers: adminHeaders() });
+  if (!res.ok) throw new Error(res.status === 401 ? "Unauthorized" : "Failed to fetch categories");
+  const data = await res.json();
+  return Array.isArray(data) ? data : [];
+}
+
+export interface CreateCategoryBody {
+  slug: string;
+  name: string;
+  parent_id?: number | null;
+  sort_order?: number;
+}
+
+export async function createAdminCategory(body: CreateCategoryBody): Promise<{ id: number }> {
+  const res = await fetch(`${API_BASE}/admin/categories`, {
+    method: "POST",
+    headers: adminHeaders(),
+    body: JSON.stringify({
+      slug: body.slug,
+      name: body.name,
+      parent_id: body.parent_id ?? null,
+      sort_order: body.sort_order ?? 0,
+    }),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || "Create failed");
+  }
+  return res.json();
+}
+
+export interface UpdateCategoryBody {
+  slug: string;
+  name: string;
+  sort_order?: number;
+}
+
+export async function updateAdminCategory(id: number, body: UpdateCategoryBody): Promise<void> {
+  const res = await fetch(`${API_BASE}/admin/categories/${id}`, {
+    method: "PUT",
+    headers: adminHeaders(),
+    body: JSON.stringify({
+      slug: body.slug,
+      name: body.name,
+      sort_order: body.sort_order ?? 0,
+    }),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || "Update failed");
+  }
+}
+
+export async function deleteAdminCategory(id: number): Promise<void> {
+  const res = await fetch(`${API_BASE}/admin/categories/${id}`, {
+    method: "DELETE",
+    headers: adminHeaders(),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || "Delete failed");
+  }
+}
+
 // --- Scrape jobs (Phase D) ---
 
 export interface ScrapeJob {

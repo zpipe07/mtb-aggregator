@@ -39,6 +39,9 @@ func (h *Handlers) GetDeals(w http.ResponseWriter, r *http.Request) {
 	if s := r.URL.Query().Get("category"); s != "" {
 		params.Category = s
 	}
+	if s := r.URL.Query().Get("category_slug"); s != "" {
+		params.CategorySlug = strings.TrimSpace(s)
+	}
 	if s := r.URL.Query().Get("canonical_category"); s != "" {
 		params.CanonicalCategory = strings.TrimSpace(s)
 	}
@@ -213,6 +216,9 @@ func (h *Handlers) GetCanonicalCategories(w http.ResponseWriter, r *http.Request
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
+	// Deprecated: use GET /categories/tree for structured category data. Kept for backward compat.
+	w.Header().Set("Deprecation", "true")
+	w.Header().Set("Link", "</categories/tree>; rel=\"successor\"")
 
 	list, err := h.DB.GetCanonicalCategories(r.Context())
 	if err != nil {
@@ -248,6 +254,9 @@ func (h *Handlers) GetFacets(w http.ResponseWriter, r *http.Request) {
 	}
 	if s := r.URL.Query().Get("canonical_category"); s != "" {
 		params.CanonicalCategory = strings.TrimSpace(s)
+	}
+	if s := r.URL.Query().Get("category_slug"); s != "" {
+		params.CategorySlug = strings.TrimSpace(s)
 	}
 	if s := r.URL.Query().Get("min_discount"); s != "" {
 		if f, err := strconv.ParseFloat(s, 64); err == nil {

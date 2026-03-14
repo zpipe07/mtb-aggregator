@@ -6,7 +6,7 @@ import {
   useFilterFacets,
   useStores,
   useBrands,
-  useCanonicalCategories,
+  useCategoryTree,
 } from "../hooks/queries";
 import { useFilterParams } from "../hooks/useFilterParams";
 import {
@@ -30,7 +30,7 @@ export function DealsPage() {
     searchQuery,
     storeFilter,
     brandFilter,
-    canonicalCategoryFilter,
+    categoryFilter,
     minDiscount,
     specFilters,
     sort,
@@ -38,7 +38,7 @@ export function DealsPage() {
     setSearchQuery,
     setStoreFilter,
     setBrandFilter,
-    setCanonicalCategoryFilter,
+    setCategoryFilter,
     setMinDiscount,
     setSpecFilter,
     clearSpecFilter,
@@ -64,14 +64,15 @@ export function DealsPage() {
 
   const { data: storesData } = useStores();
   const { data: brandsData } = useBrands();
-  const { data: canonicalData } = useCanonicalCategories();
+  const { data: categoryTreeData } = useCategoryTree();
 
+  const categoryTree = categoryTreeData ?? [];
   const dealsParams = {
     limit: DEFAULT_PAGE_SIZE,
     offset,
     store: storeFilter || undefined,
     brand: brandFilter || undefined,
-    canonical_category: canonicalCategoryFilter || undefined,
+    category_slug: categoryFilter || undefined,
     min_discount: minDiscount
       ? parseFloat(minDiscount) || undefined
       : undefined,
@@ -89,7 +90,7 @@ export function DealsPage() {
   const facetsParams = {
     store: storeFilter || undefined,
     brand: brandFilter || undefined,
-    canonical_category: canonicalCategoryFilter || undefined,
+    category_slug: categoryFilter || undefined,
     min_discount: minDiscount
       ? parseFloat(minDiscount) || undefined
       : undefined,
@@ -100,12 +101,11 @@ export function DealsPage() {
 
   const stores = storesData ?? [];
   const brands = brandsData ?? [];
-  const canonicalCategories = canonicalData ?? [];
   const deals = dealsData?.deals ?? [];
   const totalCount = dealsData?.total_count ?? 0;
 
   const activeFilterCount =
-    [storeFilter, brandFilter, canonicalCategoryFilter, minDiscount].filter(
+    [storeFilter, brandFilter, categoryFilter, minDiscount].filter(
       Boolean,
     ).length + Object.values(specFilters).filter(Boolean).length;
 
@@ -125,13 +125,27 @@ export function DealsPage() {
         onRemove: () => setBrandFilter(""),
       });
     }
-    if (canonicalCategoryFilter) {
-      const leafLabel =
-        canonicalCategoryFilter.split(" > ").pop() ?? canonicalCategoryFilter;
+    if (categoryFilter) {
+      const flat = categoryTree
+        ? (() => {
+            const r: { slug: string; path: string }[] = [];
+            function f(t: typeof categoryTree, p = "") {
+              for (const n of t) {
+                const path = p ? `${p} > ${n.name}` : n.name;
+                r.push({ slug: n.slug, path });
+                if (n.children?.length) f(n.children, path);
+              }
+            }
+            f(categoryTree);
+            return r;
+          })()
+        : [];
+      const label =
+        flat.find((x) => x.slug === categoryFilter)?.path?.split(" > ").pop() ?? categoryFilter;
       chips.push({
-        key: "canonical_category",
-        label: `Category: ${leafLabel}`,
-        onRemove: () => setCanonicalCategoryFilter(""),
+        key: "category",
+        label: `Category: ${label}`,
+        onRemove: () => setCategoryFilter(""),
       });
     }
     if (minDiscount) {
@@ -156,13 +170,14 @@ export function DealsPage() {
   }, [
     storeFilter,
     brandFilter,
-    canonicalCategoryFilter,
+    categoryFilter,
+    categoryTree,
     minDiscount,
     specFilters,
     facetsData?.spec_facets,
     setStoreFilter,
     setBrandFilter,
-    setCanonicalCategoryFilter,
+    setCategoryFilter,
     setMinDiscount,
     setSpecFilter,
   ]);
@@ -170,16 +185,16 @@ export function DealsPage() {
   const filterSidebarProps = {
     stores,
     brands,
-    canonicalCategories,
+    categoryTree: categoryTree ?? undefined,
     storeFilter,
     brandFilter,
-    canonicalCategoryFilter,
+    categoryFilter,
     minDiscount,
     specFilters,
     specFacets: facetsData?.spec_facets ?? [],
     onStoreChange: setStoreFilter,
     onBrandChange: setBrandFilter,
-    onCanonicalCategoryChange: setCanonicalCategoryFilter,
+    onCategoryChange: setCategoryFilter,
     onMinDiscountChange: setMinDiscount,
     onSpecFilterChange: setSpecFilter,
     onClearSpecFilter: clearSpecFilter,

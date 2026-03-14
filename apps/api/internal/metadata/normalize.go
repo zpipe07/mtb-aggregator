@@ -68,8 +68,9 @@ func MergeDescription(existing []byte, description string) []byte {
 	return b
 }
 
-// MergeLLMSpecs merges LLM extraction output into existing metadata. Only fills gaps:
-// does not overwrite existing spec-table data or keys in llm_overrides. Stores confidence at metadata.llm_confidence.
+// MergeLLMSpecs merges LLM extraction output into metadata.llm_specs (separate from PDP specs in metadata.specs).
+// Keys in llm_overrides are manual corrections; we do not overwrite them with LLM result.
+// confidence is stored at metadata.llm_confidence.
 func MergeLLMSpecs(existing []byte, llmResult map[string]interface{}) []byte {
 	if len(llmResult) == 0 {
 		return existing
@@ -81,10 +82,10 @@ func MergeLLMSpecs(existing []byte, llmResult map[string]interface{}) []byte {
 	if base == nil {
 		base = make(map[string]interface{})
 	}
-	specsObj, _ := base["specs"].(map[string]interface{})
-	if specsObj == nil {
-		specsObj = make(map[string]interface{})
-		base["specs"] = specsObj
+	llmSpecsObj, _ := base["llm_specs"].(map[string]interface{})
+	if llmSpecsObj == nil {
+		llmSpecsObj = make(map[string]interface{})
+		base["llm_specs"] = llmSpecsObj
 	}
 	// Keys in llm_overrides are manual corrections; don't overwrite with LLM result.
 	overrides, _ := base["llm_overrides"].(map[string]interface{})
@@ -99,11 +100,7 @@ func MergeLLMSpecs(existing []byte, llmResult map[string]interface{}) []byte {
 		if overrides != nil && overrides[k] != nil {
 			continue // respect manual override
 		}
-		existingVal := specsObj[k]
-		if existingVal != nil && fmt.Sprint(existingVal) != "" {
-			continue // don't overwrite
-		}
-		specsObj[k] = fmt.Sprint(v)
+		llmSpecsObj[k] = fmt.Sprint(v)
 	}
 	b, _ := json.Marshal(base)
 	return b

@@ -7,10 +7,11 @@ import {
   fetchStores,
   fetchBrands,
   fetchCategories,
-  fetchCanonicalCategories,
+  fetchCategoryTree,
   DEFAULT_PAGE_SIZE,
   type DealListResponse,
   type FacetsResponse,
+  type CategoryTreeNode,
 } from "../api";
 import {
   dealKeys,
@@ -18,7 +19,7 @@ import {
   storeKeys,
   brandKeys,
   categoryKeys,
-  canonicalCategoryKeys,
+  categoryTreeKeys,
 } from "./queryKeys";
 
 export interface DealsParams {
@@ -27,6 +28,7 @@ export interface DealsParams {
   store?: string;
   brand?: string;
   category?: string;
+  category_slug?: string;
   canonical_category?: string;
   min_discount?: number;
   spec_key?: string;
@@ -43,6 +45,7 @@ function buildDealsParams(params: DealsParams) {
     store: params.store || undefined,
     brand: params.brand || undefined,
     category: params.category || undefined,
+    category_slug: params.category_slug || undefined,
     canonical_category: params.canonical_category || undefined,
     min_discount: params.min_discount,
     spec_key: params.spec_key || undefined,
@@ -105,10 +108,10 @@ export function useCategories() {
   });
 }
 
-export function useCanonicalCategories() {
-  return useQuery({
-    queryKey: canonicalCategoryKeys.all,
-    queryFn: fetchCanonicalCategories,
+export function useCategoryTree() {
+  return useQuery<CategoryTreeNode[]>({
+    queryKey: categoryTreeKeys.all,
+    queryFn: fetchCategoryTree,
     staleTime: REFERENCE_STALE,
   });
 }
@@ -117,6 +120,7 @@ export interface FacetsParams {
   store?: string;
   brand?: string;
   category?: string;
+  category_slug?: string;
   canonical_category?: string;
   min_discount?: number;
   q?: string;
@@ -128,6 +132,7 @@ function buildFacetsParams(params: FacetsParams) {
     store: params.store || undefined,
     brand: params.brand || undefined,
     category: params.category || undefined,
+    category_slug: params.category_slug || undefined,
     canonical_category: params.canonical_category || undefined,
     min_discount: params.min_discount,
     q: params.q?.trim() || undefined,

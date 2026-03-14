@@ -2,13 +2,14 @@ package db
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"sort"
 	"strings"
 
 	"github.com/lib/pq"
+	"github.com/mtb-aggregator/api/internal/llm"
 	"github.com/mtb-aggregator/api/internal/metadata"
-	"github.com/mtb-aggregator/api/internal/specfilter"
 )
 
 // GetFacetsParams mirrors GetDealsParams for filter context. SpecFilters supports multiple spec filters.
@@ -17,10 +18,13 @@ type GetFacetsParams struct {
 	StoreName         string
 	Brand             string
 	Category          string
-	CanonicalCategory string
+	CanonicalCategory string // legacy: "Bikes > Mountain"
+	CategorySlug      string // preferred: slug for subtree filter
 	MinDiscount       *float64
 	Search            string
-	SpecFilters       map[string]string // key -> value, e.g. {"hub_spacing": "148mm"}
+	SpecFilters       map[string]string // key -> value, e.g. {"wheel_size": "29"}
+	// CategoryFilterIDs is populated by GetFacets from CategorySlug or CanonicalCategory for WHERE clause.
+	CategoryFilterIDs []int
 }
 
 // SpecFacetValue is one value option for a spec facet with its count.
@@ -33,7 +37,7 @@ type SpecFacetValue struct {
 type SpecFacet struct {
 	Key          string           `json:"key"`
 	Label        string           `json:"label"`
-	ProductCount int             `json:"product_count"`
+	ProductCount int              `json:"product_count"`
 	Values       []SpecFacetValue `json:"values"`
 }
 
@@ -51,17 +55,92 @@ type PriceRange struct {
 
 // GetFacetsResult is the response for GET /facets.
 type GetFacetsResult struct {
-	SpecFacets   []SpecFacet  `json:"spec_facets"`
-	BrandFacets  []BrandFacet `json:"brand_facets"`
-	PriceRange   PriceRange  `json:"price_range"`
-	TotalMatching int        `json:"total_matching"`
+	SpecFacets    []SpecFacet  `json:"spec_facets"`
+	BrandFacets   []BrandFacet `json:"brand_facets"`
+	PriceRange    PriceRange   `json:"price_range"`
+	TotalMatching int         `json:"total_matching"`
+}
+
+// filterableField holds display config for a profile field that appears as a filter.
+type filterableField struct {
+	key       string
+	label     string
+	sortOrder int
+}
+
+func parseFilterableFields(extractionSchema json.RawMessage) []filterableField {
+	var schema llm.ExtractionSchema
+	if err := json.Unmarshal(extractionSchema, &schema); err != nil || len(schema.Fields) == 0 {
+		return nil
+	}
+	var out []filterableField
+	for _, f := range schema.Fields {
+		if f.Filterable != nil && !*f.Filterable {
+			continue
+		}
+		label := f.Label
+		if label == "" {
+			label = metadata.SpecKeyToLabel(f.Key)
+		}
+		out = append(out, filterableField{key: f.Key, label: label, sortOrder: f.SortOrder})
+	}
+	sort.Slice(out, func(i, j int) bool {
+		if out[i].sortOrder != out[j].sortOrder {
+			return out[i].sortOrder > out[j].sortOrder
+		}
+		return out[i].key < out[j].key
+	})
+	return out
 }
 
 // GetFacets returns facets (spec keys/values, brands, price range) for the given filter context.
+// Spec facets are LLM-driven: when a canonical category is selected, the matching LLM prompt
+// profile defines which specs appear as filters. When no category or no profile matches,
+// spec facets are empty.
 func (db *DB) GetFacets(ctx context.Context, params GetFacetsParams) (*GetFacetsResult, error) {
-	config, _ := specfilter.LoadConfig(ctx, db.SpecFilterConfigLoader())
-	expandedSpecFilters := specfilter.ExpandFilterValues(params.SpecFilters, config)
-	where, args := buildFacetsWhereClause(params, expandedSpecFilters)
+	// Resolve category filter and LLM profile: prefer CategorySlug (subtree), else CanonicalCategory (path)
+	var profile *LLMPromptProfile
+	var categoryFilterIDs []int
+	if params.CategorySlug != "" {
+		cat, err := db.GetCategoryBySlug(ctx, strings.TrimSpace(params.CategorySlug))
+		if err == nil && cat != nil {
+			categoryFilterIDs, _ = db.GetCategorySubtreeIDs(ctx, cat.ID)
+			if p, err := db.GetLLMPromptProfileForCategoryID(ctx, cat.ID); err == nil && p != nil {
+				profile = p
+			}
+		}
+	} else if params.CanonicalCategory != "" {
+		var path []string
+		for _, p := range strings.Split(params.CanonicalCategory, " > ") {
+			if t := strings.TrimSpace(p); t != "" {
+				path = append(path, t)
+			}
+		}
+		if len(path) > 0 {
+			if cid, err := db.ResolveCategoryIDFromPath(ctx, path); err == nil && cid != nil {
+				categoryFilterIDs = []int{*cid}
+				if p, err := db.GetLLMPromptProfileForCategory(ctx, path); err == nil && p != nil {
+					profile = p
+				}
+			}
+		}
+	}
+	params.CategoryFilterIDs = categoryFilterIDs
+
+	var specFiltersForWhere map[string][]string
+	if profile != nil {
+		specFiltersForWhere = make(map[string][]string)
+		for k, v := range params.SpecFilters {
+			if k != "" && v != "" {
+				specFiltersForWhere[k] = []string{v}
+			}
+		}
+	}
+	if specFiltersForWhere == nil {
+		specFiltersForWhere = map[string][]string{}
+	}
+
+	where, args := buildFacetsWhereClause(params, specFiltersForWhere, true)
 	if where == "" {
 		where = " AND l.is_in_stock = true"
 	} else {
@@ -94,104 +173,89 @@ func (db *DB) GetFacets(ctx context.Context, params GetFacetsParams) (*GetFacets
 		priceRange.Max = *priceMax
 	}
 
-	// Spec facets: get (key, value, count) then group by key
-	specKeyValuesQuery := `
-		WITH filtered AS (
-			SELECT l.id, l.metadata
-			` + baseFrom + `
-			AND l.metadata->'specs' IS NOT NULL
-			AND jsonb_typeof(l.metadata->'specs') = 'object'
-		)
-		SELECT spec.key, spec.value, COUNT(DISTINCT f.id) as cnt
-		FROM filtered f
-		CROSS JOIN LATERAL jsonb_each_text(f.metadata->'specs') AS spec(key, value)
-		WHERE spec.value IS NOT NULL AND trim(spec.value) <> ''
-		GROUP BY spec.key, spec.value
-		ORDER BY spec.key, cnt DESC`
-	rows, err := db.pool.Query(ctx, specKeyValuesQuery, args...)
-	if err != nil {
-		return nil, fmt.Errorf("facets spec key/values: %w", err)
-	}
-	defer rows.Close()
-
-	type kv struct {
-		key   string
-		value string
-		count int
-	}
-	var kvs []kv
-	for rows.Next() {
-		var k, v string
-		var c int
-		if err := rows.Scan(&k, &v, &c); err != nil {
-			return nil, err
-		}
-		kvs = append(kvs, kv{key: k, value: v, count: c})
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-
-	// Apply spec filter config normalization (key merge, visibility, value aliases)
-	kvsInput := make([]specfilter.KvInput, len(kvs))
-	for i, r := range kvs {
-		kvsInput[i] = specfilter.KvInput{Key: r.key, Value: r.value, Count: r.count}
-	}
-	var keyProductCount map[string]int
-	var keyValues map[string][]SpecFacetValue
-	var keyValuesSpec map[string][]specfilter.SpecFacetValue
-	var keyOrder []string
-	if config != nil {
-		keyProductCount, keyValuesSpec, keyOrder = specfilter.ApplyToFacets(kvsInput, config)
-	} else {
-		keyProductCount = make(map[string]int)
-		keyValues = make(map[string][]SpecFacetValue)
-		for _, r := range kvs {
-			keyProductCount[r.key] += r.count
-			if len(keyValues[r.key]) < 50 {
-				keyValues[r.key] = append(keyValues[r.key], SpecFacetValue{Value: r.value, Count: r.count})
-			}
-		}
-		keyOrder = make([]string, 0, len(keyProductCount))
-		for k := range keyProductCount {
-			if keyProductCount[k] >= 0 {
-				keyOrder = append(keyOrder, k)
-			}
-		}
-		sort.Slice(keyOrder, func(i, j int) bool {
-			return keyProductCount[keyOrder[i]] > keyProductCount[keyOrder[j]]
-		})
-		if len(keyOrder) > 20 {
-			keyOrder = keyOrder[:20]
-		}
-	}
-
-	const maxKeys = 20
+	// Spec facets: LLM-driven from profile + metadata.llm_specs
 	var specFacets []SpecFacet
-	for i, k := range keyOrder {
-		if i >= maxKeys {
-			break
-		}
-		label := metadata.SpecKeyToLabel(k)
-		if config != nil {
-			if override := config.GetLabel(k); override != "" {
-				label = override
+	if profile != nil {
+		fields := parseFilterableFields(profile.ExtractionSchema)
+		if len(fields) > 0 {
+			allowedKeys := make(map[string]filterableField)
+			for _, f := range fields {
+				allowedKeys[f.key] = f
+			}
+			keysArr := make([]string, 0, len(allowedKeys))
+			for k := range allowedKeys {
+				keysArr = append(keysArr, k)
+			}
+
+			specKeyValuesQuery := `
+				WITH filtered AS (
+					SELECT l.id, l.metadata
+					` + baseFrom + `
+					AND l.metadata->'llm_specs' IS NOT NULL
+					AND jsonb_typeof(l.metadata->'llm_specs') = 'object'
+				)
+				SELECT spec.key, spec.value, COUNT(DISTINCT f.id) as cnt
+				FROM filtered f
+				CROSS JOIN LATERAL jsonb_each_text(f.metadata->'llm_specs') AS spec(key, value)
+				WHERE spec.value IS NOT NULL AND trim(spec.value) <> ''
+				  AND spec.key = ANY($` + fmt.Sprint(len(args)+1) + `)
+				GROUP BY spec.key, spec.value
+				ORDER BY spec.key, cnt DESC`
+			queryArgs := append(args, pq.Array(keysArr))
+			rows, err := db.pool.Query(ctx, specKeyValuesQuery, queryArgs...)
+			if err != nil {
+				return nil, fmt.Errorf("facets spec key/values: %w", err)
+			}
+
+			type kv struct {
+				key   string
+				value string
+				count int
+			}
+			var kvs []kv
+			for rows.Next() {
+				var k, v string
+				var c int
+				if err := rows.Scan(&k, &v, &c); err != nil {
+					rows.Close()
+					return nil, err
+				}
+				kvs = append(kvs, kv{key: k, value: v, count: c})
+			}
+			rows.Close()
+			if err := rows.Err(); err != nil {
+				return nil, err
+			}
+
+			keyProductCount := make(map[string]int)
+			keyValues := make(map[string][]SpecFacetValue)
+			for _, r := range kvs {
+				if _, ok := allowedKeys[r.key]; !ok {
+					continue
+				}
+				keyProductCount[r.key] += r.count
+				if len(keyValues[r.key]) < 50 {
+					keyValues[r.key] = append(keyValues[r.key], SpecFacetValue{Value: r.value, Count: r.count})
+				}
+			}
+
+			const maxKeys = 20
+			for i, f := range fields {
+				if i >= maxKeys {
+					break
+				}
+				total := keyProductCount[f.key]
+				if total == 0 {
+					continue
+				}
+				specFacets = append(specFacets, SpecFacet{
+					Key:          f.key,
+					Label:        f.label,
+					ProductCount: total,
+					Values:       keyValues[f.key],
+				})
 			}
 		}
-		var values []SpecFacetValue
-		if config != nil {
-			for _, v := range keyValuesSpec[k] {
-				values = append(values, SpecFacetValue{Value: v.Value, Count: v.Count})
-			}
-		} else {
-			values = keyValues[k]
-		}
-		specFacets = append(specFacets, SpecFacet{
-			Key:          k,
-			Label:        label,
-			ProductCount: keyProductCount[k],
-			Values:       values,
-		})
 	}
 
 	// Brand facets
@@ -222,16 +286,17 @@ func (db *DB) GetFacets(ctx context.Context, params GetFacetsParams) (*GetFacets
 	}
 
 	return &GetFacetsResult{
-		SpecFacets:   specFacets,
-		BrandFacets:  brandFacets,
-		PriceRange:   priceRange,
+		SpecFacets:    specFacets,
+		BrandFacets:   brandFacets,
+		PriceRange:    priceRange,
 		TotalMatching: totalMatching,
 	}, nil
 }
 
 // buildFacetsWhereClause returns the WHERE fragment and args for the facets query.
-// expandedSpecFilters: when non-nil, used for spec filters (supports multi-value per key); otherwise derived from params.SpecFilters.
-func buildFacetsWhereClause(params GetFacetsParams, expandedSpecFilters map[string][]string) (string, []interface{}) {
+// specFilters maps spec key to values (for ILIKE matching). useLlmSpecs: when true, spec
+// filters query metadata->'llm_specs'; when false, metadata->'specs' (legacy).
+func buildFacetsWhereClause(params GetFacetsParams, specFilters map[string][]string, useLlmSpecs bool) (string, []interface{}) {
 	var sb strings.Builder
 	args := []interface{}{}
 	argNum := 1
@@ -256,7 +321,11 @@ func buildFacetsWhereClause(params GetFacetsParams, expandedSpecFilters map[stri
 		args = append(args, params.Category)
 		argNum++
 	}
-	if params.CanonicalCategory != "" {
+	if len(params.CategoryFilterIDs) > 0 {
+		sb.WriteString(fmt.Sprintf(" AND l.category_id = ANY($%d)", argNum))
+		args = append(args, pq.Array(params.CategoryFilterIDs))
+		argNum++
+	} else if params.CanonicalCategory != "" {
 		path := strings.Split(params.CanonicalCategory, " > ")
 		trimmed := make([]string, 0, len(path))
 		for _, p := range path {
@@ -270,25 +339,20 @@ func buildFacetsWhereClause(params GetFacetsParams, expandedSpecFilters map[stri
 			argNum++
 		}
 	}
-	specFiltersToUse := expandedSpecFilters
-	if specFiltersToUse == nil && len(params.SpecFilters) > 0 {
-		specFiltersToUse = make(map[string][]string)
-		for k, v := range params.SpecFilters {
-			if k != "" && v != "" {
-				specFiltersToUse[k] = []string{v}
-			}
-		}
+	specPath := "'specs'"
+	if useLlmSpecs {
+		specPath = "'llm_specs'"
 	}
-	for k, values := range specFiltersToUse {
+	for k, values := range specFilters {
 		if k == "" || len(values) == 0 {
 			continue
 		}
 		if len(values) == 1 {
-			sb.WriteString(fmt.Sprintf(" AND l.metadata->'specs'->>$%d ILIKE $%d", argNum, argNum+1))
+			sb.WriteString(fmt.Sprintf(" AND l.metadata->"+specPath+"->>$%d ILIKE $%d", argNum, argNum+1))
 			args = append(args, k, values[0])
 			argNum += 2
 		} else {
-			sb.WriteString(fmt.Sprintf(" AND (l.metadata->'specs'->>$%d)::text ILIKE ANY($%d::text[])", argNum, argNum+1))
+			sb.WriteString(fmt.Sprintf(" AND (l.metadata->"+specPath+"->>$%d)::text ILIKE ANY($%d::text[])", argNum, argNum+1))
 			args = append(args, k, pq.Array(values))
 			argNum += 2
 		}
@@ -308,7 +372,7 @@ func buildFacetsWhereClause(params GetFacetsParams, expandedSpecFilters map[stri
 }
 
 // GetDistinctMetadataValues returns distinct non-empty values for a given metadata key.
-// Used to populate spec-based filter dropdowns.
+// Queries llm_specs (LLM-derived specs).
 func (db *DB) GetDistinctMetadataValues(ctx context.Context, key string, limit int) ([]string, error) {
 	if key == "" {
 		return []string{}, nil
@@ -318,9 +382,10 @@ func (db *DB) GetDistinctMetadataValues(ctx context.Context, key string, limit i
 	}
 
 	query := fmt.Sprintf(`
-		SELECT DISTINCT metadata->'specs'->>$1 AS v
+		SELECT DISTINCT metadata->'llm_specs'->>$1 AS v
 		FROM store_listings
-		WHERE metadata->'specs' IS NOT NULL AND metadata->'specs' ? $1 AND metadata->'specs'->>$1 IS NOT NULL AND metadata->'specs'->>$1 <> ''
+		WHERE metadata->'llm_specs' IS NOT NULL AND jsonb_typeof(metadata->'llm_specs') = 'object'
+		  AND metadata->'llm_specs' ? $1 AND metadata->'llm_specs'->>$1 IS NOT NULL AND trim(metadata->'llm_specs'->>$1::text) <> ''
 		ORDER BY v
 		LIMIT %d
 	`, limit)
@@ -341,4 +406,3 @@ func (db *DB) GetDistinctMetadataValues(ctx context.Context, key string, limit i
 	}
 	return out, rows.Err()
 }
-

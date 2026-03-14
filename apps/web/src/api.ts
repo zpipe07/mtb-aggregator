@@ -42,6 +42,7 @@ export async function fetchDeals(params?: {
   store?: string;
   brand?: string;
   category?: string;
+  category_slug?: string;
   canonical_category?: string;
   min_discount?: number;
   q?: string;
@@ -56,6 +57,8 @@ export async function fetchDeals(params?: {
   if (params?.store) search.set("store", params.store);
   if (params?.brand) search.set("brand", params.brand);
   if (params?.category) search.set("category", params.category);
+  if (params?.category_slug)
+    search.set("category_slug", params.category_slug);
   if (params?.canonical_category)
     search.set("canonical_category", params.canonical_category);
   if (params?.min_discount != null)
@@ -133,10 +136,20 @@ export async function fetchCategories(): Promise<string[]> {
   return Array.isArray(data) ? data : [];
 }
 
-/** Canonical category paths for faceted filter, e.g. ["Bikes > Mountain", "Components > Brakes"] */
-export async function fetchCanonicalCategories(): Promise<string[]> {
-  const res = await fetch(`${API_BASE}/canonical-categories`);
-  if (!res.ok) throw new Error("Failed to fetch canonical categories");
+/** Structured category tree from GET /categories/tree. Used for filter UI and links. */
+export interface CategoryTreeNode {
+  id: number;
+  slug: string;
+  name: string;
+  parent_id: number | null;
+  sort_order: number;
+  depth: number;
+  children: CategoryTreeNode[];
+}
+
+export async function fetchCategoryTree(): Promise<CategoryTreeNode[]> {
+  const res = await fetch(`${API_BASE}/categories/tree`);
+  if (!res.ok) throw new Error("Failed to fetch category tree");
   const data = await res.json();
   return Array.isArray(data) ? data : [];
 }
@@ -169,6 +182,7 @@ export interface FacetsParams {
   store?: string;
   brand?: string;
   category?: string;
+  category_slug?: string;
   canonical_category?: string;
   min_discount?: number;
   q?: string;
@@ -182,6 +196,8 @@ export async function fetchFacets(
   if (params?.store) search.set("store", params.store);
   if (params?.brand) search.set("brand", params.brand);
   if (params?.category) search.set("category", params.category);
+  if (params?.category_slug)
+    search.set("category_slug", params.category_slug);
   if (params?.canonical_category)
     search.set("canonical_category", params.canonical_category);
   if (params?.min_discount != null)

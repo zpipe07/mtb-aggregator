@@ -6,6 +6,7 @@ import {
   useDeleteLLMProfile,
   useTestLLMProfile,
 } from "./hooks/mutations";
+import { CategoryPicker } from "./CategoryPicker";
 
 function ProfileForm({
   initial,
@@ -30,7 +31,7 @@ function ProfileForm({
   onCancel: () => void;
   submitLabel: string;
 }) {
-  const [canonicalStr, setCanonicalStr] = useState(initial.canonical_category.join(" > "));
+  const [canonicalCategory, setCanonicalCategory] = useState<string[]>(initial.canonical_category);
   const [name, setName] = useState(initial.name);
   const [systemPrompt, setSystemPrompt] = useState(initial.system_prompt);
   const [schemaStr, setSchemaStr] = useState(
@@ -43,11 +44,7 @@ function ProfileForm({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    const canonical_category = canonicalStr
-      .split(">")
-      .map((s) => s.trim())
-      .filter(Boolean);
-    if (canonical_category.length === 0 || !name.trim() || !systemPrompt.trim()) {
+    if (canonicalCategory.length === 0 || !name.trim() || !systemPrompt.trim()) {
       setError("Canonical category, name, and system prompt are required");
       return;
     }
@@ -65,7 +62,7 @@ function ProfileForm({
     setBusy(true);
     try {
       await onSubmit({
-        canonical_category,
+        canonical_category: canonicalCategory,
         name: name.trim(),
         system_prompt: systemPrompt.trim(),
         extraction_schema,
@@ -86,19 +83,11 @@ function ProfileForm({
         </p>
       )}
       <div>
-        <label
-          htmlFor="profile-category"
-          className="block text-sm font-medium text-stone-700 mb-1"
-        >
-          Canonical category (e.g. Bikes &gt; Mountain)
-        </label>
-        <input
+        <CategoryPicker
           id="profile-category"
-          type="text"
-          value={canonicalStr}
-          onChange={(e) => setCanonicalStr(e.target.value)}
-          placeholder="Bikes > Mountain"
-          className="w-full rounded border border-stone-300 px-3 py-2 text-stone-900"
+          label="Canonical category"
+          value={canonicalCategory}
+          onChange={setCanonicalCategory}
         />
       </div>
       <div>
@@ -137,6 +126,11 @@ function ProfileForm({
         >
           Extraction schema (JSON with &quot;fields&quot; array)
         </label>
+        <p className="mb-2 text-xs text-stone-500">
+          Each field: <code>key</code>, <code>type</code>, <code>description</code>, <code>values</code> (enum).
+          Optional: <code>label</code> (filter UI), <code>sort_order</code> (higher = first),
+          <code>filterable</code> (default true; use false e.g. for confidence).
+        </p>
         <textarea
           id="profile-schema"
           rows={12}
@@ -200,27 +194,50 @@ export function PromptProfileManager() {
       "You are a mountain bike spec extraction expert. Given a product listing, extract structured specs.\n\nOnly include fields you can determine from the provided data. Use null for unknown fields.\nSet confidence 0-1 based on how certain you are about the overall extraction.",
     extraction_schema: {
       fields: [
-        { key: "front_travel_mm", type: "integer", description: "Front fork travel in mm" },
-        { key: "rear_travel_mm", type: "integer", description: "Rear suspension travel in mm (null for hardtails)" },
+        {
+          key: "front_travel_mm",
+          type: "integer",
+          description: "Front fork travel in mm",
+          label: "Front Travel (mm)",
+          sort_order: 1,
+        },
+        {
+          key: "rear_travel_mm",
+          type: "integer",
+          description: "Rear suspension travel in mm (null for hardtails)",
+          label: "Rear Travel (mm)",
+          sort_order: 2,
+        },
         {
           key: "wheel_size",
           type: "enum",
           values: ["29", "27.5", "26", "mullet"],
           description: "Wheel size",
+          label: "Wheel Size",
+          sort_order: 3,
         },
         {
           key: "mtb_class",
           type: "enum",
           values: ["XC", "Downcountry", "Trail", "Enduro", "DH", "Dirt Jump", "Fat Bike"],
           description: "Mountain bike classification",
+          label: "MTB Class",
+          sort_order: 4,
         },
         {
           key: "frame_material",
           type: "enum",
           values: ["Carbon", "Aluminum", "Steel", "Titanium"],
           description: "Frame material",
+          label: "Frame Material",
+          sort_order: 5,
         },
-        { key: "confidence", type: "number", description: "Overall confidence 0-1" },
+        {
+          key: "confidence",
+          type: "number",
+          description: "Overall confidence 0-1",
+          filterable: false,
+        },
       ],
     } as Record<string, unknown>,
     enabled: true,

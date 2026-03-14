@@ -3,6 +3,7 @@ import { useRef, useState, useCallback, useEffect } from "react";
 type TreeNode = {
   path: string;
   label: string;
+  slug?: string;
   children: TreeNode[];
   isSelectable: boolean;
 };

@@ -24,6 +24,7 @@ import {
   useReorderTaxonomyMappings,
   useTriggerRecategorize,
 } from "./hooks/mutations";
+import { CategoryPicker } from "./CategoryPicker";
 import type { CategoryMapping } from "./api";
 
 function MappingForm({
@@ -37,7 +38,7 @@ function MappingForm({
   onCancel: () => void;
   submitLabel: string;
 }) {
-  const [canonicalStr, setCanonicalStr] = useState(initial.canonical.join(" > "));
+  const [canonical, setCanonical] = useState<string[]>(initial.canonical);
   const [rawStr, setRawStr] = useState(initial.raw_keywords.join(", "));
   const [priority, setPriority] = useState(initial.priority);
   const [busy, setBusy] = useState(false);
@@ -46,7 +47,6 @@ function MappingForm({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    const canonical = canonicalStr.split(">").map((s) => s.trim()).filter(Boolean);
     const raw_keywords = rawStr.split(",").map((s) => s.trim()).filter(Boolean);
     if (canonical.length === 0 || raw_keywords.length === 0) {
       setError("Canonical path and at least one raw keyword are required");
@@ -70,16 +70,11 @@ function MappingForm({
         </p>
       )}
       <div>
-        <label htmlFor="tax-canonical" className="block text-sm font-medium text-stone-700 mb-1">
-          Canonical path (e.g. Components &gt; Brakes)
-        </label>
-        <input
+        <CategoryPicker
           id="tax-canonical"
-          type="text"
-          value={canonicalStr}
-          onChange={(e) => setCanonicalStr(e.target.value)}
-          placeholder="Bikes > Mountain"
-          className="w-full rounded border border-stone-300 px-3 py-2 text-stone-900"
+          label="Canonical path"
+          value={canonical}
+          onChange={setCanonical}
         />
       </div>
       <div>

@@ -19,6 +19,7 @@ import {
   fetchSpecKeyAliases,
   fetchLLMProfiles,
   fetchCategoryClassifier,
+  fetchAdminCategoryTree,
 } from "../api";
 import {
   adminDashboardKeys,
@@ -33,6 +34,7 @@ import {
   adminNormalizationKeys,
   adminLLMProfileKeys,
   adminCategoryClassifierKeys,
+  adminCategoryKeys,
 } from "./queryKeys";
 
 export function useAdminDashboard() {
@@ -221,6 +223,14 @@ export function useCategoryClassifier() {
   return useQuery({
     queryKey: adminCategoryClassifierKeys.all,
     queryFn: fetchCategoryClassifier,
+    staleTime: 60 * 1000,
+  });
+}
+
+export function useAdminCategoryTree() {
+  return useQuery({
+    queryKey: adminCategoryKeys.all,
+    queryFn: fetchAdminCategoryTree,
     staleTime: 60 * 1000,
   });
 }

@@ -10,8 +10,7 @@ function parseParams(searchParams: URLSearchParams) {
   const searchQuery = searchParams.get("q") ?? "";
   const storeFilter = searchParams.get("store") ?? "";
   const brandFilter = searchParams.get("brand") ?? "";
-  const categoryFilter = searchParams.get("category") ?? "";
-  const canonicalCategoryFilter = searchParams.get("canonical_category") ?? "";
+  const categoryFilter = searchParams.get("category") ?? ""; // slug, e.g. bikes-mountain
   const minDiscount = searchParams.get("min_discount") ?? "";
   const sortParam = searchParams.get("sort");
   const sort = (VALID_SORTS.includes(sortParam as SortOption) ? sortParam : "newest") as SortOption;
@@ -35,7 +34,6 @@ function parseParams(searchParams: URLSearchParams) {
     storeFilter,
     brandFilter,
     categoryFilter,
-    canonicalCategoryFilter,
     minDiscount,
     specFilters,
     sort: effectiveSort,
@@ -50,7 +48,6 @@ function applyToParams(
     storeFilter: string;
     brandFilter: string;
     categoryFilter: string;
-    canonicalCategoryFilter: string;
     minDiscount: string;
     specFilters: Record<string, string>;
     sort: SortOption;
@@ -68,8 +65,6 @@ function applyToParams(
   if (updates.storeFilter !== undefined) set("store", updates.storeFilter);
   if (updates.brandFilter !== undefined) set("brand", updates.brandFilter);
   if (updates.categoryFilter !== undefined) set("category", updates.categoryFilter);
-  if (updates.canonicalCategoryFilter !== undefined)
-    set("canonical_category", updates.canonicalCategoryFilter);
   if (updates.minDiscount !== undefined) set("min_discount", updates.minDiscount);
   if (updates.sort !== undefined) set("sort", updates.sort === "newest" ? "" : updates.sort);
   if (updates.offset !== undefined) set("offset", updates.offset === 0 ? "" : String(updates.offset));
@@ -98,7 +93,6 @@ export function useFilterParams() {
         storeFilter: string;
         brandFilter: string;
         categoryFilter: string;
-        canonicalCategoryFilter: string;
         minDiscount: string;
         specFilters: Record<string, string>;
         sort: SortOption;
@@ -123,11 +117,7 @@ export function useFilterParams() {
     [updateParams]
   );
   const setCategoryFilter = useCallback(
-    (v: string) => updateParams({ categoryFilter: v, offset: 0 }),
-    [updateParams]
-  );
-  const setCanonicalCategoryFilter = useCallback(
-    (v: string) => updateParams({ canonicalCategoryFilter: v, specFilters: {}, offset: 0 }),
+    (v: string) => updateParams({ categoryFilter: v, specFilters: {}, offset: 0 }),
     [updateParams]
   );
   const setMinDiscount = useCallback(
@@ -154,7 +144,6 @@ export function useFilterParams() {
         storeFilter: "",
         brandFilter: "",
         categoryFilter: "",
-        canonicalCategoryFilter: "",
         minDiscount: "",
         specFilters: {},
         offset: 0,
@@ -176,7 +165,6 @@ export function useFilterParams() {
     setStoreFilter,
     setBrandFilter,
     setCategoryFilter,
-    setCanonicalCategoryFilter,
     setMinDiscount,
     setSpecFilter,
     clearSpecFilter,
