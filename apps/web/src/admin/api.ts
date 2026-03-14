@@ -359,6 +359,8 @@ export interface AdminListing {
   brand?: string | null;
   category_path?: string[];
   canonical_category?: string[];
+  category_id?: number | null;
+  category_name?: string;
   metadata?: Record<string, unknown>;
   is_in_stock: boolean;
   hidden?: boolean;

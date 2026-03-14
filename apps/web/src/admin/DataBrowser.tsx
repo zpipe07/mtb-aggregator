@@ -664,7 +664,66 @@ export function DataBrowser() {
                   <dd>{(detail.category_path ?? []).join(" > ") || "—"}</dd>
                   <dt className="text-stone-500">Canonical category</dt>
                   <dd>{canonCatDisplay(detail.canonical_category)}</dd>
+                  {detail.category_id != null && (
+                    <>
+                      <dt className="text-stone-500">Category ID</dt>
+                      <dd>
+                        {detail.category_id}
+                        {detail.category_name ? ` (${detail.category_name})` : ""}
+                      </dd>
+                    </>
+                  )}
+                  <dt className="text-stone-500">LLM confidence</dt>
+                  <dd>
+                    {getLLMConfidence(detail.metadata) != null ? (
+                      <span className={getLLMConfidence(detail.metadata)! < 0.7 ? "text-amber-600 font-medium" : ""}>
+                        {(getLLMConfidence(detail.metadata)! * 100).toFixed(0)}%
+                      </span>
+                    ) : (
+                      "—"
+                    )}
+                  </dd>
                 </dl>
+                {(() => {
+                  const obj = getMetadataObj(detail.metadata);
+                  const llmSpecs = obj?.llm_specs as Record<string, unknown> | undefined;
+                  const specs = obj?.specs as Record<string, unknown> | undefined;
+                  const hasLlm = llmSpecs && typeof llmSpecs === "object" && Object.keys(llmSpecs).length > 0;
+                  const hasScraped = specs && typeof specs === "object" && Object.keys(specs).length > 0;
+                  if (!hasLlm && !hasScraped) return null;
+                  return (
+                    <div className="space-y-3">
+                      {hasLlm && (
+                        <div>
+                          <h4 className="font-medium text-stone-700 mb-1">LLM specs</h4>
+                          <p className="text-xs text-stone-500 mb-2">LLM-extracted specs (used for filters)</p>
+                          <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
+                            {Object.entries(llmSpecs).sort(([a], [b]) => a.localeCompare(b)).map(([k, v]) => (
+                              <span key={k} className="contents">
+                                <dt className="text-stone-500">{k.replace(/_/g, " ")}</dt>
+                                <dd>{v != null ? String(v) : "—"}</dd>
+                              </span>
+                            ))}
+                          </dl>
+                        </div>
+                      )}
+                      {hasScraped && (
+                        <div>
+                          <h4 className="font-medium text-stone-700 mb-1">Scraped specs</h4>
+                          <p className="text-xs text-stone-500 mb-2">Raw specs from PDP enrichment</p>
+                          <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
+                            {Object.entries(specs).sort(([a], [b]) => a.localeCompare(b)).map(([k, v]) => (
+                              <span key={k} className="contents">
+                                <dt className="text-stone-500">{k.replace(/_/g, " ")}</dt>
+                                <dd>{v != null ? String(v) : "—"}</dd>
+                              </span>
+                            ))}
+                          </dl>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
                 <ListingSpecOverrides
                   listingId={detail.id}
                   metadata={detail.metadata}
