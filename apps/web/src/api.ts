@@ -1,5 +1,4 @@
 const API_BASE = import.meta.env.VITE_API_URL || "/api";
-console.log("API_BASE", API_BASE);
 
 export interface Deal {
   id: number;
@@ -57,8 +56,7 @@ export async function fetchDeals(params?: {
   if (params?.store) search.set("store", params.store);
   if (params?.brand) search.set("brand", params.brand);
   if (params?.category) search.set("category", params.category);
-  if (params?.category_slug)
-    search.set("category_slug", params.category_slug);
+  if (params?.category_slug) search.set("category_slug", params.category_slug);
   if (params?.canonical_category)
     search.set("canonical_category", params.canonical_category);
   if (params?.min_discount != null)
@@ -196,8 +194,7 @@ export async function fetchFacets(
   if (params?.store) search.set("store", params.store);
   if (params?.brand) search.set("brand", params.brand);
   if (params?.category) search.set("category", params.category);
-  if (params?.category_slug)
-    search.set("category_slug", params.category_slug);
+  if (params?.category_slug) search.set("category_slug", params.category_slug);
   if (params?.canonical_category)
     search.set("canonical_category", params.canonical_category);
   if (params?.min_discount != null)
