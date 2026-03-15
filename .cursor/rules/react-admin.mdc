@@ -1,0 +1,14 @@
+---
+description: React Admin UI patterns for the MTB aggregator
+globs: apps/web/src/admin/**/*.tsx
+alwaysApply: false
+---
+
+# React Admin Patterns
+
+- Use TanStack Query for data fetching; prefer `useQuery` / `useMutation`
+- Admin routes under `/admin/*`; `AdminGate` handles auth gating (localStorage token)
+- Use `CategoryPicker` for category selection; it's backed by the structured tree API
+- API base URL from `api.ts`; use the existing `api.get`, `api.post` helpers
+- Forms: controlled components with React state; submit via mutation, invalidate relevant queries on success
+- Tables/lists: use existing patterns from `DataBrowser`, `StoreManager` for consistency

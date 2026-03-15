@@ -1,0 +1,15 @@
+---
+description: Scraper parser structure for adding or modifying store parsers
+globs: apps/scraper/src/parsers/**/*.ts
+alwaysApply: false
+---
+
+# Scraper Parser Standards
+
+- One file per store: `{storename}.ts` (e.g. `jensonusa.ts`, `worldwidecyclery.ts`)
+- Export: `scrape{StoreName}(url: string): Promise<ScrapeResult[]>` for sale pages
+- Export: `enrich{StoreName}(url: string): Promise<EnrichResult>` for PDP (if store supports enrichment)
+- Use Playwright; launch browser via `getBrowser()` from scraper; avoid creating new browser per request
+- Match `ScrapeResult` schema: `store_sku`, `product_name`, `current_price`, `original_price`, `product_url`, `image_url`, `brand`, `category_path`, `is_in_stock`
+- Add store to `STORE_TYPES` in `types.ts` and register in `parsers/index.ts` (`PARSERS`, `ENRICHERS`)
+- Insert store record in DB with matching `store_type` before scraping
