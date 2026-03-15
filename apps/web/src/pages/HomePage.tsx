@@ -1,29 +1,30 @@
 import { useState, FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
-import { useDeals } from "../hooks/queries";
+import { useCategoryTree, useDeals } from "../hooks/queries";
 import { SearchBar } from "../components/SearchBar";
 import { DealGrid } from "../components/DealGrid";
 import { CategoryCard } from "../components/CategoryCard";
 import { LoadingState } from "../components/LoadingState";
 import { Link } from "react-router-dom";
+import { CategoryTreeNode } from "../api";
 
 /** Curated category labels for home page CTAs when API has few/empty categories */
 const FALLBACK_CATEGORIES: { path: string; label: string }[] = [
-  { path: "Bikes > Electric", label: "E-Bikes" },
-  { path: "Bikes > Mountain", label: "Mountain Bikes" },
-  { path: "Gear > Shoes", label: "Shoes" },
-  { path: "Gear > Helmets", label: "Helmets" },
-  { path: "Components > Brakes", label: "Brakes" },
-  { path: "Components > Shocks", label: "Shocks" },
-  { path: "Components > Wheels", label: "Wheels" },
-  { path: "Components > Pedals", label: "Pedals" },
+  { path: "bikes-electric", label: "E-Bikes" },
+  { path: "bikes-mountain", label: "Mountain Bikes" },
+  { path: "gear-shoes", label: "Shoes" },
+  { path: "gear-helmets", label: "Helmets" },
+  { path: "components-brakes", label: "Brakes" },
+  { path: "components-suspension-forks", label: "Forks" },
+  { path: "components-wheels", label: "Wheels" },
+  { path: "components-pedals", label: "Pedals" },
 ];
 
-function buildCategoryCards(canonicalCategories: string[]) {
-  if (canonicalCategories.length === 0) return FALLBACK_CATEGORIES;
-  return canonicalCategories.slice(0, 8).map((path) => ({
-    path,
-    label: path.split(" > ").pop() ?? path,
+function buildCategoryCards(categoryTree: CategoryTreeNode[]) {
+  if (categoryTree.length === 0) return FALLBACK_CATEGORIES;
+  return categoryTree.slice(0, 8).map((category) => ({
+    path: category.slug,
+    label: category.name,
   }));
 }
 
@@ -31,7 +32,12 @@ export function HomePage() {
   const navigate = useNavigate();
   const [searchValue, setSearchValue] = useState("");
 
-  const categoryCards = buildCategoryCards([]);
+  const { data: categoryTreeData } = useCategoryTree();
+  const categoryTree = categoryTreeData ?? [];
+  console.log({ categoryTree });
+  // const canonicalCategories = categoryTree.map((category) => category.name);
+  // const canonicalCategories = categoryTree.map((category) => category.slug);
+  const categoryCards = buildCategoryCards(categoryTree);
 
   const { data: topDealsData, isPending: topDealsLoading } = useDeals({
     sort: "discount",
@@ -87,7 +93,7 @@ export function HomePage() {
             <CategoryCard
               key={path}
               label={label}
-              to={`/deals?canonical_category=${encodeURIComponent(path)}`}
+              to={`/deals?category=${encodeURIComponent(path)}`}
             />
           ))}
         </div>
