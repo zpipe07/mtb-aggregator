@@ -1,0 +1,70 @@
+# MTB Aggregator API
+
+Go HTTP server that orchestrates scraping, enrichment, and serves the REST API. Uses standard library `net/http` and pgx for Postgres.
+
+## Overview
+
+- **Port:** 8080 (default)
+- **Frameworks:** None; stdlib `net/http` only
+- **Database:** PostgreSQL via pgx; all queries in `internal/db/`
+
+## Key Directories
+
+| Path | Purpose |
+|------|---------|
+| `internal/api/` | HTTP handlers, route registration |
+| `internal/db/` | Database queries (listings, stores, categories, etc.) |
+| `internal/scheduler/` | Cron jobs: scrape (4h), enrich (nightly) |
+| `internal/brand/` | Brand normalization via `brand_aliases.json` |
+| `internal/taxonomy/` | Category mapping, in-memory cache |
+| `internal/metadata/` | Spec extraction from enriched category paths |
+| `internal/llm/` | LLM-driven spec extraction, classifier |
+
+## Endpoints
+
+### Public
+
+- `GET /deals` — List deals; filters: `store`, `brand`, `min_discount`, `limit`, `offset`, `category_id`, etc.
+- `GET /deals/:id` — Single deal by ID
+- `GET /stores` — Stores with deal counts
+- `GET /brands` — Distinct brands
+- `GET /categories/tree` — Structured category tree (id, slug, name, parent_id)
+- `GET /facets` — Filter facets for current query
+- `GET /spec-values` — Spec values for filters
+- `GET /status` — Health: last scrape per store, scraper reachable
+
+### Trigger (cron or manual)
+
+- `POST /scrape-now` — Trigger scrape job; optional `?store=worldwidecyclery`
+- `POST /enrich-now` — Trigger enrichment job
+- `POST /scrape-now/:store` — Scrape single store
+
+### Admin (Bearer token via `ADMIN_PASSWORD`)
+
+- `POST /admin/login` — Get token
+- `GET/POST/PUT/PATCH/DELETE /admin/*` — Dashboard, stores, taxonomy, profiles, etc.
+
+## Environment
+
+- `DATABASE_URL` — Postgres connection string
+- `SCRAPER_SERVICE_URL` — Scraper base URL (default `http://localhost:3000`)
+- `ADMIN_PASSWORD` — Required for admin endpoints
+- `CRON_SECRET` — Optional; validate cron triggers via `X-Cron-Secret`
+- `SCRAPE_CRON_SPEC` / `ENRICH_CRON_SPEC` — Cron schedules; set `disabled` for external cron
+
+## Running
+
+```bash
+# From repo root
+cd apps/api && go run main.go
+```
+
+## Backfills
+
+Run from repo root with API not required:
+
+```bash
+make backfill-brands
+make backfill-canonical-categories   # Recategorize after taxonomy changes
+make backfill-llm-specs              # Populate llm_specs from specs
+```

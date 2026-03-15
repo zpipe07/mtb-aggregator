@@ -118,3 +118,10 @@ Incremental: `packages/shared/migrations/` — numbered `001` onward, applied in
 
 For local Docker: `make db-migrate-docker`
 For remote (Neon, etc.): `make db-migrate-remote` (uses `go run ./cmd/migrate`)
+
+### Further Reading
+
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — Data flow, services, key directories
+- [docs/SCRAPING.md](docs/SCRAPING.md) — Parser structure, adding stores
+- [docs/TAXONOMY.md](docs/TAXONOMY.md) — Category mappings, LLM classifier
+- Domain READMEs: [apps/api/README.md](apps/api/README.md), [apps/scraper/README.md](apps/scraper/README.md), [packages/shared/README.md](packages/shared/README.md)

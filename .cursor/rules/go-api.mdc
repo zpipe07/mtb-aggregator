@@ -1,0 +1,15 @@
+---
+description: Go API conventions for the MTB aggregator
+globs: apps/api/**/*.go
+alwaysApply: false
+---
+
+# Go API Standards
+
+- Use stdlib `net/http`; no framework (Echo, Gin, etc.)
+- All DB access via `internal/db/` with pgx
+- Return JSON with appropriate status codes; use `api.WriteJSON` / `api.WriteError` helpers
+- Admin endpoints: check Bearer token via `api.RequireAdmin` middleware
+- Cron triggers: optionally validate `X-Cron-Secret` when `CRON_SECRET` is set
+- Add new endpoints in `main.go` or `internal/api/`; keep route registration centralized
+- Use `context.Context` for timeouts and cancellation in handlers that call external services
