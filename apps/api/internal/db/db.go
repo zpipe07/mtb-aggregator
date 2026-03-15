@@ -230,12 +230,14 @@ type Deal struct {
 	LastScraped   string   `json:"last_scraped"`
 }
 
-// AdminListing extends Deal with created_at, last_enriched_at, and hidden for the admin data browser.
+// AdminListing extends Deal with created_at, last_enriched_at, hidden, and structured category for the admin data browser.
 type AdminListing struct {
 	Deal
 	CreatedAt      string `json:"created_at"`
 	LastEnrichedAt string `json:"last_enriched_at"`
 	Hidden         bool   `json:"hidden"`
+	CategoryID     *int   `json:"category_id,omitempty"`
+	CategoryName   string `json:"category_name,omitempty"`
 }
 
 // GetAdminListingsParams for admin listing browser filters.
@@ -417,16 +419,20 @@ func (db *DB) GetAdminListingByID(ctx context.Context, id int) (*AdminListing, e
 	var cp, canCat pgtype.FlatArray[string]
 	var meta []byte
 	var createdAt, lastEnrichedAt *string
+	var categoryID *int
+	var categoryName *string
 	err := db.pool.QueryRow(ctx, `
 		SELECT l.id, l.store_id, s.name, l.store_sku, l.product_name, l.current_price, l.original_price,
 			l.product_url, l.affiliate_url, l.image_url, l.brand, COALESCE(l.category_path, '{}'), COALESCE(l.canonical_category, '{}'), l.metadata, l.is_in_stock, l.hidden, l.last_scraped::text,
-			l.created_at::text, l.last_enriched_at::text
+			l.created_at::text, l.last_enriched_at::text,
+			l.category_id, c.name
 		FROM store_listings l
 		JOIN stores s ON s.id = l.store_id
+		LEFT JOIN categories c ON c.id = l.category_id
 		WHERE l.id = $1
 	`, id).Scan(&a.ID, &a.StoreID, &a.StoreName, &a.StoreSKU, &a.ProductName, &a.CurrentPrice, &a.OriginalPrice,
 		&a.ProductURL, &a.AffiliateURL, &a.ImageURL, &a.Brand, &cp, &canCat, &meta, &a.IsInStock, &a.Hidden, &lastScraped,
-		&createdAt, &lastEnrichedAt)
+		&createdAt, &lastEnrichedAt, &categoryID, &categoryName)
 	if err != nil {
 		if err.Error() == "no rows in result set" {
 			return nil, nil
@@ -442,6 +448,10 @@ func (db *DB) GetAdminListingByID(ctx context.Context, id int) (*AdminListing, e
 	}
 	if lastEnrichedAt != nil {
 		a.LastEnrichedAt = *lastEnrichedAt
+	}
+	a.CategoryID = categoryID
+	if categoryName != nil {
+		a.CategoryName = *categoryName
 	}
 	if a.OriginalPrice != nil && *a.OriginalPrice > 0 && *a.OriginalPrice > a.CurrentPrice {
 		pct := (1 - a.CurrentPrice/(*a.OriginalPrice)) * 100
