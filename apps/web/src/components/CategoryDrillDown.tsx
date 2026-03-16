@@ -1,4 +1,4 @@
-import { useRef, useState, useCallback, useEffect } from "react";
+import { useCallback, useState } from "react";
 
 type TreeNode = {
   path: string;
@@ -66,24 +66,7 @@ function buildTree(paths: string[]): TreeNode[] {
   return toArray(root);
 }
 
-/** Get the node at the given breadcrumb path, or root children if breadcrumb is empty. */
-function getChildrenAt(tree: TreeNode[], breadcrumb: string[]): TreeNode[] {
-  if (breadcrumb.length === 0) return tree;
-
-  let current: TreeNode[] = tree;
-  for (const segment of breadcrumb) {
-    const node = current.find((n) => n.label === segment);
-    if (!node) return [];
-    current = node.children;
-  }
-  return current;
-}
-
-/** Get the full path string for the current breadcrumb. */
-function getPathAt(breadcrumb: string[]): string {
-  if (breadcrumb.length === 0) return "";
-  return breadcrumb.join(" > ");
-}
+const ROW_CLASS = "min-h-[44px] flex items-center";
 
 type CategoryDrillDownProps = {
   label: string;
@@ -93,6 +76,80 @@ type CategoryDrillDownProps = {
   className?: string;
 };
 
+function ChevronIcon({ expanded }: { expanded: boolean }) {
+  return (
+    <svg
+      className={`w-4 h-4 shrink-0 transition-transform ${expanded ? "rotate-90" : ""}`}
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M9 5l7 7-7 7"
+      />
+    </svg>
+  );
+}
+
+function TreeNodeRow({
+  node,
+  depth,
+  expanded,
+  value,
+  onToggle,
+  onSelect,
+}: {
+  node: TreeNode;
+  depth: number;
+  expanded: boolean;
+  value: string;
+  onToggle: () => void;
+  onSelect: () => void;
+}) {
+  const hasChildren = node.children.length > 0;
+  const isSelected = value === node.path;
+  const isSelectable = node.isSelectable;
+
+  return (
+    <div className="group">
+      <div
+        className={`flex items-center gap-1 rounded-lg ${isSelected ? "bg-stone-100" : ""}`}
+        style={{ paddingLeft: `${depth * 12 + 8}px` }}
+      >
+        {hasChildren ? (
+          <button
+            type="button"
+            onClick={onToggle}
+            className="p-2 -m-2 rounded text-stone-500 hover:bg-stone-100 hover:text-stone-700"
+            aria-expanded={expanded}
+            aria-label={expanded ? "Collapse" : "Expand"}
+          >
+            <ChevronIcon expanded={expanded} />
+          </button>
+        ) : (
+          <span className="w-6 shrink-0" aria-hidden />
+        )}
+        {isSelectable ? (
+          <button
+            type="button"
+            onClick={onSelect}
+            className={`flex-1 text-left py-2 px-2 rounded-lg transition-colors min-h-[44px] flex items-center ${isSelected ? "font-medium text-stone-900" : "text-stone-700 hover:bg-stone-50"}`}
+          >
+            {node.label}
+          </button>
+        ) : (
+          <span className="flex-1 py-2 pr-2 min-h-[44px] flex items-center text-stone-500">
+            {node.label}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export function CategoryDrillDown({
   label,
   value,
@@ -100,210 +157,73 @@ export function CategoryDrillDown({
   options,
   className = "",
 }: CategoryDrillDownProps) {
-  const [isOpen, setIsOpen] = useState(false);
-  const [breadcrumb, setBreadcrumb] = useState<string[]>([]);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const [expandedPaths, setExpandedPaths] = useState<Set<string>>(() => {
+    if (!value) return new Set();
+    const segments = value.split(" > ");
+    const paths = new Set<string>();
+    for (let i = 1; i < segments.length; i++) {
+      paths.add(segments.slice(0, i).join(" > "));
+    }
+    return paths;
+  });
 
   const tree = buildTree(options);
-  const currentChildren = getChildrenAt(tree, breadcrumb);
-  const currentPath = getPathAt(breadcrumb);
-  const isCurrentPathSelectable =
-    currentPath !== "" && options.includes(currentPath);
-
-  const displayLabel = value
-    ? (value.split(" > ").pop() ?? value)
-    : "All categories";
 
   const handleSelect = useCallback(
     (path: string) => {
       onChange(path);
-      setIsOpen(false);
-      setBreadcrumb([]);
     },
     [onChange],
   );
 
-  const handleDrill = useCallback((segment: string) => {
-    setBreadcrumb((prev) => [...prev, segment]);
+  const toggleExpanded = useCallback((path: string) => {
+    setExpandedPaths((prev) => {
+      const next = new Set(prev);
+      if (next.has(path)) next.delete(path);
+      else next.add(path);
+      return next;
+    });
   }, []);
 
-  const handleBack = useCallback(() => {
-    setBreadcrumb((prev) => prev.slice(0, -1));
-  }, []);
+  function renderNode(node: TreeNode, depth: number) {
+    const hasChildren = node.children.length > 0;
+    const isExpanded = expandedPaths.has(node.path);
 
-  const handleOpen = useCallback(() => {
-    const willOpen = !isOpen;
-    if (willOpen) {
-      if (value) {
-        const segments = value.split(" > ");
-        setBreadcrumb(segments.slice(0, -1));
-      } else {
-        setBreadcrumb([]);
-      }
-    }
-    setIsOpen(willOpen);
-  }, [isOpen, value]);
-
-  useEffect(() => {
-    if (!isOpen) return;
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        setIsOpen(false);
-        setBreadcrumb([]);
-      }
-    };
-    document.addEventListener("keydown", onKeyDown);
-    return () => document.removeEventListener("keydown", onKeyDown);
-  }, [isOpen]);
-
-  useEffect(() => {
-    if (!isOpen) return;
-    const onPointerDown = (e: MouseEvent) => {
-      if (
-        containerRef.current &&
-        !containerRef.current.contains(e.target as Node)
-      ) {
-        setIsOpen(false);
-        setBreadcrumb([]);
-      }
-    };
-    document.addEventListener("pointerdown", onPointerDown);
-    return () => document.removeEventListener("pointerdown", onPointerDown);
-  }, [isOpen]);
+    return (
+      <div key={node.path} className="space-y-0.5">
+        <TreeNodeRow
+          node={node}
+          depth={depth}
+          expanded={isExpanded}
+          value={value}
+          onToggle={() => toggleExpanded(node.path)}
+          onSelect={() => handleSelect(node.path)}
+        />
+        {hasChildren && isExpanded && (
+          <div className="space-y-0.5">
+            {node.children.map((child) => renderNode(child, depth + 1))}
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
-    <div ref={containerRef} className={className}>
+    <div className={className}>
       <label className="block text-sm font-medium text-stone-600 mb-1">
         {label}
       </label>
-      <div className="relative">
+      <div className="space-y-0.5">
         <button
           type="button"
-          onClick={handleOpen}
-          aria-haspopup="listbox"
-          aria-expanded={isOpen}
-          className="w-full rounded-lg border border-stone-300 px-3 py-2 bg-white text-stone-800 text-left flex items-center justify-between gap-2"
+          onClick={() => handleSelect("")}
+          className={`w-full ${ROW_CLASS} text-left px-3 py-2.5 rounded-lg transition-colors ${!value ? "bg-stone-100 font-medium text-stone-900" : "text-stone-700 hover:bg-stone-50"}`}
         >
-          <span>{displayLabel}</span>
-          <svg
-            className={`w-4 h-4 text-stone-400 shrink-0 transition-transform ${isOpen ? "rotate-180" : ""}`}
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M19 9l-7 7-7-7"
-            />
-          </svg>
+          All categories
         </button>
-        {isOpen && (
-          <div
-            role="listbox"
-            className="absolute z-50 mt-1 w-full min-w-[200px] max-h-80 overflow-y-auto rounded-lg border border-stone-200 bg-white shadow-lg p-2"
-          >
-            <button
-              type="button"
-              onClick={() => handleSelect("")}
-              className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${!value ? "bg-stone-100 font-medium text-stone-900" : "text-stone-700 hover:bg-stone-50"}`}
-            >
-              All categories
-            </button>
-
-            {breadcrumb.length > 0 && (
-              <div className="flex items-center gap-1 px-3 py-2 mx-2 mt-1 border-t border-stone-100">
-                <button
-                  type="button"
-                  onClick={handleBack}
-                  className="p-1.5 -m-1.5 rounded text-stone-500 hover:bg-stone-100 hover:text-stone-700 mr-auto flex items-center gap-1"
-                  aria-label="Go back"
-                >
-                  <svg
-                    className="w-4 h-4"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M15 19l-7-7 7-7"
-                    />
-                  </svg>
-                  <span className="text-sm text-stone-600 truncate flex-1">
-                    {breadcrumb.join(" › ")}
-                  </span>
-                </button>
-                {isCurrentPathSelectable && (
-                  <button
-                    type="button"
-                    onClick={() => handleSelect(currentPath)}
-                    className="text-sm font-medium text-stone-700 hover:text-stone-900 shrink-0"
-                  >
-                    Select
-                  </button>
-                )}
-              </div>
-            )}
-
-            <div className="mt-1 px-2 space-y-0.5">
-              {currentChildren.map((node) => {
-                const hasChildren = node.children.length > 0;
-                if (hasChildren) {
-                  return (
-                    <div
-                      key={node.path}
-                      className="flex items-center gap-1 rounded-lg group"
-                    >
-                      <button
-                        type="button"
-                        onClick={() => handleDrill(node.label)}
-                        className={`flex-1 text-left px-3 py-2 rounded-lg transition-colors flex items-center gap-2 ${value === node.path ? "bg-stone-100 font-medium text-stone-900" : "text-stone-700 hover:bg-stone-50"}`}
-                      >
-                        <span>{node.label}</span>
-                        <svg
-                          className="w-4 h-4 text-stone-400 shrink-0"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M9 5l7 7-7 7"
-                          />
-                        </svg>
-                      </button>
-                      {node.isSelectable && (
-                        <button
-                          type="button"
-                          onClick={() => handleSelect(node.path)}
-                          className="px-2 py-1.5 text-sm text-stone-500 hover:text-stone-700 opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          Select
-                        </button>
-                      )}
-                    </div>
-                  );
-                }
-                return (
-                  <button
-                    key={node.path}
-                    type="button"
-                    onClick={() => handleSelect(node.path)}
-                    className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${value === node.path ? "bg-stone-100 font-medium text-stone-900" : "text-stone-700 hover:bg-stone-50"}`}
-                  >
-                    {node.label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
+        <div className="space-y-0.5">
+          {tree.map((node) => renderNode(node, 0))}
+        </div>
       </div>
     </div>
   );
