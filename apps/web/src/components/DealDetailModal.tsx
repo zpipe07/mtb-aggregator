@@ -7,6 +7,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
+import { track } from "@vercel/analytics";
 import { useDeal, usePriceHistory } from "../hooks/queries";
 
 type DealDetailModalProps = {
@@ -138,6 +139,13 @@ export function DealDetailModal({ dealId, onClose }: DealDetailModalProps) {
                     target="_blank"
                     rel="noopener noreferrer"
                     className="mt-4 inline-block bg-stone-800 hover:bg-stone-700 text-white font-medium py-2 px-4 rounded-lg transition-colors"
+                    onClick={() =>
+                      track("view_at_store", {
+                        deal_id: deal.id,
+                        store: deal.store_name,
+                        brand: deal.brand ?? "",
+                      })
+                    }
                   >
                     View at store
                   </a>

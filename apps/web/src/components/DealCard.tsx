@@ -1,3 +1,4 @@
+import { track } from "@vercel/analytics";
 import type { Deal } from "../api";
 
 type DealCardProps = {
@@ -20,10 +21,24 @@ export function DealCard({ deal, onSelect }: DealCardProps) {
   return (
     <article
       className="bg-white rounded-xl shadow-sm border border-stone-200 overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
-      onClick={() => onSelect?.(deal)}
+      onClick={() => {
+        if (onSelect) {
+          track("deal_card_click", { deal_id: deal.id, store: deal.store_name, brand: deal.brand || "" });
+          onSelect(deal);
+        }
+      }}
       role={onSelect ? "button" : undefined}
       tabIndex={onSelect ? 0 : undefined}
-      onKeyDown={onSelect ? (e) => e.key === "Enter" && onSelect(deal) : undefined}
+      onKeyDown={
+        onSelect
+          ? (e) => {
+              if (e.key === "Enter") {
+                track("deal_card_click", { deal_id: deal.id, store: deal.store_name, brand: deal.brand || "" });
+                onSelect(deal);
+              }
+            }
+          : undefined
+      }
     >
       <div className="aspect-square bg-stone-200 relative">
         {deal.image_url ? (
@@ -76,7 +91,10 @@ export function DealCard({ deal, onSelect }: DealCardProps) {
           target="_blank"
           rel="noopener noreferrer"
           className="mt-4 block w-full text-center bg-stone-800 hover:bg-stone-700 text-white font-medium py-2 px-4 rounded-lg transition-colors"
-          onClick={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.stopPropagation();
+            track("view_deal", { deal_id: deal.id, store: deal.store_name, brand: deal.brand || "" });
+          }}
         >
           View Deal
         </a>
