@@ -3,7 +3,7 @@ import type { EnrichResult } from "./jensonusa.js";
 import * as cheerio from "cheerio";
 import { SCRAPER_MAX_PRODUCTS } from "../config.js";
 
-const BASE_URL = "https://worldwidecyclery.com";
+const BASE_URL = "https://ridebicycles.com";
 const PER_PAGE = 250;
 
 interface ShopifyVariant {
@@ -40,6 +40,7 @@ interface ShopifyCollectionResponse {
 
 /**
  * Fetch one page of products from Shopify collection JSON API.
+ * Strips query params from collectionUrl to get base path (products.json ignores filter app params).
  */
 async function fetchPage(
   collectionUrl: string,
@@ -48,7 +49,6 @@ async function fetchPage(
   const url = new URL(collectionUrl);
   const origin = url.origin;
   const pathname = url.pathname.replace(/\/$/, "");
-  // Shopify: /collections/deals -> /collections/deals/products.json
   const jsonUrl = `${origin}${pathname}/products.json?limit=${PER_PAGE}&page=${page}`;
 
   const res = await fetch(jsonUrl, {
@@ -64,11 +64,20 @@ async function fetchPage(
   return data.products ?? [];
 }
 
+/** Exclude gift cards and similar non-MTB items. */
+function isGiftCard(product: ShopifyProduct): boolean {
+  if (/gift\s*card/i.test(product.title)) return true;
+  if (product.product_type && /gift\s*card/i.test(product.product_type))
+    return true;
+  return false;
+}
+
 /**
- * Scrape Worldwide Cyclery deals via Shopify's collection products.json API.
+ * Scrape Ride Bicycles deals via Shopify's collection products.json API.
+ * Filters for in-stock and discounted variants (rb_stock_status/rb_discount_relative are not honored by API).
  * No browser required; uses fetch + JSON.
  */
-export async function scrapeWorldwideCyclery(
+export async function scrapeRideBicycles(
   collectionUrl: string,
 ): Promise<ScrapeResult[]> {
   const results: ScrapeResult[] = [];
@@ -82,17 +91,22 @@ export async function scrapeWorldwideCyclery(
 
     for (const product of products) {
       if (!product.variants || product.variants.length === 0) continue;
+      if (isGiftCard(product)) continue;
 
       for (const variant of product.variants) {
+        if (!variant.available) continue;
+
         const currentPrice = parseFloat(variant.price);
         if (!Number.isFinite(currentPrice) || currentPrice <= 0) continue;
 
-        const originalPrice = variant.compare_at_price
+        const compareAtPrice = variant.compare_at_price
           ? parseFloat(variant.compare_at_price)
           : null;
         if (
-          originalPrice !== null &&
-          (!Number.isFinite(originalPrice) || originalPrice <= 0)
+          compareAtPrice === null ||
+          !Number.isFinite(compareAtPrice) ||
+          compareAtPrice <= 0 ||
+          compareAtPrice <= currentPrice
         ) {
           continue;
         }
@@ -109,12 +123,12 @@ export async function scrapeWorldwideCyclery(
           store_sku: storeSku,
           product_name: product.title,
           current_price: currentPrice,
-          original_price: originalPrice ?? null,
+          original_price: compareAtPrice,
           product_url: productUrl,
           image_url: imageUrl,
           brand: product.vendor || null,
           category_path: categoryPath,
-          is_in_stock: variant.available,
+          is_in_stock: true,
         });
         if (SCRAPER_MAX_PRODUCTS > 0 && results.length >= SCRAPER_MAX_PRODUCTS)
           break;
@@ -131,7 +145,7 @@ export async function scrapeWorldwideCyclery(
 
   const deduped = dedupeBySku(results);
   console.log(
-    `[scraper] Worldwide Cyclery: ${deduped.length} listings (${page} page(s))`,
+    `[scraper] Ride Bicycles: ${deduped.length} listings (${page} page(s))`,
   );
   return deduped;
 }
@@ -146,17 +160,39 @@ function dedupeBySku(results: ScrapeResult[]): ScrapeResult[] {
 }
 
 /**
- * Enrich a single Worldwide Cyclery product using Shopify's /products/{handle}.json API.
- * Extracts specs from body_html tables/definition lists and returns them as raw key-value pairs.
- * Extracts category breadcrumbs from the product page HTML (JSON-LD, DOM, or collection links).
+ * Extract product handle from PDP URL. Handles both:
+ * - /collections/all-products/products/norco-fluid-fs-c2-29-2024?variant=...
+ * - /products/norco-fluid-fs-c2-29-2024
  */
-export async function enrichWorldwideCyclery(
+function extractHandleFromProductUrl(productUrl: string): string | null {
+  const url = new URL(productUrl);
+  const parts = url.pathname.split("/").filter(Boolean);
+  const productsIdx = parts.indexOf("products");
+  if (productsIdx >= 0 && productsIdx < parts.length - 1) {
+    return parts[productsIdx + 1];
+  }
+  return parts.length > 0 ? parts[parts.length - 1] : null;
+}
+
+/**
+ * Enrich a single Ride Bicycles product using Shopify's /products/{handle}.json API.
+ * Extracts specs from body_html tables and category breadcrumbs from HTML.
+ */
+export async function enrichRideBicycles(
   productUrl: string,
 ): Promise<EnrichResult> {
   try {
+    const handle = extractHandleFromProductUrl(productUrl);
+    if (!handle) {
+      return { category_path: null, raw_specs: null };
+    }
+
+    const url = new URL(productUrl);
+    const origin = url.origin || BASE_URL;
+
     const [detail, html] = await Promise.all([
-      fetchWorldwideProductDetail(productUrl),
-      fetchWorldwideProductHtml(productUrl),
+      fetchProductDetail(origin, handle),
+      fetchProductHtml(productUrl),
     ]);
     const rawSpecs = detail.body_html
       ? extractSpecsFromHtml(detail.body_html)
@@ -165,13 +201,14 @@ export async function enrichWorldwideCyclery(
     const description = detail.body_html
       ? extractDescriptionFromHtml(detail.body_html)
       : null;
+
     return {
       category_path: categoryPath,
       raw_specs: rawSpecs,
       description: description ?? undefined,
     };
   } catch (err) {
-    console.error("[scraper] Worldwide Cyclery enrich failed:", err);
+    console.error("[scraper] Ride Bicycles enrich failed:", err);
     return {
       category_path: null,
       raw_specs: null,
@@ -179,14 +216,10 @@ export async function enrichWorldwideCyclery(
   }
 }
 
-async function fetchWorldwideProductDetail(
-  productUrl: string,
+async function fetchProductDetail(
+  origin: string,
+  handle: string,
 ): Promise<ShopifyProductDetail> {
-  const url = new URL(productUrl);
-  const origin = url.origin || BASE_URL;
-  const parts = url.pathname.split("/").filter(Boolean);
-  // Expect /products/{handle}
-  const handle = parts[parts.length - 1];
   const jsonUrl = `${origin}/products/${handle}.json`;
 
   const res = await fetch(jsonUrl, {
@@ -202,9 +235,7 @@ async function fetchWorldwideProductDetail(
   return data.product ?? {};
 }
 
-async function fetchWorldwideProductHtml(
-  productUrl: string,
-): Promise<string | null> {
+async function fetchProductHtml(productUrl: string): Promise<string | null> {
   const res = await fetch(productUrl, {
     headers: {
       Accept: "text/html",
@@ -217,14 +248,13 @@ async function fetchWorldwideProductHtml(
 
 /**
  * Extract category breadcrumbs from product page HTML.
- * Tries: (1) JSON-LD BreadcrumbList, (2) DOM breadcrumb links, (3) Collection links section.
  */
 function extractBreadcrumbsFromHtml(html: string): string[] | null {
   const $ = cheerio.load(html);
   const clean = (text: string | null | undefined): string =>
     (text || "").replace(/\s+/g, " ").trim();
 
-  // 1. JSON-LD BreadcrumbList (common in Shopify for SEO)
+  // 1. JSON-LD BreadcrumbList
   let result: string[] | null = null;
   $('script[type="application/ld+json"]').each((_, el) => {
     if (result) return;
@@ -246,7 +276,7 @@ function extractBreadcrumbsFromHtml(html: string): string[] | null {
             if (name) items.push(clean(String(name)));
           }
           if (items.length >= 2) {
-            let trimmed = items.slice(0, -1); // exclude product name
+            let trimmed = items.slice(0, -1);
             if (trimmed[0] && /^home$/i.test(trimmed[0]))
               trimmed = trimmed.slice(1);
             if (trimmed.length > 0) {
@@ -257,12 +287,12 @@ function extractBreadcrumbsFromHtml(html: string): string[] | null {
         }
       }
     } catch {
-      /* ignore parse errors */
+      /* ignore */
     }
   });
   if (result) return result;
 
-  // 2. DOM breadcrumb links (nav, ol.breadcrumb, etc.)
+  // 2. DOM breadcrumb links
   const breadcrumbSelectors = [
     'nav[aria-label="Breadcrumb"] a',
     'nav[aria-label="breadcrumb"] a',
@@ -284,7 +314,7 @@ function extractBreadcrumbsFromHtml(html: string): string[] | null {
     }
   }
 
-  // 3. Collection links (Shopify product pages often list collections like "Collections: Link1, Link2")
+  // 3. Collection links
   const collectionsLabel = $('*:contains("Collections:")').first();
   if (collectionsLabel.length) {
     const container = collectionsLabel.closest("div, section, p");
@@ -297,7 +327,6 @@ function extractBreadcrumbsFromHtml(html: string): string[] | null {
       if (t && t.length < 100) items.push(t);
     });
     if (items.length > 0) {
-      // Prefer the most specific (longest) collection path; split "Cat1 / Cat2" into array if desired
       const best = items.reduce((a, b) => (a.length >= b.length ? a : b));
       const parts = best
         .split(/\s*\/\s*/)
@@ -310,10 +339,6 @@ function extractBreadcrumbsFromHtml(html: string): string[] | null {
   return null;
 }
 
-/**
- * Extract description text from body_html by stripping spec tables/dl and returning
- * remaining text. Used for LLM spec extraction.
- */
 function extractDescriptionFromHtml(html: string): string | null {
   const $ = cheerio.load(html);
   const clone = $.root().clone();
@@ -326,7 +351,6 @@ function extractDescriptionFromHtml(html: string): string | null {
 function extractSpecsFromHtml(html: string): Record<string, string> | null {
   const $ = cheerio.load(html);
   const specs: Record<string, string> = {};
-
   const clean = (text: string | null | undefined): string =>
     (text || "").replace(/\s+/g, " ").trim();
 
@@ -336,8 +360,7 @@ function extractSpecsFromHtml(html: string): Record<string, string> | null {
       if (cells.length < 2) return;
       const key = clean($(cells[0]).text());
       const value = clean($(cells[1]).text());
-      if (!key || !value) return;
-      if (key.length > 80 || value.length > 200) return;
+      if (!key || !value || key.length > 80 || value.length > 200) return;
       specs[key] = value;
     });
   }
@@ -348,19 +371,20 @@ function extractSpecsFromHtml(html: string): Record<string, string> | null {
       const def = term.next("dd");
       const key = clean(term.text());
       const value = clean(def.text());
-      if (!key || !value) return;
-      if (key.length > 80 || value.length > 200) return;
+      if (!key || !value || key.length > 80 || value.length > 200) return;
       specs[key] = value;
     });
   }
 
-  // Prefer tables that are clearly labeled as specifications
+  // Spec tables: heading-based or Ride Bicycles' spec-table class
   $("table").each((_, el) => {
     const table = $(el);
     const heading = clean(
       table.prevAll("h1,h2,h3,h4,strong").first().text(),
     ).toLowerCase();
+    const hasSpecClass = table.hasClass("spec-table");
     const isSpecTable =
+      hasSpecClass ||
       heading.includes("spec") ||
       heading.includes("item specifications") ||
       heading.includes("details");
@@ -369,23 +393,17 @@ function extractSpecsFromHtml(html: string): Record<string, string> | null {
     }
   });
 
-  // Fallback: any table with many short key/value rows
   if (Object.keys(specs).length === 0) {
-    $("table").each((_, el) => {
-      collectFromTable($(el));
-    });
+    $("table").each((_, el) => collectFromTable($(el)));
   }
 
-  // Fallback: definition lists near a specs heading
   if (Object.keys(specs).length === 0) {
     $("dl").each((_, el) => {
       const dl = $(el);
       const heading = clean(
         dl.prevAll("h1,h2,h3,h4,strong").first().text(),
       ).toLowerCase();
-      if (heading.includes("spec")) {
-        collectFromDl(dl);
-      }
+      if (heading.includes("spec")) collectFromDl(dl);
     });
   }
 

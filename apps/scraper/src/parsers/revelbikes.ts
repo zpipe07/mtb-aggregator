@@ -1,4 +1,5 @@
 import type { ScrapeResult } from "../types.js";
+import { SCRAPER_MAX_PRODUCTS } from "../config.js";
 
 const PER_PAGE = 250;
 
@@ -85,10 +86,16 @@ export async function scrapeRevelBikes(collectionUrl: string): Promise<ScrapeRes
           category_path: categoryPath,
           is_in_stock: variant.available,
         });
+        if (SCRAPER_MAX_PRODUCTS > 0 && results.length >= SCRAPER_MAX_PRODUCTS)
+          break;
       }
+      if (SCRAPER_MAX_PRODUCTS > 0 && results.length >= SCRAPER_MAX_PRODUCTS)
+        break;
     }
 
     if (products.length < PER_PAGE) break;
+    if (SCRAPER_MAX_PRODUCTS > 0 && results.length >= SCRAPER_MAX_PRODUCTS)
+      break;
     page++;
   }
 

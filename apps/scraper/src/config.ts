@@ -5,6 +5,12 @@ export const SCRAPE_DELAY_MS = Number(process.env.SCRAPE_DELAY_MS) || 5000;
 
 export const ENRICH_DELAY_MS = Number(process.env.ENRICH_DELAY_MS) || 5000;
 
+/** Limit total products per scrape when set (convenient for testing). 0 = no limit. */
+export const SCRAPER_MAX_PRODUCTS = Math.max(
+  0,
+  Number(process.env.SCRAPER_MAX_PRODUCTS) || 0,
+);
+
 export const STORE_SELECTORS: Record<
   string,
   {
