@@ -1,3 +1,4 @@
+import { track } from "@vercel/analytics";
 import { useEffect, useState } from "react";
 
 type SearchBarProps = {
@@ -21,7 +22,10 @@ export function SearchBar({
 
   useEffect(() => {
     const t = setTimeout(() => {
-      if (local !== value) onChange(local);
+      if (local !== value) {
+        if (local.trim()) track("search", { query: local.trim() });
+        onChange(local);
+      }
     }, debounceMs);
     return () => clearTimeout(t);
   }, [local, debounceMs, onChange, value]);
