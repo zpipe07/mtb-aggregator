@@ -39,6 +39,7 @@ flowchart LR
 | API | Go (net/http, pgx) | 8080 | REST API, scheduler, orchestration |
 | Scraper | Node.js + Express + Playwright | 3000 | Scrapes retailer sale pages |
 | Web | React + Vite + TanStack Query | 5173 | Public deals UI, admin |
+| Storybook | Storybook 8 + Vite | 6006 | Component development, design system docs |
 
 ## Data Flow
 
@@ -73,6 +74,8 @@ flowchart LR
 | `apps/api/internal/taxonomy/` | Category mapping, in-memory cache |
 | `apps/api/internal/metadata/` | Spec extraction from enriched data |
 | `apps/scraper/src/parsers/` | One parser per store |
+| `apps/web/src/components/ui/` | shadcn primitives (Button, etc.) |
+| `apps/web/.storybook/` | Storybook config, preview decorators |
 
 ## Analytics
 

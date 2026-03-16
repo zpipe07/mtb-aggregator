@@ -72,6 +72,10 @@ make backfill-llm-specs              # populate llm_specs from specs (after migr
 
 # Build all
 make build-all
+
+# Component library (Storybook)
+pnpm --filter @mtb-aggregator/web run storybook        # dev server on port 6006
+pnpm --filter @mtb-aggregator/web run build-storybook  # static build to storybook-static/
 ```
 
 ## Architecture

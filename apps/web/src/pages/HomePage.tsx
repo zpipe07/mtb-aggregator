@@ -34,9 +34,6 @@ export function HomePage() {
 
   const { data: categoryTreeData } = useCategoryTree();
   const categoryTree = categoryTreeData ?? [];
-  console.log({ categoryTree });
-  // const canonicalCategories = categoryTree.map((category) => category.name);
-  // const canonicalCategories = categoryTree.map((category) => category.slug);
   const categoryCards = buildCategoryCards(categoryTree);
 
   const { data: topDealsData, isPending: topDealsLoading } = useDeals({
