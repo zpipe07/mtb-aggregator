@@ -38,7 +38,7 @@ flowchart LR
 |---------|-------|------|------|
 | API | Go (net/http, pgx) | 8080 | REST API, scheduler, orchestration |
 | Scraper | Node.js + Express + Playwright | 3000 | Scrapes retailer sale pages |
-| Web | React + Vite + TanStack Query | 5173 | Public deals UI, admin |
+| Web | React + Vite + Tailwind v4 + TanStack Query | 5173 | Public deals UI, admin |
 | Storybook | Storybook 8 + Vite | 6006 | Component development, design system docs |
 
 ## Data Flow
