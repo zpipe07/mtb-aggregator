@@ -1,5 +1,6 @@
 import { track } from "@vercel/analytics";
 import { useEffect, useState } from "react";
+import { Input } from "./ui/input";
 
 type SearchBarProps = {
   value: string;
@@ -35,13 +36,12 @@ export function SearchBar({
       <label htmlFor="deal-search" className="sr-only">
         Search deals
       </label>
-      <input
+      <Input
         id="deal-search"
         type="search"
         value={local}
         onChange={(e) => setLocal(e.target.value)}
         placeholder={placeholder}
-        className="w-full rounded-lg border border-stone-300 bg-white px-4 py-2.5 text-stone-900 placeholder-stone-500 focus:border-stone-500 focus:outline-none focus:ring-1 focus:ring-stone-500"
         aria-label="Search deals"
       />
     </div>

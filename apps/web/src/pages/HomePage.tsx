@@ -7,6 +7,7 @@ import { CategoryCard } from "../components/CategoryCard";
 import { LoadingState } from "../components/LoadingState";
 import { Link } from "react-router-dom";
 import { CategoryTreeNode } from "../api";
+import { Button } from "../components/ui/button";
 
 /** Curated category labels for home page CTAs when API has few/empty categories */
 const FALLBACK_CATEGORIES: { path: string; label: string }[] = [
@@ -70,12 +71,7 @@ export function HomePage() {
               onChange={setSearchValue}
               placeholder="Search deals…"
             />
-            <button
-              type="submit"
-              className="px-6 py-2.5 bg-stone-800 hover:bg-stone-700 text-white font-medium rounded-lg transition-colors"
-            >
-              Search
-            </button>
+            <Button type="submit">Search</Button>
           </div>
         </form>
       </section>

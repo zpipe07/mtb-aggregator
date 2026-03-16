@@ -1,3 +1,5 @@
+import { Button } from "./ui/button";
+
 type PaginationProps = {
   totalCount: number;
   limit: number;
@@ -42,54 +44,56 @@ export function Pagination({
 
   return (
     <nav
-      className="flex flex-wrap items-center justify-between gap-4 py-4 border-stone-200"
+      className="flex flex-wrap items-center justify-between gap-4 py-4 border-t border-border"
       aria-label="Deals pagination"
     >
-      <div className="text-sm text-stone-600">
+      <div className="text-sm text-muted-foreground">
         Page {currentPage} of {totalPages} ({totalCount} deals)
       </div>
       <div className="flex items-center gap-1">
-        <button
+        <Button
           type="button"
+          variant="outline"
+          size="sm"
           onClick={() => onPageChange(Math.max(0, offset - limit))}
           disabled={!hasPrev}
-          className="min-w-[4.5rem] px-3 py-2 rounded-lg border border-stone-300 bg-white text-stone-700 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-stone-50"
+          className="min-w-[4.5rem]"
           aria-label="Previous page"
         >
           Previous
-        </button>
+        </Button>
         <span className="sr-only">Page numbers:</span>
         {pages.map((p, i) =>
           p === null ? (
-            <span key={`ellipsis-${i}`} className="px-2 text-stone-400" aria-hidden>
+            <span key={`ellipsis-${i}`} className="px-2 text-muted-foreground" aria-hidden>
               …
             </span>
           ) : (
-            <button
+            <Button
               key={p}
               type="button"
+              variant={p === currentPage ? "default" : "outline"}
+              size="sm"
               onClick={() => goToPage(p)}
               aria-label={p === currentPage ? `Page ${p} (current)` : `Page ${p}`}
               aria-current={p === currentPage ? "page" : undefined}
-              className={`min-w-[2.25rem] h-9 px-2 rounded-lg border text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-stone-500 focus:ring-offset-1 ${
-                p === currentPage
-                  ? "border-stone-700 bg-stone-800 text-white"
-                  : "border-stone-300 bg-white text-stone-700 hover:bg-stone-100"
-              }`}
+              className="min-w-[2.25rem]"
             >
               {p}
-            </button>
+            </Button>
           )
         )}
-        <button
+        <Button
           type="button"
+          variant="outline"
+          size="sm"
           onClick={() => onPageChange(offset + limit)}
           disabled={!hasNext}
-          className="min-w-[4.5rem] px-3 py-2 rounded-lg border border-stone-300 bg-white text-stone-700 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-stone-50"
+          className="min-w-[4.5rem]"
           aria-label="Next page"
         >
           Next
-        </button>
+        </Button>
       </div>
     </nav>
   );
