@@ -25,7 +25,11 @@ export function DealCard({ deal, onSelect }: DealCardProps) {
       className="overflow-hidden shadow-sm hover:shadow-md transition-shadow cursor-pointer bg-card p-0"
       onClick={() => {
         if (onSelect) {
-          track("deal_card_click", { deal_id: deal.id, store: deal.store_name, brand: deal.brand || "" });
+          track("deal_card_click", {
+            deal_id: deal.id,
+            store: deal.store_name,
+            brand: deal.brand || "",
+          });
           onSelect(deal);
         }
       }}
@@ -35,7 +39,11 @@ export function DealCard({ deal, onSelect }: DealCardProps) {
         onSelect
           ? (e) => {
               if (e.key === "Enter") {
-                track("deal_card_click", { deal_id: deal.id, store: deal.store_name, brand: deal.brand || "" });
+                track("deal_card_click", {
+                  deal_id: deal.id,
+                  store: deal.store_name,
+                  brand: deal.brand || "",
+                });
                 onSelect(deal);
               }
             }
@@ -43,65 +51,69 @@ export function DealCard({ deal, onSelect }: DealCardProps) {
       }
     >
       <div className="aspect-square bg-muted relative">
-          {deal.image_url ? (
-            <img
-              src={deal.image_url}
-              alt={deal.product_name}
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm">
-              No image
-            </div>
-          )}
-          {discountPct != null && discountPct > 0 && (
-            <span className="absolute top-2 left-2 bg-destructive text-white text-xs font-semibold px-2 py-1 rounded">
-              {discountPct}% off
-            </span>
-          )}
-          <span className="absolute top-2 right-2 bg-primary/80 text-primary-foreground text-xs px-2 py-1 rounded">
-            {deal.store_name}
-          </span>
-        </div>
-      <CardContent className="pt-4">
-          {deal.brand && (
-            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-              {deal.brand}
-            </span>
-          )}
-          <h2 className="font-medium text-foreground line-clamp-2">
-            {deal.product_name}
-          </h2>
-          {deal.category_path && deal.category_path.length > 0 && (
-            <p className="text-xs text-muted-foreground mt-1">
-              {deal.category_path[deal.category_path.length - 1]}
-            </p>
-          )}
-          <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-lg font-bold text-foreground">
-              ${deal.current_price.toFixed(2)}
-            </span>
-            {deal.original_price != null &&
-              deal.original_price > deal.current_price && (
-                <span className="text-sm text-muted-foreground line-through">
-                  ${deal.original_price.toFixed(2)}
-                </span>
-              )}
+        {deal.image_url ? (
+          <img
+            src={deal.image_url}
+            alt={deal.product_name}
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm">
+            No image
           </div>
-          <Button asChild className="mt-4 w-full">
-            <a
-              href={viewUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={(e) => {
-                e.stopPropagation();
-                track("view_deal", { deal_id: deal.id, store: deal.store_name, brand: deal.brand || "" });
-              }}
-            >
-              View Deal
-            </a>
-          </Button>
-        </CardContent>
+        )}
+        {discountPct != null && discountPct > 0 && (
+          <span className="absolute top-2 left-2 bg-destructive text-white text-xs font-semibold px-2 py-1 rounded">
+            {discountPct}% off
+          </span>
+        )}
+        <span className="absolute top-2 right-2 bg-primary/80 text-primary-foreground text-xs px-2 py-1 rounded">
+          {deal.store_name}
+        </span>
+      </div>
+      <CardContent className="py-4">
+        {deal.brand && (
+          <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+            {deal.brand}
+          </span>
+        )}
+        <h2 className="font-medium text-foreground line-clamp-2">
+          {deal.product_name}
+        </h2>
+        {deal.category_path && deal.category_path.length > 0 && (
+          <p className="text-xs text-muted-foreground mt-1">
+            {deal.category_path[deal.category_path.length - 1]}
+          </p>
+        )}
+        <div className="mt-2 flex items-baseline gap-2">
+          <span className="text-lg font-bold text-foreground">
+            ${deal.current_price.toFixed(2)}
+          </span>
+          {deal.original_price != null &&
+            deal.original_price > deal.current_price && (
+              <span className="text-sm text-muted-foreground line-through">
+                ${deal.original_price.toFixed(2)}
+              </span>
+            )}
+        </div>
+        <Button asChild className="mt-4 w-full">
+          <a
+            href={viewUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => {
+              e.stopPropagation();
+              track("view_deal", {
+                deal_id: deal.id,
+                store: deal.store_name,
+                brand: deal.brand || "",
+              });
+            }}
+          >
+            View Deal
+          </a>
+        </Button>
+      </CardContent>
     </Card>
   );
 }

@@ -74,8 +74,38 @@ flowchart LR
 | `apps/api/internal/taxonomy/` | Category mapping, in-memory cache |
 | `apps/api/internal/metadata/` | Spec extraction from enriched data |
 | `apps/scraper/src/parsers/` | One parser per store |
-| `apps/web/src/components/ui/` | shadcn primitives (Button, etc.) |
+| `apps/web/src/components/ui/` | shadcn primitives (Button, Input, Card) |
+| `apps/web/src/components/` | Composed components (DealCard, CategoryCard, Pagination, etc.) |
 | `apps/web/.storybook/` | Storybook config, preview decorators |
+
+## Component Library
+
+The web app uses a design system built on **shadcn/ui** and **Tailwind v4** for visual consistency.
+
+### Primitives (`src/components/ui/`)
+
+- **Button** — Primary, outline, secondary, ghost, destructive, link variants
+- **Input** — Text, search, number, password
+- **Card** — CardHeader, CardTitle, CardDescription, CardContent, CardFooter
+
+Add new primitives via `pnpm dlx shadcn@latest add <component>` in `apps/web`.
+
+### Theming
+
+- **CSS variables** in `src/index.css` (`:root`, `.dark`) — `--app-font-sans`, `--primary`, `--background`, etc.
+- **Tailwind @theme** — Maps variables to utilities (`bg-primary`, `text-muted-foreground`)
+- **Dark mode** — Class-based (`dark` on ancestor); toggle in Storybook toolbar
+
+### Storybook
+
+- **Run**: `pnpm --filter @mtb-aggregator/web run storybook` (port 6006)
+- **Build**: `pnpm --filter @mtb-aggregator/web run build-storybook`
+- **Stories**: `*.stories.tsx` next to components; use CSF3 format
+- **Theme toolbar**: Light/dark toggle for palette iteration
+
+### Composed Components
+
+High-level components (DealCard, CategoryCard, Pagination, SearchBar, FilterInput) use the primitives. When adding or changing UI, prefer primitives over raw HTML and add Storybook stories.
 
 ## Analytics
 

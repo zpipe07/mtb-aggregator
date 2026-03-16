@@ -12,7 +12,7 @@ pnpm monorepo with three apps and one shared package:
 
 - `apps/scraper` — Node.js/TypeScript Express server using Playwright to scrape retailer pages
 - `apps/api` — Go HTTP server (stdlib net/http + pgx); orchestrates scraping, enrichment, and serves the REST API
-- `apps/web` — React 18 + Vite + TanStack Query + Tailwind frontend
+- `apps/web` — React 18 + Vite + Tailwind v4 + TanStack Query + shadcn/ui
 - `packages/shared` — SQL schema, numbered migrations, seed data, and JSON config files (brand aliases, category taxonomy)
 
 ## Development Setup
@@ -111,6 +111,9 @@ pnpm --filter @mtb-aggregator/web run build-storybook  # static build to storybo
 ### Web (`apps/web/`)
 
 - React Router routes: `/` (HomePage), `/deals` (DealsPage), `/admin/*` (AdminSection)
+- **Component library**: shadcn/ui primitives (Button, Input, Card) in `src/components/ui/`; composed components (DealCard, CategoryCard, Pagination, etc.) in `src/components/`. Use primitives for new UI; add Storybook stories for new components.
+- **Storybook**: `pnpm --filter @mtb-aggregator/web run storybook` — develop and document components in isolation; theme toolbar for light/dark.
+- **Styling**: Tailwind v4 + CSS variables; semantic tokens (`bg-primary`, `text-muted-foreground`) over raw colors.
 - Admin section includes: Dashboard, DataBrowser, StoreManager, TaxonomyManager, Categories (tree CRUD), SpecFilterManager (deprecated), PromptProfileManager, CategoryClassifierManager, NormalizationManager, Operations. Taxonomy, profiles, and classifier use category pickers backed by the structured tree.
 - Admin login state stored in `localStorage`; `AdminGate` handles auth gating
 - API base URL defaults to `http://localhost:8080`; configure via Vite proxy or env if needed
@@ -125,7 +128,7 @@ For remote (Neon, etc.): `make db-migrate-remote` (uses `go run ./cmd/migrate`)
 
 ### Further Reading
 
-- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — Data flow, services, key directories
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — Data flow, services, component library
 - [docs/SCRAPING.md](docs/SCRAPING.md) — Parser structure, adding stores
 - [docs/TAXONOMY.md](docs/TAXONOMY.md) — Category mappings, LLM classifier
-- Domain READMEs: [apps/api/README.md](apps/api/README.md), [apps/scraper/README.md](apps/scraper/README.md), [packages/shared/README.md](packages/shared/README.md)
+- Domain READMEs: [apps/api/README.md](apps/api/README.md), [apps/scraper/README.md](apps/scraper/README.md), [apps/web/README.md](apps/web/README.md), [packages/shared/README.md](packages/shared/README.md)

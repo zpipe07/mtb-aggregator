@@ -6,7 +6,7 @@ Mountain bike deals aggregator - scrapes deals from retailers and displays them 
 
 - **API/Scheduler**: Go
 - **Scraper**: Node.js + Playwright
-- **Frontend**: React + Vite (Phase 5)
+- **Frontend**: React + Vite + Tailwind v4 + shadcn/ui
 - **Database**: PostgreSQL 16
 
 ## Getting Started
@@ -137,13 +137,21 @@ Copy `.env.example` to `.env` for local dev. Production secrets go in each platf
 
 The scraper runs Playwright/Chromium to scrape JS-rendered sites (e.g. JensonUSA). Chromium needs ~300MB+ RAM, so the **scraper service should use Render Standard** (2GB, $25/mo), not the free tier (512MB). On Standard, leave `BROWSER_WS_ENDPOINT` unset so the scraper launches Chromium locally; set `SCRAPER_MAX_PAGES=5` or higher to scrape full catalogs. No remote browser service (Browserless/Browserbase) is required.
 
+### Component Library (Storybook)
+
+```bash
+pnpm --filter @mtb-aggregator/web run storybook   # Port 6006
+```
+
+Develop and document UI components in isolation. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#component-library) for the design system.
+
 ## Documentation
 
-- **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** — System overview, data flow, service layout
+- **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** — System overview, data flow, component library
 - **[docs/SCRAPING.md](docs/SCRAPING.md)** — Scraper deep dive, parser structure, adding stores
 - **[docs/TAXONOMY.md](docs/TAXONOMY.md)** — Category taxonomy and mappings
 - **[CLAUDE.md](CLAUDE.md)** — AI agent context (for Cursor/Claude)
-- Domain READMEs: [apps/api/README.md](apps/api/README.md), [apps/scraper/README.md](apps/scraper/README.md), [packages/shared/README.md](packages/shared/README.md)
+- Domain READMEs: [apps/api/README.md](apps/api/README.md), [apps/scraper/README.md](apps/scraper/README.md), [apps/web/README.md](apps/web/README.md), [packages/shared/README.md](packages/shared/README.md)
 
 ## Project Structure
 
@@ -152,7 +160,7 @@ mtb-aggregator/
 ├── apps/
 │   ├── api/       # Go - scheduler + REST API
 │   ├── scraper/   # Node + Playwright
-│   └── web/      # React frontend (Phase 5)
+│   └── web/      # React frontend + Storybook
 ├── packages/
 │   └── shared/    # Schema, types
 ├── docker-compose.yml
@@ -173,6 +181,7 @@ mtb-aggregator/
 | `make scrape-now`                               | Trigger scrape all stores (API must be running) |
 | `make scrape-now-wwc`                           | Trigger scrape for Worldwide Cyclery only       |
 | `pnpm --filter @mtb-aggregator/web run dev`     | Start React dev server                          |
+| `pnpm --filter @mtb-aggregator/web run storybook` | Start Storybook (component library)         |
 | `pnpm --filter @mtb-aggregator/scraper run dev` | Start Scraper node server                       |
 | `make dev`                                      | Start db (see dev workflow)                     |
 | `make build-all`                                | Build scraper + API                             |

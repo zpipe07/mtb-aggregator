@@ -1,0 +1,45 @@
+---
+description: Use small, reusable components; prefer shadcn primitives and add Storybook stories
+globs: apps/web/src/**/*.tsx
+---
+
+# Component Library Conventions
+
+When creating or modifying UI in `apps/web`, follow these conventions for visual consistency and maintainability.
+
+## Use Primitives First
+
+- **Buttons** → Use `Button` from `@/components/ui/button` (not raw `<button>`)
+- **Inputs** → Use `Input` from `@/components/ui/input` (not raw `<input>`)
+- **Cards** → Use `Card`, `CardHeader`, `CardContent`, etc. from `@/components/ui/card` (not custom divs with shadow/border)
+
+Add new primitives via `pnpm dlx shadcn@latest add <component>` when needed.
+
+## Semantic Colors
+
+Use theme tokens instead of raw Tailwind colors:
+
+| Prefer | Avoid |
+|--------|-------|
+| `bg-primary`, `text-primary-foreground` | `bg-stone-800`, `text-white` |
+| `text-muted-foreground` | `text-stone-500` |
+| `bg-muted`, `bg-card` | `bg-stone-200`, `bg-white` |
+| `border-border` | `border-stone-200` |
+
+## Small, Focused Components
+
+- Keep components doing one thing; compose larger UIs from smaller pieces
+- Extract repeated patterns into reusable components
+- Prefer props over inline logic when it improves clarity
+
+## Storybook Stories
+
+- Add `*.stories.tsx` for new components (CSF3 format)
+- Document key states: default, disabled, loading, empty, error
+- Use `Components/` or `Components/UI/` in the story title
+
+## Before Adding New UI
+
+1. Check if a primitive exists in `src/components/ui/`
+2. Check if a composed component already solves the need
+3. Add a Storybook story when introducing a new component
