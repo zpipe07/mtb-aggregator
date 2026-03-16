@@ -14,7 +14,7 @@ export const ScrapeResultSchema = z.object({
 
 export type ScrapeResult = z.infer<typeof ScrapeResultSchema>;
 
-export const STORE_TYPES = ["jensonusa", "backcountry", "worldwidecyclery", "revelbikes"] as const;
+export const STORE_TYPES = ["jensonusa", "backcountry", "worldwidecyclery", "revelbikes", "ridebicycles"] as const;
 export type StoreType = (typeof STORE_TYPES)[number];
 
 export const ScrapeRequestSchema = z.object({

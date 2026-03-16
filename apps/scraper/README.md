@@ -7,6 +7,7 @@ Node.js Express server using Playwright to scrape retailer sale pages. Returns s
 - **Port:** 3000 (default)
 - **Runtime:** Node.js 20+, TypeScript
 - **Scraping:** Playwright (Chromium); needed for JS-rendered pages (e.g. JensonUSA)
+- **Testing:** Set `SCRAPER_MAX_PRODUCTS=10` to limit products per scrape (0 = no limit)
 
 ## Endpoints
 
@@ -24,6 +25,7 @@ Parsers live in `src/parsers/` — one file per store:
 - `worldwidecyclery.ts` — Worldwide Cyclery
 - `revelbikes.ts` — Revel Bikes (scrape only)
 - `backcountry.ts` — Backcountry
+- `ridebicycles.ts` — Ride Bicycles (Shopify JSON API; filters in-stock + discounted)
 
 `parsers/index.ts` registers `PARSERS` and `ENRICHERS` maps. Enrichers fetch product detail pages (PDP) for category paths and specs.
 

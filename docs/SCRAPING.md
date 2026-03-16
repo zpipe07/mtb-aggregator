@@ -13,7 +13,7 @@ The scraper is a Node.js Express server that uses Playwright to scrape MTB retai
 ## Parser Structure
 
 - **Location**: `apps/scraper/src/parsers/`
-- **One file per store**: `jensonusa.ts`, `worldwidecyclery.ts`, `revelbikes.ts`, `backcountry.ts`
+- **One file per store**: `jensonusa.ts`, `worldwidecyclery.ts`, `revelbikes.ts`, `backcountry.ts`, `ridebicycles.ts`
 - **Registration**: `parsers/index.ts` exports `PARSERS` and `ENRICHERS` maps
 
 ### Adding a New Store
@@ -60,4 +60,6 @@ curl -X POST http://localhost:3000/scrape \
 
 - **Chromium**: Scraper needs ~300MB+ RAM; use Render Standard (2GB) in production, not free tier
 - **Timeouts**: Configure via `SCRAPER_MAX_PAGES` and Playwright timeouts
+- **Testing**: Set `SCRAPER_MAX_PRODUCTS=10` (or similar) to limit products per scrape; 0 = no limit
 - **Store types**: Must match keys in `PARSERS` and `ENRICHERS`
+- **Ride Bicycles**: Uses Shopify products.json API; client-side filters for in-stock and discounted variants (rb_stock_status, rb_discount_relative are not honored by the API)
