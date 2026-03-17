@@ -1,3 +1,5 @@
+import { Select } from "./ui/select";
+
 type FilterSelectProps<T extends string> = {
   label: string;
   value: T;
@@ -16,17 +18,17 @@ export function FilterSelect<T extends string>({
       <label className="block text-sm font-medium text-muted-foreground mb-1">
         {label}
       </label>
-      <select
+      <Select
         value={value}
         onChange={(e) => onChange(e.target.value as T)}
-        className="w-full rounded-lg border border-input px-3 py-2 bg-background text-foreground"
+        className="w-full"
       >
         {options.map((opt) => (
           <option key={opt.value} value={opt.value}>
             {opt.label}
           </option>
         ))}
-      </select>
+      </Select>
     </div>
   );
 }

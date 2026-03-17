@@ -7,7 +7,7 @@ React frontend for the MTB deal aggregator. Built with Vite, Tailwind v4, TanSta
 - **React 18** + React Router
 - **Vite** — build tool
 - **Tailwind v4** — styling (CSS variables, semantic tokens)
-- **shadcn/ui** — Button, Input, Card primitives
+- **shadcn/ui** — Button, Input, Select, Card primitives
 - **TanStack Query** — server state
 - **Storybook 8** — component development and docs
 
@@ -29,6 +29,7 @@ Use shadcn primitives for new UI:
 
 - **Button** — `variant`, `size`, `asChild`
 - **Input** — text, search, number, password
+- **Select** — native select styled to match Input (border, focus ring, height)
 - **Card** — CardHeader, CardTitle, CardDescription, CardContent, CardFooter
 
 Add more: `pnpm dlx shadcn@latest add <component>`

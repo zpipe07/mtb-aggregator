@@ -1,4 +1,5 @@
 import { useCallback, useState } from "react";
+import { Button } from "./ui/button";
 
 type TreeNode = {
   path: string;
@@ -120,26 +121,29 @@ function TreeNodeRow({
         style={{ paddingLeft: `${depth * 12 + 8}px` }}
       >
         {hasChildren ? (
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="icon-xs"
             onClick={onToggle}
-            className="p-2 -m-2 rounded text-muted-foreground hover:bg-muted hover:text-foreground"
+            className="-m-2 text-muted-foreground hover:text-foreground"
             aria-expanded={expanded}
             aria-label={expanded ? "Collapse" : "Expand"}
           >
             <ChevronIcon expanded={expanded} />
-          </button>
+          </Button>
         ) : (
           <span className="w-6 shrink-0" aria-hidden />
         )}
         {isSelectable ? (
-          <button
+          <Button
             type="button"
+            variant="ghost"
             onClick={onSelect}
-            className={`flex-1 text-left py-2 px-2 rounded-lg transition-colors min-h-[44px] flex items-center ${isSelected ? "font-medium text-foreground" : "text-muted-foreground hover:bg-muted"}`}
+            className={`flex-1 justify-start h-auto min-h-[44px] py-2 px-2 rounded-lg font-normal ${isSelected ? "font-medium text-foreground bg-muted" : "text-muted-foreground"}`}
           >
             {node.label}
-          </button>
+          </Button>
         ) : (
           <span className="flex-1 py-2 pr-2 min-h-[44px] flex items-center text-muted-foreground">
             {node.label}
@@ -214,13 +218,14 @@ export function CategoryDrillDown({
         {label}
       </label>
       <div className="space-y-0.5">
-        <button
+        <Button
           type="button"
+          variant="ghost"
           onClick={() => handleSelect("")}
-          className={`w-full ${ROW_CLASS} text-left px-3 py-2.5 rounded-lg transition-colors ${!value ? "bg-muted font-medium text-foreground" : "text-muted-foreground hover:bg-muted"}`}
+          className={`w-full ${ROW_CLASS} justify-start px-3 py-2.5 rounded-lg font-normal ${!value ? "font-medium text-foreground bg-muted" : "text-muted-foreground"}`}
         >
           All categories
-        </button>
+        </Button>
         <div className="space-y-0.5">
           {tree.map((node) => renderNode(node, 0))}
         </div>

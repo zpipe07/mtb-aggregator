@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import type { FilterSidebarProps } from "./FilterSidebar";
 import { FilterSidebar } from "./FilterSidebar";
+import { Button } from "./ui/button";
 
 type FilterDrawerProps = FilterSidebarProps & {
   isOpen: boolean;
@@ -41,17 +42,20 @@ export function FilterDrawer(props: FilterDrawerProps) {
       >
         <div className="flex-shrink-0 flex items-center justify-between px-4 py-3 border-b border-border">
           <h2 className="text-lg font-semibold text-foreground">Filters</h2>
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="icon"
             onClick={onClose}
-            className="p-2 text-muted-foreground hover:text-foreground rounded-lg"
+            className="text-muted-foreground hover:text-foreground"
             aria-label="Close filters"
           >
             <svg
-              className="w-5 h-5"
+              className="size-5"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
+              aria-hidden
             >
               <path
                 strokeLinecap="round"
@@ -60,19 +64,19 @@ export function FilterDrawer(props: FilterDrawerProps) {
                 d="M6 18L18 6M6 6l12 12"
               />
             </svg>
-          </button>
+          </Button>
         </div>
         <div className="flex-1 overflow-y-auto px-4 py-4">
           <FilterSidebar {...sidebarProps} />
         </div>
         <div className="flex-shrink-0 p-4 border-t border-border">
-          <button
+          <Button
             type="button"
             onClick={onClose}
-            className="w-full py-3 bg-primary text-primary-foreground font-medium rounded-lg transition-colors hover:bg-primary/90"
+            className="w-full"
           >
             Done
-          </button>
+          </Button>
         </div>
       </div>
     </>

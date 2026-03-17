@@ -1,5 +1,7 @@
 import type { SortOption } from "../hooks/useFilterParams";
 import { SearchBar } from "./SearchBar";
+import { Select } from "./ui/select";
+import { Button } from "./ui/button";
 
 const BASE_SORT_OPTIONS: { value: SortOption; label: string }[] = [
   { value: "newest", label: "Newest" },
@@ -44,12 +46,14 @@ export function Toolbar({
       </div>
       <div className="flex items-center gap-2 shrink-0">
         {onFilterClick != null && (
-          <button
+          <Button
             type="button"
+            variant="outline"
+            size="default"
             onClick={onFilterClick}
-            className="lg:hidden flex items-center gap-2 px-4 py-2.5 rounded-lg border border-input bg-background text-foreground hover:bg-muted transition-colors"
+            className="lg:hidden gap-2 px-4"
           >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden>
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -63,24 +67,24 @@ export function Toolbar({
                 {activeFilterCount}
               </span>
             )}
-          </button>
+          </Button>
         )}
         <div>
           <label htmlFor="sort-select" className="sr-only">
             Sort by
           </label>
-          <select
+          <Select
             id="sort-select"
             value={sort}
             onChange={(e) => onSortChange(e.target.value as SortOption)}
-            className="rounded-lg border border-input px-3 py-2 bg-background text-foreground text-sm"
+            className="min-w-[10rem]"
           >
             {sortOptions.map((opt) => (
               <option key={opt.value} value={opt.value}>
                 {opt.label}
               </option>
             ))}
-          </select>
+          </Select>
         </div>
       </div>
     </div>

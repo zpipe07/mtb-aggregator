@@ -3,6 +3,8 @@ import type { CategoryTreeNode } from "../api";
 import { FilterSelect } from "./FilterSelect";
 import { FilterInput } from "./FilterInput";
 import { CategoryDrillDown } from "./CategoryDrillDown";
+import { Select } from "./ui/select";
+import { Button } from "./ui/button";
 
 /** Flatten tree to { slug, path } for drill-down options. Path = "Parent > Child" for display. */
 function flattenCategoryTree(
@@ -120,10 +122,10 @@ export function FilterSidebar({
               <label className="block text-sm font-medium text-muted-foreground mb-1.5">
                 {facet.label}
               </label>
-              <select
+              <Select
                 value={specFilters[facet.key] ?? ""}
                 onChange={(e) => onSpecFilterChange(facet.key, e.target.value)}
-                className="w-full rounded-lg border border-input px-3 py-2 bg-background text-foreground text-sm"
+                className="w-full"
               >
                 <option value="">Any {facet.label.toLowerCase()}</option>
                 {facet.values.map((v) => (
@@ -131,15 +133,17 @@ export function FilterSidebar({
                     {v.value} ({v.count})
                   </option>
                 ))}
-              </select>
+              </Select>
               {specFilters[facet.key] && (
-                <button
+                <Button
                   type="button"
+                  variant="link"
+                  size="sm"
                   onClick={() => onClearSpecFilter(facet.key)}
-                  className="mt-1 text-sm text-muted-foreground underline hover:text-foreground"
+                  className="mt-1 h-auto p-0 text-sm text-muted-foreground"
                 >
                   Clear
-                </button>
+                </Button>
               )}
             </div>
           ))}
