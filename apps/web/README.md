@@ -11,6 +11,10 @@ React frontend for the MTB deal aggregator. Built with Vite, Tailwind v4, TanSta
 - **TanStack Query** — server state
 - **Storybook 8** — component development and docs
 
+## Features
+
+- **Dark mode** — Toggle in nav header; defaults to system preference (`prefers-color-scheme`), persists choice in `localStorage`.
+
 ## Development
 
 ```bash

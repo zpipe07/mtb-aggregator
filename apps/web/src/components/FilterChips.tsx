@@ -19,7 +19,7 @@ export function FilterChips({ filters, onClearAll }: FilterChipsProps) {
       {filters.map(({ key, label, onRemove }) => (
         <span
           key={key}
-          className="inline-flex items-center gap-1.5 rounded-full bg-muted text-foreground text-sm py-1.5 pl-3 pr-1"
+          className="inline-flex items-center gap-1.5 rounded-full bg-secondary text-secondary-foreground text-sm py-1.5 pl-3 pr-1"
         >
           {label}
           <Button
@@ -27,7 +27,7 @@ export function FilterChips({ filters, onClearAll }: FilterChipsProps) {
             variant="ghost"
             size="icon-xs"
             onClick={onRemove}
-            className="p-1 rounded-full hover:bg-muted/80 h-auto w-auto"
+            className="p-1 rounded-full hover:bg-secondary/90 h-auto w-auto"
             aria-label={`Remove ${label} filter`}
           >
             <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden>

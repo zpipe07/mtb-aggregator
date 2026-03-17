@@ -117,14 +117,14 @@ function TreeNodeRow({
   return (
     <div className="group">
       <div
-        className={`flex items-center gap-1 rounded-lg ${isSelected ? "bg-muted" : ""}`}
+        className={`flex items-center gap-2 rounded-lg ${isSelected ? "bg-secondary" : ""}`}
         style={{ paddingLeft: `${depth * 12 + 8}px` }}
       >
         {hasChildren ? (
           <Button
             type="button"
             variant="ghost"
-            size="icon-xs"
+            size="icon"
             onClick={onToggle}
             className="-m-2 text-muted-foreground hover:text-foreground"
             aria-expanded={expanded}
@@ -140,7 +140,7 @@ function TreeNodeRow({
             type="button"
             variant="ghost"
             onClick={onSelect}
-            className={`flex-1 justify-start h-auto min-h-[44px] py-2 px-2 rounded-lg font-normal ${isSelected ? "font-medium text-foreground bg-muted" : "text-muted-foreground"}`}
+            className={`flex-1 justify-start h-auto min-h-[44px] py-2 px-2 rounded-lg font-normal ${isSelected ? "font-medium bg-secondary text-secondary-foreground hover:bg-secondary/90" : "text-muted-foreground"}`}
           >
             {node.label}
           </Button>
@@ -222,7 +222,7 @@ export function CategoryDrillDown({
           type="button"
           variant="ghost"
           onClick={() => handleSelect("")}
-          className={`w-full ${ROW_CLASS} justify-start px-3 py-2.5 rounded-lg font-normal ${!value ? "font-medium text-foreground bg-muted" : "text-muted-foreground"}`}
+          className={`w-full ${ROW_CLASS} justify-start px-3 py-2.5 rounded-lg font-normal ${!value ? "font-medium bg-secondary text-secondary-foreground hover:bg-secondary/90" : "text-muted-foreground"}`}
         >
           All categories
         </Button>

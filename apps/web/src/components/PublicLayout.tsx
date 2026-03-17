@@ -3,7 +3,7 @@ import { NavHeader } from "./NavHeader";
 
 export function PublicLayout() {
   return (
-    <div className="min-h-screen bg-stone-100">
+    <div className="min-h-screen bg-background">
       <NavHeader />
       <main>
         <Outlet />
