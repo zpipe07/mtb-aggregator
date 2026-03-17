@@ -107,11 +107,11 @@ export function DealFilters({
     <div className="space-y-6 mb-6">
       {activeFilterCount > 0 && (
         <div className="flex items-center gap-3 text-sm">
-          <span className="text-stone-600">{activeFilterCount} filter{activeFilterCount === 1 ? "" : "s"} active</span>
+          <span className="text-muted-foreground">{activeFilterCount} filter{activeFilterCount === 1 ? "" : "s"} active</span>
           <button
             type="button"
             onClick={onClearAll}
-            className="text-stone-700 underline hover:text-stone-900 font-medium"
+            className="text-foreground underline hover:text-foreground font-medium"
           >
             Clear all
           </button>
@@ -157,16 +157,16 @@ export function DealFilters({
       </div>
 
       {canonicalCategoryFilter && specFacets.length > 0 && (
-        <div className="flex flex-wrap gap-6 border-t border-stone-200 pt-4">
+        <div className="flex flex-wrap gap-6 border-t border-border pt-4">
           {specFacets.map((facet) => (
             <div key={facet.key}>
-              <label className="block text-sm font-medium text-stone-600 mb-1.5">
+              <label className="block text-sm font-medium text-muted-foreground mb-1.5">
                 {facet.label}
               </label>
               <select
                 value={specFilters[facet.key] ?? ""}
                 onChange={(e) => handleSpecFilterChange(facet.key, e.target.value)}
-                className="rounded-lg border border-stone-300 px-3 py-2 bg-white text-stone-800 text-sm"
+                className="rounded-lg border border-input px-3 py-2 bg-background text-foreground text-sm"
               >
                 <option value="">Any {facet.label.toLowerCase()}</option>
                 {facet.values.map((v) => (
@@ -179,7 +179,7 @@ export function DealFilters({
                 <button
                   type="button"
                   onClick={() => onClearSpecFilter(facet.key)}
-                  className="ml-2 text-sm text-stone-700 underline hover:text-stone-900"
+                  className="ml-2 text-sm text-muted-foreground underline hover:text-foreground"
                 >
                   Clear
                 </button>

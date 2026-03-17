@@ -43,4 +43,4 @@ DealCard, CategoryCard, Pagination, SearchBar, FilterInput, etc. — built from 
 - Add `*.stories.tsx` for new components (CSF3 format)
 - Theme toolbar for light/dark palette iteration
 
-See [docs/ARCHITECTURE.md](../../docs/ARCHITECTURE.md#component-library) for details.
+See [docs/ARCHITECTURE.md](../../docs/ARCHITECTURE.md#component-library) for details. Visual identity and copy: [docs/DESIGN.md](../../docs/DESIGN.md).

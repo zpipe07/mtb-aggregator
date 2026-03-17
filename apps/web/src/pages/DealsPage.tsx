@@ -206,7 +206,7 @@ export function DealsPage() {
         {/* Desktop sidebar - hidden on mobile, sticky with scrollable filters */}
         <aside className="hidden lg:block w-60 flex-shrink-0">
           <div className="sticky top-6 max-h-[calc(100vh-3rem)] flex flex-col min-h-[500px]">
-            <h2 className="text-sm font-semibold text-stone-900 mb-4 flex-shrink-0">
+            <h2 className="text-sm font-semibold text-foreground mb-4 flex-shrink-0">
               Filters
             </h2>
             <div className="overflow-y-auto pr-1 -mr-1 grow">
@@ -230,7 +230,7 @@ export function DealsPage() {
           <FilterChips filters={activeFilters} onClearAll={clearAllFilters} />
 
           {!loading && !isError && (
-            <p className="text-sm text-stone-600 mb-4">
+            <p className="text-sm text-muted-foreground mb-4">
               {totalCount === 0
                 ? "No deals found"
                 : `${totalCount} deal${totalCount === 1 ? "" : "s"} found`}
@@ -238,7 +238,7 @@ export function DealsPage() {
           )}
 
           {!loading && !isError && totalCount > 0 && (
-            <div className="border-b border-stone-200 mb-4">
+            <div className="border-b border-border mb-4">
               <Pagination
                 totalCount={totalCount}
                 limit={DEFAULT_PAGE_SIZE}
@@ -264,7 +264,7 @@ export function DealsPage() {
           {!loading && !isError && deals.length === 0 && <EmptyState />}
 
           {!loading && !isError && totalCount > 0 && (
-            <div className="border-t border-stone-200 mt-8">
+            <div className="border-t border-border mt-8">
               <Pagination
                 totalCount={totalCount}
                 limit={DEFAULT_PAGE_SIZE}

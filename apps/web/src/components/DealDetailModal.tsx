@@ -64,17 +64,17 @@ export function DealDetailModal({ dealId, onClose }: DealDetailModalProps) {
       aria-labelledby="deal-modal-title"
     >
       <div
-        className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+        className="bg-card rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="sticky top-0 bg-white border-b border-stone-200 px-6 py-4 flex items-center justify-between">
-          <h2 id="deal-modal-title" className="text-lg font-semibold text-stone-900 truncate pr-4">
+        <div className="sticky top-0 bg-card border-b border-border px-6 py-4 flex items-center justify-between">
+          <h2 id="deal-modal-title" className="text-lg font-semibold text-foreground truncate pr-4">
             Deal details
           </h2>
           <button
             type="button"
             onClick={onClose}
-            className="text-stone-500 hover:text-stone-700 p-1 rounded"
+            className="text-muted-foreground hover:text-foreground p-1 rounded"
             aria-label="Close"
           >
             <span className="text-xl leading-none">×</span>
@@ -83,7 +83,7 @@ export function DealDetailModal({ dealId, onClose }: DealDetailModalProps) {
 
         <div className="p-6">
           {loading && (
-            <div className="py-12 text-center text-stone-500">Loading…</div>
+            <div className="py-12 text-center text-muted-foreground">Loading…</div>
           )}
           {isError && (
             <div className="py-6 text-red-600">{error?.message ?? "Failed to load"}</div>
@@ -91,7 +91,7 @@ export function DealDetailModal({ dealId, onClose }: DealDetailModalProps) {
           {!loading && !isError && deal && (
             <>
               <div className="flex gap-6 flex-wrap">
-                <div className="w-40 h-40 flex-shrink-0 bg-stone-200 rounded-lg overflow-hidden">
+                <div className="w-40 h-40 flex-shrink-0 bg-muted rounded-lg overflow-hidden">
                   {deal.image_url ? (
                     <img
                       src={deal.image_url}
@@ -99,27 +99,27 @@ export function DealDetailModal({ dealId, onClose }: DealDetailModalProps) {
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-stone-400 text-sm">
+                    <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm">
                       No image
                     </div>
                   )}
                 </div>
                 <div className="min-w-0 flex-1">
                   {deal.brand && (
-                    <span className="text-xs font-medium text-stone-500 uppercase tracking-wide">
+                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                       {deal.brand}
                     </span>
                   )}
-                  <h3 className="font-semibold text-stone-900 text-lg mt-0.5">
+                  <h3 className="font-semibold text-foreground text-lg mt-0.5">
                     {deal.product_name}
                   </h3>
-                  <p className="text-sm text-stone-500 mt-1">{deal.store_name}</p>
+                  <p className="text-sm text-muted-foreground mt-1">{deal.store_name}</p>
                   <div className="mt-2 flex flex-wrap items-baseline gap-2">
-                    <span className="text-2xl font-bold text-stone-900">
+                    <span className="text-2xl font-bold text-foreground">
                       ${deal.current_price.toFixed(2)}
                     </span>
                     {deal.original_price != null && deal.original_price > deal.current_price && (
-                      <span className="text-base text-stone-500 line-through">
+                      <span className="text-base text-muted-foreground line-through">
                         ${deal.original_price.toFixed(2)}
                       </span>
                     )}
@@ -138,7 +138,7 @@ export function DealDetailModal({ dealId, onClose }: DealDetailModalProps) {
                     href={viewUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="mt-4 inline-block bg-stone-800 hover:bg-stone-700 text-white font-medium py-2 px-4 rounded-lg transition-colors"
+                    className="mt-4 inline-block bg-primary text-primary-foreground font-medium py-2 px-4 rounded-lg transition-colors hover:bg-primary/90"
                     onClick={() =>
                       track("view_at_store", {
                         deal_id: deal.id,
@@ -147,19 +147,19 @@ export function DealDetailModal({ dealId, onClose }: DealDetailModalProps) {
                       })
                     }
                   >
-                    View at store
+                    Snag the Deal
                   </a>
                 </div>
               </div>
 
               {priceHistory && (
                 <div className="mt-8">
-                  <h4 className="font-medium text-stone-900 mb-3">Price history</h4>
+                  <h4 className="font-medium text-foreground mb-3">Price history</h4>
                   {chartData.length === 0 && (
-                    <p className="text-stone-500 text-sm">No history yet.</p>
+                    <p className="text-muted-foreground text-sm">No history yet.</p>
                   )}
                   {chartData.length === 1 && (
-                    <p className="text-stone-500 text-sm">
+                    <p className="text-muted-foreground text-sm">
                       One price recorded: ${chartData[0].price.toFixed(2)} on{" "}
                       {formatDate(chartData[0].recorded_at)}.
                     </p>
@@ -167,13 +167,13 @@ export function DealDetailModal({ dealId, onClose }: DealDetailModalProps) {
                   {chartData.length >= 2 && (
                     <>
                       <div className="flex flex-wrap gap-4 text-sm mb-3">
-                        <span className="text-stone-600">
+                        <span className="text-muted-foreground">
                           Lowest: <strong>${priceHistory.lowest_price.toFixed(2)}</strong>
                         </span>
-                        <span className="text-stone-600">
+                        <span className="text-muted-foreground">
                           Highest: <strong>${priceHistory.highest_price.toFixed(2)}</strong>
                         </span>
-                        <span className="text-stone-600">
+                        <span className="text-muted-foreground">
                           Average: <strong>${priceHistory.avg_price.toFixed(2)}</strong>
                         </span>
                       </div>

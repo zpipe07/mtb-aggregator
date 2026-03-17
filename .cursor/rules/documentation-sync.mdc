@@ -15,5 +15,6 @@ When making code changes, update relevant docs so they stay accurate. Check if a
 | Category tree, mappings, LLM classifier | [docs/TAXONOMY.md](docs/TAXONOMY.md), [CLAUDE.md](CLAUDE.md) Architecture section |
 | New features, data flow, deployment | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [CLAUDE.md](CLAUDE.md), [README.md](README.md) |
 | Component library, primitives, Storybook | [apps/web/README.md](apps/web/README.md), [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
+| Visual identity, copy, design tokens | [docs/DESIGN.md](docs/DESIGN.md) |
 
 **Before finishing a change:** If you added/removed endpoints, parsers, env vars, or tables — update the corresponding doc.

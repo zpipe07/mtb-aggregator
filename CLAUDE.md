@@ -129,6 +129,7 @@ For remote (Neon, etc.): `make db-migrate-remote` (uses `go run ./cmd/migrate`)
 ### Further Reading
 
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — Data flow, services, component library
+- [docs/DESIGN.md](docs/DESIGN.md) — Visual identity, copy guidelines, "dialed-in" vibe
 - [docs/SCRAPING.md](docs/SCRAPING.md) — Parser structure, adding stores
 - [docs/TAXONOMY.md](docs/TAXONOMY.md) — Category mappings, LLM classifier
 - Domain READMEs: [apps/api/README.md](apps/api/README.md), [apps/scraper/README.md](apps/scraper/README.md), [apps/web/README.md](apps/web/README.md), [packages/shared/README.md](packages/shared/README.md)

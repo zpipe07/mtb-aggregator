@@ -114,16 +114,16 @@ export function FilterSidebar({
       />
 
       {categoryFilter && specFacets.length > 0 && (
-        <div className="space-y-4 border-t border-stone-200 pt-4">
+        <div className="space-y-4 border-t border-border pt-4">
           {specFacets.map((facet) => (
             <div key={facet.key}>
-              <label className="block text-sm font-medium text-stone-600 mb-1.5">
+              <label className="block text-sm font-medium text-muted-foreground mb-1.5">
                 {facet.label}
               </label>
               <select
                 value={specFilters[facet.key] ?? ""}
                 onChange={(e) => onSpecFilterChange(facet.key, e.target.value)}
-                className="w-full rounded-lg border border-stone-300 px-3 py-2 bg-white text-stone-800 text-sm"
+                className="w-full rounded-lg border border-input px-3 py-2 bg-background text-foreground text-sm"
               >
                 <option value="">Any {facet.label.toLowerCase()}</option>
                 {facet.values.map((v) => (
@@ -136,7 +136,7 @@ export function FilterSidebar({
                 <button
                   type="button"
                   onClick={() => onClearSpecFilter(facet.key)}
-                  className="mt-1 text-sm text-stone-700 underline hover:text-stone-900"
+                  className="mt-1 text-sm text-muted-foreground underline hover:text-foreground"
                 >
                   Clear
                 </button>

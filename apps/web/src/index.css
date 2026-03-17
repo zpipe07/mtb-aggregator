@@ -1,6 +1,8 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/geist";
+@import "@fontsource/oswald/latin-600.css";
+@import "@fontsource/oswald/latin-700.css";
 @import 'tailwindcss';
 
 @custom-variant dark (&:is(.dark *));
@@ -38,6 +40,7 @@
 
   /* Use --app-font-sans to avoid circular reference with :root --font-sans */
   --font-sans: var(--app-font-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Oswald", var(--app-font-sans), ui-sans-serif, system-ui, sans-serif;
 }
 
 /*
@@ -54,74 +57,78 @@
   }
 }
 
+/* Design tokens from docs/DESIGN.md */
+/* Carbon Grey #2D2D2D, Mud/Deep Forest #1B3022, Hazard Orange #FF5E00 */
 @layer base {
   :root {
     --app-font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
-    --background: oklch(1 0 0);
-    --foreground: oklch(0.145 0 0);
+    /* Light mode: warm off-white bg, Carbon Grey text, Hazard Orange CTAs */
+    --background: oklch(0.985 0.005 85);
+    --foreground: oklch(0.215 0 0); /* Carbon Grey #2D2D2D */
     --card: oklch(1 0 0);
-    --card-foreground: oklch(0.145 0 0);
+    --card-foreground: oklch(0.215 0 0);
     --popover: oklch(1 0 0);
-    --popover-foreground: oklch(0.145 0 0);
-    --primary: oklch(0.205 0 0);
+    --popover-foreground: oklch(0.215 0 0);
+    --primary: oklch(0.627 0.227 38.5); /* Hazard Orange #FF5E00 */
     --primary-foreground: oklch(0.985 0 0);
-    --secondary: oklch(0.97 0 0);
-    --secondary-foreground: oklch(0.205 0 0);
-    --muted: oklch(0.97 0 0);
-    --muted-foreground: oklch(0.556 0 0);
-    --accent: oklch(0.97 0 0);
-    --accent-foreground: oklch(0.205 0 0);
+    --secondary: oklch(0.94 0.02 155); /* Light forest tint */
+    --secondary-foreground: oklch(0.215 0 0);
+    --muted: oklch(0.96 0.01 85);
+    --muted-foreground: oklch(0.45 0 0);
+    --accent: oklch(0.94 0.02 155);
+    --accent-foreground: oklch(0.215 0 0);
     --destructive: oklch(0.577 0.245 27.325);
-    --border: oklch(0.922 0 0);
-    --input: oklch(0.922 0 0);
-    --ring: oklch(0.708 0 0);
+    --border: oklch(0.88 0.02 155); /* Subtle forest tint */
+    --input: oklch(0.92 0.01 85);
+    --ring: oklch(0.627 0.227 38.5); /* Match primary for focus */
     --chart-1: oklch(0.809 0.105 251.813);
     --chart-2: oklch(0.623 0.214 259.815);
     --chart-3: oklch(0.546 0.245 262.881);
     --chart-4: oklch(0.488 0.243 264.376);
     --chart-5: oklch(0.424 0.199 265.638);
     --radius: 0.625rem;
-    --sidebar: oklch(0.985 0 0);
-    --sidebar-foreground: oklch(0.145 0 0);
-    --sidebar-primary: oklch(0.205 0 0);
+    --sidebar: oklch(0.98 0.01 155);
+    --sidebar-foreground: oklch(0.215 0 0);
+    --sidebar-primary: oklch(0.627 0.227 38.5);
     --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.97 0 0);
-    --sidebar-accent-foreground: oklch(0.205 0 0);
-    --sidebar-border: oklch(0.922 0 0);
-    --sidebar-ring: oklch(0.708 0 0)
+    --sidebar-accent: oklch(0.94 0.02 155);
+    --sidebar-accent-foreground: oklch(0.215 0 0);
+    --sidebar-border: oklch(0.88 0.02 155);
+    --sidebar-ring: oklch(0.627 0.227 38.5)
   }
   .dark {
-    --background: oklch(0.145 0 0);
-    --foreground: oklch(0.985 0 0);
-    --card: oklch(0.205 0 0);
-    --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.205 0 0);
-    --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.922 0 0);
-    --primary-foreground: oklch(0.205 0 0);
-    --secondary: oklch(0.269 0 0);
-    --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.269 0 0);
-    --muted-foreground: oklch(0.708 0 0);
-    --accent: oklch(0.269 0 0);
-    --accent-foreground: oklch(0.985 0 0);
+    /* Dark mode: Mud/Deep Forest #1B3022 bg, Carbon Grey surfaces, Hazard Orange CTAs */
+    --background: oklch(0.195 0.03 155); /* Mud/Deep Forest */
+    --foreground: oklch(0.95 0 0);
+    --card: oklch(0.24 0.035 155);
+    --card-foreground: oklch(0.95 0 0);
+    --popover: oklch(0.24 0.035 155);
+    --popover-foreground: oklch(0.95 0 0);
+    --primary: oklch(0.627 0.227 38.5); /* Hazard Orange */
+    --primary-foreground: oklch(0.985 0 0);
+    --secondary: oklch(0.28 0.04 155);
+    --secondary-foreground: oklch(0.95 0 0);
+    --muted: oklch(0.28 0.04 155);
+    --muted-foreground: oklch(0.65 0 0);
+    --accent: oklch(0.28 0.04 155);
+    --accent-foreground: oklch(0.95 0 0);
     --destructive: oklch(0.704 0.191 22.216);
-    --border: oklch(1 0 0 / 10%);
-    --input: oklch(1 0 0 / 15%);
-    --ring: oklch(0.556 0 0);
+    --border: oklch(0.35 0.04 155 / 50%);
+    --input: oklch(0.3 0.04 155);
+    --ring: oklch(0.627 0.227 38.5);
     --chart-1: oklch(0.809 0.105 251.813);
     --chart-2: oklch(0.623 0.214 259.815);
     --chart-3: oklch(0.546 0.245 262.881);
     --chart-4: oklch(0.488 0.243 264.376);
     --chart-5: oklch(0.424 0.199 265.638);
-    --sidebar: oklch(0.205 0 0);
-    --sidebar-foreground: oklch(0.985 0 0);
-    --sidebar-primary: oklch(0.488 0.243 264.376);
+    --sidebar: oklch(0.24 0.035 155);
+    --sidebar-foreground: oklch(0.95 0 0);
+    --sidebar-primary: oklch(0.627 0.227 38.5);
     --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.269 0 0);
-    --sidebar-accent-foreground: oklch(0.985 0 0);
-    --sidebar-border: oklch(1 0 0 / 10%);
-    --sidebar-ring: oklch(0.556 0 0)
+    --sidebar-accent: oklch(0.28 0.04 155);
+    --sidebar-accent-foreground: oklch(0.95 0 0);
+    --sidebar-border: oklch(0.35 0.04 155 / 50%);
+    --sidebar-ring: oklch(0.627 0.227 38.5)
   }
   * {
     @apply border-border;
@@ -132,6 +139,9 @@
   }
   html {
     @apply font-sans;
+  }
+  h1, h2, h3 {
+    font-family: var(--font-display);
   }
   /* Tailwind v4: buttons use cursor:default by default; restore pointer for clickability */
   button:not(:disabled),

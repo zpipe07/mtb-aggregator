@@ -47,7 +47,7 @@ export function Toolbar({
           <button
             type="button"
             onClick={onFilterClick}
-            className="lg:hidden flex items-center gap-2 px-4 py-2.5 rounded-lg border border-stone-300 bg-white text-stone-700 hover:bg-stone-50 transition-colors"
+            className="lg:hidden flex items-center gap-2 px-4 py-2.5 rounded-lg border border-input bg-background text-foreground hover:bg-muted transition-colors"
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path
@@ -59,7 +59,7 @@ export function Toolbar({
             </svg>
             Filters
             {activeFilterCount > 0 && (
-              <span className="bg-stone-800 text-white text-xs font-medium px-1.5 py-0.5 rounded-full">
+              <span className="bg-primary text-primary-foreground text-xs font-medium px-1.5 py-0.5 rounded-full">
                 {activeFilterCount}
               </span>
             )}
@@ -73,7 +73,7 @@ export function Toolbar({
             id="sort-select"
             value={sort}
             onChange={(e) => onSortChange(e.target.value as SortOption)}
-            className="rounded-lg border border-stone-300 px-3 py-2 bg-white text-stone-800 text-sm"
+            className="rounded-lg border border-input px-3 py-2 bg-background text-foreground text-sm"
           >
             {sortOptions.map((opt) => (
               <option key={opt.value} value={opt.value}>

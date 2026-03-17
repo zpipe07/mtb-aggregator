@@ -110,7 +110,7 @@ export function DealCard({ deal, onSelect }: DealCardProps) {
               });
             }}
           >
-            View Deal
+            Snag the Deal
           </a>
         </Button>
       </CardContent>

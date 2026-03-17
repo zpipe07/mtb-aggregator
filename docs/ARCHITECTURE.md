@@ -80,7 +80,7 @@ flowchart LR
 
 ## Component Library
 
-The web app uses a design system built on **shadcn/ui** and **Tailwind v4** for visual consistency.
+The web app uses a design system built on **shadcn/ui** and **Tailwind v4** for visual consistency. See [docs/DESIGN.md](DESIGN.md) for visual identity, copy guidelines, and the "dialed-in" vibe.
 
 ### Primitives (`src/components/ui/`)
 
@@ -102,6 +102,7 @@ Add new primitives via `pnpm dlx shadcn@latest add <component>` in `apps/web`.
 - **Build**: `pnpm --filter @mtb-aggregator/web run build-storybook`
 - **Stories**: `*.stories.tsx` next to components; use CSF3 format
 - **Theme toolbar**: Light/dark toggle for palette iteration
+- **Design tokens**: See **Design / Design Tokens** for the palette (Carbon Grey, Mud/Deep Forest, Hazard Orange) and typography. [docs/DESIGN.md](DESIGN.md)
 
 ### Composed Components
 

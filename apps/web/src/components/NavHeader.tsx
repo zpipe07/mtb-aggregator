@@ -10,12 +10,7 @@ export function NavHeader() {
   ];
 
   return (
-    <header
-      className="
-    bg-white
-    text-stone-800
-    "
-    >
+    <header className="bg-background text-foreground">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
         <Link
           to="/"
@@ -39,8 +34,8 @@ export function NavHeader() {
               className={({ isActive }) =>
                 `font-medium transition-colors ${
                   isActive
-                    ? "text-stone-800 border-b-2 border-stone-800"
-                    : "text-stone-500 hover:text-stone-800"
+                    ? "text-foreground border-b-2 border-primary"
+                    : "text-muted-foreground hover:text-foreground"
                 }`
               }
             >
@@ -52,7 +47,7 @@ export function NavHeader() {
         {/* Mobile menu button */}
         <button
           type="button"
-          className="lg:hidden p-2 -mr-2 rounded-lg text-stone-400 hover:text-white hover:bg-stone-700/50 focus:outline-none focus:ring-2 focus:ring-stone-500"
+          className="lg:hidden p-2 -mr-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring"
           onClick={() => setMobileMenuOpen((o) => !o)}
           aria-expanded={mobileMenuOpen}
           aria-controls="mobile-nav"
@@ -92,7 +87,7 @@ export function NavHeader() {
         }`}
         aria-hidden={!mobileMenuOpen}
       >
-        <nav className="px-4 pb-4 pt-2 space-y-1 border-t border-stone-700">
+        <nav className="px-4 pb-4 pt-2 space-y-1 border-t border-border">
           {navLinks.map(({ to, end, label }) => (
             <NavLink
               key={to}
@@ -102,8 +97,8 @@ export function NavHeader() {
               className={({ isActive }) =>
                 `block px-3 py-2 rounded-lg font-medium transition-colors ${
                   isActive
-                    ? "bg-stone-700/50 text-white"
-                    : "text-stone-400 hover:bg-stone-700/30 hover:text-white"
+                    ? "bg-primary/20 text-foreground"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
                 }`
               }
             >

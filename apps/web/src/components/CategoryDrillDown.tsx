@@ -116,14 +116,14 @@ function TreeNodeRow({
   return (
     <div className="group">
       <div
-        className={`flex items-center gap-1 rounded-lg ${isSelected ? "bg-stone-100" : ""}`}
+        className={`flex items-center gap-1 rounded-lg ${isSelected ? "bg-muted" : ""}`}
         style={{ paddingLeft: `${depth * 12 + 8}px` }}
       >
         {hasChildren ? (
           <button
             type="button"
             onClick={onToggle}
-            className="p-2 -m-2 rounded text-stone-500 hover:bg-stone-100 hover:text-stone-700"
+            className="p-2 -m-2 rounded text-muted-foreground hover:bg-muted hover:text-foreground"
             aria-expanded={expanded}
             aria-label={expanded ? "Collapse" : "Expand"}
           >
@@ -136,12 +136,12 @@ function TreeNodeRow({
           <button
             type="button"
             onClick={onSelect}
-            className={`flex-1 text-left py-2 px-2 rounded-lg transition-colors min-h-[44px] flex items-center ${isSelected ? "font-medium text-stone-900" : "text-stone-700 hover:bg-stone-50"}`}
+            className={`flex-1 text-left py-2 px-2 rounded-lg transition-colors min-h-[44px] flex items-center ${isSelected ? "font-medium text-foreground" : "text-muted-foreground hover:bg-muted"}`}
           >
             {node.label}
           </button>
         ) : (
-          <span className="flex-1 py-2 pr-2 min-h-[44px] flex items-center text-stone-500">
+          <span className="flex-1 py-2 pr-2 min-h-[44px] flex items-center text-muted-foreground">
             {node.label}
           </span>
         )}
@@ -210,14 +210,14 @@ export function CategoryDrillDown({
 
   return (
     <div className={className}>
-      <label className="block text-sm font-medium text-stone-600 mb-1">
+      <label className="block text-sm font-medium text-muted-foreground mb-1">
         {label}
       </label>
       <div className="space-y-0.5">
         <button
           type="button"
           onClick={() => handleSelect("")}
-          className={`w-full ${ROW_CLASS} text-left px-3 py-2.5 rounded-lg transition-colors ${!value ? "bg-stone-100 font-medium text-stone-900" : "text-stone-700 hover:bg-stone-50"}`}
+          className={`w-full ${ROW_CLASS} text-left px-3 py-2.5 rounded-lg transition-colors ${!value ? "bg-muted font-medium text-foreground" : "text-muted-foreground hover:bg-muted"}`}
         >
           All categories
         </button>
