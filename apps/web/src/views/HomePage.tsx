@@ -1,11 +1,13 @@
+"use client";
+
 import { useState, FormEvent } from "react";
-import { useNavigate } from "react-router-dom";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useCategoryTree, useDeals } from "../hooks/queries";
 import { SearchBar } from "../components/SearchBar";
 import { DealGrid } from "../components/DealGrid";
 import { CategoryCard } from "../components/CategoryCard";
 import { LoadingState } from "../components/LoadingState";
-import { Link } from "react-router-dom";
 import { CategoryTreeNode } from "../api";
 import { Button } from "../components/ui/button";
 
@@ -45,7 +47,7 @@ function buildCategoryCards(categoryTree: CategoryTreeNode[]) {
 }
 
 export function HomePage() {
-  const navigate = useNavigate();
+  const router = useRouter();
   const [searchValue, setSearchValue] = useState("");
 
   const { data: categoryTreeData } = useCategoryTree();
@@ -63,9 +65,9 @@ export function HomePage() {
     e.preventDefault();
     const q = searchValue.trim();
     if (q) {
-      navigate(`/deals?q=${encodeURIComponent(q)}`);
+      router.push(`/deals?q=${encodeURIComponent(q)}`);
     } else {
-      navigate("/deals");
+      router.push("/deals");
     }
   };
 
@@ -115,7 +117,7 @@ export function HomePage() {
             Top deals of the day
           </h2>
           <Link
-            to="/deals?sort=discount"
+            href="/deals?sort=discount"
             className="text-sm font-medium text-muted-foreground hover:text-foreground"
           >
             View all deals
@@ -126,9 +128,7 @@ export function HomePage() {
         ) : topDeals.length > 0 ? (
           <DealGrid
             deals={topDeals}
-            onSelectDeal={(deal) =>
-              navigate(`/deals?deal=${deal.id}`, { replace: false })
-            }
+            onSelectDeal={(deal) => router.push(`/deals/${deal.id}`)}
           />
         ) : (
           <p className="text-muted-foreground py-8">No deals available right now.</p>

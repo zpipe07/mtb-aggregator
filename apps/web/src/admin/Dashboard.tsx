@@ -1,3 +1,5 @@
+"use client";
+
 import { useAdminDashboard } from "./hooks/queries";
 import { useTriggerScrape, useTriggerEnrich } from "./hooks/mutations";
 import type { DashboardStore } from "./api";

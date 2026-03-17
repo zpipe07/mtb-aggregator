@@ -2,6 +2,8 @@
  * CategoryPicker – single-select category path from the admin category tree.
  * Outputs string[] (path of names from root to selected node).
  */
+"use client";
+
 import { useState, useRef, useEffect } from "react";
 import { useAdminCategoryTree } from "./hooks/queries";
 import type { AdminCategoryTreeNode } from "./api";

@@ -1,5 +1,8 @@
+"use client";
+
 import { useState } from "react";
-import { Link, NavLink } from "react-router-dom";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useTheme } from "../context/ThemeContext";
 import { Button } from "./ui/button";
 
@@ -32,17 +35,18 @@ function MoonIcon() {
 export function NavHeader() {
   const { theme, toggleTheme } = useTheme();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const pathname = usePathname();
 
   const navLinks = [
-    { to: "/", end: true, label: "Home" },
-    { to: "/deals", end: false, label: "Deals" },
+    { href: "/", label: "Home", exact: true },
+    { href: "/deals", label: "Deals", exact: false },
   ];
 
   return (
     <header className="bg-background text-foreground">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
         <Link
-          to="/"
+          href="/"
           className="flex items-center hover:opacity-90 transition-opacity"
           aria-label="The Dropper - Home"
         >
@@ -64,22 +68,22 @@ export function NavHeader() {
           >
             {theme === "dark" ? <SunIcon /> : <MoonIcon />}
           </Button>
-          {navLinks.map(({ to, end, label }) => (
-            <NavLink
-              key={to}
-              to={to}
-              end={end}
-              className={({ isActive }) =>
-                `font-medium transition-colors ${
+          {navLinks.map(({ href, label, exact }) => {
+            const isActive = exact ? pathname === href : pathname.startsWith(href);
+            return (
+              <Link
+                key={href}
+                href={href}
+                className={`font-medium transition-colors ${
                   isActive
                     ? "text-foreground border-b-2 border-primary"
                     : "text-muted-foreground hover:text-foreground"
-                }`
-              }
-            >
-              {label}
-            </NavLink>
-          ))}
+                }`}
+              >
+                {label}
+              </Link>
+            );
+          })}
         </nav>
 
         {/* Mobile menu button */}
@@ -140,23 +144,23 @@ export function NavHeader() {
             {theme === "dark" ? <SunIcon /> : <MoonIcon />}
             {theme === "dark" ? "Light mode" : "Dark mode"}
           </Button>
-          {navLinks.map(({ to, end, label }) => (
-            <NavLink
-              key={to}
-              to={to}
-              end={end}
-              onClick={() => setMobileMenuOpen(false)}
-              className={({ isActive }) =>
-                `block px-3 py-2 rounded-lg font-medium transition-colors ${
+          {navLinks.map(({ href, label, exact }) => {
+            const isActive = exact ? pathname === href : pathname.startsWith(href);
+            return (
+              <Link
+                key={href}
+                href={href}
+                onClick={() => setMobileMenuOpen(false)}
+                className={`block px-3 py-2 rounded-lg font-medium transition-colors ${
                   isActive
                     ? "bg-primary/20 text-foreground"
                     : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                }`
-              }
-            >
-              {label}
-            </NavLink>
-          ))}
+                }`}
+              >
+                {label}
+              </Link>
+            );
+          })}
         </nav>
       </div>
     </header>

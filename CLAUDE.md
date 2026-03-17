@@ -12,7 +12,7 @@ pnpm monorepo with three apps and one shared package:
 
 - `apps/scraper` — Node.js/TypeScript Express server using Playwright to scrape retailer pages
 - `apps/api` — Go HTTP server (stdlib net/http + pgx); orchestrates scraping, enrichment, and serves the REST API
-- `apps/web` — React 18 + Vite + Tailwind v4 + TanStack Query + shadcn/ui
+- `apps/web` — Next.js 15 (App Router) + React 18 + Tailwind v4 + TanStack Query + shadcn/ui
 - `packages/shared` — SQL schema, numbered migrations, seed data, and JSON config files (brand aliases, category taxonomy)
 
 ## Development Setup
@@ -36,7 +36,7 @@ pnpm --filter @mtb-aggregator/scraper run dev
 # Terminal 2 - API (port 8080)
 cd apps/api && go run main.go
 
-# Terminal 3 - Web (Vite dev server)
+# Terminal 3 - Web (Next.js dev server, port 3000)
 cd apps/web && pnpm run dev
 ```
 
@@ -47,6 +47,7 @@ cd apps/web && pnpm run dev
 - `CRON_SECRET` — optional auth for cron trigger endpoints
 - `CORS_ORIGINS` — comma-separated allowed origins (defaults to `*`)
 - `SCRAPE_CRON_SPEC` / `ENRICH_CRON_SPEC` — override cron schedules (set to `disabled` to use external cron)
+- `NEXT_PUBLIC_API_URL` — client-side API base (defaults to `/api`); `API_URL` for server-side (full URL)
 
 ## Commands
 

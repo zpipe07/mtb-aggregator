@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 
 type CategoryCardProps = {
@@ -10,7 +10,7 @@ type CategoryCardProps = {
 
 export function CategoryCard({ label, to, description, imageSrc }: CategoryCardProps) {
   return (
-    <Link to={to} className="block group">
+    <Link href={to} className="block group">
       <Card className="shadow-sm hover:shadow-md transition-all cursor-pointer overflow-hidden">
         {imageSrc && (
           <div className="aspect-[4/3] overflow-hidden bg-muted">

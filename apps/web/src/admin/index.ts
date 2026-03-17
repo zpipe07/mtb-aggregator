@@ -1,4 +1,3 @@
-export { AdminSection } from "./AdminSection";
 export { AdminGate } from "./AdminGate";
 export { AdminLayout } from "./AdminLayout";
 export { Dashboard } from "./Dashboard";

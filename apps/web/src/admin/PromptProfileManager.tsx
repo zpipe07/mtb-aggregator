@@ -1,3 +1,5 @@
+"use client";
+
 import { useState } from "react";
 import { useLLMProfiles } from "./hooks/queries";
 import {

@@ -4,6 +4,7 @@ node_modules/
 
 # Build outputs
 dist/
+.next/
 storybook-static/
 *.exe
 apps/api/api

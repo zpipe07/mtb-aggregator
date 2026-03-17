@@ -1,24 +1,25 @@
 import { useEffect, useCallback } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, usePathname, useRouter } from "next/navigation";
 
 const VALID_SORTS = ["newest", "discount", "price_asc", "price_desc", "relevance"] as const;
 export type SortOption = (typeof VALID_SORTS)[number];
 
 const SPEC_PREFIX = "spec_";
 
-function parseParams(searchParams: URLSearchParams) {
-  const searchQuery = searchParams.get("q") ?? "";
-  const storeFilter = searchParams.get("store") ?? "";
-  const brandFilter = searchParams.get("brand") ?? "";
-  const categoryFilter = searchParams.get("category") ?? ""; // slug, e.g. bikes-mountain
-  const minDiscount = searchParams.get("min_discount") ?? "";
-  const sortParam = searchParams.get("sort");
+function parseParams(searchParams: URLSearchParams | { get: (k: string) => string | null; toString: () => string }) {
+  const params = new URLSearchParams(searchParams.toString());
+  const searchQuery = params.get("q") ?? "";
+  const storeFilter = params.get("store") ?? "";
+  const brandFilter = params.get("brand") ?? "";
+  const categoryFilter = params.get("category") ?? ""; // slug, e.g. bikes-mountain
+  const minDiscount = params.get("min_discount") ?? "";
+  const sortParam = params.get("sort");
   const sort = (VALID_SORTS.includes(sortParam as SortOption) ? sortParam : "newest") as SortOption;
-  const offsetParam = searchParams.get("offset");
+  const offsetParam = params.get("offset");
   const offset = Math.max(0, parseInt(offsetParam ?? "0", 10) || 0);
 
   const specFilters: Record<string, string> = {};
-  searchParams.forEach((value, key) => {
+  params.forEach((value, key) => {
     if (key.startsWith(SPEC_PREFIX)) {
       const specKey = key.slice(SPEC_PREFIX.length);
       if (specKey) specFilters[specKey] = value;
@@ -83,7 +84,9 @@ function applyToParams(
 }
 
 export function useFilterParams() {
-  const [searchParams, setSearchParams] = useSearchParams();
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
+  const router = useRouter();
   const state = parseParams(searchParams);
 
   const updateParams = useCallback(
@@ -99,9 +102,14 @@ export function useFilterParams() {
         offset: number;
       }>
     ) => {
-      setSearchParams((prev) => applyToParams(prev, updates), { replace: true });
+      const next = applyToParams(
+        new URLSearchParams(searchParams.toString()),
+        updates
+      );
+      const qs = next.toString();
+      router.replace(qs ? `${pathname}?${qs}` : pathname);
     },
-    [setSearchParams]
+    [searchParams, pathname, router]
   );
 
   const setSearchQuery = useCallback(

@@ -167,6 +167,10 @@ Each parser follows the existing pattern: export a `scrape[Store]` function retu
 - The Go API remains as-is (backend for data)
 - Next.js server components call the Go API directly (server-to-server, no CORS needed)
 
+### Admin Dashboard
+
+- **Keep TanStack Query** for the admin section. Admin has no SEO benefit from SSR; its heavy interactivity (CRUD, filters, optimistic updates) and localStorage-based auth make TanStack Query the better fit. Public pages use Server Components + native fetch; admin stays client-side with TanStack Query.
+
 ---
 
 ## Phase 6: Alerts + Saved Searches (Future)

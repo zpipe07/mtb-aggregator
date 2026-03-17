@@ -1,5 +1,7 @@
-import { useCallback, useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+"use client";
+
+import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { DEFAULT_PAGE_SIZE } from "../api";
 import {
   useDeals,
@@ -15,7 +17,6 @@ import {
   FilterDrawer,
   FilterChips,
   DealGrid,
-  DealDetailModal,
   Pagination,
   ErrorMessage,
   LoadingState,
@@ -23,6 +24,7 @@ import {
 } from "../components";
 
 export function DealsPage() {
+  const router = useRouter();
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
 
   const filterParams = useFilterParams();
@@ -46,21 +48,6 @@ export function DealsPage() {
     setOffset,
     clearAllFilters,
   } = filterParams;
-
-  const [searchParams, setSearchParams] = useSearchParams();
-  const dealParam = searchParams.get("deal");
-  const selectedDealId = dealParam ? parseInt(dealParam, 10) || null : null;
-  const setSelectedDealId = useCallback(
-    (id: number | null) => {
-      setSearchParams((prev: URLSearchParams) => {
-        const next = new URLSearchParams(prev);
-        if (id == null) next.delete("deal");
-        else next.set("deal", String(id));
-        return next;
-      });
-    },
-    [setSearchParams],
-  );
 
   const { data: storesData } = useStores();
   const { data: brandsData } = useBrands();
@@ -257,7 +244,7 @@ export function DealsPage() {
           ) : (
             <DealGrid
               deals={deals}
-              onSelectDeal={(d) => setSelectedDealId(d.id)}
+              onSelectDeal={(d) => router.push(`/deals/${d.id}`)}
             />
           )}
 
@@ -280,11 +267,6 @@ export function DealsPage() {
         {...filterSidebarProps}
         isOpen={filterDrawerOpen}
         onClose={() => setFilterDrawerOpen(false)}
-      />
-
-      <DealDetailModal
-        dealId={selectedDealId}
-        onClose={() => setSelectedDealId(null)}
       />
     </div>
   );
