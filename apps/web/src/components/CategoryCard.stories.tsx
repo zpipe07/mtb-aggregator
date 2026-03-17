@@ -20,6 +20,7 @@ const meta = {
     label: { control: "text" },
     to: { control: "text" },
     description: { control: "text" },
+    imageSrc: { control: "text" },
   },
 } satisfies Meta<typeof CategoryCard>;
 
@@ -38,5 +39,13 @@ export const WithDescription: Story = {
     label: "E-Bikes",
     to: "/deals?category=bikes-electric",
     description: "Electric mountain bikes and accessories",
+  },
+};
+
+export const WithImage: Story = {
+  args: {
+    label: "Bikes",
+    to: "/deals?category=bikes",
+    imageSrc: "/stock-bikes.jpg",
   },
 };

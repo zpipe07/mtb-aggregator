@@ -9,6 +9,14 @@ import { Link } from "react-router-dom";
 import { CategoryTreeNode } from "../api";
 import { Button } from "../components/ui/button";
 
+/** Slug-to-image mapping for root category cards. Images in public/. */
+const CATEGORY_IMAGES: Record<string, string> = {
+  bikes: "/stock-bikes.jpg",
+  components: "/stock-components.jpg",
+  gear: "/stock-gear.jpg",
+  accessories: "/stock-accessories.jpg",
+};
+
 /** Curated category labels for home page CTAs when API has few/empty categories */
 const FALLBACK_CATEGORIES: { path: string; label: string }[] = [
   { path: "bikes-electric", label: "E-Bikes" },
@@ -22,10 +30,17 @@ const FALLBACK_CATEGORIES: { path: string; label: string }[] = [
 ];
 
 function buildCategoryCards(categoryTree: CategoryTreeNode[]) {
-  if (categoryTree.length === 0) return FALLBACK_CATEGORIES;
+  if (categoryTree.length === 0) {
+    return FALLBACK_CATEGORIES.map(({ path, label }) => ({
+      path,
+      label,
+      imageSrc: CATEGORY_IMAGES[path.split("-")[0]] ?? undefined,
+    }));
+  }
   return categoryTree.slice(0, 8).map((category) => ({
     path: category.slug,
     label: category.name,
+    imageSrc: CATEGORY_IMAGES[category.slug] ?? undefined,
   }));
 }
 
@@ -82,11 +97,12 @@ export function HomePage() {
           Shop by category
         </h2>
         <div className="grid grid-cols-1 grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
-          {categoryCards.map(({ path, label }) => (
+          {categoryCards.map(({ path, label, imageSrc }) => (
             <CategoryCard
               key={path}
               label={label}
               to={`/deals?category=${encodeURIComponent(path)}`}
+              imageSrc={imageSrc}
             />
           ))}
         </div>

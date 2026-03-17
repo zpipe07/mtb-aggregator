@@ -40,7 +40,7 @@ Add more: `pnpm dlx shadcn@latest add <component>`
 
 ### Composed Components (`src/components/`)
 
-DealCard, CategoryCard, Pagination, SearchBar, FilterInput, etc. — built from primitives.
+DealCard, CategoryCard, Pagination, SearchBar, FilterInput, etc. — built from primitives. CategoryCard supports optional `imageSrc` for home page category imagery (`stock-bikes.jpg`, `stock-components.jpg`, etc. in `public/`).
 
 ### Storybook
 
