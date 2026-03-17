@@ -1,2 +1,2 @@
-export { HomePage } from "./HomePage";
-export { DealsPage } from "./DealsPage";
+export { HomePageContent } from "./HomePageContent";
+export { DealsPageContent } from "./DealsPageContent";

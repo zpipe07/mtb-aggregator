@@ -3,13 +3,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { DEFAULT_PAGE_SIZE } from "../api";
-import {
-  useDeals,
-  useFilterFacets,
-  useStores,
-  useBrands,
-  useCategoryTree,
-} from "../hooks/queries";
+import type { Deal, Store, FacetsResponse, CategoryTreeNode } from "../api";
 import { useFilterParams } from "../hooks/useFilterParams";
 import {
   Toolbar,
@@ -18,12 +12,26 @@ import {
   FilterChips,
   DealGrid,
   Pagination,
-  ErrorMessage,
-  LoadingState,
   EmptyState,
 } from "../components";
 
-export function DealsPage() {
+type Props = {
+  deals: Deal[];
+  totalCount: number;
+  facets: FacetsResponse;
+  stores: Store[];
+  brands: string[];
+  categoryTree: CategoryTreeNode[];
+};
+
+export function DealsPageContent({
+  deals,
+  totalCount,
+  facets,
+  stores,
+  brands,
+  categoryTree,
+}: Props) {
   const router = useRouter();
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
 
@@ -49,52 +57,9 @@ export function DealsPage() {
     clearAllFilters,
   } = filterParams;
 
-  const { data: storesData } = useStores();
-  const { data: brandsData } = useBrands();
-  const { data: categoryTreeData } = useCategoryTree();
-
-  const categoryTree = categoryTreeData ?? [];
-  const dealsParams = {
-    limit: DEFAULT_PAGE_SIZE,
-    offset,
-    store: storeFilter || undefined,
-    brand: brandFilter || undefined,
-    category_slug: categoryFilter || undefined,
-    min_discount: minDiscount
-      ? parseFloat(minDiscount) || undefined
-      : undefined,
-    specFilters: Object.keys(specFilters).length > 0 ? specFilters : undefined,
-    q: searchQuery.trim() || undefined,
-    sort,
-  };
-  const {
-    data: dealsData,
-    isPending: loading,
-    isError,
-    error,
-  } = useDeals(dealsParams);
-
-  const facetsParams = {
-    store: storeFilter || undefined,
-    brand: brandFilter || undefined,
-    category_slug: categoryFilter || undefined,
-    min_discount: minDiscount
-      ? parseFloat(minDiscount) || undefined
-      : undefined,
-    specFilters: Object.keys(specFilters).length > 0 ? specFilters : undefined,
-    q: searchQuery.trim() || undefined,
-  };
-  const { data: facetsData } = useFilterFacets(facetsParams);
-
-  const stores = storesData ?? [];
-  const brands = brandsData ?? [];
-  const deals = dealsData?.deals ?? [];
-  const totalCount = dealsData?.total_count ?? 0;
-
   const activeFilterCount =
-    [storeFilter, brandFilter, categoryFilter, minDiscount].filter(
-      Boolean,
-    ).length + Object.values(specFilters).filter(Boolean).length;
+    [storeFilter, brandFilter, categoryFilter, minDiscount].filter(Boolean)
+      .length + Object.values(specFilters).filter(Boolean).length;
 
   const activeFilters = useMemo(() => {
     const chips: { key: string; label: string; onRemove: () => void }[] = [];
@@ -128,7 +93,8 @@ export function DealsPage() {
           })()
         : [];
       const label =
-        flat.find((x) => x.slug === categoryFilter)?.path?.split(" > ").pop() ?? categoryFilter;
+        flat.find((x) => x.slug === categoryFilter)?.path?.split(" > ").pop() ??
+        categoryFilter;
       chips.push({
         key: "category",
         label: `Category: ${label}`,
@@ -144,7 +110,7 @@ export function DealsPage() {
     }
     Object.entries(specFilters).forEach(([key, value]) => {
       if (value) {
-        const facet = facetsData?.spec_facets?.find((f) => f.key === key);
+        const facet = facets?.spec_facets?.find((f) => f.key === key);
         const label = facet?.label ?? key;
         chips.push({
           key: `spec_${key}`,
@@ -161,7 +127,7 @@ export function DealsPage() {
     categoryTree,
     minDiscount,
     specFilters,
-    facetsData?.spec_facets,
+    facets?.spec_facets,
     setStoreFilter,
     setBrandFilter,
     setCategoryFilter,
@@ -178,7 +144,7 @@ export function DealsPage() {
     categoryFilter,
     minDiscount,
     specFilters,
-    specFacets: facetsData?.spec_facets ?? [],
+    specFacets: facets?.spec_facets ?? [],
     onStoreChange: setStoreFilter,
     onBrandChange: setBrandFilter,
     onCategoryChange: setCategoryFilter,
@@ -190,7 +156,6 @@ export function DealsPage() {
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 lg:py-8">
       <div className="flex gap-8">
-        {/* Desktop sidebar - hidden on mobile, sticky with scrollable filters */}
         <aside className="hidden lg:block w-60 flex-shrink-0">
           <div className="sticky top-6 max-h-[calc(100vh-3rem)] flex flex-col min-h-[500px]">
             <h2 className="text-sm font-semibold text-foreground mb-4 flex-shrink-0">
@@ -202,7 +167,6 @@ export function DealsPage() {
           </div>
         </aside>
 
-        {/* Main content - scrolls with page normally */}
         <div className="flex-1 min-w-0">
           <Toolbar
             searchValue={searchQuery}
@@ -216,15 +180,13 @@ export function DealsPage() {
 
           <FilterChips filters={activeFilters} onClearAll={clearAllFilters} />
 
-          {!loading && !isError && (
-            <p className="text-sm text-muted-foreground mb-4">
-              {totalCount === 0
-                ? "No deals found"
-                : `${totalCount} deal${totalCount === 1 ? "" : "s"} found`}
-            </p>
-          )}
+          <p className="text-sm text-muted-foreground mb-4">
+            {totalCount === 0
+              ? "No deals found"
+              : `${totalCount} deal${totalCount === 1 ? "" : "s"} found`}
+          </p>
 
-          {!loading && !isError && totalCount > 0 && (
+          {totalCount > 0 && (
             <div className="border-b border-border mb-4">
               <Pagination
                 totalCount={totalCount}
@@ -235,22 +197,16 @@ export function DealsPage() {
             </div>
           )}
 
-          {isError && (
-            <ErrorMessage message={error?.message ?? "Failed to load"} />
-          )}
-
-          {loading ? (
-            <LoadingState />
-          ) : (
+          {deals.length > 0 ? (
             <DealGrid
               deals={deals}
               onSelectDeal={(d) => router.push(`/deals/${d.id}`)}
             />
+          ) : (
+            <EmptyState />
           )}
 
-          {!loading && !isError && deals.length === 0 && <EmptyState />}
-
-          {!loading && !isError && totalCount > 0 && (
+          {totalCount > 0 && (
             <div className="border-t border-border mt-8">
               <Pagination
                 totalCount={totalCount}

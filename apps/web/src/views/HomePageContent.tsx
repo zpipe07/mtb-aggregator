@@ -3,12 +3,11 @@
 import { useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useCategoryTree, useDeals } from "../hooks/queries";
 import { SearchBar } from "../components/SearchBar";
 import { DealGrid } from "../components/DealGrid";
 import { CategoryCard } from "../components/CategoryCard";
-import { LoadingState } from "../components/LoadingState";
 import { CategoryTreeNode } from "../api";
+import type { Deal } from "../api";
 import { Button } from "../components/ui/button";
 
 /** Slug-to-image mapping for root category cards. Images in public/. */
@@ -46,20 +45,16 @@ function buildCategoryCards(categoryTree: CategoryTreeNode[]) {
   }));
 }
 
-export function HomePage() {
+type Props = {
+  categoryTree: CategoryTreeNode[];
+  topDeals: Deal[];
+};
+
+export function HomePageContent({ categoryTree, topDeals }: Props) {
   const router = useRouter();
   const [searchValue, setSearchValue] = useState("");
 
-  const { data: categoryTreeData } = useCategoryTree();
-  const categoryTree = categoryTreeData ?? [];
   const categoryCards = buildCategoryCards(categoryTree);
-
-  const { data: topDealsData, isPending: topDealsLoading } = useDeals({
-    sort: "discount",
-    limit: 8,
-    offset: 0,
-  });
-  const topDeals = topDealsData?.deals ?? [];
 
   const handleSearchSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -123,9 +118,7 @@ export function HomePage() {
             View all deals
           </Link>
         </div>
-        {topDealsLoading ? (
-          <LoadingState />
-        ) : topDeals.length > 0 ? (
+        {topDeals.length > 0 ? (
           <DealGrid
             deals={topDeals}
             onSelectDeal={(deal) => router.push(`/deals/${deal.id}`)}

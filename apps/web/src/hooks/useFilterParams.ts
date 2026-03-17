@@ -1,46 +1,13 @@
 import { useEffect, useCallback } from "react";
 import { useSearchParams, usePathname, useRouter } from "next/navigation";
+import {
+  parseFilterParamsFromURL,
+  type SortOption,
+} from "../lib/filterParams";
 
-const VALID_SORTS = ["newest", "discount", "price_asc", "price_desc", "relevance"] as const;
-export type SortOption = (typeof VALID_SORTS)[number];
+export type { SortOption };
 
 const SPEC_PREFIX = "spec_";
-
-function parseParams(searchParams: URLSearchParams | { get: (k: string) => string | null; toString: () => string }) {
-  const params = new URLSearchParams(searchParams.toString());
-  const searchQuery = params.get("q") ?? "";
-  const storeFilter = params.get("store") ?? "";
-  const brandFilter = params.get("brand") ?? "";
-  const categoryFilter = params.get("category") ?? ""; // slug, e.g. bikes-mountain
-  const minDiscount = params.get("min_discount") ?? "";
-  const sortParam = params.get("sort");
-  const sort = (VALID_SORTS.includes(sortParam as SortOption) ? sortParam : "newest") as SortOption;
-  const offsetParam = params.get("offset");
-  const offset = Math.max(0, parseInt(offsetParam ?? "0", 10) || 0);
-
-  const specFilters: Record<string, string> = {};
-  params.forEach((value, key) => {
-    if (key.startsWith(SPEC_PREFIX)) {
-      const specKey = key.slice(SPEC_PREFIX.length);
-      if (specKey) specFilters[specKey] = value;
-    }
-  });
-
-  // Relevance only valid when search is active
-  const effectiveSort =
-    searchQuery.trim() === "" && sort === "relevance" ? ("newest" as SortOption) : sort;
-
-  return {
-    searchQuery,
-    storeFilter,
-    brandFilter,
-    categoryFilter,
-    minDiscount,
-    specFilters,
-    sort: effectiveSort,
-    offset,
-  };
-}
 
 function applyToParams(
   prev: URLSearchParams,
@@ -87,7 +54,7 @@ export function useFilterParams() {
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const router = useRouter();
-  const state = parseParams(searchParams);
+  const state = parseFilterParamsFromURL(searchParams);
 
   const updateParams = useCallback(
     (

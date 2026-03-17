@@ -75,7 +75,9 @@ export async function fetchDeals(params?: {
   }
   const qs = search.toString();
   const url = `${getApiBase()}/deals${qs ? `?${qs}` : ""}`;
-  const res = await fetch(url);
+  const res = await fetch(url, {
+    next: { revalidate: 60 },
+  });
   if (!res.ok) throw new Error("Failed to fetch deals");
   const data = await res.json();
   return {
@@ -114,14 +116,18 @@ export async function fetchPriceHistory(
 }
 
 export async function fetchStores(): Promise<Store[]> {
-  const res = await fetch(`${getApiBase()}/stores`);
+  const res = await fetch(`${getApiBase()}/stores`, {
+    next: { revalidate: 60 },
+  });
   if (!res.ok) throw new Error("Failed to fetch stores");
   const data = await res.json();
   return Array.isArray(data) ? data : [];
 }
 
 export async function fetchBrands(): Promise<string[]> {
-  const res = await fetch(`${getApiBase()}/brands`);
+  const res = await fetch(`${getApiBase()}/brands`, {
+    next: { revalidate: 60 },
+  });
   if (!res.ok) throw new Error("Failed to fetch brands");
   const data = await res.json();
   return Array.isArray(data) ? data : [];
@@ -146,7 +152,9 @@ export interface CategoryTreeNode {
 }
 
 export async function fetchCategoryTree(): Promise<CategoryTreeNode[]> {
-  const res = await fetch(`${getApiBase()}/categories/tree`);
+  const res = await fetch(`${getApiBase()}/categories/tree`, {
+    next: { revalidate: 60 },
+  });
   if (!res.ok) throw new Error("Failed to fetch category tree");
   const data = await res.json();
   return Array.isArray(data) ? data : [];
@@ -206,7 +214,9 @@ export async function fetchFacets(
     }
   }
   const qs = search.toString();
-  const res = await fetch(`${getApiBase()}/facets${qs ? `?${qs}` : ""}`);
+  const res = await fetch(`${getApiBase()}/facets${qs ? `?${qs}` : ""}`, {
+    next: { revalidate: 60 },
+  });
   if (!res.ok) throw new Error("Failed to fetch facets");
   return res.json();
 }
