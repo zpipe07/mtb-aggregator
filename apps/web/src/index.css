@@ -1,8 +1,7 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
-@import "@fontsource-variable/geist";
-@import "@fontsource/oswald/latin-600.css";
-@import "@fontsource/oswald/latin-700.css";
+@import "@fontsource-variable/plus-jakarta-sans";
+@import "@fontsource-variable/bricolage-grotesque";
 @import 'tailwindcss';
 
 @custom-variant dark (&:is(.dark *));
@@ -43,7 +42,7 @@
 
   /* Use --app-font-sans to avoid circular reference with :root --font-sans */
   --font-sans: var(--app-font-sans), ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Oswald", var(--app-font-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--app-font-display), var(--app-font-sans), ui-sans-serif, system-ui, sans-serif;
 }
 
 /*
@@ -63,7 +62,8 @@
 /* Design tokens from docs/DESIGN.md — keep in sync with app/globals.css */
 @layer base {
   :root {
-    --app-font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
+    --app-font-sans: "Plus Jakarta Sans Variable", ui-sans-serif, system-ui, sans-serif;
+    --app-font-display: "Bricolage Grotesque Variable", ui-sans-serif, system-ui, sans-serif;
     /* Light — sync with app/globals.css */
     --background: oklch(0.935 0.014 95);
     --foreground: oklch(0.11 0.008 270);

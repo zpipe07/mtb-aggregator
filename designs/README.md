@@ -52,6 +52,8 @@ Colors in Pencil use **hex approximations** of the oklch values in `:root` / `.d
 
 **Theme axis:** `mode` → `light` | `dark`. Set `theme: { "mode": "dark" }` on a screen frame so variables resolve to the dark column.
 
+**Typography (app):** [Plus Jakarta Sans](https://fontsource.org/fonts/plus-jakarta-sans) (body/UI) and [Bricolage Grotesque](https://fontsource.org/fonts/bricolage-grotesque) (h1–h3) via `@fontsource-variable` in `apps/web/src/app/globals.css`. Pencil text nodes use the same family names where the editor has them available.
+
 ## Exported previews
 
 PNG exports of each screen (for reviews / Figma handoff) live in **`pencil-exports/`** (regenerate from Pencil via MCP `export_nodes` or the app if layouts change).

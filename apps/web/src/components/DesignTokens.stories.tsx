@@ -73,13 +73,13 @@ function DesignTokensDoc() {
         <div className="space-y-4">
           <div>
             <h1 className="text-3xl font-bold text-foreground">Dialed-in deals.</h1>
-            <p className="text-xs text-muted-foreground mt-1">Oswald · h1–h3</p>
+            <p className="text-xs text-muted-foreground mt-1">Bricolage Grotesque · h1–h3</p>
           </div>
           <div>
             <p className="text-base text-foreground">
-              Body text uses Geist Variable. Speak the language of the trailhead.
+              Body text uses Plus Jakarta Sans. Speak the language of the trailhead.
             </p>
-            <p className="text-xs text-muted-foreground mt-1">Geist Variable · body</p>
+            <p className="text-xs text-muted-foreground mt-1">Plus Jakarta Sans Variable · body</p>
           </div>
         </div>
       </section>
@@ -100,7 +100,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "Visual identity from docs/DESIGN.md. Orange primary, sage secondary, teal accent/trail, lifted dark mode.",
+          "Visual identity from docs/DESIGN.md. Plus Jakarta Sans + Bricolage Grotesque; orange primary; teal accent/trail.",
       },
     },
   },
