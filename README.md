@@ -133,6 +133,8 @@ Deploy to Render (API + scraper), Vercel (web), and Neon (PostgreSQL). See [.cur
 
 Copy `.env.example` to `.env` for local dev. Production secrets go in each platform's dashboard.
 
+**Error monitoring:** Deployed services should set Sentry DSNs so failures are visible in Sentry, not only in platform logs. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#error-monitoring-sentry) for the reporting policy and per-app setup.
+
 ### Scraper: Render Standard
 
 The scraper runs Playwright/Chromium to scrape JS-rendered sites (e.g. JensonUSA). Chromium needs ~300MB+ RAM, so the **scraper service should use Render Standard** (2GB, $25/mo), not the free tier (512MB). On Standard, leave `BROWSER_WS_ENDPOINT` unset so the scraper launches Chromium locally; set `SCRAPER_MAX_PAGES=5` or higher to scrape full catalogs. No remote browser service (Browserless/Browserbase) is required.

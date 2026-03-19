@@ -43,3 +43,4 @@ Use theme tokens instead of raw Tailwind colors:
 1. Check if a primitive exists in `src/components/ui/`
 2. Check if a composed component already solves the need
 3. Add a Storybook story when introducing a new component
+4. Fatal `try/catch` (no rethrow): call `Sentry.captureException` when DSN is set — [docs/ARCHITECTURE.md](../../docs/ARCHITECTURE.md#error-monitoring-sentry)

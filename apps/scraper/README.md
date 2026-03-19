@@ -19,6 +19,8 @@ Node.js Express server using Playwright to scrape retailer sale pages. Returns s
 
 Scrape/enrich failures call `captureRouteError` (tags: `route`, `store`) because handlers use `try`/`catch` instead of `next(err)`.
 
+**Convention:** When `SENTRY_DSN` is set (production should set it), new routes that can fail with 5xx must report via `captureRouteError` or `next(err)` + `setupExpressErrorHandler`—not only `console.error`. Policy: [docs/ARCHITECTURE.md](../../docs/ARCHITECTURE.md#error-monitoring-sentry).
+
 ## Endpoints
 
 | Endpoint | Method | Purpose |

@@ -39,6 +39,8 @@ When `NEXT_PUBLIC_SENTRY_DSN` is set, the app loads Sentry on the client, server
 
 Without `SENTRY_AUTH_TOKEN`, builds skip source map upload (`sourcemaps.disable` in `next.config.ts`); errors still report, stacks are less readable.
 
+**Convention:** With `NEXT_PUBLIC_SENTRY_DSN` set, do not rely on `console.error` alone for user-impacting failures—ensure they reach Sentry (Next defaults + `global-error.tsx`; in `try/catch` that handles fatally without rethrowing, call `Sentry.captureException`). See [docs/ARCHITECTURE.md](../../docs/ARCHITECTURE.md#error-monitoring-sentry).
+
 ## Component Library
 
 ### Primitives (`src/components/ui/`)
