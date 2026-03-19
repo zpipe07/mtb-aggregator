@@ -39,7 +39,7 @@
               "name": "brand",
               "fill": "$foreground",
               "content": "THE DROPPER",
-              "fontFamily": "Oswald",
+              "fontFamily": "Bricolage Grotesque",
               "fontSize": 32,
               "fontWeight": "700"
             },
@@ -66,7 +66,7 @@
                   "name": "navHome",
                   "fill": "$foreground",
                   "content": "Home",
-                  "fontFamily": "Inter",
+                  "fontFamily": "Plus Jakarta Sans",
                   "fontSize": 15,
                   "fontWeight": "600"
                 },
@@ -76,7 +76,7 @@
                   "name": "navDeals",
                   "fill": "$mutedForeground",
                   "content": "Deals",
-                  "fontFamily": "Inter",
+                  "fontFamily": "Plus Jakarta Sans",
                   "fontSize": 15,
                   "fontWeight": "500"
                 }
@@ -105,7 +105,7 @@
               "name": "h1",
               "fill": "$foreground",
               "content": "Dialed-in deals.",
-              "fontFamily": "Oswald",
+              "fontFamily": "Bricolage Grotesque",
               "fontSize": 44,
               "fontWeight": "700"
             },
@@ -115,7 +115,7 @@
               "name": "sub",
               "fill": "$mutedForeground",
               "content": "We scanned 50+ shops so you didn't have to.",
-              "fontFamily": "Inter",
+              "fontFamily": "Plus Jakarta Sans",
               "fontSize": 18,
               "fontWeight": "normal"
             },
@@ -152,7 +152,7 @@
                       "name": "ph",
                       "fill": "$mutedForeground",
                       "content": "Search deals…",
-                      "fontFamily": "Inter",
+                      "fontFamily": "Plus Jakarta Sans",
                       "fontSize": 15,
                       "fontWeight": "normal"
                     }
@@ -178,7 +178,7 @@
                       "name": "searchBtnLbl",
                       "fill": "$primaryForeground",
                       "content": "Search",
-                      "fontFamily": "Inter",
+                      "fontFamily": "Plus Jakarta Sans",
                       "fontSize": 15,
                       "fontWeight": "600"
                     }
@@ -208,7 +208,7 @@
               "name": "h2Cat",
               "fill": "$foreground",
               "content": "Shop by category",
-              "fontFamily": "Oswald",
+              "fontFamily": "Bricolage Grotesque",
               "fontSize": 20,
               "fontWeight": "600"
             },
@@ -260,7 +260,7 @@
                           "name": "t1",
                           "fill": "$foreground",
                           "content": "Bikes",
-                          "fontFamily": "Inter",
+                          "fontFamily": "Plus Jakarta Sans",
                           "fontSize": 18,
                           "fontWeight": "600"
                         }
@@ -285,7 +285,7 @@
                           "name": "l1",
                           "fill": "$mutedForeground",
                           "content": "View deals  ›",
-                          "fontFamily": "Inter",
+                          "fontFamily": "Plus Jakarta Sans",
                           "fontSize": 13,
                           "fontWeight": "500"
                         }
@@ -334,7 +334,7 @@
                           "name": "t2",
                           "fill": "$foreground",
                           "content": "Components",
-                          "fontFamily": "Inter",
+                          "fontFamily": "Plus Jakarta Sans",
                           "fontSize": 18,
                           "fontWeight": "600"
                         }
@@ -359,7 +359,7 @@
                           "name": "l2",
                           "fill": "$mutedForeground",
                           "content": "View deals  ›",
-                          "fontFamily": "Inter",
+                          "fontFamily": "Plus Jakarta Sans",
                           "fontSize": 13,
                           "fontWeight": "500"
                         }
@@ -408,7 +408,7 @@
                           "name": "t3",
                           "fill": "$foreground",
                           "content": "Gear",
-                          "fontFamily": "Inter",
+                          "fontFamily": "Plus Jakarta Sans",
                           "fontSize": 18,
                           "fontWeight": "600"
                         }
@@ -433,7 +433,7 @@
                           "name": "l3",
                           "fill": "$mutedForeground",
                           "content": "View deals  ›",
-                          "fontFamily": "Inter",
+                          "fontFamily": "Plus Jakarta Sans",
                           "fontSize": 13,
                           "fontWeight": "500"
                         }
@@ -482,7 +482,7 @@
                           "name": "t4",
                           "fill": "$foreground",
                           "content": "Accessories",
-                          "fontFamily": "Inter",
+                          "fontFamily": "Plus Jakarta Sans",
                           "fontSize": 18,
                           "fontWeight": "600"
                         }
@@ -507,7 +507,7 @@
                           "name": "l4",
                           "fill": "$mutedForeground",
                           "content": "View deals  ›",
-                          "fontFamily": "Inter",
+                          "fontFamily": "Plus Jakarta Sans",
                           "fontSize": 13,
                           "fontWeight": "500"
                         }
@@ -565,7 +565,7 @@
                           "name": "dt1",
                           "fill": "$foreground",
                           "content": "E-Bikes",
-                          "fontFamily": "Inter",
+                          "fontFamily": "Plus Jakarta Sans",
                           "fontSize": 18,
                           "fontWeight": "600"
                         }
@@ -590,7 +590,7 @@
                           "name": "dl1",
                           "fill": "$mutedForeground",
                           "content": "View deals  ›",
-                          "fontFamily": "Inter",
+                          "fontFamily": "Plus Jakarta Sans",
                           "fontSize": 13,
                           "fontWeight": "500"
                         }
@@ -639,7 +639,7 @@
                           "name": "dt2",
                           "fill": "$foreground",
                           "content": "Mountain Bikes",
-                          "fontFamily": "Inter",
+                          "fontFamily": "Plus Jakarta Sans",
                           "fontSize": 18,
                           "fontWeight": "600"
                         }
@@ -664,7 +664,7 @@
                           "name": "dl2",
                           "fill": "$mutedForeground",
                           "content": "View deals  ›",
-                          "fontFamily": "Inter",
+                          "fontFamily": "Plus Jakarta Sans",
                           "fontSize": 13,
                           "fontWeight": "500"
                         }
@@ -713,7 +713,7 @@
                           "name": "dt3",
                           "fill": "$foreground",
                           "content": "Shoes",
-                          "fontFamily": "Inter",
+                          "fontFamily": "Plus Jakarta Sans",
                           "fontSize": 18,
                           "fontWeight": "600"
                         }
@@ -738,7 +738,7 @@
                           "name": "dl3",
                           "fill": "$mutedForeground",
                           "content": "View deals  ›",
-                          "fontFamily": "Inter",
+                          "fontFamily": "Plus Jakarta Sans",
                           "fontSize": 13,
                           "fontWeight": "500"
                         }
@@ -787,7 +787,7 @@
                           "name": "dt4",
                           "fill": "$foreground",
                           "content": "Helmets",
-                          "fontFamily": "Inter",
+                          "fontFamily": "Plus Jakarta Sans",
                           "fontSize": 18,
                           "fontWeight": "600"
                         }
@@ -812,7 +812,7 @@
                           "name": "dl4",
                           "fill": "$mutedForeground",
                           "content": "View deals  ›",
-                          "fontFamily": "Inter",
+                          "fontFamily": "Plus Jakarta Sans",
                           "fontSize": 13,
                           "fontWeight": "500"
                         }
@@ -846,7 +846,7 @@
                   "name": "dealsH2",
                   "fill": "$foreground",
                   "content": "Top deals of the day",
-                  "fontFamily": "Oswald",
+                  "fontFamily": "Bricolage Grotesque",
                   "fontSize": 20,
                   "fontWeight": "600"
                 },
@@ -856,7 +856,7 @@
                   "name": "dealsLink",
                   "fill": "$mutedForeground",
                   "content": "View all deals",
-                  "fontFamily": "Inter",
+                  "fontFamily": "Plus Jakarta Sans",
                   "fontSize": 13,
                   "fontWeight": "500"
                 }
@@ -913,7 +913,7 @@
                               "name": "discT",
                               "fill": "#FFFFFF",
                               "content": "28% off",
-                              "fontFamily": "Inter",
+                              "fontFamily": "Plus Jakarta Sans",
                               "fontSize": 11,
                               "fontWeight": "700"
                             }
@@ -939,7 +939,7 @@
                               "name": "storeT",
                               "fill": "#FFFFFF",
                               "content": "WWC",
-                              "fontFamily": "Inter",
+                              "fontFamily": "Plus Jakarta Sans",
                               "fontSize": 11,
                               "fontWeight": "600"
                             }
@@ -962,7 +962,7 @@
                           "name": "dcBrand",
                           "fill": "$mutedForeground",
                           "content": "YETI",
-                          "fontFamily": "Inter",
+                          "fontFamily": "Plus Jakarta Sans",
                           "fontSize": 10,
                           "fontWeight": "600",
                           "letterSpacing": 1
@@ -975,7 +975,7 @@
                           "textGrowth": "fixed-width",
                           "width": "fill_container",
                           "content": "SB165 Turq — complete bike",
-                          "fontFamily": "Inter",
+                          "fontFamily": "Plus Jakarta Sans",
                           "fontSize": 15,
                           "fontWeight": "600"
                         },
@@ -985,7 +985,7 @@
                           "name": "dcCat",
                           "fill": "$mutedForeground",
                           "content": "Mountain Bikes",
-                          "fontFamily": "Inter",
+                          "fontFamily": "Plus Jakarta Sans",
                           "fontSize": 11,
                           "fontWeight": "normal"
                         },
@@ -1002,7 +1002,7 @@
                               "name": "dcNow",
                               "fill": "$foreground",
                               "content": "$4,299.00",
-                              "fontFamily": "Inter",
+                              "fontFamily": "Plus Jakarta Sans",
                               "fontSize": 18,
                               "fontWeight": "700"
                             },
@@ -1012,7 +1012,7 @@
                               "name": "dcWas",
                               "fill": "$mutedForeground",
                               "content": "$5,999.00",
-                              "fontFamily": "Inter",
+                              "fontFamily": "Plus Jakarta Sans",
                               "fontSize": 13,
                               "fontWeight": "normal"
                             }
@@ -1035,7 +1035,7 @@
                               "name": "dcBtnT",
                               "fill": "$primaryForeground",
                               "content": "Snag the Deal",
-                              "fontFamily": "Inter",
+                              "fontFamily": "Plus Jakarta Sans",
                               "fontSize": 14,
                               "fontWeight": "600"
                             }
@@ -1089,7 +1089,7 @@
                               "name": "d2dT",
                               "fill": "#FFFFFF",
                               "content": "15% off",
-                              "fontFamily": "Inter",
+                              "fontFamily": "Plus Jakarta Sans",
                               "fontSize": 11,
                               "fontWeight": "700"
                             }
@@ -1115,7 +1115,7 @@
                               "name": "d2sT",
                               "fill": "#FFFFFF",
                               "content": "Revel",
-                              "fontFamily": "Inter",
+                              "fontFamily": "Plus Jakarta Sans",
                               "fontSize": 11,
                               "fontWeight": "600"
                             }
@@ -1138,7 +1138,7 @@
                           "name": "d2Br",
                           "fill": "$mutedForeground",
                           "content": "SHIMANO",
-                          "fontFamily": "Inter",
+                          "fontFamily": "Plus Jakarta Sans",
                           "fontSize": 10,
                           "fontWeight": "600",
                           "letterSpacing": 1
@@ -1151,7 +1151,7 @@
                           "textGrowth": "fixed-width",
                           "width": "fill_container",
                           "content": "XT M8100 12-speed cassette",
-                          "fontFamily": "Inter",
+                          "fontFamily": "Plus Jakarta Sans",
                           "fontSize": 15,
                           "fontWeight": "600"
                         },
@@ -1161,7 +1161,7 @@
                           "name": "d2Ca",
                           "fill": "$mutedForeground",
                           "content": "Components",
-                          "fontFamily": "Inter",
+                          "fontFamily": "Plus Jakarta Sans",
                           "fontSize": 11,
                           "fontWeight": "normal"
                         },
@@ -1178,7 +1178,7 @@
                               "name": "d2N",
                               "fill": "$foreground",
                               "content": "$89.00",
-                              "fontFamily": "Inter",
+                              "fontFamily": "Plus Jakarta Sans",
                               "fontSize": 18,
                               "fontWeight": "700"
                             },
@@ -1188,7 +1188,7 @@
                               "name": "d2W",
                               "fill": "$mutedForeground",
                               "content": "$105.00",
-                              "fontFamily": "Inter",
+                              "fontFamily": "Plus Jakarta Sans",
                               "fontSize": 13,
                               "fontWeight": "normal"
                             }
@@ -1211,7 +1211,7 @@
                               "name": "d2BtT",
                               "fill": "$primaryForeground",
                               "content": "Snag the Deal",
-                              "fontFamily": "Inter",
+                              "fontFamily": "Plus Jakarta Sans",
                               "fontSize": 14,
                               "fontWeight": "600"
                             }
@@ -1265,7 +1265,7 @@
                               "name": "d3dT",
                               "fill": "#FFFFFF",
                               "content": "22% off",
-                              "fontFamily": "Inter",
+                              "fontFamily": "Plus Jakarta Sans",
                               "fontSize": 11,
                               "fontWeight": "700"
                             }
@@ -1291,7 +1291,7 @@
                               "name": "d3sT",
                               "fill": "#FFFFFF",
                               "content": "Jenson",
-                              "fontFamily": "Inter",
+                              "fontFamily": "Plus Jakarta Sans",
                               "fontSize": 11,
                               "fontWeight": "600"
                             }
@@ -1314,7 +1314,7 @@
                           "name": "d3Br",
                           "fill": "$mutedForeground",
                           "content": "FOX",
-                          "fontFamily": "Inter",
+                          "fontFamily": "Plus Jakarta Sans",
                           "fontSize": 10,
                           "fontWeight": "600",
                           "letterSpacing": 1
@@ -1327,7 +1327,7 @@
                           "textGrowth": "fixed-width",
                           "width": "fill_container",
                           "content": "36 Float Factory fork",
-                          "fontFamily": "Inter",
+                          "fontFamily": "Plus Jakarta Sans",
                           "fontSize": 15,
                           "fontWeight": "600"
                         },
@@ -1337,7 +1337,7 @@
                           "name": "d3Ca",
                           "fill": "$mutedForeground",
                           "content": "Suspension",
-                          "fontFamily": "Inter",
+                          "fontFamily": "Plus Jakarta Sans",
                           "fontSize": 11,
                           "fontWeight": "normal"
                         },
@@ -1354,7 +1354,7 @@
                               "name": "d3N",
                               "fill": "$foreground",
                               "content": "$749.00",
-                              "fontFamily": "Inter",
+                              "fontFamily": "Plus Jakarta Sans",
                               "fontSize": 18,
                               "fontWeight": "700"
                             },
@@ -1364,7 +1364,7 @@
                               "name": "d3W",
                               "fill": "$mutedForeground",
                               "content": "$959.00",
-                              "fontFamily": "Inter",
+                              "fontFamily": "Plus Jakarta Sans",
                               "fontSize": 13,
                               "fontWeight": "normal"
                             }
@@ -1387,7 +1387,7 @@
                               "name": "d3BtT",
                               "fill": "$primaryForeground",
                               "content": "Snag the Deal",
-                              "fontFamily": "Inter",
+                              "fontFamily": "Plus Jakarta Sans",
                               "fontSize": 14,
                               "fontWeight": "600"
                             }
@@ -1442,7 +1442,7 @@
               "name": "brand",
               "fill": "$foreground",
               "content": "THE DROPPER",
-              "fontFamily": "Oswald",
+              "fontFamily": "Bricolage Grotesque",
               "fontSize": 32,
               "fontWeight": "700"
             },
@@ -1469,7 +1469,7 @@
                   "name": "navHome",
                   "fill": "$mutedForeground",
                   "content": "Home",
-                  "fontFamily": "Inter",
+                  "fontFamily": "Plus Jakarta Sans",
                   "fontSize": 15,
                   "fontWeight": "500"
                 },
@@ -1479,7 +1479,7 @@
                   "name": "navDeals",
                   "fill": "$foreground",
                   "content": "Deals",
-                  "fontFamily": "Inter",
+                  "fontFamily": "Plus Jakarta Sans",
                   "fontSize": 15,
                   "fontWeight": "600"
                 }
@@ -1508,7 +1508,7 @@
                   "name": "sideTitle",
                   "fill": "$foreground",
                   "content": "Filters",
-                  "fontFamily": "Inter",
+                  "fontFamily": "Plus Jakarta Sans",
                   "fontSize": 14,
                   "fontWeight": "600"
                 },
@@ -1526,7 +1526,7 @@
                       "name": "l1",
                       "fill": "$mutedForeground",
                       "content": "Store",
-                      "fontFamily": "Inter",
+                      "fontFamily": "Plus Jakarta Sans",
                       "fontSize": 12,
                       "fontWeight": "500"
                     },
@@ -1554,7 +1554,7 @@
                           "name": "dd1t",
                           "fill": "$foreground",
                           "content": "All stores",
-                          "fontFamily": "Inter",
+                          "fontFamily": "Plus Jakarta Sans",
                           "fontSize": 13,
                           "fontWeight": "normal"
                         }
@@ -1576,7 +1576,7 @@
                       "name": "l2",
                       "fill": "$mutedForeground",
                       "content": "Brand",
-                      "fontFamily": "Inter",
+                      "fontFamily": "Plus Jakarta Sans",
                       "fontSize": 12,
                       "fontWeight": "500"
                     },
@@ -1604,7 +1604,7 @@
                           "name": "dd2t",
                           "fill": "$foreground",
                           "content": "Any brand",
-                          "fontFamily": "Inter",
+                          "fontFamily": "Plus Jakarta Sans",
                           "fontSize": 13,
                           "fontWeight": "normal"
                         }
@@ -1626,7 +1626,7 @@
                       "name": "l3",
                       "fill": "$mutedForeground",
                       "content": "Category",
-                      "fontFamily": "Inter",
+                      "fontFamily": "Plus Jakarta Sans",
                       "fontSize": 12,
                       "fontWeight": "500"
                     },
@@ -1654,7 +1654,7 @@
                           "name": "dd3t",
                           "fill": "$foreground",
                           "content": "All categories",
-                          "fontFamily": "Inter",
+                          "fontFamily": "Plus Jakarta Sans",
                           "fontSize": 13,
                           "fontWeight": "normal"
                         }
@@ -1676,7 +1676,7 @@
                       "name": "l4",
                       "fill": "$mutedForeground",
                       "content": "Min discount",
-                      "fontFamily": "Inter",
+                      "fontFamily": "Plus Jakarta Sans",
                       "fontSize": 12,
                       "fontWeight": "500"
                     },
@@ -1704,7 +1704,7 @@
                           "name": "dd4t",
                           "fill": "$foreground",
                           "content": "Any",
-                          "fontFamily": "Inter",
+                          "fontFamily": "Plus Jakarta Sans",
                           "fontSize": 13,
                           "fontWeight": "normal"
                         }
@@ -1754,7 +1754,7 @@
                           "name": "tbSt",
                           "fill": "$mutedForeground",
                           "content": "Search deals…",
-                          "fontFamily": "Inter",
+                          "fontFamily": "Plus Jakarta Sans",
                           "fontSize": 14,
                           "fontWeight": "normal"
                         }
@@ -1794,7 +1794,7 @@
                           "name": "tbFt",
                           "fill": "$foreground",
                           "content": "Filters",
-                          "fontFamily": "Inter",
+                          "fontFamily": "Plus Jakarta Sans",
                           "fontSize": 14,
                           "fontWeight": "500"
                         },
@@ -1816,7 +1816,7 @@
                               "name": "tbFbT",
                               "fill": "$primaryForeground",
                               "content": "2",
-                              "fontFamily": "Inter",
+                              "fontFamily": "Plus Jakarta Sans",
                               "fontSize": 11,
                               "fontWeight": "700"
                             }
@@ -1848,7 +1848,7 @@
                           "name": "tbSortT",
                           "fill": "$foreground",
                           "content": "Highest discount",
-                          "fontFamily": "Inter",
+                          "fontFamily": "Plus Jakarta Sans",
                           "fontSize": 13,
                           "fontWeight": "normal"
                         }
@@ -1882,7 +1882,7 @@
                           "name": "c1t",
                           "fill": "$foreground",
                           "content": "Store: WWC",
-                          "fontFamily": "Inter",
+                          "fontFamily": "Plus Jakarta Sans",
                           "fontSize": 12,
                           "fontWeight": "normal"
                         }
@@ -1907,7 +1907,7 @@
                           "name": "c2t",
                           "fill": "$foreground",
                           "content": "Category: Brakes",
-                          "fontFamily": "Inter",
+                          "fontFamily": "Plus Jakarta Sans",
                           "fontSize": 12,
                           "fontWeight": "normal"
                         }
@@ -1919,7 +1919,7 @@
                       "name": "clear",
                       "fill": "$mutedForeground",
                       "content": "Clear all",
-                      "fontFamily": "Inter",
+                      "fontFamily": "Plus Jakarta Sans",
                       "fontSize": 12,
                       "fontWeight": "500"
                     }
@@ -1931,7 +1931,7 @@
                   "name": "count",
                   "fill": "$mutedForeground",
                   "content": "24 deals found",
-                  "fontFamily": "Inter",
+                  "fontFamily": "Plus Jakarta Sans",
                   "fontSize": 13,
                   "fontWeight": "normal"
                 },
@@ -1961,7 +1961,7 @@
                       "name": "pgP",
                       "fill": "$mutedForeground",
                       "content": "‹ Prev",
-                      "fontFamily": "Inter",
+                      "fontFamily": "Plus Jakarta Sans",
                       "fontSize": 13,
                       "fontWeight": "normal"
                     },
@@ -1971,7 +1971,7 @@
                       "name": "pgN",
                       "fill": "$foreground",
                       "content": "1   2   3   …   8",
-                      "fontFamily": "Inter",
+                      "fontFamily": "Plus Jakarta Sans",
                       "fontSize": 13,
                       "fontWeight": "normal"
                     },
@@ -1981,7 +1981,7 @@
                       "name": "pgN2",
                       "fill": "$primary",
                       "content": "Next ›",
-                      "fontFamily": "Inter",
+                      "fontFamily": "Plus Jakarta Sans",
                       "fontSize": 13,
                       "fontWeight": "normal"
                     }
@@ -2038,7 +2038,7 @@
                                   "name": "discT",
                                   "fill": "#FFFFFF",
                                   "content": "28% off",
-                                  "fontFamily": "Inter",
+                                  "fontFamily": "Plus Jakarta Sans",
                                   "fontSize": 11,
                                   "fontWeight": "700"
                                 }
@@ -2064,7 +2064,7 @@
                                   "name": "storeT",
                                   "fill": "#FFFFFF",
                                   "content": "WWC",
-                                  "fontFamily": "Inter",
+                                  "fontFamily": "Plus Jakarta Sans",
                                   "fontSize": 11,
                                   "fontWeight": "600"
                                 }
@@ -2087,7 +2087,7 @@
                               "name": "dcBrand",
                               "fill": "$mutedForeground",
                               "content": "YETI",
-                              "fontFamily": "Inter",
+                              "fontFamily": "Plus Jakarta Sans",
                               "fontSize": 10,
                               "fontWeight": "600",
                               "letterSpacing": 1
@@ -2100,7 +2100,7 @@
                               "textGrowth": "fixed-width",
                               "width": "fill_container",
                               "content": "SB165 Turq — complete bike",
-                              "fontFamily": "Inter",
+                              "fontFamily": "Plus Jakarta Sans",
                               "fontSize": 15,
                               "fontWeight": "600"
                             },
@@ -2110,7 +2110,7 @@
                               "name": "dcCat",
                               "fill": "$mutedForeground",
                               "content": "Mountain Bikes",
-                              "fontFamily": "Inter",
+                              "fontFamily": "Plus Jakarta Sans",
                               "fontSize": 11,
                               "fontWeight": "normal"
                             },
@@ -2127,7 +2127,7 @@
                                   "name": "dcNow",
                                   "fill": "$foreground",
                                   "content": "$4,299.00",
-                                  "fontFamily": "Inter",
+                                  "fontFamily": "Plus Jakarta Sans",
                                   "fontSize": 18,
                                   "fontWeight": "700"
                                 },
@@ -2137,7 +2137,7 @@
                                   "name": "dcWas",
                                   "fill": "$mutedForeground",
                                   "content": "$5,999.00",
-                                  "fontFamily": "Inter",
+                                  "fontFamily": "Plus Jakarta Sans",
                                   "fontSize": 13,
                                   "fontWeight": "normal"
                                 }
@@ -2160,7 +2160,7 @@
                                   "name": "dcBtnT",
                                   "fill": "$primaryForeground",
                                   "content": "Snag the Deal",
-                                  "fontFamily": "Inter",
+                                  "fontFamily": "Plus Jakarta Sans",
                                   "fontSize": 14,
                                   "fontWeight": "600"
                                 }
@@ -2214,7 +2214,7 @@
                                   "name": "discT",
                                   "fill": "#FFFFFF",
                                   "content": "28% off",
-                                  "fontFamily": "Inter",
+                                  "fontFamily": "Plus Jakarta Sans",
                                   "fontSize": 11,
                                   "fontWeight": "700"
                                 }
@@ -2240,7 +2240,7 @@
                                   "name": "storeT",
                                   "fill": "#FFFFFF",
                                   "content": "WWC",
-                                  "fontFamily": "Inter",
+                                  "fontFamily": "Plus Jakarta Sans",
                                   "fontSize": 11,
                                   "fontWeight": "600"
                                 }
@@ -2263,7 +2263,7 @@
                               "name": "dcBrand",
                               "fill": "$mutedForeground",
                               "content": "YETI",
-                              "fontFamily": "Inter",
+                              "fontFamily": "Plus Jakarta Sans",
                               "fontSize": 10,
                               "fontWeight": "600",
                               "letterSpacing": 1
@@ -2276,7 +2276,7 @@
                               "textGrowth": "fixed-width",
                               "width": "fill_container",
                               "content": "SB165 Turq — complete bike",
-                              "fontFamily": "Inter",
+                              "fontFamily": "Plus Jakarta Sans",
                               "fontSize": 15,
                               "fontWeight": "600"
                             },
@@ -2286,7 +2286,7 @@
                               "name": "dcCat",
                               "fill": "$mutedForeground",
                               "content": "Mountain Bikes",
-                              "fontFamily": "Inter",
+                              "fontFamily": "Plus Jakarta Sans",
                               "fontSize": 11,
                               "fontWeight": "normal"
                             },
@@ -2303,7 +2303,7 @@
                                   "name": "dcNow",
                                   "fill": "$foreground",
                                   "content": "$4,299.00",
-                                  "fontFamily": "Inter",
+                                  "fontFamily": "Plus Jakarta Sans",
                                   "fontSize": 18,
                                   "fontWeight": "700"
                                 },
@@ -2313,7 +2313,7 @@
                                   "name": "dcWas",
                                   "fill": "$mutedForeground",
                                   "content": "$5,999.00",
-                                  "fontFamily": "Inter",
+                                  "fontFamily": "Plus Jakarta Sans",
                                   "fontSize": 13,
                                   "fontWeight": "normal"
                                 }
@@ -2336,7 +2336,7 @@
                                   "name": "dcBtnT",
                                   "fill": "$primaryForeground",
                                   "content": "Snag the Deal",
-                                  "fontFamily": "Inter",
+                                  "fontFamily": "Plus Jakarta Sans",
                                   "fontSize": 14,
                                   "fontWeight": "600"
                                 }
@@ -2374,7 +2374,7 @@
                       "name": "pg2P",
                       "fill": "$mutedForeground",
                       "content": "‹ Prev",
-                      "fontFamily": "Inter",
+                      "fontFamily": "Plus Jakarta Sans",
                       "fontSize": 13,
                       "fontWeight": "normal"
                     },
@@ -2384,7 +2384,7 @@
                       "name": "pg2N",
                       "fill": "$foreground",
                       "content": "1   2   3   …   8",
-                      "fontFamily": "Inter",
+                      "fontFamily": "Plus Jakarta Sans",
                       "fontSize": 13,
                       "fontWeight": "normal"
                     },
@@ -2394,7 +2394,7 @@
                       "name": "pg2N2",
                       "fill": "$primary",
                       "content": "Next ›",
-                      "fontFamily": "Inter",
+                      "fontFamily": "Plus Jakarta Sans",
                       "fontSize": 13,
                       "fontWeight": "normal"
                     }
@@ -2446,7 +2446,7 @@
               "name": "brand",
               "fill": "$foreground",
               "content": "THE DROPPER",
-              "fontFamily": "Oswald",
+              "fontFamily": "Bricolage Grotesque",
               "fontSize": 32,
               "fontWeight": "700"
             },
@@ -2473,7 +2473,7 @@
                   "name": "navHome",
                   "fill": "$mutedForeground",
                   "content": "Home",
-                  "fontFamily": "Inter",
+                  "fontFamily": "Plus Jakarta Sans",
                   "fontSize": 15,
                   "fontWeight": "500"
                 },
@@ -2483,7 +2483,7 @@
                   "name": "navDeals",
                   "fill": "$foreground",
                   "content": "Deals",
-                  "fontFamily": "Inter",
+                  "fontFamily": "Plus Jakarta Sans",
                   "fontSize": 15,
                   "fontWeight": "600"
                 }
@@ -2505,7 +2505,7 @@
               "name": "dBack",
               "fill": "$mutedForeground",
               "content": "← Back to deals",
-              "fontFamily": "Inter",
+              "fontFamily": "Plus Jakarta Sans",
               "fontSize": 13,
               "fontWeight": "normal"
             },
@@ -2572,7 +2572,7 @@
                               "name": "dBr",
                               "fill": "$mutedForeground",
                               "content": "YETI",
-                              "fontFamily": "Inter",
+                              "fontFamily": "Plus Jakarta Sans",
                               "fontSize": 10,
                               "fontWeight": "600",
                               "letterSpacing": 1
@@ -2585,7 +2585,7 @@
                               "textGrowth": "fixed-width",
                               "width": "fill_container",
                               "content": "SB165 Turq — complete bike",
-                              "fontFamily": "Inter",
+                              "fontFamily": "Plus Jakarta Sans",
                               "fontSize": 20,
                               "fontWeight": "600"
                             },
@@ -2595,7 +2595,7 @@
                               "name": "dSt",
                               "fill": "$mutedForeground",
                               "content": "Worldwide Cyclery",
-                              "fontFamily": "Inter",
+                              "fontFamily": "Plus Jakarta Sans",
                               "fontSize": 13,
                               "fontWeight": "normal"
                             },
@@ -2612,7 +2612,7 @@
                                   "name": "dNow",
                                   "fill": "$foreground",
                                   "content": "$4,299.00",
-                                  "fontFamily": "Inter",
+                                  "fontFamily": "Plus Jakarta Sans",
                                   "fontSize": 28,
                                   "fontWeight": "700"
                                 },
@@ -2622,7 +2622,7 @@
                                   "name": "dWas",
                                   "fill": "$mutedForeground",
                                   "content": "$5,999.00",
-                                  "fontFamily": "Inter",
+                                  "fontFamily": "Plus Jakarta Sans",
                                   "fontSize": 16,
                                   "fontWeight": "normal"
                                 },
@@ -2644,7 +2644,7 @@
                                       "name": "dPillT",
                                       "fill": "#991B1B",
                                       "content": "28% off",
-                                      "fontFamily": "Inter",
+                                      "fontFamily": "Plus Jakarta Sans",
                                       "fontSize": 13,
                                       "fontWeight": "600"
                                     }
@@ -2668,7 +2668,7 @@
                                       "name": "dPill2T",
                                       "fill": "#065F46",
                                       "content": "Price dropped",
-                                      "fontFamily": "Inter",
+                                      "fontFamily": "Plus Jakarta Sans",
                                       "fontSize": 13,
                                       "fontWeight": "600"
                                     }
@@ -2695,7 +2695,7 @@
                                   "name": "dBtnT",
                                   "fill": "$primaryForeground",
                                   "content": "Snag the Deal",
-                                  "fontFamily": "Inter",
+                                  "fontFamily": "Plus Jakarta Sans",
                                   "fontSize": 14,
                                   "fontWeight": "600"
                                 }
@@ -2719,7 +2719,7 @@
                           "name": "phH",
                           "fill": "$foreground",
                           "content": "Price history",
-                          "fontFamily": "Inter",
+                          "fontFamily": "Plus Jakarta Sans",
                           "fontSize": 15,
                           "fontWeight": "600"
                         },
@@ -2736,7 +2736,7 @@
                               "name": "st1",
                               "fill": "$mutedForeground",
                               "content": "Lowest:  $4,199",
-                              "fontFamily": "Inter",
+                              "fontFamily": "Plus Jakarta Sans",
                               "fontSize": 13,
                               "fontWeight": "normal"
                             },
@@ -2746,7 +2746,7 @@
                               "name": "st2",
                               "fill": "$mutedForeground",
                               "content": "Highest:  $5,999",
-                              "fontFamily": "Inter",
+                              "fontFamily": "Plus Jakarta Sans",
                               "fontSize": 13,
                               "fontWeight": "normal"
                             },
@@ -2756,7 +2756,7 @@
                               "name": "st3",
                               "fill": "$mutedForeground",
                               "content": "Average:  $4,892",
-                              "fontFamily": "Inter",
+                              "fontFamily": "Plus Jakarta Sans",
                               "fontSize": 13,
                               "fontWeight": "normal"
                             }
@@ -2784,7 +2784,7 @@
                               "name": "chartNote",
                               "fill": "$mutedForeground",
                               "content": "Recharts line chart (stroke = foreground)",
-                              "fontFamily": "Inter",
+                              "fontFamily": "Plus Jakarta Sans",
                               "fontSize": 12,
                               "fontWeight": "normal"
                             }
@@ -2838,7 +2838,7 @@
               "name": "brand",
               "fill": "$foreground",
               "content": "THE DROPPER",
-              "fontFamily": "Oswald",
+              "fontFamily": "Bricolage Grotesque",
               "fontSize": 32,
               "fontWeight": "700"
             },
@@ -2865,7 +2865,7 @@
                   "name": "navHome",
                   "fill": "$foreground",
                   "content": "Home",
-                  "fontFamily": "Inter",
+                  "fontFamily": "Plus Jakarta Sans",
                   "fontSize": 15,
                   "fontWeight": "600"
                 },
@@ -2875,7 +2875,7 @@
                   "name": "navDeals",
                   "fill": "$mutedForeground",
                   "content": "Deals",
-                  "fontFamily": "Inter",
+                  "fontFamily": "Plus Jakarta Sans",
                   "fontSize": 15,
                   "fontWeight": "500"
                 }
@@ -2904,7 +2904,7 @@
               "name": "h1",
               "fill": "$foreground",
               "content": "Dialed-in deals.",
-              "fontFamily": "Oswald",
+              "fontFamily": "Bricolage Grotesque",
               "fontSize": 44,
               "fontWeight": "700"
             },
@@ -2914,7 +2914,7 @@
               "name": "sub",
               "fill": "$mutedForeground",
               "content": "We scanned 50+ shops so you didn't have to.",
-              "fontFamily": "Inter",
+              "fontFamily": "Plus Jakarta Sans",
               "fontSize": 18,
               "fontWeight": "normal"
             },
@@ -2951,7 +2951,7 @@
                       "name": "ph",
                       "fill": "$mutedForeground",
                       "content": "Search deals…",
-                      "fontFamily": "Inter",
+                      "fontFamily": "Plus Jakarta Sans",
                       "fontSize": 15,
                       "fontWeight": "normal"
                     }
@@ -2977,7 +2977,7 @@
                       "name": "searchBtnLbl",
                       "fill": "$primaryForeground",
                       "content": "Search",
-                      "fontFamily": "Inter",
+                      "fontFamily": "Plus Jakarta Sans",
                       "fontSize": 15,
                       "fontWeight": "600"
                     }
@@ -3007,7 +3007,7 @@
               "name": "h2Cat",
               "fill": "$foreground",
               "content": "Shop by category",
-              "fontFamily": "Oswald",
+              "fontFamily": "Bricolage Grotesque",
               "fontSize": 20,
               "fontWeight": "600"
             },
@@ -3059,7 +3059,7 @@
                           "name": "t1",
                           "fill": "$foreground",
                           "content": "Bikes",
-                          "fontFamily": "Inter",
+                          "fontFamily": "Plus Jakarta Sans",
                           "fontSize": 18,
                           "fontWeight": "600"
                         }
@@ -3084,7 +3084,7 @@
                           "name": "l1",
                           "fill": "$mutedForeground",
                           "content": "View deals  ›",
-                          "fontFamily": "Inter",
+                          "fontFamily": "Plus Jakarta Sans",
                           "fontSize": 13,
                           "fontWeight": "500"
                         }
@@ -3133,7 +3133,7 @@
                           "name": "t2",
                           "fill": "$foreground",
                           "content": "Components",
-                          "fontFamily": "Inter",
+                          "fontFamily": "Plus Jakarta Sans",
                           "fontSize": 18,
                           "fontWeight": "600"
                         }
@@ -3158,7 +3158,7 @@
                           "name": "l2",
                           "fill": "$mutedForeground",
                           "content": "View deals  ›",
-                          "fontFamily": "Inter",
+                          "fontFamily": "Plus Jakarta Sans",
                           "fontSize": 13,
                           "fontWeight": "500"
                         }
@@ -3207,7 +3207,7 @@
                           "name": "t3",
                           "fill": "$foreground",
                           "content": "Gear",
-                          "fontFamily": "Inter",
+                          "fontFamily": "Plus Jakarta Sans",
                           "fontSize": 18,
                           "fontWeight": "600"
                         }
@@ -3232,7 +3232,7 @@
                           "name": "l3",
                           "fill": "$mutedForeground",
                           "content": "View deals  ›",
-                          "fontFamily": "Inter",
+                          "fontFamily": "Plus Jakarta Sans",
                           "fontSize": 13,
                           "fontWeight": "500"
                         }
@@ -3281,7 +3281,7 @@
                           "name": "t4",
                           "fill": "$foreground",
                           "content": "Accessories",
-                          "fontFamily": "Inter",
+                          "fontFamily": "Plus Jakarta Sans",
                           "fontSize": 18,
                           "fontWeight": "600"
                         }
@@ -3306,7 +3306,7 @@
                           "name": "l4",
                           "fill": "$mutedForeground",
                           "content": "View deals  ›",
-                          "fontFamily": "Inter",
+                          "fontFamily": "Plus Jakarta Sans",
                           "fontSize": 13,
                           "fontWeight": "500"
                         }
@@ -3364,7 +3364,7 @@
                           "name": "dt1",
                           "fill": "$foreground",
                           "content": "E-Bikes",
-                          "fontFamily": "Inter",
+                          "fontFamily": "Plus Jakarta Sans",
                           "fontSize": 18,
                           "fontWeight": "600"
                         }
@@ -3389,7 +3389,7 @@
                           "name": "dl1",
                           "fill": "$mutedForeground",
                           "content": "View deals  ›",
-                          "fontFamily": "Inter",
+                          "fontFamily": "Plus Jakarta Sans",
                           "fontSize": 13,
                           "fontWeight": "500"
                         }
@@ -3438,7 +3438,7 @@
                           "name": "dt2",
                           "fill": "$foreground",
                           "content": "Mountain Bikes",
-                          "fontFamily": "Inter",
+                          "fontFamily": "Plus Jakarta Sans",
                           "fontSize": 18,
                           "fontWeight": "600"
                         }
@@ -3463,7 +3463,7 @@
                           "name": "dl2",
                           "fill": "$mutedForeground",
                           "content": "View deals  ›",
-                          "fontFamily": "Inter",
+                          "fontFamily": "Plus Jakarta Sans",
                           "fontSize": 13,
                           "fontWeight": "500"
                         }
@@ -3512,7 +3512,7 @@
                           "name": "dt3",
                           "fill": "$foreground",
                           "content": "Shoes",
-                          "fontFamily": "Inter",
+                          "fontFamily": "Plus Jakarta Sans",
                           "fontSize": 18,
                           "fontWeight": "600"
                         }
@@ -3537,7 +3537,7 @@
                           "name": "dl3",
                           "fill": "$mutedForeground",
                           "content": "View deals  ›",
-                          "fontFamily": "Inter",
+                          "fontFamily": "Plus Jakarta Sans",
                           "fontSize": 13,
                           "fontWeight": "500"
                         }
@@ -3586,7 +3586,7 @@
                           "name": "dt4",
                           "fill": "$foreground",
                           "content": "Helmets",
-                          "fontFamily": "Inter",
+                          "fontFamily": "Plus Jakarta Sans",
                           "fontSize": 18,
                           "fontWeight": "600"
                         }
@@ -3611,7 +3611,7 @@
                           "name": "dl4",
                           "fill": "$mutedForeground",
                           "content": "View deals  ›",
-                          "fontFamily": "Inter",
+                          "fontFamily": "Plus Jakarta Sans",
                           "fontSize": 13,
                           "fontWeight": "500"
                         }
@@ -3645,7 +3645,7 @@
                   "name": "dealsH2",
                   "fill": "$foreground",
                   "content": "Top deals of the day",
-                  "fontFamily": "Oswald",
+                  "fontFamily": "Bricolage Grotesque",
                   "fontSize": 20,
                   "fontWeight": "600"
                 },
@@ -3655,7 +3655,7 @@
                   "name": "dealsLink",
                   "fill": "$mutedForeground",
                   "content": "View all deals",
-                  "fontFamily": "Inter",
+                  "fontFamily": "Plus Jakarta Sans",
                   "fontSize": 13,
                   "fontWeight": "500"
                 }
@@ -3712,7 +3712,7 @@
                               "name": "discT",
                               "fill": "#FFFFFF",
                               "content": "28% off",
-                              "fontFamily": "Inter",
+                              "fontFamily": "Plus Jakarta Sans",
                               "fontSize": 11,
                               "fontWeight": "700"
                             }
@@ -3738,7 +3738,7 @@
                               "name": "storeT",
                               "fill": "#FFFFFF",
                               "content": "WWC",
-                              "fontFamily": "Inter",
+                              "fontFamily": "Plus Jakarta Sans",
                               "fontSize": 11,
                               "fontWeight": "600"
                             }
@@ -3761,7 +3761,7 @@
                           "name": "dcBrand",
                           "fill": "$mutedForeground",
                           "content": "YETI",
-                          "fontFamily": "Inter",
+                          "fontFamily": "Plus Jakarta Sans",
                           "fontSize": 10,
                           "fontWeight": "600",
                           "letterSpacing": 1
@@ -3774,7 +3774,7 @@
                           "textGrowth": "fixed-width",
                           "width": "fill_container",
                           "content": "SB165 Turq — complete bike",
-                          "fontFamily": "Inter",
+                          "fontFamily": "Plus Jakarta Sans",
                           "fontSize": 15,
                           "fontWeight": "600"
                         },
@@ -3784,7 +3784,7 @@
                           "name": "dcCat",
                           "fill": "$mutedForeground",
                           "content": "Mountain Bikes",
-                          "fontFamily": "Inter",
+                          "fontFamily": "Plus Jakarta Sans",
                           "fontSize": 11,
                           "fontWeight": "normal"
                         },
@@ -3801,7 +3801,7 @@
                               "name": "dcNow",
                               "fill": "$foreground",
                               "content": "$4,299.00",
-                              "fontFamily": "Inter",
+                              "fontFamily": "Plus Jakarta Sans",
                               "fontSize": 18,
                               "fontWeight": "700"
                             },
@@ -3811,7 +3811,7 @@
                               "name": "dcWas",
                               "fill": "$mutedForeground",
                               "content": "$5,999.00",
-                              "fontFamily": "Inter",
+                              "fontFamily": "Plus Jakarta Sans",
                               "fontSize": 13,
                               "fontWeight": "normal"
                             }
@@ -3834,7 +3834,7 @@
                               "name": "dcBtnT",
                               "fill": "$primaryForeground",
                               "content": "Snag the Deal",
-                              "fontFamily": "Inter",
+                              "fontFamily": "Plus Jakarta Sans",
                               "fontSize": 14,
                               "fontWeight": "600"
                             }
@@ -3888,7 +3888,7 @@
                               "name": "d2dT",
                               "fill": "#FFFFFF",
                               "content": "15% off",
-                              "fontFamily": "Inter",
+                              "fontFamily": "Plus Jakarta Sans",
                               "fontSize": 11,
                               "fontWeight": "700"
                             }
@@ -3914,7 +3914,7 @@
                               "name": "d2sT",
                               "fill": "#FFFFFF",
                               "content": "Revel",
-                              "fontFamily": "Inter",
+                              "fontFamily": "Plus Jakarta Sans",
                               "fontSize": 11,
                               "fontWeight": "600"
                             }
@@ -3937,7 +3937,7 @@
                           "name": "d2Br",
                           "fill": "$mutedForeground",
                           "content": "SHIMANO",
-                          "fontFamily": "Inter",
+                          "fontFamily": "Plus Jakarta Sans",
                           "fontSize": 10,
                           "fontWeight": "600",
                           "letterSpacing": 1
@@ -3950,7 +3950,7 @@
                           "textGrowth": "fixed-width",
                           "width": "fill_container",
                           "content": "XT M8100 12-speed cassette",
-                          "fontFamily": "Inter",
+                          "fontFamily": "Plus Jakarta Sans",
                           "fontSize": 15,
                           "fontWeight": "600"
                         },
@@ -3960,7 +3960,7 @@
                           "name": "d2Ca",
                           "fill": "$mutedForeground",
                           "content": "Components",
-                          "fontFamily": "Inter",
+                          "fontFamily": "Plus Jakarta Sans",
                           "fontSize": 11,
                           "fontWeight": "normal"
                         },
@@ -3977,7 +3977,7 @@
                               "name": "d2N",
                               "fill": "$foreground",
                               "content": "$89.00",
-                              "fontFamily": "Inter",
+                              "fontFamily": "Plus Jakarta Sans",
                               "fontSize": 18,
                               "fontWeight": "700"
                             },
@@ -3987,7 +3987,7 @@
                               "name": "d2W",
                               "fill": "$mutedForeground",
                               "content": "$105.00",
-                              "fontFamily": "Inter",
+                              "fontFamily": "Plus Jakarta Sans",
                               "fontSize": 13,
                               "fontWeight": "normal"
                             }
@@ -4010,7 +4010,7 @@
                               "name": "d2BtT",
                               "fill": "$primaryForeground",
                               "content": "Snag the Deal",
-                              "fontFamily": "Inter",
+                              "fontFamily": "Plus Jakarta Sans",
                               "fontSize": 14,
                               "fontWeight": "600"
                             }
@@ -4064,7 +4064,7 @@
                               "name": "d3dT",
                               "fill": "#FFFFFF",
                               "content": "22% off",
-                              "fontFamily": "Inter",
+                              "fontFamily": "Plus Jakarta Sans",
                               "fontSize": 11,
                               "fontWeight": "700"
                             }
@@ -4090,7 +4090,7 @@
                               "name": "d3sT",
                               "fill": "#FFFFFF",
                               "content": "Jenson",
-                              "fontFamily": "Inter",
+                              "fontFamily": "Plus Jakarta Sans",
                               "fontSize": 11,
                               "fontWeight": "600"
                             }
@@ -4113,7 +4113,7 @@
                           "name": "d3Br",
                           "fill": "$mutedForeground",
                           "content": "FOX",
-                          "fontFamily": "Inter",
+                          "fontFamily": "Plus Jakarta Sans",
                           "fontSize": 10,
                           "fontWeight": "600",
                           "letterSpacing": 1
@@ -4126,7 +4126,7 @@
                           "textGrowth": "fixed-width",
                           "width": "fill_container",
                           "content": "36 Float Factory fork",
-                          "fontFamily": "Inter",
+                          "fontFamily": "Plus Jakarta Sans",
                           "fontSize": 15,
                           "fontWeight": "600"
                         },
@@ -4136,7 +4136,7 @@
                           "name": "d3Ca",
                           "fill": "$mutedForeground",
                           "content": "Suspension",
-                          "fontFamily": "Inter",
+                          "fontFamily": "Plus Jakarta Sans",
                           "fontSize": 11,
                           "fontWeight": "normal"
                         },
@@ -4153,7 +4153,7 @@
                               "name": "d3N",
                               "fill": "$foreground",
                               "content": "$749.00",
-                              "fontFamily": "Inter",
+                              "fontFamily": "Plus Jakarta Sans",
                               "fontSize": 18,
                               "fontWeight": "700"
                             },
@@ -4163,7 +4163,7 @@
                               "name": "d3W",
                               "fill": "$mutedForeground",
                               "content": "$959.00",
-                              "fontFamily": "Inter",
+                              "fontFamily": "Plus Jakarta Sans",
                               "fontSize": 13,
                               "fontWeight": "normal"
                             }
@@ -4186,7 +4186,7 @@
                               "name": "d3BtT",
                               "fill": "$primaryForeground",
                               "content": "Snag the Deal",
-                              "fontFamily": "Inter",
+                              "fontFamily": "Plus Jakarta Sans",
                               "fontSize": 14,
                               "fontWeight": "600"
                             }
@@ -4242,7 +4242,7 @@
               "name": "brand",
               "fill": "$foreground",
               "content": "THE DROPPER",
-              "fontFamily": "Oswald",
+              "fontFamily": "Bricolage Grotesque",
               "fontSize": 32,
               "fontWeight": "700"
             },
@@ -4269,7 +4269,7 @@
                   "name": "navHome",
                   "fill": "$mutedForeground",
                   "content": "Home",
-                  "fontFamily": "Inter",
+                  "fontFamily": "Plus Jakarta Sans",
                   "fontSize": 15,
                   "fontWeight": "500"
                 },
@@ -4279,7 +4279,7 @@
                   "name": "navDeals",
                   "fill": "$foreground",
                   "content": "Deals",
-                  "fontFamily": "Inter",
+                  "fontFamily": "Plus Jakarta Sans",
                   "fontSize": 15,
                   "fontWeight": "600"
                 }
@@ -4301,7 +4301,7 @@
               "name": "dBack",
               "fill": "$mutedForeground",
               "content": "← Back to deals",
-              "fontFamily": "Inter",
+              "fontFamily": "Plus Jakarta Sans",
               "fontSize": 13,
               "fontWeight": "normal"
             },
@@ -4368,7 +4368,7 @@
                               "name": "dBr",
                               "fill": "$mutedForeground",
                               "content": "YETI",
-                              "fontFamily": "Inter",
+                              "fontFamily": "Plus Jakarta Sans",
                               "fontSize": 10,
                               "fontWeight": "600",
                               "letterSpacing": 1
@@ -4381,7 +4381,7 @@
                               "textGrowth": "fixed-width",
                               "width": "fill_container",
                               "content": "SB165 Turq — complete bike",
-                              "fontFamily": "Inter",
+                              "fontFamily": "Plus Jakarta Sans",
                               "fontSize": 20,
                               "fontWeight": "600"
                             },
@@ -4391,7 +4391,7 @@
                               "name": "dSt",
                               "fill": "$mutedForeground",
                               "content": "Worldwide Cyclery",
-                              "fontFamily": "Inter",
+                              "fontFamily": "Plus Jakarta Sans",
                               "fontSize": 13,
                               "fontWeight": "normal"
                             },
@@ -4408,7 +4408,7 @@
                                   "name": "dNow",
                                   "fill": "$foreground",
                                   "content": "$4,299.00",
-                                  "fontFamily": "Inter",
+                                  "fontFamily": "Plus Jakarta Sans",
                                   "fontSize": 28,
                                   "fontWeight": "700"
                                 },
@@ -4418,7 +4418,7 @@
                                   "name": "dWas",
                                   "fill": "$mutedForeground",
                                   "content": "$5,999.00",
-                                  "fontFamily": "Inter",
+                                  "fontFamily": "Plus Jakarta Sans",
                                   "fontSize": 16,
                                   "fontWeight": "normal"
                                 },
@@ -4440,7 +4440,7 @@
                                       "name": "dPillT",
                                       "fill": "#F87171",
                                       "content": "28% off",
-                                      "fontFamily": "Inter",
+                                      "fontFamily": "Plus Jakarta Sans",
                                       "fontSize": 13,
                                       "fontWeight": "600"
                                     }
@@ -4464,7 +4464,7 @@
                                       "name": "dPill2T",
                                       "fill": "#34D399",
                                       "content": "Price dropped",
-                                      "fontFamily": "Inter",
+                                      "fontFamily": "Plus Jakarta Sans",
                                       "fontSize": 13,
                                       "fontWeight": "600"
                                     }
@@ -4491,7 +4491,7 @@
                                   "name": "dBtnT",
                                   "fill": "$primaryForeground",
                                   "content": "Snag the Deal",
-                                  "fontFamily": "Inter",
+                                  "fontFamily": "Plus Jakarta Sans",
                                   "fontSize": 14,
                                   "fontWeight": "600"
                                 }
@@ -4515,7 +4515,7 @@
                           "name": "phH",
                           "fill": "$foreground",
                           "content": "Price history",
-                          "fontFamily": "Inter",
+                          "fontFamily": "Plus Jakarta Sans",
                           "fontSize": 15,
                           "fontWeight": "600"
                         },
@@ -4532,7 +4532,7 @@
                               "name": "st1",
                               "fill": "$mutedForeground",
                               "content": "Lowest:  $4,199",
-                              "fontFamily": "Inter",
+                              "fontFamily": "Plus Jakarta Sans",
                               "fontSize": 13,
                               "fontWeight": "normal"
                             },
@@ -4542,7 +4542,7 @@
                               "name": "st2",
                               "fill": "$mutedForeground",
                               "content": "Highest:  $5,999",
-                              "fontFamily": "Inter",
+                              "fontFamily": "Plus Jakarta Sans",
                               "fontSize": 13,
                               "fontWeight": "normal"
                             },
@@ -4552,7 +4552,7 @@
                               "name": "st3",
                               "fill": "$mutedForeground",
                               "content": "Average:  $4,892",
-                              "fontFamily": "Inter",
+                              "fontFamily": "Plus Jakarta Sans",
                               "fontSize": 13,
                               "fontWeight": "normal"
                             }
@@ -4580,7 +4580,7 @@
                               "name": "chartNote",
                               "fill": "$mutedForeground",
                               "content": "Recharts line chart (stroke = foreground)",
-                              "fontFamily": "Inter",
+                              "fontFamily": "Plus Jakarta Sans",
                               "fontSize": 12,
                               "fontWeight": "normal"
                             }
@@ -4635,7 +4635,7 @@
               "name": "brand",
               "fill": "$foreground",
               "content": "THE DROPPER",
-              "fontFamily": "Oswald",
+              "fontFamily": "Bricolage Grotesque",
               "fontSize": 32,
               "fontWeight": "700"
             },
@@ -4662,7 +4662,7 @@
                   "name": "navHome",
                   "fill": "$mutedForeground",
                   "content": "Home",
-                  "fontFamily": "Inter",
+                  "fontFamily": "Plus Jakarta Sans",
                   "fontSize": 15,
                   "fontWeight": "500"
                 },
@@ -4672,7 +4672,7 @@
                   "name": "navDeals",
                   "fill": "$foreground",
                   "content": "Deals",
-                  "fontFamily": "Inter",
+                  "fontFamily": "Plus Jakarta Sans",
                   "fontSize": 15,
                   "fontWeight": "600"
                 }
@@ -4701,7 +4701,7 @@
                   "name": "sideTitle",
                   "fill": "$foreground",
                   "content": "Filters",
-                  "fontFamily": "Inter",
+                  "fontFamily": "Plus Jakarta Sans",
                   "fontSize": 14,
                   "fontWeight": "600"
                 },
@@ -4719,7 +4719,7 @@
                       "name": "l1",
                       "fill": "$mutedForeground",
                       "content": "Store",
-                      "fontFamily": "Inter",
+                      "fontFamily": "Plus Jakarta Sans",
                       "fontSize": 12,
                       "fontWeight": "500"
                     },
@@ -4747,7 +4747,7 @@
                           "name": "dd1t",
                           "fill": "$foreground",
                           "content": "All stores",
-                          "fontFamily": "Inter",
+                          "fontFamily": "Plus Jakarta Sans",
                           "fontSize": 13,
                           "fontWeight": "normal"
                         }
@@ -4769,7 +4769,7 @@
                       "name": "l2",
                       "fill": "$mutedForeground",
                       "content": "Brand",
-                      "fontFamily": "Inter",
+                      "fontFamily": "Plus Jakarta Sans",
                       "fontSize": 12,
                       "fontWeight": "500"
                     },
@@ -4797,7 +4797,7 @@
                           "name": "dd2t",
                           "fill": "$foreground",
                           "content": "Any brand",
-                          "fontFamily": "Inter",
+                          "fontFamily": "Plus Jakarta Sans",
                           "fontSize": 13,
                           "fontWeight": "normal"
                         }
@@ -4819,7 +4819,7 @@
                       "name": "l3",
                       "fill": "$mutedForeground",
                       "content": "Category",
-                      "fontFamily": "Inter",
+                      "fontFamily": "Plus Jakarta Sans",
                       "fontSize": 12,
                       "fontWeight": "500"
                     },
@@ -4847,7 +4847,7 @@
                           "name": "dd3t",
                           "fill": "$foreground",
                           "content": "All categories",
-                          "fontFamily": "Inter",
+                          "fontFamily": "Plus Jakarta Sans",
                           "fontSize": 13,
                           "fontWeight": "normal"
                         }
@@ -4869,7 +4869,7 @@
                       "name": "l4",
                       "fill": "$mutedForeground",
                       "content": "Min discount",
-                      "fontFamily": "Inter",
+                      "fontFamily": "Plus Jakarta Sans",
                       "fontSize": 12,
                       "fontWeight": "500"
                     },
@@ -4897,7 +4897,7 @@
                           "name": "dd4t",
                           "fill": "$foreground",
                           "content": "Any",
-                          "fontFamily": "Inter",
+                          "fontFamily": "Plus Jakarta Sans",
                           "fontSize": 13,
                           "fontWeight": "normal"
                         }
@@ -4947,7 +4947,7 @@
                           "name": "tbSt",
                           "fill": "$mutedForeground",
                           "content": "Search deals…",
-                          "fontFamily": "Inter",
+                          "fontFamily": "Plus Jakarta Sans",
                           "fontSize": 14,
                           "fontWeight": "normal"
                         }
@@ -4987,7 +4987,7 @@
                           "name": "tbFt",
                           "fill": "$foreground",
                           "content": "Filters",
-                          "fontFamily": "Inter",
+                          "fontFamily": "Plus Jakarta Sans",
                           "fontSize": 14,
                           "fontWeight": "500"
                         },
@@ -5009,7 +5009,7 @@
                               "name": "tbFbT",
                               "fill": "$primaryForeground",
                               "content": "2",
-                              "fontFamily": "Inter",
+                              "fontFamily": "Plus Jakarta Sans",
                               "fontSize": 11,
                               "fontWeight": "700"
                             }
@@ -5041,7 +5041,7 @@
                           "name": "tbSortT",
                           "fill": "$foreground",
                           "content": "Highest discount",
-                          "fontFamily": "Inter",
+                          "fontFamily": "Plus Jakarta Sans",
                           "fontSize": 13,
                           "fontWeight": "normal"
                         }
@@ -5075,7 +5075,7 @@
                           "name": "c1t",
                           "fill": "$foreground",
                           "content": "Store: WWC",
-                          "fontFamily": "Inter",
+                          "fontFamily": "Plus Jakarta Sans",
                           "fontSize": 12,
                           "fontWeight": "normal"
                         }
@@ -5100,7 +5100,7 @@
                           "name": "c2t",
                           "fill": "$foreground",
                           "content": "Category: Brakes",
-                          "fontFamily": "Inter",
+                          "fontFamily": "Plus Jakarta Sans",
                           "fontSize": 12,
                           "fontWeight": "normal"
                         }
@@ -5112,7 +5112,7 @@
                       "name": "clear",
                       "fill": "$mutedForeground",
                       "content": "Clear all",
-                      "fontFamily": "Inter",
+                      "fontFamily": "Plus Jakarta Sans",
                       "fontSize": 12,
                       "fontWeight": "500"
                     }
@@ -5124,7 +5124,7 @@
                   "name": "count",
                   "fill": "$mutedForeground",
                   "content": "24 deals found",
-                  "fontFamily": "Inter",
+                  "fontFamily": "Plus Jakarta Sans",
                   "fontSize": 13,
                   "fontWeight": "normal"
                 },
@@ -5154,7 +5154,7 @@
                       "name": "pgP",
                       "fill": "$mutedForeground",
                       "content": "‹ Prev",
-                      "fontFamily": "Inter",
+                      "fontFamily": "Plus Jakarta Sans",
                       "fontSize": 13,
                       "fontWeight": "normal"
                     },
@@ -5164,7 +5164,7 @@
                       "name": "pgN",
                       "fill": "$foreground",
                       "content": "1   2   3   …   8",
-                      "fontFamily": "Inter",
+                      "fontFamily": "Plus Jakarta Sans",
                       "fontSize": 13,
                       "fontWeight": "normal"
                     },
@@ -5174,7 +5174,7 @@
                       "name": "pgN2",
                       "fill": "$primary",
                       "content": "Next ›",
-                      "fontFamily": "Inter",
+                      "fontFamily": "Plus Jakarta Sans",
                       "fontSize": 13,
                       "fontWeight": "normal"
                     }
@@ -5231,7 +5231,7 @@
                                   "name": "discT",
                                   "fill": "#FFFFFF",
                                   "content": "28% off",
-                                  "fontFamily": "Inter",
+                                  "fontFamily": "Plus Jakarta Sans",
                                   "fontSize": 11,
                                   "fontWeight": "700"
                                 }
@@ -5257,7 +5257,7 @@
                                   "name": "storeT",
                                   "fill": "#FFFFFF",
                                   "content": "WWC",
-                                  "fontFamily": "Inter",
+                                  "fontFamily": "Plus Jakarta Sans",
                                   "fontSize": 11,
                                   "fontWeight": "600"
                                 }
@@ -5280,7 +5280,7 @@
                               "name": "dcBrand",
                               "fill": "$mutedForeground",
                               "content": "YETI",
-                              "fontFamily": "Inter",
+                              "fontFamily": "Plus Jakarta Sans",
                               "fontSize": 10,
                               "fontWeight": "600",
                               "letterSpacing": 1
@@ -5293,7 +5293,7 @@
                               "textGrowth": "fixed-width",
                               "width": "fill_container",
                               "content": "SB165 Turq — complete bike",
-                              "fontFamily": "Inter",
+                              "fontFamily": "Plus Jakarta Sans",
                               "fontSize": 15,
                               "fontWeight": "600"
                             },
@@ -5303,7 +5303,7 @@
                               "name": "dcCat",
                               "fill": "$mutedForeground",
                               "content": "Mountain Bikes",
-                              "fontFamily": "Inter",
+                              "fontFamily": "Plus Jakarta Sans",
                               "fontSize": 11,
                               "fontWeight": "normal"
                             },
@@ -5320,7 +5320,7 @@
                                   "name": "dcNow",
                                   "fill": "$foreground",
                                   "content": "$4,299.00",
-                                  "fontFamily": "Inter",
+                                  "fontFamily": "Plus Jakarta Sans",
                                   "fontSize": 18,
                                   "fontWeight": "700"
                                 },
@@ -5330,7 +5330,7 @@
                                   "name": "dcWas",
                                   "fill": "$mutedForeground",
                                   "content": "$5,999.00",
-                                  "fontFamily": "Inter",
+                                  "fontFamily": "Plus Jakarta Sans",
                                   "fontSize": 13,
                                   "fontWeight": "normal"
                                 }
@@ -5353,7 +5353,7 @@
                                   "name": "dcBtnT",
                                   "fill": "$primaryForeground",
                                   "content": "Snag the Deal",
-                                  "fontFamily": "Inter",
+                                  "fontFamily": "Plus Jakarta Sans",
                                   "fontSize": 14,
                                   "fontWeight": "600"
                                 }
@@ -5407,7 +5407,7 @@
                                   "name": "discT",
                                   "fill": "#FFFFFF",
                                   "content": "28% off",
-                                  "fontFamily": "Inter",
+                                  "fontFamily": "Plus Jakarta Sans",
                                   "fontSize": 11,
                                   "fontWeight": "700"
                                 }
@@ -5433,7 +5433,7 @@
                                   "name": "storeT",
                                   "fill": "#FFFFFF",
                                   "content": "WWC",
-                                  "fontFamily": "Inter",
+                                  "fontFamily": "Plus Jakarta Sans",
                                   "fontSize": 11,
                                   "fontWeight": "600"
                                 }
@@ -5456,7 +5456,7 @@
                               "name": "dcBrand",
                               "fill": "$mutedForeground",
                               "content": "YETI",
-                              "fontFamily": "Inter",
+                              "fontFamily": "Plus Jakarta Sans",
                               "fontSize": 10,
                               "fontWeight": "600",
                               "letterSpacing": 1
@@ -5469,7 +5469,7 @@
                               "textGrowth": "fixed-width",
                               "width": "fill_container",
                               "content": "SB165 Turq — complete bike",
-                              "fontFamily": "Inter",
+                              "fontFamily": "Plus Jakarta Sans",
                               "fontSize": 15,
                               "fontWeight": "600"
                             },
@@ -5479,7 +5479,7 @@
                               "name": "dcCat",
                               "fill": "$mutedForeground",
                               "content": "Mountain Bikes",
-                              "fontFamily": "Inter",
+                              "fontFamily": "Plus Jakarta Sans",
                               "fontSize": 11,
                               "fontWeight": "normal"
                             },
@@ -5496,7 +5496,7 @@
                                   "name": "dcNow",
                                   "fill": "$foreground",
                                   "content": "$4,299.00",
-                                  "fontFamily": "Inter",
+                                  "fontFamily": "Plus Jakarta Sans",
                                   "fontSize": 18,
                                   "fontWeight": "700"
                                 },
@@ -5506,7 +5506,7 @@
                                   "name": "dcWas",
                                   "fill": "$mutedForeground",
                                   "content": "$5,999.00",
-                                  "fontFamily": "Inter",
+                                  "fontFamily": "Plus Jakarta Sans",
                                   "fontSize": 13,
                                   "fontWeight": "normal"
                                 }
@@ -5529,7 +5529,7 @@
                                   "name": "dcBtnT",
                                   "fill": "$primaryForeground",
                                   "content": "Snag the Deal",
-                                  "fontFamily": "Inter",
+                                  "fontFamily": "Plus Jakarta Sans",
                                   "fontSize": 14,
                                   "fontWeight": "600"
                                 }
@@ -5567,7 +5567,7 @@
                       "name": "pg2P",
                       "fill": "$mutedForeground",
                       "content": "‹ Prev",
-                      "fontFamily": "Inter",
+                      "fontFamily": "Plus Jakarta Sans",
                       "fontSize": 13,
                       "fontWeight": "normal"
                     },
@@ -5577,7 +5577,7 @@
                       "name": "pg2N",
                       "fill": "$foreground",
                       "content": "1   2   3   …   8",
-                      "fontFamily": "Inter",
+                      "fontFamily": "Plus Jakarta Sans",
                       "fontSize": 13,
                       "fontWeight": "normal"
                     },
@@ -5587,7 +5587,7 @@
                       "name": "pg2N2",
                       "fill": "$primary",
                       "content": "Next ›",
-                      "fontFamily": "Inter",
+                      "fontFamily": "Plus Jakarta Sans",
                       "fontSize": 13,
                       "fontWeight": "normal"
                     }
@@ -5607,7 +5607,7 @@
       "name": "spec",
       "width": 720,
       "height": 420,
-      "content": "MTB Aggregator — public UI (Home, Deals, Deal detail).\\n\\nPencil variables map to apps/web/src/app/globals.css semantic tokens:\\n• $background / $foreground — :root and .dark oklch (approx hex)\\n• $card, $muted, $mutedForeground, $border\\n• $primary, $primaryForeground (orange CTA; same hue light+dark)\\n• $destructive (discount badges)\\n• $radius ≈ 0.625rem (10px)\\n\\nTypography: Oswald-style display for logo + section titles; Geist approximated as Inter in Pencil.\\n\\nTheme: set frame theme { mode: light | dark }; moon icon = light UI, sun = dark UI.\\n\\nExport previews: repo designs/pencil-exports/*.png"
+      "content": "MTB Aggregator — public UI (Home, Deals, Deal detail).\\n\\nTypography (web: @fontsource-variable): Plus Jakarta Sans body; Bricolage Grotesque display.\\n\\nPencil variables ≈ apps/web/src/app/globals.css:\\n• $background / $foreground — soft warm grey + near-black (light); neutral-warm grey (dark)\\n• $card, $muted, $border — low chroma (grey-first)\\n• $secondary — subtle grey band\\n• $accent — cool blue-grey wash\\n• $trail — muted teal accents\\n• $primary — hazard orange CTA\\n• $destructive — sale badges\\n• $radius ≈ 0.625rem\\n\\nTheme: frame theme { mode: light | dark }. Exports: designs/pencil-exports/*.png"
     }
   ],
   "themes": {
@@ -5617,17 +5617,51 @@
     ]
   },
   "variables": {
-    "background": {
+    "accent": {
       "type": "color",
       "value": [
         {
-          "value": "#F7F7F5",
+          "value": "#C8D8DE",
           "theme": {
             "mode": "light"
           }
         },
         {
-          "value": "#1A2220",
+          "value": "#4A5558",
+          "theme": {
+            "mode": "dark"
+          }
+        }
+      ]
+    },
+    "accentForeground": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#121820",
+          "theme": {
+            "mode": "light"
+          }
+        },
+        {
+          "value": "#EEF6F8",
+          "theme": {
+            "mode": "dark"
+          }
+        }
+      ]
+    },
+    "background": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#EBEBE8",
+          "theme": {
+            "mode": "light"
+          }
+        },
+        {
+          "value": "#565956",
           "theme": {
             "mode": "dark"
           }
@@ -5638,13 +5672,13 @@
       "type": "color",
       "value": [
         {
-          "value": "#D8DCD8",
+          "value": "#C2C3C0",
           "theme": {
             "mode": "light"
           }
         },
         {
-          "value": "#3D4A44",
+          "value": "#6F726F",
           "theme": {
             "mode": "dark"
           }
@@ -5655,13 +5689,13 @@
       "type": "color",
       "value": [
         {
-          "value": "#FFFFFF",
+          "value": "#FDFDFC",
           "theme": {
             "mode": "light"
           }
         },
         {
-          "value": "#252E2A",
+          "value": "#6B6E6B",
           "theme": {
             "mode": "dark"
           }
@@ -5689,13 +5723,13 @@
       "type": "color",
       "value": [
         {
-          "value": "#353535",
+          "value": "#0A0A0C",
           "theme": {
             "mode": "light"
           }
         },
         {
-          "value": "#F2F2F2",
+          "value": "#F7F7F5",
           "theme": {
             "mode": "dark"
           }
@@ -5706,13 +5740,13 @@
       "type": "color",
       "value": [
         {
-          "value": "#F0F0EE",
+          "value": "#DCDCD9",
           "theme": {
             "mode": "light"
           }
         },
         {
-          "value": "#2A3530",
+          "value": "#4E514E",
           "theme": {
             "mode": "dark"
           }
@@ -5723,13 +5757,13 @@
       "type": "color",
       "value": [
         {
-          "value": "#737373",
+          "value": "#4A4D52",
           "theme": {
             "mode": "light"
           }
         },
         {
-          "value": "#A6A6A6",
+          "value": "#B8BCB8",
           "theme": {
             "mode": "dark"
           }
@@ -5740,13 +5774,13 @@
       "type": "color",
       "value": [
         {
-          "value": "#E06B2E",
+          "value": "#D95F1A",
           "theme": {
             "mode": "light"
           }
         },
         {
-          "value": "#E06B2E",
+          "value": "#F07830",
           "theme": {
             "mode": "dark"
           }
@@ -5773,6 +5807,74 @@
     "radius": {
       "type": "number",
       "value": 10
+    },
+    "secondary": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#C8CECC",
+          "theme": {
+            "mode": "light"
+          }
+        },
+        {
+          "value": "#4F5C55",
+          "theme": {
+            "mode": "dark"
+          }
+        }
+      ]
+    },
+    "secondaryForeground": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#1A1C1B",
+          "theme": {
+            "mode": "light"
+          }
+        },
+        {
+          "value": "#F4F5F4",
+          "theme": {
+            "mode": "dark"
+          }
+        }
+      ]
+    },
+    "trail": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#1A5F66",
+          "theme": {
+            "mode": "light"
+          }
+        },
+        {
+          "value": "#5BC4AE",
+          "theme": {
+            "mode": "dark"
+          }
+        }
+      ]
+    },
+    "trailForeground": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#FAFCFC",
+          "theme": {
+            "mode": "light"
+          }
+        },
+        {
+          "value": "#0A1210",
+          "theme": {
+            "mode": "dark"
+          }
+        }
+      ]
     }
   }
 }

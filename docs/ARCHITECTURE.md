@@ -92,7 +92,7 @@ Add new primitives via `pnpm dlx shadcn@latest add <component>` in `apps/web`.
 
 ### Theming
 
-- **CSS variables** in `src/app/globals.css` (`:root`, `.dark`) — `--app-font-sans`, `--primary`, `--background`, etc.
+- **CSS variables** in `src/app/globals.css` (`:root`, `.dark`) — `--app-font-sans`, `--app-font-display`, `--primary`, `--background`, etc. (`@fontsource-variable/plus-jakarta-sans`, `@fontsource-variable/bricolage-grotesque`).
 - **Tailwind @theme** — Maps variables to utilities (`bg-primary`, `text-muted-foreground`)
 - **Dark mode** — Class-based (`dark` on ancestor); toggle in Storybook toolbar
 
