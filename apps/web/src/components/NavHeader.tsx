@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTheme } from "../context/ThemeContext";
@@ -35,7 +35,10 @@ function MoonIcon() {
 export function NavHeader() {
   const { theme, toggleTheme } = useTheme();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const pathname = usePathname();
+
+  useEffect(() => setMounted(true), []);
 
   const navLinks = [
     { href: "/", label: "Home", exact: true },
@@ -64,9 +67,15 @@ export function NavHeader() {
             variant="ghost"
             size="icon"
             onClick={toggleTheme}
-            aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+            aria-label={
+              mounted
+                ? theme === "dark"
+                  ? "Switch to light mode"
+                  : "Switch to dark mode"
+                : "Toggle theme"
+            }
           >
-            {theme === "dark" ? <SunIcon /> : <MoonIcon />}
+            {mounted ? (theme === "dark" ? <SunIcon /> : <MoonIcon />) : <MoonIcon />}
           </Button>
           {navLinks.map(({ href, label, exact }) => {
             const isActive = exact ? pathname === href : pathname.startsWith(href);
@@ -139,10 +148,32 @@ export function NavHeader() {
               setMobileMenuOpen(false);
             }}
             className="w-full justify-start gap-2"
-            aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+            aria-label={
+              mounted
+                ? theme === "dark"
+                  ? "Switch to light mode"
+                  : "Switch to dark mode"
+                : "Toggle theme"
+            }
           >
-            {theme === "dark" ? <SunIcon /> : <MoonIcon />}
-            {theme === "dark" ? "Light mode" : "Dark mode"}
+            {mounted ? (
+              theme === "dark" ? (
+                <>
+                  <SunIcon />
+                  Light mode
+                </>
+              ) : (
+                <>
+                  <MoonIcon />
+                  Dark mode
+                </>
+              )
+            ) : (
+              <>
+                <MoonIcon />
+                Dark mode
+              </>
+            )}
           </Button>
           {navLinks.map(({ href, label, exact }) => {
             const isActive = exact ? pathname === href : pathname.startsWith(href);
