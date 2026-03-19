@@ -9,6 +9,8 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    env:
+      API_URL: ${{ vars.API_URL }}
     steps:
       - uses: actions/checkout@v4
 
@@ -33,5 +35,7 @@ jobs:
       - name: API build
         run: cd apps/api && go build -o /dev/null .
 
+      # API_URL must be set so Next.js can fetch data during static generation.
+      # Add API_URL in repo Settings → Secrets and variables → Actions (Secrets).
       - name: Web build
         run: pnpm --filter @mtb-aggregator/web run build

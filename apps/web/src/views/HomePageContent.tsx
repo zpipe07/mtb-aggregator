@@ -1,12 +1,13 @@
+"use client";
+
 import { useState, FormEvent } from "react";
-import { useNavigate } from "react-router-dom";
-import { useCategoryTree, useDeals } from "../hooks/queries";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { SearchBar } from "../components/SearchBar";
 import { DealGrid } from "../components/DealGrid";
 import { CategoryCard } from "../components/CategoryCard";
-import { LoadingState } from "../components/LoadingState";
-import { Link } from "react-router-dom";
 import { CategoryTreeNode } from "../api";
+import type { Deal } from "../api";
 import { Button } from "../components/ui/button";
 
 /** Slug-to-image mapping for root category cards. Images in public/. */
@@ -44,28 +45,24 @@ function buildCategoryCards(categoryTree: CategoryTreeNode[]) {
   }));
 }
 
-export function HomePage() {
-  const navigate = useNavigate();
+type Props = {
+  categoryTree: CategoryTreeNode[];
+  topDeals: Deal[];
+};
+
+export function HomePageContent({ categoryTree, topDeals }: Props) {
+  const router = useRouter();
   const [searchValue, setSearchValue] = useState("");
 
-  const { data: categoryTreeData } = useCategoryTree();
-  const categoryTree = categoryTreeData ?? [];
   const categoryCards = buildCategoryCards(categoryTree);
-
-  const { data: topDealsData, isPending: topDealsLoading } = useDeals({
-    sort: "discount",
-    limit: 8,
-    offset: 0,
-  });
-  const topDeals = topDealsData?.deals ?? [];
 
   const handleSearchSubmit = (e: FormEvent) => {
     e.preventDefault();
     const q = searchValue.trim();
     if (q) {
-      navigate(`/deals?q=${encodeURIComponent(q)}`);
+      router.push(`/deals?q=${encodeURIComponent(q)}`);
     } else {
-      navigate("/deals");
+      router.push("/deals");
     }
   };
 
@@ -115,20 +112,16 @@ export function HomePage() {
             Top deals of the day
           </h2>
           <Link
-            to="/deals?sort=discount"
+            href="/deals?sort=discount"
             className="text-sm font-medium text-muted-foreground hover:text-foreground"
           >
             View all deals
           </Link>
         </div>
-        {topDealsLoading ? (
-          <LoadingState />
-        ) : topDeals.length > 0 ? (
+        {topDeals.length > 0 ? (
           <DealGrid
             deals={topDeals}
-            onSelectDeal={(deal) =>
-              navigate(`/deals?deal=${deal.id}`, { replace: false })
-            }
+            onSelectDeal={(deal) => router.push(`/deals/${deal.id}`)}
           />
         ) : (
           <p className="text-muted-foreground py-8">No deals available right now.</p>

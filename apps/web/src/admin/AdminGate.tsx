@@ -1,4 +1,7 @@
+"use client";
+
 import { useState, FormEvent } from "react";
+import Link from "next/link";
 import { adminAuth, setStoredAdminToken } from "./api";
 
 type Props = { onSuccess: () => void };
@@ -61,9 +64,9 @@ export function AdminGate({ onSuccess }: Props) {
           </button>
         </form>
         <p className="mt-4 text-center">
-          <a href="/deals" className="text-sm text-stone-500 hover:text-stone-700">
+          <Link href="/deals" className="text-sm text-stone-500 hover:text-stone-700">
             ← Back to deals
-          </a>
+          </Link>
         </p>
       </div>
     </div>

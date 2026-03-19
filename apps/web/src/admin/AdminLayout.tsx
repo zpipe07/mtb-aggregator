@@ -1,4 +1,7 @@
-import { Outlet, NavLink, useNavigate } from "react-router-dom";
+"use client";
+
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import { clearStoredAdminToken } from "./api";
 
 const navItems = [
@@ -14,13 +17,14 @@ const navItems = [
   { to: "/admin/operations", end: false, label: "Operations" },
 ];
 
-export function AdminLayout() {
-  const navigate = useNavigate();
+export function AdminLayout({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  const router = useRouter();
 
   function handleLogout() {
     clearStoredAdminToken();
-    navigate("/admin", { replace: true });
-    window.location.reload(); // AdminSection reads token on mount; reload to show gate
+    router.replace("/admin");
+    window.location.reload(); // Layout reads token on mount; reload to show gate
   }
 
   return (
@@ -30,18 +34,24 @@ export function AdminLayout() {
           <h1 className="font-semibold text-stone-800">Admin</h1>
         </div>
         <nav className="p-2 flex-1">
-          {navItems.map(({ to, end, label }) => (
-            <NavLink
-              key={to}
-              to={to}
-              end={end}
-              className={({ isActive }) =>
-                `block rounded px-3 py-2 text-sm ${isActive ? "bg-stone-200 text-stone-900 font-medium" : "text-stone-600 hover:bg-stone-100 hover:text-stone-900"}`
-              }
-            >
-              {label}
-            </NavLink>
-          ))}
+          {navItems.map(({ to, end, label }) => {
+            const isActive = end
+              ? pathname === to
+              : pathname.startsWith(to + "/") || pathname === to;
+            return (
+              <Link
+                key={to}
+                href={to}
+                className={`block rounded px-3 py-2 text-sm ${
+                  isActive
+                    ? "bg-stone-200 text-stone-900 font-medium"
+                    : "text-stone-600 hover:bg-stone-100 hover:text-stone-900"
+                }`}
+              >
+                {label}
+              </Link>
+            );
+          })}
         </nav>
         <div className="border-t border-stone-200 p-2">
           <button
@@ -53,9 +63,7 @@ export function AdminLayout() {
           </button>
         </div>
       </aside>
-      <main className="flex-1 overflow-auto p-6">
-        <Outlet />
-      </main>
+      <main className="flex-1 overflow-auto p-6">{children}</main>
     </div>
   );
 }

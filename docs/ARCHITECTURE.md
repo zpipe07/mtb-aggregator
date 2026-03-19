@@ -38,7 +38,7 @@ flowchart LR
 |---------|-------|------|------|
 | API | Go (net/http, pgx) | 8080 | REST API, scheduler, orchestration |
 | Scraper | Node.js + Express + Playwright | 3000 | Scrapes retailer sale pages |
-| Web | React + Vite + Tailwind v4 + TanStack Query | 5173 | Public deals UI, admin |
+| Web | Next.js 15 + React + Tailwind v4 + TanStack Query | 3000 | Public deals UI (SSR/ISR), admin |
 | Storybook | Storybook 8 + Vite | 6006 | Component development, design system docs |
 
 ## Data Flow
@@ -92,7 +92,7 @@ Add new primitives via `pnpm dlx shadcn@latest add <component>` in `apps/web`.
 
 ### Theming
 
-- **CSS variables** in `src/index.css` (`:root`, `.dark`) — `--app-font-sans`, `--primary`, `--background`, etc.
+- **CSS variables** in `src/app/globals.css` (`:root`, `.dark`) — `--app-font-sans`, `--primary`, `--background`, etc.
 - **Tailwind @theme** — Maps variables to utilities (`bg-primary`, `text-muted-foreground`)
 - **Dark mode** — Class-based (`dark` on ancestor); toggle in Storybook toolbar
 

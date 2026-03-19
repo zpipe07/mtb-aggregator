@@ -1,4 +1,4 @@
-const API_BASE = import.meta.env.VITE_API_URL || "/api";
+import { getApiBase } from "@/lib/api";
 
 export interface Deal {
   id: number;
@@ -74,8 +74,10 @@ export async function fetchDeals(params?: {
     if (params?.spec_value) search.set("spec_value", params.spec_value);
   }
   const qs = search.toString();
-  const url = `${API_BASE}/deals${qs ? `?${qs}` : ""}`;
-  const res = await fetch(url);
+  const url = `${getApiBase()}/deals${qs ? `?${qs}` : ""}`;
+  const res = await fetch(url, {
+    next: { revalidate: 60 },
+  });
   if (!res.ok) throw new Error("Failed to fetch deals");
   const data = await res.json();
   return {
@@ -87,7 +89,7 @@ export async function fetchDeals(params?: {
 export { DEFAULT_PAGE_SIZE };
 
 export async function fetchDeal(id: number): Promise<Deal> {
-  const res = await fetch(`${API_BASE}/deals/${id}`);
+  const res = await fetch(`${getApiBase()}/deals/${id}`);
   if (!res.ok) throw new Error("Failed to fetch deal");
   return res.json();
 }
@@ -108,27 +110,31 @@ export interface PriceHistoryResponse {
 export async function fetchPriceHistory(
   dealId: number,
 ): Promise<PriceHistoryResponse> {
-  const res = await fetch(`${API_BASE}/deals/${dealId}/price-history`);
+  const res = await fetch(`${getApiBase()}/deals/${dealId}/price-history`);
   if (!res.ok) throw new Error("Failed to fetch price history");
   return res.json();
 }
 
 export async function fetchStores(): Promise<Store[]> {
-  const res = await fetch(`${API_BASE}/stores`);
+  const res = await fetch(`${getApiBase()}/stores`, {
+    next: { revalidate: 60 },
+  });
   if (!res.ok) throw new Error("Failed to fetch stores");
   const data = await res.json();
   return Array.isArray(data) ? data : [];
 }
 
 export async function fetchBrands(): Promise<string[]> {
-  const res = await fetch(`${API_BASE}/brands`);
+  const res = await fetch(`${getApiBase()}/brands`, {
+    next: { revalidate: 60 },
+  });
   if (!res.ok) throw new Error("Failed to fetch brands");
   const data = await res.json();
   return Array.isArray(data) ? data : [];
 }
 
 export async function fetchCategories(): Promise<string[]> {
-  const res = await fetch(`${API_BASE}/categories`);
+  const res = await fetch(`${getApiBase()}/categories`);
   if (!res.ok) throw new Error("Failed to fetch categories");
   const data = await res.json();
   return Array.isArray(data) ? data : [];
@@ -146,7 +152,9 @@ export interface CategoryTreeNode {
 }
 
 export async function fetchCategoryTree(): Promise<CategoryTreeNode[]> {
-  const res = await fetch(`${API_BASE}/categories/tree`);
+  const res = await fetch(`${getApiBase()}/categories/tree`, {
+    next: { revalidate: 60 },
+  });
   if (!res.ok) throw new Error("Failed to fetch category tree");
   const data = await res.json();
   return Array.isArray(data) ? data : [];
@@ -206,7 +214,9 @@ export async function fetchFacets(
     }
   }
   const qs = search.toString();
-  const res = await fetch(`${API_BASE}/facets${qs ? `?${qs}` : ""}`);
+  const res = await fetch(`${getApiBase()}/facets${qs ? `?${qs}` : ""}`, {
+    next: { revalidate: 60 },
+  });
   if (!res.ok) throw new Error("Failed to fetch facets");
   return res.json();
 }
@@ -215,7 +225,7 @@ export async function fetchFacets(
 export async function fetchSpecValues(key: string): Promise<string[]> {
   const search = new URLSearchParams();
   search.set("key", key);
-  const res = await fetch(`${API_BASE}/spec-values?${search.toString()}`);
+  const res = await fetch(`${getApiBase()}/spec-values?${search.toString()}`);
   if (!res.ok) throw new Error("Failed to fetch spec values");
   const data = await res.json();
   return Array.isArray(data) ? data : [];
@@ -234,7 +244,7 @@ export interface Status {
 }
 
 export async function fetchStatus(): Promise<Status> {
-  const res = await fetch(`${API_BASE}/status`);
+  const res = await fetch(`${getApiBase()}/status`);
   if (!res.ok) throw new Error("Failed to fetch status");
   return res.json();
 }

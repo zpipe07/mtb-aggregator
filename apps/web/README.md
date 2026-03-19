@@ -1,29 +1,30 @@
 # MTB Aggregator Web
 
-React frontend for the MTB deal aggregator. Built with Vite, Tailwind v4, TanStack Query, and shadcn/ui.
+React frontend for the MTB deal aggregator. Built with Next.js 15 (App Router), Tailwind v4, TanStack Query, and shadcn/ui.
 
 ## Tech Stack
 
-- **React 18** + React Router
-- **Vite** — build tool
+- **Next.js 15** — App Router, SSR/ISR
+- **React 18** — UI
 - **Tailwind v4** — styling (CSS variables, semantic tokens)
 - **shadcn/ui** — Button, Input, Select, Card primitives
-- **TanStack Query** — server state
+- **TanStack Query** — admin dashboard data fetching
 - **Storybook 8** — component development and docs
 
 ## Features
 
-- **Dark mode** — Toggle in nav header; defaults to system preference (`prefers-color-scheme`), persists choice in `localStorage`.
+- **SSR/ISR** — Home, deals list, and deal detail pages are server-rendered for SEO
+- **Dark mode** — Toggle in nav header; defaults to system preference (`prefers-color-scheme`), persists choice in `localStorage`
 
 ## Development
 
 ```bash
-pnpm run dev          # Vite dev server (port 5173)
+pnpm run dev          # Next.js dev server (port 3000)
 pnpm run storybook    # Storybook (port 6006)
 pnpm run build        # Production build
 ```
 
-The API must be running for data. Configure `VITE_API_URL` or use the default proxy (`/api` → `http://localhost:8080`).
+The API must be running for data. Configure `NEXT_PUBLIC_API_URL` (client) or `API_URL` (server) or use the default proxy (`/api` → `http://localhost:8080`).
 
 ## Component Library
 

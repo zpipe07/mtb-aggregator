@@ -1,5 +1,7 @@
+"use client";
+
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import Link from "next/link";
 import {
   useUnmappedItems,
   useSpecNormalizationRules,
@@ -289,7 +291,7 @@ export function NormalizationManager() {
             <p className="text-sm text-stone-600">
               <strong>{unmapped?.uncategorized_count ?? 0}</strong> in-stock listings have no
               canonical category. Add taxonomy mappings in{" "}
-              <Link to="/admin/taxonomy" className="text-stone-700 underline">
+              <Link href="/admin/taxonomy" className="text-stone-700 underline">
                 Taxonomy
               </Link>
               , then run Re-categorize.
@@ -340,7 +342,7 @@ export function NormalizationManager() {
         <p className="text-sm text-stone-600 mb-3">
           Re-run LLM spec extraction for all listings in a canonical category. Configure prompt
           profiles in{" "}
-          <Link to="/admin/llm-profiles" className="text-stone-700 underline">
+          <Link href="/admin/llm-profiles" className="text-stone-700 underline">
             LLM Profiles
           </Link>
           .
@@ -350,7 +352,7 @@ export function NormalizationManager() {
         ) : llmProfiles.length === 0 ? (
           <p className="text-sm text-stone-500">
             No LLM profiles yet.{" "}
-            <Link to="/admin/llm-profiles" className="text-stone-700 underline">
+            <Link href="/admin/llm-profiles" className="text-stone-700 underline">
               Create one
             </Link>
             .

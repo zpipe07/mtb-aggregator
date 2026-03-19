@@ -1,4 +1,4 @@
-const API_BASE = import.meta.env.VITE_API_URL || "/api";
+import { getApiBase } from "@/lib/api";
 
 const ADMIN_TOKEN_KEY = "adminPassword";
 
@@ -26,7 +26,7 @@ export function adminHeaders(): HeadersInit {
 
 /** Validate password; returns true if valid. Caller should store token on success. */
 export async function adminAuth(password: string): Promise<boolean> {
-  const res = await fetch(`${API_BASE}/admin/auth`, {
+  const res = await fetch(`${getApiBase()}/admin/auth`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ password: password.trim() }),
@@ -59,14 +59,14 @@ export interface DashboardResponse {
 }
 
 export async function fetchDashboard(): Promise<DashboardResponse> {
-  const res = await fetch(`${API_BASE}/admin/dashboard`, { headers: adminHeaders() });
+  const res = await fetch(`${getApiBase()}/admin/dashboard`, { headers: adminHeaders() });
   if (!res.ok) throw new Error(res.status === 401 ? "Unauthorized" : "Failed to fetch dashboard");
   return res.json();
 }
 
 /** Trigger scrape; pass store type (e.g. "worldwidecyclery") to scrape one store, or omit for all. */
 export async function triggerScrape(store?: string): Promise<void> {
-  const url = store ? `${API_BASE}/scrape-now?store=${encodeURIComponent(store)}` : `${API_BASE}/scrape-now`;
+  const url = store ? `${getApiBase()}/scrape-now?store=${encodeURIComponent(store)}` : `${getApiBase()}/scrape-now`;
   const res = await fetch(url, { method: "POST", headers: adminHeaders() });
   if (!res.ok) throw new Error("Scrape request failed");
 }
@@ -77,7 +77,7 @@ export async function triggerEnrich(force?: boolean, store?: string): Promise<vo
   if (force) params.set("force", "1");
   if (store) params.set("store", store);
   const qs = params.toString();
-  const url = qs ? `${API_BASE}/enrich-now?${qs}` : `${API_BASE}/enrich-now`;
+  const url = qs ? `${getApiBase()}/enrich-now?${qs}` : `${getApiBase()}/enrich-now`;
   const res = await fetch(url, { method: "POST", headers: adminHeaders() });
   if (!res.ok) throw new Error("Enrich request failed");
 }
@@ -96,14 +96,14 @@ export interface AdminStore {
 }
 
 export async function fetchAdminStores(): Promise<AdminStore[]> {
-  const res = await fetch(`${API_BASE}/admin/stores`, { headers: adminHeaders() });
+  const res = await fetch(`${getApiBase()}/admin/stores`, { headers: adminHeaders() });
   if (!res.ok) throw new Error(res.status === 401 ? "Unauthorized" : "Failed to fetch stores");
   const data = await res.json();
   return Array.isArray(data) ? data : [];
 }
 
 export async function fetchStoreTypes(): Promise<string[]> {
-  const res = await fetch(`${API_BASE}/admin/store-types`, { headers: adminHeaders() });
+  const res = await fetch(`${getApiBase()}/admin/store-types`, { headers: adminHeaders() });
   if (!res.ok) throw new Error("Failed to fetch store types");
   const data = await res.json();
   return Array.isArray(data) ? data : [];
@@ -111,14 +111,14 @@ export async function fetchStoreTypes(): Promise<string[]> {
 
 /** Store types that support PDP enrichment (for showing Enrich button). */
 export async function fetchStoreTypesWithEnrichers(): Promise<string[]> {
-  const res = await fetch(`${API_BASE}/admin/store-types-with-enrichers`, { headers: adminHeaders() });
+  const res = await fetch(`${getApiBase()}/admin/store-types-with-enrichers`, { headers: adminHeaders() });
   if (!res.ok) throw new Error("Failed to fetch store types with enrichers");
   const data = await res.json();
   return Array.isArray(data) ? data : [];
 }
 
 export async function fetchAdminStore(id: number): Promise<AdminStore | null> {
-  const res = await fetch(`${API_BASE}/admin/stores/${id}`, { headers: adminHeaders() });
+  const res = await fetch(`${getApiBase()}/admin/stores/${id}`, { headers: adminHeaders() });
   if (res.status === 404) return null;
   if (!res.ok) throw new Error("Failed to fetch store");
   return res.json();
@@ -133,7 +133,7 @@ export interface StoreFormBody {
 }
 
 export async function createStore(body: StoreFormBody): Promise<{ id: number }> {
-  const res = await fetch(`${API_BASE}/admin/stores`, {
+  const res = await fetch(`${getApiBase()}/admin/stores`, {
     method: "POST",
     headers: adminHeaders(),
     body: JSON.stringify(body),
@@ -146,7 +146,7 @@ export async function createStore(body: StoreFormBody): Promise<{ id: number }> 
 }
 
 export async function updateStore(id: number, body: StoreFormBody): Promise<void> {
-  const res = await fetch(`${API_BASE}/admin/stores/${id}`, {
+  const res = await fetch(`${getApiBase()}/admin/stores/${id}`, {
     method: "PUT",
     headers: adminHeaders(),
     body: JSON.stringify(body),
@@ -158,7 +158,7 @@ export async function updateStore(id: number, body: StoreFormBody): Promise<void
 }
 
 export async function deleteStore(id: number): Promise<void> {
-  const res = await fetch(`${API_BASE}/admin/stores/${id}`, {
+  const res = await fetch(`${getApiBase()}/admin/stores/${id}`, {
     method: "DELETE",
     headers: adminHeaders(),
   });
@@ -178,7 +178,7 @@ export interface AdminCategoryTreeNode {
 }
 
 export async function fetchAdminCategoryTree(): Promise<AdminCategoryTreeNode[]> {
-  const res = await fetch(`${API_BASE}/admin/categories`, { headers: adminHeaders() });
+  const res = await fetch(`${getApiBase()}/admin/categories`, { headers: adminHeaders() });
   if (!res.ok) throw new Error(res.status === 401 ? "Unauthorized" : "Failed to fetch categories");
   const data = await res.json();
   return Array.isArray(data) ? data : [];
@@ -192,7 +192,7 @@ export interface CreateCategoryBody {
 }
 
 export async function createAdminCategory(body: CreateCategoryBody): Promise<{ id: number }> {
-  const res = await fetch(`${API_BASE}/admin/categories`, {
+  const res = await fetch(`${getApiBase()}/admin/categories`, {
     method: "POST",
     headers: adminHeaders(),
     body: JSON.stringify({
@@ -216,7 +216,7 @@ export interface UpdateCategoryBody {
 }
 
 export async function updateAdminCategory(id: number, body: UpdateCategoryBody): Promise<void> {
-  const res = await fetch(`${API_BASE}/admin/categories/${id}`, {
+  const res = await fetch(`${getApiBase()}/admin/categories/${id}`, {
     method: "PUT",
     headers: adminHeaders(),
     body: JSON.stringify({
@@ -232,7 +232,7 @@ export async function updateAdminCategory(id: number, body: UpdateCategoryBody):
 }
 
 export async function deleteAdminCategory(id: number): Promise<void> {
-  const res = await fetch(`${API_BASE}/admin/categories/${id}`, {
+  const res = await fetch(`${getApiBase()}/admin/categories/${id}`, {
     method: "DELETE",
     headers: adminHeaders(),
   });
@@ -268,21 +268,21 @@ export async function fetchScrapeJobs(params?: {
   if (params?.offset != null) search.set("offset", String(params.offset));
   if (params?.store_id != null) search.set("store_id", String(params.store_id));
   const qs = search.toString();
-  const res = await fetch(`${API_BASE}/admin/jobs${qs ? `?${qs}` : ""}`, { headers: adminHeaders() });
+  const res = await fetch(`${getApiBase()}/admin/jobs${qs ? `?${qs}` : ""}`, { headers: adminHeaders() });
   if (!res.ok) throw new Error(res.status === 401 ? "Unauthorized" : "Failed to fetch jobs");
   const data = await res.json();
   return Array.isArray(data) ? data : [];
 }
 
 export async function fetchScrapeJob(id: number): Promise<ScrapeJob | null> {
-  const res = await fetch(`${API_BASE}/admin/jobs/${id}`, { headers: adminHeaders() });
+  const res = await fetch(`${getApiBase()}/admin/jobs/${id}`, { headers: adminHeaders() });
   if (res.status === 404) return null;
   if (!res.ok) throw new Error("Failed to fetch job");
   return res.json();
 }
 
 export async function cancelScrapeJob(id: number): Promise<{ ok: boolean; status?: string }> {
-  const res = await fetch(`${API_BASE}/admin/jobs/${id}/cancel`, {
+  const res = await fetch(`${getApiBase()}/admin/jobs/${id}/cancel`, {
     method: "POST",
     headers: adminHeaders(),
   });
@@ -317,21 +317,21 @@ export async function fetchEnrichJobs(params?: {
   if (params?.limit != null) search.set("limit", String(params.limit));
   if (params?.offset != null) search.set("offset", String(params.offset));
   const qs = search.toString();
-  const res = await fetch(`${API_BASE}/admin/enrich-jobs${qs ? `?${qs}` : ""}`, { headers: adminHeaders() });
+  const res = await fetch(`${getApiBase()}/admin/enrich-jobs${qs ? `?${qs}` : ""}`, { headers: adminHeaders() });
   if (!res.ok) throw new Error(res.status === 401 ? "Unauthorized" : "Failed to fetch enrich jobs");
   const data = await res.json();
   return Array.isArray(data) ? data : [];
 }
 
 export async function fetchEnrichJob(id: number): Promise<EnrichJob | null> {
-  const res = await fetch(`${API_BASE}/admin/enrich-jobs/${id}`, { headers: adminHeaders() });
+  const res = await fetch(`${getApiBase()}/admin/enrich-jobs/${id}`, { headers: adminHeaders() });
   if (res.status === 404) return null;
   if (!res.ok) throw new Error("Failed to fetch enrich job");
   return res.json();
 }
 
 export async function cancelEnrichJob(id: number): Promise<{ ok: boolean; status?: string }> {
-  const res = await fetch(`${API_BASE}/admin/enrich-jobs/${id}/cancel`, {
+  const res = await fetch(`${getApiBase()}/admin/enrich-jobs/${id}/cancel`, {
     method: "POST",
     headers: adminHeaders(),
   });
@@ -405,7 +405,7 @@ export async function fetchAdminListings(params?: {
   if (params?.limit != null) search.set("limit", String(params.limit));
   if (params?.offset != null) search.set("offset", String(params.offset));
   const qs = search.toString();
-  const res = await fetch(`${API_BASE}/admin/listings${qs ? `?${qs}` : ""}`, { headers: adminHeaders() });
+  const res = await fetch(`${getApiBase()}/admin/listings${qs ? `?${qs}` : ""}`, { headers: adminHeaders() });
   if (!res.ok) throw new Error(res.status === 401 ? "Unauthorized" : "Failed to fetch listings");
   const data = await res.json();
   return {
@@ -415,7 +415,7 @@ export async function fetchAdminListings(params?: {
 }
 
 export async function fetchAdminListing(id: number): Promise<AdminListing | null> {
-  const res = await fetch(`${API_BASE}/admin/listings/${id}`, { headers: adminHeaders() });
+  const res = await fetch(`${getApiBase()}/admin/listings/${id}`, { headers: adminHeaders() });
   if (res.status === 404) return null;
   if (!res.ok) throw new Error("Failed to fetch listing");
   return res.json();
@@ -423,7 +423,7 @@ export async function fetchAdminListing(id: number): Promise<AdminListing | null
 
 /** Set hidden flag for a listing. Hidden listings are excluded from the public deals feed. */
 export async function setListingHidden(id: number, hidden: boolean): Promise<void> {
-  const res = await fetch(`${API_BASE}/admin/listings/${id}`, {
+  const res = await fetch(`${getApiBase()}/admin/listings/${id}`, {
     method: "PATCH",
     headers: adminHeaders(),
     body: JSON.stringify({ hidden }),
@@ -437,7 +437,7 @@ export async function setListingHidden(id: number, hidden: boolean): Promise<voi
 
 /** Set LLM overrides for a listing. Body is the overrides map e.g. { mtb_class: "Trail" }. Pass null for a key to clear. */
 export async function setListingLLMOverrides(id: number, overrides: Record<string, string | null>): Promise<void> {
-  const res = await fetch(`${API_BASE}/admin/listings/${id}/llm-overrides`, {
+  const res = await fetch(`${getApiBase()}/admin/listings/${id}/llm-overrides`, {
     method: "POST",
     headers: adminHeaders(),
     body: JSON.stringify(overrides),
@@ -451,7 +451,7 @@ export async function setListingLLMOverrides(id: number, overrides: Record<strin
 
 /** Re-run LLM extraction for all listings in a canonical category. */
 export async function runLLMExtractionForCategory(canonicalCategory: string[]): Promise<{ ok: boolean; processed: number }> {
-  const res = await fetch(`${API_BASE}/admin/llm/run`, {
+  const res = await fetch(`${getApiBase()}/admin/llm/run`, {
     method: "POST",
     headers: adminHeaders(),
     body: JSON.stringify({ canonical_category: canonicalCategory }),
@@ -466,7 +466,7 @@ export async function runLLMExtractionForCategory(canonicalCategory: string[]): 
 
 /** Run enrichment for a single listing. Returns { ok, category_path } or throws with error message. */
 export async function enrichListing(id: number): Promise<{ ok: boolean; category_path: string[] }> {
-  const res = await fetch(`${API_BASE}/admin/listings/${id}/enrich`, {
+  const res = await fetch(`${getApiBase()}/admin/listings/${id}/enrich`, {
     method: "POST",
     headers: adminHeaders(),
   });
@@ -490,7 +490,7 @@ export interface CategoryMapping {
 }
 
 export async function fetchTaxonomyMappings(): Promise<CategoryMapping[]> {
-  const res = await fetch(`${API_BASE}/admin/taxonomy`, { headers: adminHeaders() });
+  const res = await fetch(`${getApiBase()}/admin/taxonomy`, { headers: adminHeaders() });
   if (!res.ok) throw new Error(res.status === 401 ? "Unauthorized" : "Failed to fetch taxonomy");
   const data = await res.json();
   return Array.isArray(data) ? data : [];
@@ -501,7 +501,7 @@ export async function createTaxonomyMapping(body: {
   canonical: string[];
   priority?: number;
 }): Promise<{ id: number }> {
-  const res = await fetch(`${API_BASE}/admin/taxonomy`, {
+  const res = await fetch(`${getApiBase()}/admin/taxonomy`, {
     method: "POST",
     headers: adminHeaders(),
     body: JSON.stringify({
@@ -521,7 +521,7 @@ export async function updateTaxonomyMapping(
   id: number,
   body: { raw_keywords: string[]; canonical: string[]; priority?: number }
 ): Promise<void> {
-  const res = await fetch(`${API_BASE}/admin/taxonomy/${id}`, {
+  const res = await fetch(`${getApiBase()}/admin/taxonomy/${id}`, {
     method: "PUT",
     headers: adminHeaders(),
     body: JSON.stringify({
@@ -537,7 +537,7 @@ export async function updateTaxonomyMapping(
 }
 
 export async function deleteTaxonomyMapping(id: number): Promise<void> {
-  const res = await fetch(`${API_BASE}/admin/taxonomy/${id}`, {
+  const res = await fetch(`${getApiBase()}/admin/taxonomy/${id}`, {
     method: "DELETE",
     headers: adminHeaders(),
   });
@@ -547,7 +547,7 @@ export async function deleteTaxonomyMapping(id: number): Promise<void> {
 export async function reorderTaxonomyMappings(
   updates: { id: number; priority: number }[]
 ): Promise<void> {
-  const res = await fetch(`${API_BASE}/admin/taxonomy/reorder`, {
+  const res = await fetch(`${getApiBase()}/admin/taxonomy/reorder`, {
     method: "PUT",
     headers: adminHeaders(),
     body: JSON.stringify({ updates }),
@@ -559,7 +559,7 @@ export async function reorderTaxonomyMappings(
 }
 
 export async function triggerRecategorize(): Promise<{ updated: number }> {
-  const res = await fetch(`${API_BASE}/admin/taxonomy/recategorize`, {
+  const res = await fetch(`${getApiBase()}/admin/taxonomy/recategorize`, {
     method: "POST",
     headers: adminHeaders(),
   });
@@ -594,7 +594,7 @@ export interface DiscoveredSpecKey {
 }
 
 export async function fetchSpecFilterConfigs(): Promise<SpecFilterConfig[]> {
-  const res = await fetch(`${API_BASE}/admin/spec-filter-config`, { headers: adminHeaders() });
+  const res = await fetch(`${getApiBase()}/admin/spec-filter-config`, { headers: adminHeaders() });
   if (!res.ok) throw new Error(res.status === 401 ? "Unauthorized" : "Failed to fetch spec filter config");
   const data = await res.json();
   return Array.isArray(data) ? data : [];
@@ -607,7 +607,7 @@ export async function createSpecFilterConfig(body: {
   display_label?: string | null;
   sort_order?: number;
 }): Promise<{ id: number }> {
-  const res = await fetch(`${API_BASE}/admin/spec-filter-config`, {
+  const res = await fetch(`${getApiBase()}/admin/spec-filter-config`, {
     method: "POST",
     headers: adminHeaders(),
     body: JSON.stringify({
@@ -635,7 +635,7 @@ export async function updateSpecFilterConfig(
     sort_order?: number;
   }
 ): Promise<void> {
-  const res = await fetch(`${API_BASE}/admin/spec-filter-config/${id}`, {
+  const res = await fetch(`${getApiBase()}/admin/spec-filter-config/${id}`, {
     method: "PUT",
     headers: adminHeaders(),
     body: JSON.stringify({
@@ -653,7 +653,7 @@ export async function updateSpecFilterConfig(
 }
 
 export async function deleteSpecFilterConfig(id: number): Promise<void> {
-  const res = await fetch(`${API_BASE}/admin/spec-filter-config/${id}`, {
+  const res = await fetch(`${getApiBase()}/admin/spec-filter-config/${id}`, {
     method: "DELETE",
     headers: adminHeaders(),
   });
@@ -662,7 +662,7 @@ export async function deleteSpecFilterConfig(id: number): Promise<void> {
 
 export async function fetchSpecValueAliases(specKey?: string): Promise<SpecValueAlias[]> {
   const search = specKey ? `?spec_key=${encodeURIComponent(specKey)}` : "";
-  const res = await fetch(`${API_BASE}/admin/spec-value-aliases${search}`, { headers: adminHeaders() });
+  const res = await fetch(`${getApiBase()}/admin/spec-value-aliases${search}`, { headers: adminHeaders() });
   if (!res.ok) throw new Error(res.status === 401 ? "Unauthorized" : "Failed to fetch spec value aliases");
   const data = await res.json();
   return Array.isArray(data) ? data : [];
@@ -673,7 +673,7 @@ export async function createSpecValueAlias(body: {
   raw_value: string;
   display_value: string;
 }): Promise<{ id: number }> {
-  const res = await fetch(`${API_BASE}/admin/spec-value-aliases`, {
+  const res = await fetch(`${getApiBase()}/admin/spec-value-aliases`, {
     method: "POST",
     headers: adminHeaders(),
     body: JSON.stringify(body),
@@ -689,7 +689,7 @@ export async function updateSpecValueAlias(
   id: number,
   body: { spec_key: string; raw_value: string; display_value: string }
 ): Promise<void> {
-  const res = await fetch(`${API_BASE}/admin/spec-value-aliases/${id}`, {
+  const res = await fetch(`${getApiBase()}/admin/spec-value-aliases/${id}`, {
     method: "PUT",
     headers: adminHeaders(),
     body: JSON.stringify(body),
@@ -701,7 +701,7 @@ export async function updateSpecValueAlias(
 }
 
 export async function deleteSpecValueAlias(id: number): Promise<void> {
-  const res = await fetch(`${API_BASE}/admin/spec-value-aliases/${id}`, {
+  const res = await fetch(`${getApiBase()}/admin/spec-value-aliases/${id}`, {
     method: "DELETE",
     headers: adminHeaders(),
   });
@@ -709,14 +709,14 @@ export async function deleteSpecValueAlias(id: number): Promise<void> {
 }
 
 export async function fetchSpecKeys(): Promise<DiscoveredSpecKey[]> {
-  const res = await fetch(`${API_BASE}/admin/spec-keys`, { headers: adminHeaders() });
+  const res = await fetch(`${getApiBase()}/admin/spec-keys`, { headers: adminHeaders() });
   if (!res.ok) throw new Error(res.status === 401 ? "Unauthorized" : "Failed to fetch spec keys");
   const data = await res.json();
   return Array.isArray(data) ? data : [];
 }
 
 export async function triggerRenormalizeSpecs(): Promise<{ updated: number }> {
-  const res = await fetch(`${API_BASE}/admin/renormalize-specs`, {
+  const res = await fetch(`${getApiBase()}/admin/renormalize-specs`, {
     method: "POST",
     headers: adminHeaders(),
   });
@@ -738,7 +738,7 @@ export interface UnmappedItemsResponse {
 
 export async function fetchUnmappedItems(limit?: number): Promise<UnmappedItemsResponse> {
   const params = limit != null ? `?limit=${limit}` : "";
-  const res = await fetch(`${API_BASE}/admin/normalization/unmapped${params}`, {
+  const res = await fetch(`${getApiBase()}/admin/normalization/unmapped${params}`, {
     headers: adminHeaders(),
   });
   if (!res.ok) throw new Error("Failed to fetch unmapped items");
@@ -756,7 +756,7 @@ export interface SpecNormalizationRule {
 }
 
 export async function fetchSpecNormalizationRules(): Promise<SpecNormalizationRule[]> {
-  const res = await fetch(`${API_BASE}/admin/normalization/rules`, {
+  const res = await fetch(`${getApiBase()}/admin/normalization/rules`, {
     headers: adminHeaders(),
   });
   if (!res.ok) throw new Error("Failed to fetch normalization rules");
@@ -770,7 +770,7 @@ export async function createSpecNormalizationRule(body: {
   config?: Record<string, unknown>;
   priority?: number;
 }): Promise<{ id: number }> {
-  const res = await fetch(`${API_BASE}/admin/normalization/rules`, {
+  const res = await fetch(`${getApiBase()}/admin/normalization/rules`, {
     method: "POST",
     headers: adminHeaders(),
     body: JSON.stringify({
@@ -791,7 +791,7 @@ export async function updateSpecNormalizationRule(
   id: number,
   body: { spec_key: string; rule_type: string; config?: Record<string, unknown>; priority?: number }
 ): Promise<void> {
-  const res = await fetch(`${API_BASE}/admin/normalization/rules/${id}`, {
+  const res = await fetch(`${getApiBase()}/admin/normalization/rules/${id}`, {
     method: "PUT",
     headers: adminHeaders(),
     body: JSON.stringify({
@@ -805,7 +805,7 @@ export async function updateSpecNormalizationRule(
 }
 
 export async function deleteSpecNormalizationRule(id: number): Promise<void> {
-  const res = await fetch(`${API_BASE}/admin/normalization/rules/${id}`, {
+  const res = await fetch(`${getApiBase()}/admin/normalization/rules/${id}`, {
     method: "DELETE",
     headers: adminHeaders(),
   });
@@ -822,7 +822,7 @@ export interface SpecKeyAlias {
 }
 
 export async function fetchSpecKeyAliases(): Promise<SpecKeyAlias[]> {
-  const res = await fetch(`${API_BASE}/admin/normalization/key-aliases`, {
+  const res = await fetch(`${getApiBase()}/admin/normalization/key-aliases`, {
     headers: adminHeaders(),
   });
   if (!res.ok) throw new Error("Failed to fetch spec key aliases");
@@ -835,7 +835,7 @@ export async function createSpecKeyAlias(body: {
   canonical_key: string;
   priority?: number;
 }): Promise<{ id: number }> {
-  const res = await fetch(`${API_BASE}/admin/normalization/key-aliases`, {
+  const res = await fetch(`${getApiBase()}/admin/normalization/key-aliases`, {
     method: "POST",
     headers: adminHeaders(),
     body: JSON.stringify({
@@ -855,7 +855,7 @@ export async function updateSpecKeyAlias(
   id: number,
   body: { raw_substr: string; canonical_key: string; priority?: number }
 ): Promise<void> {
-  const res = await fetch(`${API_BASE}/admin/normalization/key-aliases/${id}`, {
+  const res = await fetch(`${getApiBase()}/admin/normalization/key-aliases/${id}`, {
     method: "PUT",
     headers: adminHeaders(),
     body: JSON.stringify({
@@ -868,7 +868,7 @@ export async function updateSpecKeyAlias(
 }
 
 export async function deleteSpecKeyAlias(id: number): Promise<void> {
-  const res = await fetch(`${API_BASE}/admin/normalization/key-aliases/${id}`, {
+  const res = await fetch(`${getApiBase()}/admin/normalization/key-aliases/${id}`, {
     method: "DELETE",
     headers: adminHeaders(),
   });
@@ -887,14 +887,14 @@ export interface LLMPromptProfile {
 }
 
 export async function fetchLLMProfiles(): Promise<LLMPromptProfile[]> {
-  const res = await fetch(`${API_BASE}/admin/llm-profiles`, { headers: adminHeaders() });
+  const res = await fetch(`${getApiBase()}/admin/llm-profiles`, { headers: adminHeaders() });
   if (!res.ok) throw new Error(res.status === 401 ? "Unauthorized" : "Failed to fetch LLM profiles");
   const data = await res.json();
   return Array.isArray(data) ? data : [];
 }
 
 export async function fetchLLMProfile(id: number): Promise<LLMPromptProfile> {
-  const res = await fetch(`${API_BASE}/admin/llm-profiles/${id}`, { headers: adminHeaders() });
+  const res = await fetch(`${getApiBase()}/admin/llm-profiles/${id}`, { headers: adminHeaders() });
   if (!res.ok) throw new Error(res.status === 401 ? "Unauthorized" : "Failed to fetch profile");
   return res.json();
 }
@@ -906,7 +906,7 @@ export async function createLLMProfile(body: {
   extraction_schema: Record<string, unknown>;
   enabled?: boolean;
 }): Promise<{ id: number }> {
-  const res = await fetch(`${API_BASE}/admin/llm-profiles`, {
+  const res = await fetch(`${getApiBase()}/admin/llm-profiles`, {
     method: "POST",
     headers: adminHeaders(),
     body: JSON.stringify({
@@ -934,7 +934,7 @@ export async function updateLLMProfile(
     enabled?: boolean;
   }
 ): Promise<void> {
-  const res = await fetch(`${API_BASE}/admin/llm-profiles/${id}`, {
+  const res = await fetch(`${getApiBase()}/admin/llm-profiles/${id}`, {
     method: "PUT",
     headers: adminHeaders(),
     body: JSON.stringify(body),
@@ -946,7 +946,7 @@ export async function updateLLMProfile(
 }
 
 export async function deleteLLMProfile(id: number): Promise<void> {
-  const res = await fetch(`${API_BASE}/admin/llm-profiles/${id}`, {
+  const res = await fetch(`${getApiBase()}/admin/llm-profiles/${id}`, {
     method: "DELETE",
     headers: adminHeaders(),
   });
@@ -954,7 +954,7 @@ export async function deleteLLMProfile(id: number): Promise<void> {
 }
 
 export async function testLLMProfile(profileId: number, listingId: number): Promise<{ result: Record<string, unknown> | null; message?: string }> {
-  const res = await fetch(`${API_BASE}/admin/llm-profiles/${profileId}/test`, {
+  const res = await fetch(`${getApiBase()}/admin/llm-profiles/${profileId}/test`, {
     method: "POST",
     headers: adminHeaders(),
     body: JSON.stringify({ listing_id: listingId }),
@@ -976,7 +976,7 @@ export interface CategoryClassifierConfig {
 }
 
 export async function fetchCategoryClassifier(): Promise<CategoryClassifierConfig | null> {
-  const res = await fetch(`${API_BASE}/admin/category-classifier`, { headers: adminHeaders() });
+  const res = await fetch(`${getApiBase()}/admin/category-classifier`, { headers: adminHeaders() });
   if (!res.ok) throw new Error(res.status === 401 ? "Unauthorized" : "Failed to fetch category classifier");
   const data = await res.json();
   if (data.config === null || (data.id == null && data.config == null)) return null;
@@ -988,7 +988,7 @@ export async function updateCategoryClassifier(body: {
   confidence_threshold?: number;
   enabled?: boolean;
 }): Promise<void> {
-  const res = await fetch(`${API_BASE}/admin/category-classifier`, {
+  const res = await fetch(`${getApiBase()}/admin/category-classifier`, {
     method: "PUT",
     headers: adminHeaders(),
     body: JSON.stringify(body),
@@ -1003,7 +1003,7 @@ export async function testCategoryClassifier(listingId: number): Promise<{
   result: { canonical_category: string[]; confidence: number; reasoning: string } | null;
   message?: string;
 }> {
-  const res = await fetch(`${API_BASE}/admin/category-classifier/test`, {
+  const res = await fetch(`${getApiBase()}/admin/category-classifier/test`, {
     method: "POST",
     headers: adminHeaders(),
     body: JSON.stringify({ listing_id: listingId }),
@@ -1020,7 +1020,7 @@ export async function runCategoryClassifier(params?: {
   canonical_category?: string[];
   limit?: number;
 }): Promise<{ ok: boolean; processed: number }> {
-  const res = await fetch(`${API_BASE}/admin/category-classifier/run`, {
+  const res = await fetch(`${getApiBase()}/admin/category-classifier/run`, {
     method: "POST",
     headers: adminHeaders(),
     body: JSON.stringify(params ?? {}),
