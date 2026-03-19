@@ -13,16 +13,45 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/getsentry/sentry-go"
+	sentryhttp "github.com/getsentry/sentry-go/http"
 	"github.com/joho/godotenv"
 	"github.com/mtb-aggregator/api/internal/api"
 	"github.com/mtb-aggregator/api/internal/brand"
 	"github.com/mtb-aggregator/api/internal/db"
-	"github.com/mtb-aggregator/api/internal/normalization"
 	"github.com/mtb-aggregator/api/internal/llm"
+	"github.com/mtb-aggregator/api/internal/normalization"
 	"github.com/mtb-aggregator/api/internal/scheduler"
 	"github.com/mtb-aggregator/api/internal/scraper"
 	"github.com/mtb-aggregator/api/internal/taxonomy"
 )
+
+// sentryRelease returns the release string for Sentry: explicit SENTRY_RELEASE, else Render's RENDER_GIT_COMMIT.
+func sentryRelease() string {
+	if r := strings.TrimSpace(os.Getenv("SENTRY_RELEASE")); r != "" {
+		return r
+	}
+	return strings.TrimSpace(os.Getenv("RENDER_GIT_COMMIT"))
+}
+
+// initSentry configures error reporting when SENTRY_DSN is set. Returns whether Sentry is active.
+func initSentry() bool {
+	dsn := strings.TrimSpace(os.Getenv("SENTRY_DSN"))
+	if dsn == "" {
+		return false
+	}
+	if err := sentry.Init(sentry.ClientOptions{
+		Dsn:              dsn,
+		Environment:      os.Getenv("SENTRY_ENVIRONMENT"),
+		Release:          sentryRelease(),
+		TracesSampleRate: 0,
+	}); err != nil {
+		log.Printf("[sentry] init failed: %v", err)
+		return false
+	}
+	log.Println("[sentry] initialized")
+	return true
+}
 
 func corsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -209,6 +238,8 @@ func main() {
 		}
 	}
 
+	sentryEnabled := initSentry()
+
 	if err := brand.Load(""); err != nil {
 		log.Printf("[brand] could not load aliases (brand normalization disabled): %v", err)
 	}
@@ -271,10 +302,10 @@ func main() {
 	handlers := &api.Handlers{DB: database, ScraperURL: scraperURL, Scraper: scraperClient, LLM: llmClient}
 	log.Println("[startup] scheduler and handlers initialized")
 
-	// Cron: every 4 hours (configurable via SCRAPE_CRON_SPEC, "disabled" = use external cron)
+	// Cron: once a day at midnight (configurable via SCRAPE_CRON_SPEC, "disabled" = use external cron)
 	cronSpec := os.Getenv("SCRAPE_CRON_SPEC")
 	if cronSpec == "" {
-		cronSpec = "0 */4 * * *"
+		cronSpec = "0 0 * * *"
 	}
 	if !strings.EqualFold(cronSpec, "disabled") {
 		sched.Start(cronSpec, "cron")
@@ -851,6 +882,10 @@ func main() {
 	go func() {
 		log.Printf("[startup] API listening on port %s", port)
 		handler := loggingMiddleware(corsMiddleware(http.DefaultServeMux))
+		if sentryEnabled {
+			sentryHandler := sentryhttp.New(sentryhttp.Options{})
+			handler = sentryHandler.Handle(handler)
+		}
 		if err := http.ListenAndServe(":"+port, handler); err != nil {
 			log.Fatal(err)
 		}
@@ -861,5 +896,8 @@ func main() {
 	s := <-sig
 	log.Printf("[shutdown] received signal %v", s)
 	sched.Stop()
+	if sentryEnabled {
+		sentry.Flush(2 * time.Second)
+	}
 	log.Println("[shutdown] complete")
 }

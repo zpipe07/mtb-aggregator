@@ -127,3 +127,33 @@ See [.cursor/plans/website_analytics_plan_f835d1a0.plan.md](../.cursor/plans/web
 - **Production**: Neon (DB), Render (API + scraper), Vercel (web), external cron (cron-job.org)
 
 See [README.md](../README.md) for setup and [.cursor/plans/mtb_aggregator_deployment.plan.md](../.cursor/plans/mtb_aggregator_deployment.plan.md) for deployment details.
+
+### Error monitoring (Sentry)
+
+#### Policy: report significant errors to Sentry
+
+**Deployed environments (Render, Vercel, etc.) should set the Sentry DSN** so failures are visible. When a DSN is set, **do not rely on logs alone** for errors that indicate a bug, outage, or broken integration—**send them to Sentry** as well.
+
+| Do report | Usually do not report |
+|-----------|------------------------|
+| 5xx, panics, timeouts, scraper/enrich job failures, strict validation abort, consecutive empty scrapes | Expected 4xx, auth failures, “not found” for valid clients |
+| Handled errors where you return 500/503 but the request didn’t panic | High-volume per-item failures unless sampled or aggregated (see scheduler note below) |
+
+Local development may omit DSN to avoid noise; production/staging should not.
+
+#### When adding or changing code
+
+- **API (HTTP)** — `sentry-go/http` in [apps/api/main.go](apps/api/main.go) covers panics and typical server errors on the request path. If a handler catches an error and responds with 5xx **without** re-panicking, add `sentry.CaptureException(err)` (or a small helper) so Sentry still sees it.
+- **API (background)** — Scrape/enrich and other goroutines **off** the HTTP path must use [apps/api/internal/sentryutil](apps/api/internal/sentryutil) (`CaptureError`, `CapturePanicValue`, `CaptureWarning`) for job-level issues; follow patterns in [apps/api/internal/scheduler/scheduler.go](apps/api/internal/scheduler/scheduler.go).
+- **Web** — `@sentry/nextjs` captures many unhandled errors; [apps/web/src/app/global-error.tsx](apps/web/src/app/global-error.tsx) reports root render failures. If you `try/catch` and show a fatal UI without rethrowing, call `Sentry.captureException` in the catch path.
+- **Scraper** — New Express routes: use `captureRouteError` in `catch` (see [apps/scraper/src/server.ts](apps/scraper/src/server.ts)) and keep `Sentry.setupExpressErrorHandler` last.
+
+Document intentional omissions (e.g. “per-listing enrich errors only in DB job row”) in PRs or here if the behavior changes.
+
+#### Current wiring
+
+- **API** — When `SENTRY_DSN` is set: [apps/api/main.go](apps/api/main.go), `sentry-go/http` for panics and HTTP errors. Scheduler uses `sentryutil` (job-level failures, panics, strict validation abort, timeouts, consecutive empty scrape warning—not per-listing enrich errors). Release: `SENTRY_RELEASE` or `RENDER_GIT_COMMIT`.
+- **Web** — When `NEXT_PUBLIC_SENTRY_DSN` is set: `@sentry/nextjs` with `src/instrumentation.ts`, `instrumentation-client.ts`, server/edge configs, and `src/app/global-error.tsx`. Release/environment: `SENTRY_RELEASE` / `VERCEL_GIT_COMMIT_SHA` and `SENTRY_ENVIRONMENT` / `VERCEL_ENV`, with client-side values wired through [apps/web/next.config.ts](apps/web/next.config.ts). Optional `SENTRY_AUTH_TOKEN` + org/project for source maps on build.
+- **Scraper** — When `SENTRY_DSN` is set: [apps/scraper/src/bootstrap.ts](apps/scraper/src/bootstrap.ts) (init before Express), [apps/scraper/src/server.ts](apps/scraper/src/server.ts) (`setupExpressErrorHandler`, `captureRouteError` on `/scrape`, `/enrich`, `/scrape-debug`). Release: `SENTRY_RELEASE` or `RENDER_GIT_COMMIT`.
+
+Configure alerts in each Sentry project (email, Slack, etc.).

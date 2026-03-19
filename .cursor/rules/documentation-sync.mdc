@@ -16,5 +16,6 @@ When making code changes, update relevant docs so they stay accurate. Check if a
 | New features, data flow, deployment | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [CLAUDE.md](CLAUDE.md), [README.md](README.md) |
 | Component library, primitives, Storybook | [apps/web/README.md](apps/web/README.md), [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
 | Visual identity, copy, design tokens | [docs/DESIGN.md](docs/DESIGN.md) |
+| Sentry / error-reporting behavior or conventions | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) (Error monitoring), affected app README(s), [.cursor/rules/error-reporting.mdc](error-reporting.mdc) |
 
 **Before finishing a change:** If you added/removed endpoints, parsers, env vars, or tables — update the corresponding doc.

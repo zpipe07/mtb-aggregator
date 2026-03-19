@@ -1,0 +1,17 @@
+---
+description: Send significant errors to Sentry when DSN is configured; do not rely on logs alone in deployed envs
+globs:
+  - apps/api/**/*
+  - apps/web/**/*
+  - apps/scraper/**/*
+---
+
+# Error reporting (Sentry)
+
+Canonical policy: **[docs/ARCHITECTURE.md](../../docs/ARCHITECTURE.md#error-monitoring-sentry)** — “Error monitoring (Sentry)” → policy table and “When adding or changing code.”
+
+**Rule of thumb:** If Sentry DSN is set and the failure is operationally significant (5xx, broken integration, job failure, panic), **report it to Sentry** (`sentryutil`, `Sentry.captureException`, `captureRouteError`, or existing middleware)—not only `log` / `console.error`.
+
+**Exceptions:** Expected 4xx, deliberate high-volume paths (document if you omit Sentry).
+
+When changing error-handling or adding new routes/jobs, update [docs/ARCHITECTURE.md](../../docs/ARCHITECTURE.md) if conventions shift.

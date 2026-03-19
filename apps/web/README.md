@@ -26,6 +26,21 @@ pnpm run build        # Production build
 
 The API must be running for data. Configure `NEXT_PUBLIC_API_URL` (client) or `API_URL` (server) or use the default proxy (`/api` → `http://localhost:8080`).
 
+## Sentry (error monitoring)
+
+When `NEXT_PUBLIC_SENTRY_DSN` is set, the app loads Sentry on the client, server, and edge ([`@sentry/nextjs`](https://docs.sentry.io/platforms/javascript/guides/nextjs/)). Files: `src/instrumentation.ts`, `src/instrumentation-client.ts`, `src/sentry.server.config.ts`, `src/sentry.edge.config.ts`, `src/app/global-error.tsx`.
+
+| Variable | Purpose |
+|----------|---------|
+| `NEXT_PUBLIC_SENTRY_DSN` | Required to enable Sentry (same DSN in Sentry’s Next.js wizard) |
+| `SENTRY_ENVIRONMENT` | e.g. `production`; client also gets `NEXT_PUBLIC_SENTRY_ENVIRONMENT` or mapped `VERCEL_ENV` via `next.config.ts` |
+| `SENTRY_RELEASE` / `VERCEL_GIT_COMMIT_SHA` | Release grouping; client uses `NEXT_PUBLIC_SENTRY_RELEASE` populated at build from those |
+| `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT` | Optional; enable source map upload on `next build` (e.g. Vercel env or CI) |
+
+Without `SENTRY_AUTH_TOKEN`, builds skip source map upload (`sourcemaps.disable` in `next.config.ts`); errors still report, stacks are less readable.
+
+**Convention:** With `NEXT_PUBLIC_SENTRY_DSN` set, do not rely on `console.error` alone for user-impacting failures—ensure they reach Sentry (Next defaults + `global-error.tsx`; in `try/catch` that handles fatally without rethrowing, call `Sentry.captureException`). See [docs/ARCHITECTURE.md](../../docs/ARCHITECTURE.md#error-monitoring-sentry).
+
 ## Component Library
 
 ### Primitives (`src/components/ui/`)

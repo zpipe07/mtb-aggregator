@@ -51,6 +51,14 @@ Go HTTP server that orchestrates scraping, enrichment, and serves the REST API. 
 - `ADMIN_PASSWORD` — Required for admin endpoints
 - `CRON_SECRET` — Optional; validate cron triggers via `X-Cron-Secret`
 - `SCRAPE_CRON_SPEC` / `ENRICH_CRON_SPEC` — Cron schedules; set `disabled` for external cron
+- `SENTRY_DSN` — Optional; enables [Sentry](https://sentry.io) (HTTP panics and 5xx via `sentryhttp`)
+- `SENTRY_ENVIRONMENT` — e.g. `production` / `development` (optional)
+- `SENTRY_RELEASE` — Optional release override; if unset on Render, `RENDER_GIT_COMMIT` is used automatically
+- Scheduler scrape/enrich jobs report to Sentry via `internal/sentryutil` (see [docs/ARCHITECTURE.md](../../docs/ARCHITECTURE.md#error-monitoring-sentry))
+
+## Error reporting
+
+When `SENTRY_DSN` is set (deployed environments should set it), **significant errors must reach Sentry**, not only logs: HTTP layer uses `sentryhttp`; handlers that catch errors and return 5xx should call `sentry.CaptureException`; background work uses `internal/sentryutil`. Full policy: [docs/ARCHITECTURE.md](../../docs/ARCHITECTURE.md#error-monitoring-sentry).
 
 ## Running
 

@@ -48,6 +48,9 @@ cd apps/web && pnpm run dev
 - `CORS_ORIGINS` — comma-separated allowed origins (defaults to `*`)
 - `SCRAPE_CRON_SPEC` / `ENRICH_CRON_SPEC` — override cron schedules (set to `disabled` to use external cron)
 - `NEXT_PUBLIC_API_URL` — client-side API base (defaults to `/api`); `API_URL` for server-side (full URL)
+- `SENTRY_DSN` — optional; enables Sentry on the API when set (`SENTRY_ENVIRONMENT` optional; release = `SENTRY_RELEASE` or `RENDER_GIT_COMMIT` on Render). Scheduler jobs also send high-signal events via `internal/sentryutil` when DSN is set.
+- `NEXT_PUBLIC_SENTRY_DSN` — optional; enables Sentry on the web app (see [apps/web/README.md](apps/web/README.md)); Vercel provides `VERCEL_GIT_COMMIT_SHA` / `VERCEL_ENV` for release/environment mapping in `next.config.ts`
+- Scraper: same `SENTRY_DSN` / `SENTRY_*` as API when enabled (see [apps/scraper/README.md](apps/scraper/README.md))
 
 ## Commands
 
@@ -109,6 +112,10 @@ pnpm --filter @mtb-aggregator/web run build-storybook  # static build to storybo
 - Admin endpoints under `/admin/*` require Bearer token auth (password set via `ADMIN_PASSWORD`)
 - Public API: `GET /deals`, `/stores`, `/brands`, `/categories/tree`, `/facets`, `/spec-values`, `/status`. Deprecated: `/canonical-categories` (use `/categories/tree`)
 
+### Error reporting (Sentry)
+
+**Policy:** Where Sentry is configured (DSN set), significant errors must go to Sentry, not only logs. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#error-monitoring-sentry) for the full table and per-stack conventions (API handlers, `internal/sentryutil` for background work, web `catch` paths, scraper `captureRouteError`).
+
 ### Web (`apps/web/`)
 
 - React Router routes: `/` (HomePage), `/deals` (DealsPage), `/admin/*` (AdminSection)
@@ -129,7 +136,7 @@ For remote (Neon, etc.): `make db-migrate-remote` (uses `go run ./cmd/migrate`)
 
 ### Further Reading
 
-- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — Data flow, services, component library
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — Data flow, services, component library, **error monitoring (Sentry) policy**
 - [docs/DESIGN.md](docs/DESIGN.md) — Visual identity, copy guidelines, "dialed-in" vibe
 - [docs/SCRAPING.md](docs/SCRAPING.md) — Parser structure, adding stores
 - [docs/TAXONOMY.md](docs/TAXONOMY.md) — Category mappings, LLM classifier
