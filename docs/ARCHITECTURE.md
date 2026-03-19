@@ -127,3 +127,7 @@ See [.cursor/plans/website_analytics_plan_f835d1a0.plan.md](../.cursor/plans/web
 - **Production**: Neon (DB), Render (API + scraper), Vercel (web), external cron (cron-job.org)
 
 See [README.md](../README.md) for setup and [.cursor/plans/mtb_aggregator_deployment.plan.md](../.cursor/plans/mtb_aggregator_deployment.plan.md) for deployment details.
+
+### Error monitoring (Sentry)
+
+The API reports to Sentry when `SENTRY_DSN` is set: initialization in [apps/api/main.go](apps/api/main.go), HTTP wrapping via `sentry-go/http` (panic recovery and server-side error reporting for handled requests). Release is `SENTRY_RELEASE` if set, otherwise Render’s `RENDER_GIT_COMMIT`. Configure alerts in the Sentry project (email, Slack, etc.). The web app and scraper can be wired to the same or separate Sentry projects in follow-up steps.

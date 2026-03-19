@@ -126,7 +126,7 @@ Deploy to Render (API + scraper), Vercel (web), and Neon (PostgreSQL). See [.cur
 
 1. **Neon** – Create project, run `schema.sql` + `seed.sql`, copy `DATABASE_URL`
 2. **Render** – Create two Web Services (API, scraper), connect repo, set env vars:
-   - API: `DATABASE_URL`, `SCRAPER_SERVICE_URL`, `SCRAPE_CRON_SPEC=disabled`, `ENRICH_CRON_SPEC=disabled`, `CRON_SECRET` (optional)
+   - API: `DATABASE_URL`, `SCRAPER_SERVICE_URL`, `SCRAPE_CRON_SPEC=disabled`, `ENRICH_CRON_SPEC=disabled`, `CRON_SECRET` (optional), `SENTRY_DSN` (optional; error alerts)
    - Scraper: `NODE_ENV=production`, `SCRAPER_MAX_PAGES=5` (or higher). Use **Render Standard** (2GB RAM, $25/mo) for the scraper so Chromium runs locally; see [Scraper: Render Standard](#scraper-render-standard) below.
 3. **Vercel** – Connect repo, set `VITE_API_URL` to API URL
 4. **External cron** – [cron-job.org](https://cron-job.org): POST `/scrape-now` every 4h, POST `/enrich-now` daily at 02:00 UTC. If `CRON_SECRET` is set, add header `X-Cron-Secret: <secret>`.
