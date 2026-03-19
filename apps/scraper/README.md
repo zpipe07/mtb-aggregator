@@ -9,6 +9,16 @@ Node.js Express server using Playwright to scrape retailer sale pages. Returns s
 - **Scraping:** Playwright (Chromium); needed for JS-rendered pages (e.g. JensonUSA)
 - **Testing:** Set `SCRAPER_MAX_PRODUCTS=10` to limit products per scrape (0 = no limit)
 
+## Environment
+
+| Variable | Purpose |
+|----------|---------|
+| `SENTRY_DSN` | Optional; enables [Sentry](https://docs.sentry.io/platforms/javascript/guides/express/) (`src/bootstrap.ts`, `expressIntegration`, `setupExpressErrorHandler`). Same name as the API; use a dedicated Sentry **Node** project for the scraper. |
+| `SENTRY_ENVIRONMENT` | e.g. `production` |
+| `SENTRY_RELEASE` / `RENDER_GIT_COMMIT` | Release grouping on Render |
+
+Scrape/enrich failures call `captureRouteError` (tags: `route`, `store`) because handlers use `try`/`catch` instead of `next(err)`.
+
 ## Endpoints
 
 | Endpoint | Method | Purpose |

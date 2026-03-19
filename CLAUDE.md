@@ -49,6 +49,8 @@ cd apps/web && pnpm run dev
 - `SCRAPE_CRON_SPEC` / `ENRICH_CRON_SPEC` — override cron schedules (set to `disabled` to use external cron)
 - `NEXT_PUBLIC_API_URL` — client-side API base (defaults to `/api`); `API_URL` for server-side (full URL)
 - `SENTRY_DSN` — optional; enables Sentry on the API when set (`SENTRY_ENVIRONMENT` optional; release = `SENTRY_RELEASE` or `RENDER_GIT_COMMIT` on Render)
+- `NEXT_PUBLIC_SENTRY_DSN` — optional; enables Sentry on the web app (see [apps/web/README.md](apps/web/README.md)); Vercel provides `VERCEL_GIT_COMMIT_SHA` / `VERCEL_ENV` for release/environment mapping in `next.config.ts`
+- Scraper: same `SENTRY_DSN` / `SENTRY_*` as API when enabled (see [apps/scraper/README.md](apps/scraper/README.md))
 
 ## Commands
 

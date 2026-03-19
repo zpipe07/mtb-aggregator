@@ -58,6 +58,7 @@ curl -X POST http://localhost:3000/scrape \
 
 ## Notes
 
+- **Sentry**: Optional `SENTRY_DSN` on the scraper service; see [apps/scraper/README.md](../apps/scraper/README.md) and [docs/ARCHITECTURE.md](ARCHITECTURE.md#error-monitoring-sentry)
 - **Chromium**: Scraper needs ~300MB+ RAM; use Render Standard (2GB) in production, not free tier
 - **Timeouts**: Configure via `SCRAPER_MAX_PAGES` and Playwright timeouts
 - **Testing**: Set `SCRAPER_MAX_PRODUCTS=10` (or similar) to limit products per scrape; 0 = no limit

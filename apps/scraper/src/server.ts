@@ -1,9 +1,11 @@
-import "./load-env.js";
+import "./bootstrap.js";
+import * as Sentry from "@sentry/node";
 import express from "express";
 import { mkdir, writeFile } from "fs/promises";
 import { join } from "path";
 import { runWithBrowser } from "./browser.js";
 import { getParser, getEnricher } from "./parsers/index.js";
+import { captureRouteError } from "./sentry-helpers.js";
 import { ScrapeRequestSchema, ScrapeResultSchema, EnrichRequestSchema } from "./types.js";
 
 const app = express();
@@ -54,6 +56,7 @@ app.post("/scrape", async (req, res) => {
     return res.json(validated);
   } catch (err) {
     console.error("Scrape error:", err);
+    captureRouteError(err, { route: "scrape", store, url });
 
     // Take screenshot on failure (if we have page context - for now just log)
     try {
@@ -180,9 +183,12 @@ app.post("/scrape-debug", async (req, res) => {
     });
     res.json(result);
   } catch (err) {
+    captureRouteError(err, { route: "scrape-debug", store, url });
     res.status(500).json({ error: String(err) });
   }
 });
+
+Sentry.setupExpressErrorHandler(app);
 
 app.listen(PORT, () => {
   console.log(`Scraper listening on port ${PORT}`);

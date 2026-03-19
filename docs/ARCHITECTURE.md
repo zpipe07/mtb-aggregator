@@ -130,4 +130,8 @@ See [README.md](../README.md) for setup and [.cursor/plans/mtb_aggregator_deploy
 
 ### Error monitoring (Sentry)
 
-The API reports to Sentry when `SENTRY_DSN` is set: initialization in [apps/api/main.go](apps/api/main.go), HTTP wrapping via `sentry-go/http` (panic recovery and server-side error reporting for handled requests). Release is `SENTRY_RELEASE` if set, otherwise Render’s `RENDER_GIT_COMMIT`. Configure alerts in the Sentry project (email, Slack, etc.). The web app and scraper can be wired to the same or separate Sentry projects in follow-up steps.
+- **API** — When `SENTRY_DSN` is set: [apps/api/main.go](apps/api/main.go), `sentry-go/http` for panics and HTTP errors. Release: `SENTRY_RELEASE` or `RENDER_GIT_COMMIT`.
+- **Web** — When `NEXT_PUBLIC_SENTRY_DSN` is set: `@sentry/nextjs` with `src/instrumentation.ts`, `instrumentation-client.ts`, server/edge configs, and `src/app/global-error.tsx`. Release/environment: `SENTRY_RELEASE` / `VERCEL_GIT_COMMIT_SHA` and `SENTRY_ENVIRONMENT` / `VERCEL_ENV`, with client-side values wired through [apps/web/next.config.ts](apps/web/next.config.ts). Optional `SENTRY_AUTH_TOKEN` + org/project for source maps on build.
+- **Scraper** — When `SENTRY_DSN` is set: [apps/scraper/src/bootstrap.ts](apps/scraper/src/bootstrap.ts) (init before Express), [apps/scraper/src/server.ts](apps/scraper/src/server.ts) (`setupExpressErrorHandler`, `captureRouteError` on `/scrape`, `/enrich`, `/scrape-debug`). Release: `SENTRY_RELEASE` or `RENDER_GIT_COMMIT`.
+
+Configure alerts in each Sentry project (email, Slack, etc.).
