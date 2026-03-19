@@ -52,3 +52,4 @@ Since it's an aggregator, be honest:
 - **Typography**: `--font-display` (Oswald 600/700) for h1–h3; `--app-font-sans` (Geist) for body. See `apps/web/src/index.css`.
 - **Components**: CTA buttons should use the Hazard Orange accent. See [docs/ARCHITECTURE.md](ARCHITECTURE.md#component-library) for the component system.
 - **Storybook**: Run `pnpm --filter @mtb-aggregator/web run storybook` and open **Design / Design Tokens** to view the palette and typography.
+- **Pencil (layout reference)**: High-fidelity frames for Home, Deals, and Deal detail (light + dark) live in the Pencil editor document; semantic colors are mirrored as file variables from `apps/web/src/app/globals.css`. See [designs/README.md](../designs/README.md) for the variable map and exported PNG previews.
