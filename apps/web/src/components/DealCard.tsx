@@ -9,7 +9,6 @@ type DealCardProps = {
 };
 
 export function DealCard({ deal, onSelect }: DealCardProps) {
-  console.log({ deal });
   const viewUrl = deal.affiliate_url || deal.product_url;
   // Compute discount % from API value or derive from original_price/current_price
   const discountPct =
@@ -68,7 +67,7 @@ export function DealCard({ deal, onSelect }: DealCardProps) {
             {discountPct}% off
           </span>
         )}
-        <span className="absolute top-2 right-2 bg-primary/80 text-primary-foreground text-xs px-2 py-1 rounded">
+        <span className="absolute top-2 right-2 bg-trail/92 text-trail-foreground text-xs font-medium px-2 py-1 rounded">
           {deal.store_name}
         </span>
       </div>

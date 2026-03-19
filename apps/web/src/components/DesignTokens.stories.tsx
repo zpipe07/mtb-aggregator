@@ -10,22 +10,22 @@ function DesignTokensDoc() {
     <div className="space-y-10 max-w-2xl">
       <section>
         <h2 className="text-xl font-semibold text-foreground mb-4">Color Palette</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <div className="space-y-2">
             <div
               className="h-20 rounded-lg border border-border"
               style={{ backgroundColor: "#2D2D2D" }}
             />
             <p className="text-sm font-medium text-foreground">Carbon Grey</p>
-            <p className="text-xs text-muted-foreground">#2D2D2D · foreground</p>
+            <p className="text-xs text-muted-foreground">Reference ink · see fg token</p>
           </div>
           <div className="space-y-2">
             <div
               className="h-20 rounded-lg border border-border"
               style={{ backgroundColor: "#1B3022" }}
             />
-            <p className="text-sm font-medium text-foreground">Mud / Deep Forest</p>
-            <p className="text-xs text-muted-foreground">#1B3022 · dark bg, accents</p>
+            <p className="text-sm font-medium text-foreground">Deep Forest</p>
+            <p className="text-xs text-muted-foreground">Brand mood · dark bg is lifted oklch</p>
           </div>
           <div className="space-y-2">
             <div
@@ -44,6 +44,18 @@ function DesignTokensDoc() {
           <div className="flex items-center gap-4">
             <div className="h-10 w-20 rounded bg-primary" />
             <span className="text-sm text-muted-foreground">bg-primary (CTA)</span>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="h-10 w-20 rounded bg-secondary" />
+            <span className="text-sm text-muted-foreground">bg-secondary (sage band)</span>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="h-10 w-20 rounded bg-accent" />
+            <span className="text-sm text-muted-foreground">bg-accent (teal wash)</span>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="h-10 w-20 rounded bg-trail" />
+            <span className="text-sm text-muted-foreground">bg-trail (teal pop)</span>
           </div>
           <div className="flex items-center gap-4">
             <div className="h-10 w-20 rounded bg-muted" />
@@ -88,7 +100,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "Visual identity from docs/DESIGN.md. Carbon Grey, Mud/Deep Forest, Hazard Orange.",
+          "Visual identity from docs/DESIGN.md. Orange primary, sage secondary, teal accent/trail, lifted dark mode.",
       },
     },
   },

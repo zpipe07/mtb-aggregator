@@ -118,7 +118,7 @@ function TreeNodeRow({
     <div className="group">
       <div
         className={`flex items-center gap-2 rounded-lg ${isSelected ? "bg-secondary" : ""}`}
-        style={{ paddingLeft: `${depth * 12 + 8}px` }}
+        style={{ paddingLeft: `${depth * 12 + 10}px` }}
       >
         {hasChildren ? (
           <Button
@@ -126,7 +126,7 @@ function TreeNodeRow({
             variant="ghost"
             size="icon"
             onClick={onToggle}
-            className="-m-2 text-muted-foreground hover:text-foreground"
+            className="-m-2 text-muted-foreground hover:text-foreground rounded-full"
             aria-expanded={expanded}
             aria-label={expanded ? "Collapse" : "Expand"}
           >
@@ -140,7 +140,9 @@ function TreeNodeRow({
             type="button"
             variant="ghost"
             onClick={onSelect}
-            className={`flex-1 justify-start h-auto min-h-[44px] py-2 px-2 rounded-lg font-normal ${isSelected ? "font-medium bg-secondary text-secondary-foreground hover:bg-secondary/90" : "text-muted-foreground"}`}
+            className={`flex-1 justify-start h-auto min-h-[44px] py-2 px-3 rounded-lg font-normal ${isSelected ? "font-medium bg-secondary text-secondary-foreground hover:bg-secondary/90 text-text-foreground" : "text-muted-foreground"}`}
+            disabled={isSelected}
+            aria-disabled={isSelected}
           >
             {node.label}
           </Button>

@@ -45,10 +45,9 @@ Since it's an aggregator, be honest:
 
 ## Implementation Notes
 
-- **Colors**: Mapped in `apps/web/src/index.css` (`:root`, `.dark`):
-  - Carbon Grey (#2D2D2D) → `--foreground`, `--card-foreground`, `--secondary-foreground`
-  - Mud/Deep Forest (#1B3022) → `--background` (dark mode), `--secondary` / `--border` (light mode tints)
-  - Hazard Orange (#FF5E00) → `--primary` (CTAs), `--ring` (focus)
+- **Colors**: Mapped in `apps/web/src/app/globals.css` and `apps/web/src/index.css` (`:root`, `.dark`):
+- **Light mode**: **Soft warm-grey canvas** (low chroma) vs **near-white cards**; neutral-ish **`--foreground`**; **`--secondary`** / **`--muted`** / **`--border`** read as grey with only a hint of hue; **`--accent`** is a cool blue-grey wash; **`--trail`** stays a muted teal for accents; orange **`--primary`** unchanged.
+- **Dark mode**: **Neutral-warm grey** base (~oklch 0.34 L, very low chroma) and **lighter cards**; **`--secondary`**, **`--muted`**, **`--accent`**, **`--trail`** are toned down so the UI isn’t forest-green; primary orange unchanged.
 - **Typography**: `--font-display` (Oswald 600/700) for h1–h3; `--app-font-sans` (Geist) for body. See `apps/web/src/index.css`.
 - **Components**: CTA buttons should use the Hazard Orange accent. See [docs/ARCHITECTURE.md](ARCHITECTURE.md#component-library) for the component system.
 - **Storybook**: Run `pnpm --filter @mtb-aggregator/web run storybook` and open **Design / Design Tokens** to view the palette and typography.

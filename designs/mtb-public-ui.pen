@@ -5607,7 +5607,7 @@
       "name": "spec",
       "width": 720,
       "height": 420,
-      "content": "MTB Aggregator — public UI (Home, Deals, Deal detail).\\n\\nPencil variables map to apps/web/src/app/globals.css semantic tokens:\\n• $background / $foreground — :root and .dark oklch (approx hex)\\n• $card, $muted, $mutedForeground, $border\\n• $primary, $primaryForeground (orange CTA; same hue light+dark)\\n• $destructive (discount badges)\\n• $radius ≈ 0.625rem (10px)\\n\\nTypography: Oswald-style display for logo + section titles; Geist approximated as Inter in Pencil.\\n\\nTheme: set frame theme { mode: light | dark }; moon icon = light UI, sun = dark UI.\\n\\nExport previews: repo designs/pencil-exports/*.png"
+      "content": "MTB Aggregator — public UI (Home, Deals, Deal detail).\\n\\nPencil variables ≈ apps/web/src/app/globals.css:\\n• $background / $foreground — soft warm grey + near-black (light); neutral-warm grey (dark)\\n• $card, $muted, $border — low chroma (grey-first)\\n• $secondary — subtle grey band\\n• $accent — cool blue-grey wash\\n• $trail — muted teal accents\\n• $primary — hazard orange CTA\\n• $destructive — sale badges\\n• $radius ≈ 0.625rem\\n\\nTheme: frame theme { mode: light | dark }. Exports: designs/pencil-exports/*.png"
     }
   ],
   "themes": {
@@ -5617,17 +5617,51 @@
     ]
   },
   "variables": {
-    "background": {
+    "accent": {
       "type": "color",
       "value": [
         {
-          "value": "#F7F7F5",
+          "value": "#C8D8DE",
           "theme": {
             "mode": "light"
           }
         },
         {
-          "value": "#1A2220",
+          "value": "#4A5558",
+          "theme": {
+            "mode": "dark"
+          }
+        }
+      ]
+    },
+    "accentForeground": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#121820",
+          "theme": {
+            "mode": "light"
+          }
+        },
+        {
+          "value": "#EEF6F8",
+          "theme": {
+            "mode": "dark"
+          }
+        }
+      ]
+    },
+    "background": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#EBEBE8",
+          "theme": {
+            "mode": "light"
+          }
+        },
+        {
+          "value": "#565956",
           "theme": {
             "mode": "dark"
           }
@@ -5638,13 +5672,13 @@
       "type": "color",
       "value": [
         {
-          "value": "#D8DCD8",
+          "value": "#C2C3C0",
           "theme": {
             "mode": "light"
           }
         },
         {
-          "value": "#3D4A44",
+          "value": "#6F726F",
           "theme": {
             "mode": "dark"
           }
@@ -5655,13 +5689,13 @@
       "type": "color",
       "value": [
         {
-          "value": "#FFFFFF",
+          "value": "#FDFDFC",
           "theme": {
             "mode": "light"
           }
         },
         {
-          "value": "#252E2A",
+          "value": "#6B6E6B",
           "theme": {
             "mode": "dark"
           }
@@ -5689,13 +5723,13 @@
       "type": "color",
       "value": [
         {
-          "value": "#353535",
+          "value": "#0A0A0C",
           "theme": {
             "mode": "light"
           }
         },
         {
-          "value": "#F2F2F2",
+          "value": "#F7F7F5",
           "theme": {
             "mode": "dark"
           }
@@ -5706,13 +5740,13 @@
       "type": "color",
       "value": [
         {
-          "value": "#F0F0EE",
+          "value": "#DCDCD9",
           "theme": {
             "mode": "light"
           }
         },
         {
-          "value": "#2A3530",
+          "value": "#4E514E",
           "theme": {
             "mode": "dark"
           }
@@ -5723,13 +5757,13 @@
       "type": "color",
       "value": [
         {
-          "value": "#737373",
+          "value": "#4A4D52",
           "theme": {
             "mode": "light"
           }
         },
         {
-          "value": "#A6A6A6",
+          "value": "#B8BCB8",
           "theme": {
             "mode": "dark"
           }
@@ -5740,13 +5774,13 @@
       "type": "color",
       "value": [
         {
-          "value": "#E06B2E",
+          "value": "#D95F1A",
           "theme": {
             "mode": "light"
           }
         },
         {
-          "value": "#E06B2E",
+          "value": "#F07830",
           "theme": {
             "mode": "dark"
           }
@@ -5773,6 +5807,74 @@
     "radius": {
       "type": "number",
       "value": 10
+    },
+    "secondary": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#C8CECC",
+          "theme": {
+            "mode": "light"
+          }
+        },
+        {
+          "value": "#4F5C55",
+          "theme": {
+            "mode": "dark"
+          }
+        }
+      ]
+    },
+    "secondaryForeground": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#1A1C1B",
+          "theme": {
+            "mode": "light"
+          }
+        },
+        {
+          "value": "#F4F5F4",
+          "theme": {
+            "mode": "dark"
+          }
+        }
+      ]
+    },
+    "trail": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#1A5F66",
+          "theme": {
+            "mode": "light"
+          }
+        },
+        {
+          "value": "#5BC4AE",
+          "theme": {
+            "mode": "dark"
+          }
+        }
+      ]
+    },
+    "trailForeground": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#FAFCFC",
+          "theme": {
+            "mode": "light"
+          }
+        },
+        {
+          "value": "#0A1210",
+          "theme": {
+            "mode": "dark"
+          }
+        }
+      ]
     }
   }
 }
