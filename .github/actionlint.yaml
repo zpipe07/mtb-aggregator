@@ -1,0 +1,9 @@
+# Declare repository variables used in workflows so actionlint doesn't warn
+config-variables:
+  - API_URL
+
+# Suppress "Context access might be invalid" for custom secrets/vars
+paths:
+  "*.yml":
+    ignore:
+      - "Context access might be invalid: API_URL"
