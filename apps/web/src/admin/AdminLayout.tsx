@@ -31,7 +31,10 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-stone-100 flex">
       <aside className="w-52 shrink-0 border-r border-stone-200 bg-white flex flex-col min-h-screen">
         <div className="p-4 border-b border-stone-200">
-          <h1 className="font-semibold text-stone-800">Admin</h1>
+          <div className="flex items-center gap-2">
+            <img src="/logo.png" alt="" className="h-8 w-auto shrink-0" />
+            <h1 className="font-semibold text-stone-800">Admin</h1>
+          </div>
         </div>
         <nav className="p-2 flex-1">
           {navItems.map(({ to, end, label }) => {
