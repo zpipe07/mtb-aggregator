@@ -35,13 +35,14 @@ Go HTTP server that orchestrates scraping, enrichment, and serves the REST API. 
 
 ### Trigger (cron or manual)
 
-- `POST /scrape-now` — Trigger scrape job; optional `?store=worldwidecyclery`
-- `POST /enrich-now` — Trigger enrichment job
-- `POST /scrape-now/:store` — Scrape single store
+- `POST /scrape-now` — Trigger scrape job; optional `?store=<store_type>`
+- `POST /enrich-now` — Trigger enrichment job; optional `?force=1`, `?store=`
+
+**Auth:** Valid `CRON_SECRET` via `X-Cron-Secret` (or `?secret=` — avoid in production logs), or `Authorization: Bearer <ADMIN_PASSWORD>`. In production (`APP_ENV=production` or `RENDER=true`), if `CRON_SECRET` is unset, unauthenticated triggers are rejected unless `ALLOW_OPEN_CRON=1` (not recommended). Local dev allows unauthenticated triggers when `CRON_SECRET` is unset.
 
 ### Admin (Bearer token via `ADMIN_PASSWORD`)
 
-- `POST /admin/login` — Get token
+- `POST /admin/auth` — Validate password (`{"password":"..."}`); use same value as `Authorization: Bearer` on other `/admin/*` routes
 - `GET/POST/PUT/PATCH/DELETE /admin/*` — Dashboard, stores, taxonomy, profiles, etc.
 
 ## Environment
@@ -49,7 +50,9 @@ Go HTTP server that orchestrates scraping, enrichment, and serves the REST API. 
 - `DATABASE_URL` — Postgres connection string
 - `SCRAPER_SERVICE_URL` — Scraper base URL (default `http://localhost:3000`)
 - `ADMIN_PASSWORD` — Required for admin endpoints
-- `CRON_SECRET` — Optional; validate cron triggers via `X-Cron-Secret`
+- `CRON_SECRET` — Shared secret for `POST /scrape-now` and `POST /enrich-now` (`X-Cron-Secret`); **set in production** (see Trigger section)
+- `APP_ENV` — Set `production` (or `prod`) for production security defaults (with `RENDER`, used to require cron auth when `CRON_SECRET` is unset)
+- `ALLOW_OPEN_CRON` — Set to `1` only if you must allow unauthenticated cron triggers in production (unsafe; prefer `CRON_SECRET`)
 - `SCRAPE_CRON_SPEC` / `ENRICH_CRON_SPEC` — Cron schedules; set `disabled` for external cron
 - `SENTRY_DSN` — Optional; enables [Sentry](https://sentry.io) (HTTP panics and 5xx via `sentryhttp`)
 - `SENTRY_ENVIRONMENT` — e.g. `production` / `development` (optional)

@@ -44,7 +44,7 @@ cd apps/web && pnpm run dev
 - `DATABASE_URL` (defaults to `postgres://mtb:mtb@localhost:5432/mtb_deals`)
 - `SCRAPER_SERVICE_URL` (defaults to `http://localhost:3000`)
 - `ADMIN_PASSWORD` — required for admin UI login
-- `CRON_SECRET` — optional auth for cron trigger endpoints
+- `CRON_SECRET` — shared secret for `POST /scrape-now` / `enrich-now` (header `X-Cron-Secret`); **set in production**. If unset in production (`APP_ENV=production` or `RENDER=true`), those endpoints require admin Bearer unless `ALLOW_OPEN_CRON=1`
 - `CORS_ORIGINS` — comma-separated allowed origins (defaults to `*`)
 - `SCRAPE_CRON_SPEC` / `ENRICH_CRON_SPEC` — override cron schedules (set to `disabled` to use external cron)
 - `NEXT_PUBLIC_API_URL` — client-side API base (defaults to `/api`); `API_URL` for server-side (full URL)

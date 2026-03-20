@@ -126,6 +126,8 @@ See [.cursor/plans/website_analytics_plan_f835d1a0.plan.md](../.cursor/plans/web
 - **Local**: Docker Postgres, three terminals (scraper, API, web)
 - **Production**: Neon (DB), Render (API + scraper), Vercel (web), external cron (cron-job.org)
 
+**Cron triggers (`POST /scrape-now`, `POST /enrich-now`):** Set `CRON_SECRET` and send `X-Cron-Secret` from the cron provider. In production (`APP_ENV=production` or `RENDER=true`), if `CRON_SECRET` is unset, unauthenticated requests are rejected (admin Bearer still works); local dev allows open triggers when the secret is unset. Escape hatch: `ALLOW_OPEN_CRON=1` (not recommended).
+
 See [README.md](../README.md) for setup and [.cursor/plans/mtb_aggregator_deployment.plan.md](../.cursor/plans/mtb_aggregator_deployment.plan.md) for deployment details.
 
 ### Error monitoring (Sentry)
