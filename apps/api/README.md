@@ -50,7 +50,10 @@ Go HTTP server that orchestrates scraping, enrichment, and serves the REST API. 
 - `DATABASE_URL` — Postgres connection string
 - `SCRAPER_SERVICE_URL` — Scraper base URL (default `http://localhost:3000`)
 - `SCRAPER_SERVICE_SECRET` — Optional locally; **set in production** to match the scraper service. API sends `X-Scraper-Secret` on `POST /scrape` and `POST /enrich` to the scraper.
-- `ADMIN_PASSWORD` — Required for admin endpoints
+- `ADMIN_PASSWORD` — Required for admin endpoints (use a long random value in production)
+- `ADMIN_AUTH_MAX_ATTEMPTS_PER_WINDOW` — Failed `POST /admin/auth` attempts per IP before HTTP 429 (default `5`)
+- `ADMIN_AUTH_WINDOW_SECONDS` — Rolling window for those attempts (default `900` = 15 minutes)
+- `ADMIN_AUTH_RATE_LIMIT` — Set `off` / `false` / `0` to disable the limiter (local dev only)
 - `CRON_SECRET` — Shared secret for `POST /scrape-now` and `POST /enrich-now` (`X-Cron-Secret`); **set in production** (see Trigger section)
 - `APP_ENV` — Set `production` (or `prod`) for production security defaults (with `RENDER`, used to require cron auth when `CRON_SECRET` is unset)
 - `ALLOW_OPEN_CRON` — Set to `1` only if you must allow unauthenticated cron triggers in production (unsafe; prefer `CRON_SECRET`)

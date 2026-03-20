@@ -44,7 +44,7 @@ cd apps/web && pnpm run dev
 - `DATABASE_URL` (defaults to `postgres://mtb:mtb@localhost:5432/mtb_deals`)
 - `SCRAPER_SERVICE_URL` (defaults to `http://localhost:3000`)
 - `SCRAPER_SERVICE_SECRET` — same value on API and scraper in production; API sends `X-Scraper-Secret` on scraper requests
-- `ADMIN_PASSWORD` — required for admin UI login
+- `ADMIN_PASSWORD` — required for admin UI login (strong random in production); `POST /admin/auth` is rate-limited by failed attempts per IP (`ADMIN_AUTH_*` env vars)
 - `CRON_SECRET` — shared secret for `POST /scrape-now` / `enrich-now` (header `X-Cron-Secret`); **set in production**. If unset in production (`APP_ENV=production` or `RENDER=true`), those endpoints require admin Bearer unless `ALLOW_OPEN_CRON=1`
 - `CORS_ORIGINS` — comma-separated allowed origins (defaults to `*`)
 - `SCRAPE_CRON_SPEC` / `ENRICH_CRON_SPEC` — override cron schedules (set to `disabled` to use external cron)

@@ -10,7 +10,7 @@ todos:
     status: completed
   - id: admin-hardening
     content: Strong ADMIN_PASSWORD; edge rate limit on POST /admin/auth
-    status: pending
+    status: completed
   - id: errors-cors-db
     content: Review generic 5xx for public API; set CORS if credentialed; DB sslmode=require
     status: pending

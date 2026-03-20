@@ -9,7 +9,7 @@ alwaysApply: false
 - Use stdlib `net/http`; no framework (Echo, Gin, etc.)
 - All DB access via `internal/db/` with pgx
 - Return JSON with appropriate status codes; use `api.WriteJSON` / `api.WriteError` helpers
-- Admin endpoints: check Bearer token via `api.RequireAdmin` middleware
+- Admin endpoints: check Bearer token via `api.AdminRequired`; `POST /admin/auth` uses per-IP rate limiting on failed attempts (`internal/api/admin_auth_limit.go`)
 - Cron triggers: `CRON_SECRET` + `X-Cron-Secret` (or admin Bearer); in production, fail closed when secret unset (`main.go` `validateCronSecret`)
 - Add new endpoints in `main.go` or `internal/api/`; keep route registration centralized
 - Use `context.Context` for timeouts and cancellation in handlers that call external services
