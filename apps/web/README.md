@@ -15,6 +15,7 @@ React frontend for the MTB deal aggregator. Built with Next.js 15 (App Router), 
 
 - **SSR/ISR** — Home, deals list, and deal detail pages are server-rendered for SEO
 - **Dark mode** — Toggle in nav header; defaults to system preference (`prefers-color-scheme`), persists choice in `localStorage`
+- **Branding** — Primary logo is `public/logo.png` (admin UI). Favicons: `public/favicon.png` / `public/favicon-light.png` via `metadata.icons` in `src/app/layout.tsx` (paired with `prefers-color-scheme`). The public nav uses `logo-light.png` in dark mode (`NavHeader`). Other assets in `public/` are optional (e.g. alternate wordmarks).
 
 ## Development
 

@@ -9,6 +9,16 @@ export const metadata: Metadata = {
   },
   description:
     "Find the best mountain bike deals across top retailers. Compare prices on bikes, components, gear, and accessories.",
+  icons: {
+    icon: [
+      { url: "/favicon.png", media: "(prefers-color-scheme: light)" },
+      { url: "/favicon-light.png", media: "(prefers-color-scheme: dark)" },
+    ],
+    apple: [
+      { url: "/favicon.png", media: "(prefers-color-scheme: light)" },
+      { url: "/favicon-light.png", media: "(prefers-color-scheme: dark)" },
+    ],
+  },
 };
 
 export default function RootLayout({

@@ -15,6 +15,8 @@ Visual identity and language guidelines for the MTB Deal Aggregator. Use this wh
 | **Imagery** | High-contrast, "action" photography. Avoid stock photos of smiling people on bikes. Use close-ups of gritty components: a muddy derailleur, a clean carbon weave, or a tire biting into loam. |
 | **The Vibe** | **"Dialed-in."** The site shouldn't feel like a mall; it should feel like a specialized tool. |
 
+**Logo:** Primary mark is [`apps/web/public/logo.png`](../apps/web/public/logo.png) (vertical icon). [`logo-light.png`](../apps/web/public/logo-light.png) is the same mark tuned for dark backgrounds—used in the public nav when dark mode is active. **Favicon:** [`favicon.png`](../apps/web/public/favicon.png) when the OS/browser prefers light chrome, [`favicon-light.png`](../apps/web/public/favicon-light.png) when it prefers dark (`metadata.icons` in `layout.tsx`). Admin chrome uses `logo.png`. Additional wordmark assets may live in `public/` for one-off use (e.g. exports).
+
 ---
 
 ## 3. Language & Tone (The Copy)

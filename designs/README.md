@@ -2,6 +2,19 @@
 
 High-fidelity layout reference for the user-facing app (Home, Deals, Deal detail) in [Pencil](https://pencil.dev). **Canonical colors live in the web app** (`apps/web/src/app/globals.css` as `oklch(...)`). The `.pen` file mirrors them only indirectly.
 
+## Saving the `.pen` file
+
+The working document is opened in Pencil as **`pencil-new.pen`**. To keep it in this repo, use **File → Save As** in Pencil and save as:
+
+| Document | Save as |
+| :--- | :--- |
+| Public UI (Home, Deals, detail) | `designs/mtb-public-ui.pen` |
+| Logo refinement & light/dark brainstorm | `designs/the-dropper-logo-brainstorm.pen` |
+
+(A commit-friendly copy cannot be written here automatically; the editor owns the file.)
+
+**Logo file:** Reference images use the path `../apps/web/public/the-dropper-logo-horizontal.png` relative to `designs/`. If images look missing, confirm the file is saved under `designs/` with that name.
+
 ## Why Pencil and the browser can look different
 
 1. **Different formats** — The app uses **OKLCH** in CSS. Pencil variables are **8-digit or 6-digit hex** entered by hand to approximate those tokens. OKLCH→sRGB is not a simple “eyeball” match; small errors stack, and hue/lightness can read differently next to other colors.
