@@ -9,8 +9,8 @@ alwaysApply: false
 - Use stdlib `net/http`; no framework (Echo, Gin, etc.)
 - All DB access via `internal/db/` with pgx
 - Return JSON with appropriate status codes; use `api.WriteJSON` / `api.WriteError` helpers
-- Admin endpoints: check Bearer token via `api.RequireAdmin` middleware
-- Cron triggers: optionally validate `X-Cron-Secret` when `CRON_SECRET` is set
+- Admin endpoints: check Bearer token via `api.AdminRequired`; `POST /admin/auth` uses per-IP rate limiting on failed attempts (`internal/api/admin_auth_limit.go`)
+- Cron triggers: `CRON_SECRET` + `X-Cron-Secret` (or admin Bearer); in production, fail closed when secret unset (`main.go` `validateCronSecret`)
 - Add new endpoints in `main.go` or `internal/api/`; keep route registration centralized
 - Use `context.Context` for timeouts and cancellation in handlers that call external services
 - **Sentry:** When `SENTRY_DSN` is set, significant errors must reach Sentry—not only `log.Printf`. HTTP: `sentryhttp` wraps the mux; if you handle an error and return 5xx without a panic, call `sentry.CaptureException`. Background jobs / goroutines: use `internal/sentryutil` with tags. See [docs/ARCHITECTURE.md](../../docs/ARCHITECTURE.md#error-monitoring-sentry).

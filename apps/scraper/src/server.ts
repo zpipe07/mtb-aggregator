@@ -1,5 +1,6 @@
 import "./bootstrap.js";
 import * as Sentry from "@sentry/node";
+import { timingSafeEqual } from "node:crypto";
 import express from "express";
 import { mkdir, writeFile } from "fs/promises";
 import { join } from "path";
@@ -14,7 +15,25 @@ app.use(express.json());
 const PORT = process.env.PORT ?? 3000;
 const LOGS_DIR = process.env.SCREENSHOT_DIR ?? join(process.cwd(), "logs");
 
-app.post("/scrape", async (req, res) => {
+/** When SCRAPER_SERVICE_SECRET is set, require X-Scraper-Secret or Authorization: Bearer (same value as API). */
+function scraperServiceAuth(req: express.Request, res: express.Response, next: express.NextFunction) {
+  const secret = String(process.env.SCRAPER_SERVICE_SECRET ?? "").trim();
+  if (!secret) {
+    return next();
+  }
+  const fromHeader = req.get("X-Scraper-Secret")?.trim() ?? "";
+  const auth = req.get("Authorization") ?? "";
+  const fromBearer = auth.replace(/^Bearer\s+/i, "").trim();
+  const got = fromHeader || fromBearer;
+  const a = Buffer.from(got, "utf8");
+  const b = Buffer.from(secret, "utf8");
+  if (a.length !== b.length || !timingSafeEqual(a, b)) {
+    return res.status(401).json({ error: "unauthorized" });
+  }
+  next();
+}
+
+app.post("/scrape", scraperServiceAuth, async (req, res) => {
   const parseResult = ScrapeRequestSchema.safeParse(req.body);
   if (!parseResult.success) {
     return res.status(400).json({
@@ -83,7 +102,7 @@ app.get("/health", (_req, res) => {
   res.json({ status: "ok" });
 });
 
-app.post("/enrich", async (req, res) => {
+app.post("/enrich", scraperServiceAuth, async (req, res) => {
   const parseResult = EnrichRequestSchema.safeParse(req.body);
   if (!parseResult.success) {
     return res.status(400).json({
@@ -127,7 +146,7 @@ app.post("/enrich", async (req, res) => {
 });
 
 // Debug: capture page HTML for selector development (set DEBUG=1)
-app.post("/scrape-debug", async (req, res) => {
+app.post("/scrape-debug", scraperServiceAuth, async (req, res) => {
   if (process.env.DEBUG !== "1") {
     return res.status(404).send("Set DEBUG=1 to enable");
   }
@@ -192,4 +211,11 @@ Sentry.setupExpressErrorHandler(app);
 
 app.listen(PORT, () => {
   console.log(`Scraper listening on port ${PORT}`);
+  const isProd =
+    process.env.NODE_ENV === "production" || String(process.env.RENDER ?? "").toLowerCase() === "true";
+  if (isProd && !String(process.env.SCRAPER_SERVICE_SECRET ?? "").trim()) {
+    console.warn(
+      "[security] SCRAPER_SERVICE_SECRET unset in production: POST /scrape, /enrich, /scrape-debug are unauthenticated"
+    );
+  }
 });

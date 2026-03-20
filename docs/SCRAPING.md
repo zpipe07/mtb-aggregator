@@ -8,7 +8,9 @@ The scraper is a Node.js Express server that uses Playwright to scrape MTB retai
 |----------|--------|---------|
 | `/scrape` | POST | Scrape sale page → returns `ScrapeResult[]` |
 | `/enrich` | POST | Visit PDP URLs → returns `EnrichResult` (category, specs) |
-| `/health` | GET | Health check |
+| `/health` | GET | Health check (no auth) |
+
+When `SCRAPER_SERVICE_SECRET` is set (recommended in production), `POST /scrape` and `POST /enrich` require `X-Scraper-Secret` or `Authorization: Bearer` matching the API’s env. The Go API sends this header automatically.
 
 ## Parser Structure
 
@@ -58,6 +60,7 @@ curl -X POST http://localhost:3000/scrape \
 
 ## Notes
 
+- **Service auth**: Set `SCRAPER_SERVICE_SECRET` to the same value on the API and scraper in production (see [apps/scraper/README.md](../apps/scraper/README.md)).
 - **Sentry**: Optional `SENTRY_DSN` locally; **set in production** and report 5xx route failures to Sentry (see [apps/scraper/README.md](../apps/scraper/README.md), [docs/ARCHITECTURE.md](ARCHITECTURE.md#error-monitoring-sentry))
 - **Chromium**: Scraper needs ~300MB+ RAM; use Render Standard (2GB) in production, not free tier
 - **Timeouts**: Configure via `SCRAPER_MAX_PAGES` and Playwright timeouts
