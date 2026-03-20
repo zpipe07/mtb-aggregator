@@ -6,6 +6,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
+	"strings"
 	"time"
 )
 
@@ -38,16 +40,24 @@ type EnrichResult struct {
 
 type Client struct {
 	baseURL    string
+	secret     string
 	httpClient *http.Client
 }
 
 func NewClient(baseURL string) *Client {
 	return &Client{
 		baseURL: baseURL,
+		secret:  strings.TrimSpace(os.Getenv("SCRAPER_SERVICE_SECRET")),
 		httpClient: &http.Client{
 			// Scrape can take 10+ min for multi-page clearance (9 pages × ~60s load + delays)
 			Timeout: 15 * time.Minute,
 		},
+	}
+}
+
+func (c *Client) setServiceAuth(req *http.Request) {
+	if c.secret != "" {
+		req.Header.Set("X-Scraper-Secret", c.secret)
 	}
 }
 
@@ -63,6 +73,7 @@ func (c *Client) Scrape(ctx context.Context, url, store string) ([]ScrapeResult,
 		return nil, fmt.Errorf("create request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
+	c.setServiceAuth(req)
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
@@ -94,6 +105,7 @@ func (c *Client) Enrich(ctx context.Context, productURL, store string) (*EnrichR
 		return nil, fmt.Errorf("create request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
+	c.setServiceAuth(req)
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {

@@ -280,6 +280,9 @@ func main() {
 	if isProduction() && strings.TrimSpace(os.Getenv("CRON_SECRET")) == "" && strings.TrimSpace(os.Getenv("ALLOW_OPEN_CRON")) != "1" {
 		log.Println("[security] CRON_SECRET unset in production: POST /scrape-now and /enrich-now require admin Bearer or set CRON_SECRET for X-Cron-Secret")
 	}
+	if isProduction() && strings.TrimSpace(os.Getenv("SCRAPER_SERVICE_SECRET")) == "" {
+		log.Println("[security] SCRAPER_SERVICE_SECRET unset in production: set the same value on API and scraper to authenticate POST /scrape and /enrich")
+	}
 
 	database, err := db.New(connString)
 	if err != nil {

@@ -4,10 +4,10 @@ overview: Code review–based security audit of the MTB aggregator stack (Go API
 todos:
   - id: cron-secret
     content: Set CRON_SECRET in prod; avoid ?secret= in URLs; verify 403 without header
-    status: pending
+    status: completed
   - id: scraper-network
     content: Lock scraper to private network or add shared-secret/mTLS; never DEBUG=1 in prod
-    status: pending
+    status: completed
   - id: admin-hardening
     content: Strong ADMIN_PASSWORD; edge rate limit on POST /admin/auth
     status: pending

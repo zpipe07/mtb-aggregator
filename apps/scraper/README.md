@@ -13,6 +13,7 @@ Node.js Express server using Playwright to scrape retailer sale pages. Returns s
 
 | Variable | Purpose |
 |----------|---------|
+| `SCRAPER_SERVICE_SECRET` | Optional locally; **set in production** (same value as the API). When set, `POST /scrape`, `POST /enrich`, and `POST /scrape-debug` require `X-Scraper-Secret` or `Authorization: Bearer <secret>`. `GET /health` stays open for load balancers. |
 | `SENTRY_DSN` | Optional; enables [Sentry](https://docs.sentry.io/platforms/javascript/guides/express/) (`src/bootstrap.ts`, `expressIntegration`, `setupExpressErrorHandler`). Same name as the API; use a dedicated Sentry **Node** project for the scraper. |
 | `SENTRY_ENVIRONMENT` | e.g. `production` |
 | `SENTRY_RELEASE` / `RENDER_GIT_COMMIT` | Release grouping on Render |
@@ -27,7 +28,7 @@ Scrape/enrich failures call `captureRouteError` (tags: `route`, `store`) because
 |----------|--------|---------|
 | `/scrape` | POST | Scrape sale page; returns `ScrapeResult[]` |
 | `/enrich` | POST | Visit PDP URL; returns specs, category_path, etc. |
-| `/health` | GET | Health check |
+| `/health` | GET | Health check (no auth) |
 
 ## Parser Structure
 

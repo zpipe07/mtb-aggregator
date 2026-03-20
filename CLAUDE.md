@@ -43,6 +43,7 @@ cd apps/web && pnpm run dev
 **Environment variables** — create a `.env` at repo root:
 - `DATABASE_URL` (defaults to `postgres://mtb:mtb@localhost:5432/mtb_deals`)
 - `SCRAPER_SERVICE_URL` (defaults to `http://localhost:3000`)
+- `SCRAPER_SERVICE_SECRET` — same value on API and scraper in production; API sends `X-Scraper-Secret` on scraper requests
 - `ADMIN_PASSWORD` — required for admin UI login
 - `CRON_SECRET` — shared secret for `POST /scrape-now` / `enrich-now` (header `X-Cron-Secret`); **set in production**. If unset in production (`APP_ENV=production` or `RENDER=true`), those endpoints require admin Bearer unless `ALLOW_OPEN_CRON=1`
 - `CORS_ORIGINS` — comma-separated allowed origins (defaults to `*`)
