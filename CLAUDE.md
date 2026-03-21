@@ -48,6 +48,7 @@ cd apps/web && pnpm run dev
 - `CRON_SECRET` — shared secret for `POST /scrape-now` / `enrich-now` (header `X-Cron-Secret`); **set in production**. If unset in production (`APP_ENV=production` or `RENDER=true`), those endpoints require admin Bearer unless `ALLOW_OPEN_CRON=1`
 - `CORS_ORIGINS` — comma-separated allowed origins (defaults to `*`)
 - `SCRAPE_CRON_SPEC` / `ENRICH_CRON_SPEC` — override cron schedules (set to `disabled` to use external cron)
+- When in-process cron is enabled, startup **catch-up** runs scrape/enrich if the last DB job is more than 24h old (see [apps/api/README.md](apps/api/README.md))
 - `NEXT_PUBLIC_API_URL` — client-side API base (defaults to `/api`); `API_URL` for server-side (full URL)
 - `SENTRY_DSN` — optional; enables Sentry on the API when set (`SENTRY_ENVIRONMENT` optional; release = `SENTRY_RELEASE` or `RENDER_GIT_COMMIT` on Render). Scheduler jobs also send high-signal events via `internal/sentryutil` when DSN is set.
 - `NEXT_PUBLIC_SENTRY_DSN` — optional; enables Sentry on the web app (see [apps/web/README.md](apps/web/README.md)); Vercel provides `VERCEL_GIT_COMMIT_SHA` / `VERCEL_ENV` for release/environment mapping in `next.config.ts`

@@ -351,6 +351,14 @@ func main() {
 		log.Println("[startup] enrichment cron disabled (use external cron for /enrich-now)")
 	}
 
+	// Catch-up: if the process missed scheduled jobs (was down during cron time,
+	// deploy, restart), run overdue scrape/enrich once on startup.
+	catchUpScrapeInterval := 24 * time.Hour
+	catchUpEnrichInterval := 24 * time.Hour
+	if cronSpec != "disabled" || enrichCronSpec != "disabled" {
+		go sched.RunCatchUp(catchUpScrapeInterval, catchUpEnrichInterval)
+	}
+
 	// Manual trigger: POST /scrape-now (optional ?store=). Auth: valid CRON_SECRET, or admin Bearer, or (non-production only) open cron.
 	http.HandleFunc("/scrape-now", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {

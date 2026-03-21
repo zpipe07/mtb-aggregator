@@ -58,6 +58,7 @@ Go HTTP server that orchestrates scraping, enrichment, and serves the REST API. 
 - `APP_ENV` — Set `production` (or `prod`) for production security defaults (with `RENDER`, used to require cron auth when `CRON_SECRET` is unset)
 - `ALLOW_OPEN_CRON` — Set to `1` only if you must allow unauthenticated cron triggers in production (unsafe; prefer `CRON_SECRET`)
 - `SCRAPE_CRON_SPEC` / `ENRICH_CRON_SPEC` — Cron schedules; set `disabled` for external cron
+- **Startup catch-up:** If either in-process cron is enabled (not `disabled`), on each API start the scheduler checks the DB for the last scrape/enrich job start. If that job is older than **24 hours** (or missing), it runs once in the background with `triggered_by=catch-up`. Helps after deploys/restarts or if a scheduled run was missed while the process was down.
 - `SENTRY_DSN` — Optional; enables [Sentry](https://sentry.io) (HTTP panics and 5xx via `sentryhttp`)
 - `SENTRY_ENVIRONMENT` — e.g. `production` / `development` (optional)
 - `SENTRY_RELEASE` — Optional release override; if unset on Render, `RENDER_GIT_COMMIT` is used automatically
