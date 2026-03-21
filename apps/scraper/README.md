@@ -38,7 +38,7 @@ Parsers live in `src/parsers/` — one file per store:
 - `worldwidecyclery.ts` — Worldwide Cyclery
 - `revelbikes.ts` — Revel Bikes (scrape only)
 - `backcountry.ts` — Backcountry
-- `ridebicycles.ts` — Ride Bicycles (Shopify JSON API; filters in-stock + discounted)
+- `ridebicycles.ts` — Ride Bicycles (Shopify JSON API; in-stock + ≥10% off compare-at)
 
 `parsers/index.ts` registers `PARSERS` and `ENRICHERS` maps. Enrichers fetch product detail pages (PDP) for category paths and specs.
 

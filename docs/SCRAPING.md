@@ -66,4 +66,4 @@ curl -X POST http://localhost:3000/scrape \
 - **Timeouts**: Configure via `SCRAPER_MAX_PAGES` and Playwright timeouts
 - **Testing**: Set `SCRAPER_MAX_PRODUCTS=10` (or similar) to limit products per scrape; 0 = no limit
 - **Store types**: Must match keys in `PARSERS` and `ENRICHERS`
-- **Ride Bicycles**: Uses Shopify products.json API; client-side filters for in-stock and discounted variants (rb_stock_status, rb_discount_relative are not honored by the API)
+- **Ride Bicycles**: Uses Shopify products.json API; parser keeps in-stock variants with compare-at price and **≥10%** off compare-at (rb_stock_status, rb_discount_relative are not honored by the API)
