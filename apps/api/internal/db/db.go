@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -1107,6 +1108,44 @@ func (db *DB) GetEnrichJobByID(ctx context.Context, id int) (*EnrichJob, error) 
 	j.CompletedAt = completedAt
 	j.Errors = []string(errArr)
 	return &j, nil
+}
+
+// LastScrapeJobAge returns how long ago the most recent completed or running scrape job started.
+// Returns -1 if no jobs exist.
+func (db *DB) LastScrapeJobAge(ctx context.Context) (time.Duration, error) {
+	var age float64
+	err := db.pool.QueryRow(ctx, `
+		SELECT EXTRACT(EPOCH FROM (NOW() - started_at))
+		FROM scrape_jobs
+		WHERE status IN ('completed', 'running')
+		ORDER BY started_at DESC LIMIT 1
+	`).Scan(&age)
+	if err != nil {
+		if err.Error() == "no rows in result set" {
+			return -1, nil
+		}
+		return 0, err
+	}
+	return time.Duration(age * float64(time.Second)), nil
+}
+
+// LastEnrichJobAge returns how long ago the most recent completed or running enrich job started.
+// Returns -1 if no jobs exist.
+func (db *DB) LastEnrichJobAge(ctx context.Context) (time.Duration, error) {
+	var age float64
+	err := db.pool.QueryRow(ctx, `
+		SELECT EXTRACT(EPOCH FROM (NOW() - started_at))
+		FROM enrich_jobs
+		WHERE status IN ('completed', 'running')
+		ORDER BY started_at DESC LIMIT 1
+	`).Scan(&age)
+	if err != nil {
+		if err.Error() == "no rows in result set" {
+			return -1, nil
+		}
+		return 0, err
+	}
+	return time.Duration(age * float64(time.Second)), nil
 }
 
 func (db *DB) GetBrands(ctx context.Context) ([]string, error) {
