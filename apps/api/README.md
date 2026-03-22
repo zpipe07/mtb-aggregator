@@ -45,6 +45,14 @@ Go HTTP server that orchestrates scraping, enrichment, and serves the REST API. 
 - `POST /admin/login` — Get token
 - `GET/POST/PUT/PATCH/DELETE /admin/*` — Dashboard, stores, taxonomy, profiles, etc.
 
+**LLM extraction field library** (migration `019`):
+
+- `GET /admin/llm-extraction-field-defs` — List global field defs; optional `?q=` (search `field_key` / `label`)
+- `POST /admin/llm-extraction-field-defs` — Create a def (`field_key`, `field_type`, `description`, optional `label`, `values`, `filterable`)
+- `GET/PUT/DELETE /admin/llm-extraction-field-defs/:id` — Read, update (`field_key` immutable), delete (409 if referenced by a profile composition row)
+
+**LLM prompt profiles:** `PUT /admin/llm-profiles/:id` may include `profile_fields` (array of `{ field_def_id, sort_order, overrides, inline_field }`) to replace all composition rows for that profile and refresh `extraction_schema` from the hydrated merge. Do not send `extraction_schema` in the same request when `profile_fields` is present, or when the profile already has composition rows unless you are only updating name/category/prompt/enabled (omit `extraction_schema` entirely in that case).
+
 ## Environment
 
 - `DATABASE_URL` — Postgres connection string

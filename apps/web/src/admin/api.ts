@@ -877,6 +877,24 @@ export async function deleteSpecKeyAlias(id: number): Promise<void> {
 
 // --- LLM Prompt Profiles ---
 
+/** One composition row returned from GET /admin/llm-profiles/:id when the profile uses the field library. */
+export interface LLMProfileFieldRow {
+  id: number;
+  field_def_id?: number | null;
+  field_key?: string | null;
+  sort_order: number;
+  overrides: Record<string, unknown>;
+  inline_field?: Record<string, unknown>;
+}
+
+/** Payload row for PUT with profile_fields (replaces all rows). */
+export interface LLMProfileFieldInput {
+  field_def_id?: number | null;
+  sort_order: number;
+  overrides?: Record<string, unknown>;
+  inline_field?: Record<string, unknown> | null;
+}
+
 export interface LLMPromptProfile {
   id: number;
   canonical_category: string[];
@@ -884,6 +902,107 @@ export interface LLMPromptProfile {
   system_prompt: string;
   extraction_schema: Record<string, unknown>;
   enabled: boolean;
+  /** Present on GET detail when the profile has llm_prompt_profile_fields rows. */
+  profile_fields?: LLMProfileFieldRow[];
+}
+
+// --- LLM extraction field library (migration 019) ---
+
+export interface LLMExtractionFieldDef {
+  id: number;
+  field_key: string;
+  field_type: string;
+  description: string;
+  label?: string | null;
+  values?: unknown;
+  filterable?: boolean | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export async function fetchLLMExtractionFieldDefs(q?: string): Promise<LLMExtractionFieldDef[]> {
+  // Do not use `new URL(relativePath)` — it throws without a base; getApiBase() is often `/api` (relative).
+  let url = `${getApiBase().replace(/\/$/, "")}/admin/llm-extraction-field-defs`;
+  if (q?.trim()) {
+    url += `?${new URLSearchParams({ q: q.trim() })}`;
+  }
+  const res = await fetch(url, { headers: adminHeaders() });
+  if (!res.ok) throw new Error(res.status === 401 ? "Unauthorized" : "Failed to fetch field definitions");
+  const data = await res.json();
+  return Array.isArray(data) ? data : [];
+}
+
+export async function fetchLLMExtractionFieldDef(id: number): Promise<LLMExtractionFieldDef> {
+  const res = await fetch(`${getApiBase()}/admin/llm-extraction-field-defs/${id}`, { headers: adminHeaders() });
+  if (!res.ok) throw new Error("Failed to fetch field definition");
+  return res.json();
+}
+
+export async function createLLMExtractionFieldDef(body: {
+  field_key: string;
+  field_type: string;
+  description: string;
+  label?: string | null;
+  values?: unknown;
+  filterable?: boolean | null;
+}): Promise<{ id: number }> {
+  const res = await fetch(`${getApiBase()}/admin/llm-extraction-field-defs`, {
+    method: "POST",
+    headers: adminHeaders(),
+    body: JSON.stringify({
+      field_key: body.field_key,
+      field_type: body.field_type,
+      description: body.description,
+      label: body.label ?? null,
+      values: body.values ?? null,
+      filterable: body.filterable ?? null,
+    }),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || "Create failed");
+  }
+  return res.json();
+}
+
+export async function updateLLMExtractionFieldDef(
+  id: number,
+  body: {
+    field_key: string;
+    field_type: string;
+    description: string;
+    label?: string | null;
+    values?: unknown;
+    filterable?: boolean | null;
+  }
+): Promise<void> {
+  const res = await fetch(`${getApiBase()}/admin/llm-extraction-field-defs/${id}`, {
+    method: "PUT",
+    headers: adminHeaders(),
+    body: JSON.stringify({
+      field_key: body.field_key,
+      field_type: body.field_type,
+      description: body.description,
+      label: body.label ?? null,
+      values: body.values ?? null,
+      filterable: body.filterable ?? null,
+    }),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || "Update failed");
+  }
+}
+
+export async function deleteLLMExtractionFieldDef(id: number): Promise<void> {
+  const res = await fetch(`${getApiBase()}/admin/llm-extraction-field-defs/${id}`, {
+    method: "DELETE",
+    headers: adminHeaders(),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || "Delete failed");
+  }
 }
 
 export async function fetchLLMProfiles(): Promise<LLMPromptProfile[]> {
@@ -931,13 +1050,22 @@ export async function updateLLMProfile(
     name?: string;
     system_prompt?: string;
     extraction_schema?: Record<string, unknown>;
+    /** When set, replaces all composition rows and hydrates extraction_schema. Omit extraction_schema in the same request. */
+    profile_fields?: LLMProfileFieldInput[];
     enabled?: boolean;
   }
 ): Promise<void> {
+  const payload: Record<string, unknown> = {};
+  if (body.canonical_category !== undefined) payload.canonical_category = body.canonical_category;
+  if (body.name !== undefined) payload.name = body.name;
+  if (body.system_prompt !== undefined) payload.system_prompt = body.system_prompt;
+  if (body.enabled !== undefined) payload.enabled = body.enabled;
+  if (body.extraction_schema !== undefined) payload.extraction_schema = body.extraction_schema;
+  if (body.profile_fields !== undefined) payload.profile_fields = body.profile_fields;
   const res = await fetch(`${getApiBase()}/admin/llm-profiles/${id}`, {
     method: "PUT",
     headers: adminHeaders(),
-    body: JSON.stringify(body),
+    body: JSON.stringify(payload),
   });
   if (!res.ok) {
     const text = await res.text();

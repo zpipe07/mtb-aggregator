@@ -15,6 +15,7 @@ React frontend for the MTB deal aggregator. Built with Next.js 15 (App Router), 
 
 - **SSR/ISR** — Home, deals list, and deal detail pages are server-rendered for SEO
 - **Dark mode** — Toggle in nav header; defaults to system preference (`prefers-color-scheme`), persists choice in `localStorage`
+- **Admin** — `/admin/llm-profiles`: LLM prompt profiles with a **Field library** tab (CRUD `llm_extraction_field_defs`) and a composition editor for profiles backed by migration `019` (`profile_fields`), including overrides and inline custom fields; legacy raw JSON editing remains for profiles without composition rows
 
 ## Development
 

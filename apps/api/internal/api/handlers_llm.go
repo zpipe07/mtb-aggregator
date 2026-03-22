@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 
+	"github.com/mtb-aggregator/api/internal/db"
 	"github.com/mtb-aggregator/api/internal/llm"
 )
 
@@ -85,15 +87,29 @@ func (h *Handlers) GetLLMProfileByID(w http.ResponseWriter, r *http.Request, id 
 		http.Error(w, "not found", http.StatusNotFound)
 		return
 	}
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	nComp, err := h.DB.CountLLMPromptProfileFields(r.Context(), id)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	out := map[string]interface{}{
 		"id":                 p.ID,
 		"canonical_category": p.CanonicalCategory,
 		"name":               p.Name,
 		"system_prompt":      p.SystemPrompt,
 		"extraction_schema":  json.RawMessage(p.ExtractionSchema),
 		"enabled":            p.Enabled,
-	})
+	}
+	if nComp > 0 {
+		pfs, err := h.DB.ListLLMPromptProfileFields(r.Context(), id)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		out["profile_fields"] = pfs
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(out)
 }
 
 // PutLLMProfile updates an LLM prompt profile (admin).
@@ -103,11 +119,12 @@ func (h *Handlers) PutLLMProfile(w http.ResponseWriter, r *http.Request, id int)
 		return
 	}
 	var body struct {
-		CanonicalCategory []string          `json:"canonical_category"`
-		Name              string            `json:"name"`
-		SystemPrompt      string            `json:"system_prompt"`
-		ExtractionSchema  json.RawMessage   `json:"extraction_schema"`
-		Enabled           *bool             `json:"enabled"`
+		CanonicalCategory []string        `json:"canonical_category"`
+		Name              string          `json:"name"`
+		SystemPrompt      string          `json:"system_prompt"`
+		ExtractionSchema  json.RawMessage `json:"extraction_schema"`
+		ProfileFields     json.RawMessage `json:"profile_fields"`
+		Enabled           *bool           `json:"enabled"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		http.Error(w, "invalid json", http.StatusBadRequest)
@@ -122,6 +139,30 @@ func (h *Handlers) PutLLMProfile(w http.ResponseWriter, r *http.Request, id int)
 		http.Error(w, "not found", http.StatusNotFound)
 		return
 	}
+	var profileFields []db.LLMProfileFieldInput
+	hasProfileFields := false
+	if len(body.ProfileFields) > 0 && string(body.ProfileFields) != "null" {
+		hasProfileFields = true
+		if err := json.Unmarshal(body.ProfileFields, &profileFields); err != nil {
+			http.Error(w, "invalid profile_fields: "+err.Error(), http.StatusBadRequest)
+			return
+		}
+	}
+	compCount, err := h.DB.CountLLMPromptProfileFields(r.Context(), id)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if len(body.ExtractionSchema) > 0 {
+		if hasProfileFields {
+			http.Error(w, "do not send extraction_schema when profile_fields is present", http.StatusBadRequest)
+			return
+		}
+		if compCount > 0 {
+			http.Error(w, "use profile_fields to update extraction schema when composition rows exist", http.StatusBadRequest)
+			return
+		}
+	}
 	cat := body.CanonicalCategory
 	if len(cat) == 0 {
 		cat = existing.CanonicalCategory
@@ -134,17 +175,32 @@ func (h *Handlers) PutLLMProfile(w http.ResponseWriter, r *http.Request, id int)
 	if prompt == "" {
 		prompt = existing.SystemPrompt
 	}
-	schema := body.ExtractionSchema
-	if len(schema) == 0 {
-		schema = existing.ExtractionSchema
-	}
 	enabled := existing.Enabled
 	if body.Enabled != nil {
 		enabled = *body.Enabled
 	}
-	if err := h.DB.UpdateLLMPromptProfile(r.Context(), id, cat, name, prompt, schema, enabled); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+	if hasProfileFields {
+		if err := h.DB.ReplaceLLMPromptProfileFields(r.Context(), id, profileFields); err != nil {
+			if strings.Contains(err.Error(), "profile_fields") {
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
+			}
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		if err := h.DB.UpdateLLMPromptProfileMeta(r.Context(), id, cat, name, prompt, enabled); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	} else {
+		schema := body.ExtractionSchema
+		if len(schema) == 0 {
+			schema = existing.ExtractionSchema
+		}
+		if err := h.DB.UpdateLLMPromptProfile(r.Context(), id, cat, name, prompt, schema, enabled); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 	}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{"ok": "updated"})

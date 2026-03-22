@@ -10,10 +10,19 @@ import (
 	"github.com/mtb-aggregator/api/internal/llm"
 )
 
+// profileFieldJoinQuerier is implemented by *pgxpool.Pool and pgx.Tx.
+type profileFieldJoinQuerier interface {
+	Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error)
+}
+
 // hydrateExtractionSchema merges llm_prompt_profile_fields + llm_extraction_field_defs into
 // {"fields":[...]} for llm.Extract. Appends the shared "confidence" def when missing from composition.
 func (db *DB) hydrateExtractionSchema(ctx context.Context, profileID int) (json.RawMessage, error) {
-	rows, err := db.pool.Query(ctx, `
+	return db.hydrateExtractionSchemaFrom(ctx, db.pool, profileID)
+}
+
+func (db *DB) hydrateExtractionSchemaFrom(ctx context.Context, q profileFieldJoinQuerier, profileID int) (json.RawMessage, error) {
+	rows, err := q.Query(ctx, `
 		SELECT pf.sort_order, pf.overrides, pf.inline_field,
 		       fd.field_key, fd.field_type, fd.description, fd.label, fd.values, fd.filterable
 		FROM llm_prompt_profile_fields pf
@@ -199,6 +208,11 @@ func (db *DB) countProfileCompositionRows(ctx context.Context, profileID int) (i
 		SELECT COUNT(*) FROM llm_prompt_profile_fields WHERE profile_id = $1
 	`, profileID).Scan(&n)
 	return n, err
+}
+
+// CountLLMPromptProfileFields returns how many composition rows exist for a profile.
+func (db *DB) CountLLMPromptProfileFields(ctx context.Context, profileID int) (int, error) {
+	return db.countProfileCompositionRows(ctx, profileID)
 }
 
 // maybeHydrateLLMProfile replaces p.ExtractionSchema with hydrated JSON when the profile has

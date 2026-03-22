@@ -155,6 +155,22 @@ func (db *DB) UpdateLLMPromptProfile(ctx context.Context, id int, canonicalCateg
 	return err
 }
 
+// UpdateLLMPromptProfileMeta updates profile fields except extraction_schema (used when composition owns the schema).
+func (db *DB) UpdateLLMPromptProfileMeta(ctx context.Context, id int, canonicalCategory []string, name, systemPrompt string, enabled bool) error {
+	var categoryID *int
+	if len(canonicalCategory) > 0 {
+		if cid, err := db.ResolveCategoryIDFromPath(ctx, canonicalCategory); err == nil {
+			categoryID = cid
+		}
+	}
+	_, err := db.pool.Exec(ctx, `
+		UPDATE llm_prompt_profiles
+		SET canonical_category = $1, category_id = $2, name = $3, system_prompt = $4, enabled = $5, updated_at = NOW()
+		WHERE id = $6
+	`, pq.Array(canonicalCategory), categoryID, name, systemPrompt, enabled, id)
+	return err
+}
+
 // DeleteLLMPromptProfile deletes a profile by id.
 func (db *DB) DeleteLLMPromptProfile(ctx context.Context, id int) error {
 	_, err := db.pool.Exec(ctx, `DELETE FROM llm_prompt_profiles WHERE id = $1`, id)

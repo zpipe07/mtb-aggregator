@@ -13,10 +13,10 @@ todos:
     status: completed
   - id: admin-api
     content: Add CRUD handlers for defs + PUT profile composition; register routes; update apps/api/README + docs/ARCHITECTURE
-    status: pending
+    status: completed
   - id: admin-ui
     content: Field library UI + PromptProfileManager composition (order, overrides, custom inline); api.ts hooks/mutations
-    status: pending
+    status: completed
   - id: tests
     content: "Go tests for merge/hydrate; manual smoke: test extract + facets still work"
     status: completed

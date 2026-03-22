@@ -874,6 +874,46 @@ func main() {
 		}
 	}))
 
+	// Admin: GET/POST /admin/llm-extraction-field-defs — LLM extraction field library
+	http.HandleFunc("/admin/llm-extraction-field-defs", api.AdminRequired(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/admin/llm-extraction-field-defs" {
+			http.NotFound(w, r)
+			return
+		}
+		switch r.Method {
+		case http.MethodGet:
+			handlers.GetLLMExtractionFieldDefs(w, r)
+		case http.MethodPost:
+			handlers.PostLLMExtractionFieldDef(w, r)
+		default:
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		}
+	}))
+	// Admin: GET/PUT/DELETE /admin/llm-extraction-field-defs/:id
+	http.HandleFunc("/admin/llm-extraction-field-defs/", api.AdminRequired(func(w http.ResponseWriter, r *http.Request) {
+		path := strings.TrimPrefix(r.URL.Path, "/admin/llm-extraction-field-defs/")
+		path = strings.Trim(path, "/")
+		if path == "" {
+			http.NotFound(w, r)
+			return
+		}
+		id, err := strconv.Atoi(path)
+		if err != nil {
+			http.Error(w, "invalid id", http.StatusBadRequest)
+			return
+		}
+		switch r.Method {
+		case http.MethodGet:
+			handlers.GetLLMExtractionFieldDefByID(w, r, id)
+		case http.MethodPut:
+			handlers.PutLLMExtractionFieldDef(w, r, id)
+		case http.MethodDelete:
+			handlers.DeleteLLMExtractionFieldDef(w, r, id)
+		default:
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		}
+	}))
+
 	port := "8080"
 	if p := os.Getenv("PORT"); p != "" {
 		port = p
