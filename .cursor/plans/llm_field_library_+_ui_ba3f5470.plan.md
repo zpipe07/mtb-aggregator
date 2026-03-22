@@ -4,9 +4,9 @@ overview: 'Normalize reusable extraction field definitions into new Postgres tab
 todos:
   - id: migration-schema
     content: "Add 019 migration: llm_extraction_field_defs + llm_prompt_profile_fields + indexes/FKs; document in migrations README"
-    status: pending
+    status: completed
   - id: backfill
-    content: Backfill from existing extraction_schema.fields into defs + profile_fields; define conflict policy for duplicate keys
+    content: "Backfill: rename ambiguous keys (type->pedal_type/shock_type/shoe_type, material->handlebar_material/pad_material), insert defs, compose profile_fields with overrides for intended_use/wheel_size value variants, migrate existing llm_specs in metadata"
     status: pending
   - id: hydrate-db
     content: Implement merge + hydrate in internal/db; wire into all Get/List profile paths with JSONB fallback
@@ -63,19 +63,46 @@ isProject: false
 - Add in `[internal/db/](apps/api/internal/db/)` (e.g. `llm_extraction_fields.go`):
   - CRUD for defs + profile field rows
   - `hydrateExtractionSchema(ctx, profileID) (json.RawMessage, error)`:
-    - Load ordered rows for `profile_id`
-    - For each row: if `inline_field` → append as-is (validate shape); else load def, merge `overrides` into a `SchemaField` (explicit merge rules: overrides win; `sort_order` on **join row** wins over def; default `filterable` true if unset)
+    - Single JOIN query: `SELECT pf.sort_order, pf.overrides, pf.inline_field, fd.* FROM llm_prompt_profile_fields pf LEFT JOIN llm_extraction_field_defs fd ON ... WHERE pf.profile_id = $1 ORDER BY pf.sort_order, pf.id`
+    - For each row: if `inline_field` → append as-is; else merge def + overrides into `SchemaField`
+    - **Auto-append `confidence`**: after composing all rows, append the `confidence` field def (looked up once by `field_key = 'confidence'`) unless a row already references it. This keeps every profile ending with confidence without manual composition.
     - Marshal `{"fields":[...]}`
-- Call hydration from `GetLLMPromptProfileByID`, `GetLLMPromptProfileForCategory`, `GetLLMPromptProfileForCategoryID`, and `ListLLMPromptProfiles` **after** reading the profile row: if composed fields exist, **replace** `p.ExtractionSchema` with merged bytes; else use stored JSONB.
+- **Merge rules:** overrides win; `sort_order` from join row; `filterable` defaults to `true` when unset in both def and overrides
+- Call hydration from `GetLLMPromptProfileByID`, `GetLLMPromptProfileForCategory`, `GetLLMPromptProfileForCategoryID` — these are the extraction hot paths. For `ListLLMPromptProfiles` (admin table), **skip hydration**; return field count + metadata only. Hydrate on detail view.
 
-Consider extracting merge logic into `**internal/llm` or `internal/metadata`** with small **Go tests (table-driven: def + overrides → expected field).
+Extract merge logic into `internal/llm` or `internal/metadata` with table-driven Go tests (def + overrides → expected field).
+
+### Dual-write guard
+
+Once a profile has composition rows (`llm_prompt_profile_fields`), `PUT /admin/llm-profiles/:id` **rejects** `extraction_schema` in the body (400 — "use profile_fields instead"). This prevents stale composition rows from silently diverging from a raw JSON edit.
 
 ## Migration / backfill
 
-- One-time SQL or `go run` cmd: for each `llm_prompt_profiles` row with `extraction_schema->fields`:
-  - For each field object: `INSERT ... ON CONFLICT (field_key) DO UPDATE` into `llm_extraction_field_defs` (policy: **keep existing def** on conflict, or merge — document choice; safest: **do not overwrite** existing def on conflict, log ambiguous keys)
-  - Insert `llm_prompt_profile_fields` with `sort_order` from array index, `field_def_id` resolved by `field_key`, `overrides` = **only** properties that differ from the stored def (or store `{}` initially and rely on def for v1 simplicity)
-- Ambiguity: same `key` with different `values` across profiles → **overrides.values** on the join row, not multiple defs with same key.
+**Decided:** Rename ambiguous keys to specific names; auto-append confidence.
+
+### Key renames (backfill must update `extraction_schema` JSONB **and** `metadata.llm_specs` on affected listings)
+
+- `type` in Pedals → `pedal_type`; in Shocks → `shock_type`; in Shoes → `shoe_type`
+- `material` in Handlebars → `handlebar_material`; in Brake Pads → `pad_material`
+
+Each becomes a distinct library def with its own values/description. Existing `llm_specs` on listings categorized into those profiles must be updated via `jsonb_set` to rename the key (SQL UPDATE on `store_listings` WHERE `category_id IN (...)`). Log counts.
+
+### `intended_use` and `wheel_size` — single def, per-profile overrides
+
+- Library def `intended_use`: superset values `["XC", "Trail", "Enduro", "DH", "Dirt Jump", "Fat Bike", "E-bike"]`.
+- Profiles that use a subset store `overrides: {"values": ["XC", "Trail", ...]}` on their join row.
+- Same pattern for `wheel_size`: library stores the full 11-value set; Mountain Bikes / Forks override to their shorter list.
+
+### Backfill steps (Go cmd `cmd/backfill-field-library`)
+
+1. Rename ambiguous keys in `extraction_schema` JSONB on `llm_prompt_profiles`.
+2. Rename matching keys in `metadata->'llm_specs'` on `store_listings` for affected `category_id`s.
+3. For each profile, iterate `fields`: insert/upsert into `llm_extraction_field_defs` (skip `confidence`); insert `llm_prompt_profile_fields` with `sort_order` from array index, `overrides` = diff vs def.
+4. Verify: for each profile, `hydrateExtractionSchema` output matches original `extraction_schema` (after renames). Log mismatches.
+
+### `field_key` immutability
+
+After creation, `field_key` is **immutable** (API rejects changes). To rename: delete def (fails if referenced), recreate with new key. This avoids silent drift between library keys and stored `llm_specs`.
 
 ## Admin API
 
@@ -84,10 +111,7 @@ New routes (Bearer admin), registered in `[main.go](apps/api/main.go)` alongside
 - `GET/POST /admin/llm-extraction-field-defs` — list (optional `q=` search on key/label), create
 - `GET/PUT/DELETE /admin/llm-extraction-field-defs/:id` — read/update/delete (DELETE **RESTRICT** if referenced; return 409 unless UI removes usages first)
 
-Profile field composition (pick one pattern):
-
-- **A)** Extend `PUT /admin/llm-profiles/:id` body with optional `profile_fields: [...]`; when present, **replace** all rows for that profile in a transaction and skip/require empty `extraction_schema` in body.
-- **B)** Dedicated `PUT /admin/llm-profiles/:id/fields` — clearer separation.
+**Decided:** Option A — extend `PUT /admin/llm-profiles/:id` with optional `profile_fields: [...]`. When present, replace all `llm_prompt_profile_fields` rows for the profile in a transaction. `extraction_schema` in the body is ignored/rejected when composition rows exist (see dual-write guard above).
 
 `[handlers_llm.go](apps/api/internal/api/handlers_llm.go)` GET responses should include **both** `extraction_schema` (hydrated, for test extract + backward compat) and `**profile_fields` (raw composition for the editor) when you want the UI to avoid guessing.
 

@@ -20,6 +20,12 @@ Override the migrations directory: `MIGRATIONS_DIR=path/to/migrations make db-mi
 2. Use additive SQL only: `ALTER TABLE ... ADD COLUMN IF NOT EXISTS`, etc.
 3. Run `make db-migrate-remote` to apply (or run the new file manually)
 
+### Recent migrations (reference)
+
+| File | Purpose |
+|------|---------|
+| `019_llm_extraction_field_library.sql` | `llm_extraction_field_defs` + `llm_prompt_profile_fields` for composed extraction schemas |
+
 ## Verifying Phase 2 changes (currency, scraper health, category_path)
 
 1. **Apply migrations** (if you haven’t):

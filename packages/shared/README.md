@@ -36,6 +36,8 @@ See [migrations/README.md](migrations/README.md) for migration conventions.
 - **store_listings** — Per-store listings; `category_path` from scraper or enricher; `category_id` FK to structured tree
 - **categories** — Structured tree (id, slug, name, parent_id); single source of truth
 - **category_mappings** — Maps raw store category paths → `category_id`
+- **llm_extraction_field_defs** — Reusable LLM extraction field templates (`field_key`, `field_type`, `values`, etc.); merged with per-profile overrides at hydrate time (migration `019`)
+- **llm_prompt_profile_fields** — Ordered composition rows per `llm_prompt_profiles` row: library def + `overrides`, or `inline_field` for one-offs
 
 ## Config Files
 
