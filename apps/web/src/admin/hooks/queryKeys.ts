@@ -65,6 +65,11 @@ export const adminLLMProfileKeys = {
   detail: (id: number) => [...adminLLMProfileKeys.all, id] as const,
 };
 
+export const adminLLMFieldDefKeys = {
+  all: ["admin", "llmFieldDefs"] as const,
+  list: (q: string) => [...adminLLMFieldDefKeys.all, "list", q] as const,
+};
+
 export const adminCategoryClassifierKeys = {
   all: ["admin", "categoryClassifier"] as const,
 };

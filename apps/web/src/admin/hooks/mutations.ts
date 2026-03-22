@@ -33,6 +33,10 @@ import {
   updateLLMProfile,
   deleteLLMProfile,
   testLLMProfile,
+  createLLMExtractionFieldDef,
+  updateLLMExtractionFieldDef,
+  deleteLLMExtractionFieldDef,
+  type LLMProfileFieldInput,
   updateCategoryClassifier,
   testCategoryClassifier,
   runCategoryClassifier,
@@ -52,6 +56,7 @@ import {
   adminSpecFilterKeys,
   adminNormalizationKeys,
   adminLLMProfileKeys,
+  adminLLMFieldDefKeys,
   adminCategoryClassifierKeys,
   adminCategoryKeys,
 } from "./queryKeys";
@@ -455,6 +460,7 @@ export function useUpdateLLMProfile() {
         name?: string;
         system_prompt?: string;
         extraction_schema?: Record<string, unknown>;
+        profile_fields?: LLMProfileFieldInput[];
         enabled?: boolean;
       };
     }) => updateLLMProfile(id, body),
@@ -479,6 +485,42 @@ export function useTestLLMProfile() {
   return useMutation({
     mutationFn: ({ profileId, listingId }: { profileId: number; listingId: number }) =>
       testLLMProfile(profileId, listingId),
+  });
+}
+
+export function useCreateLLMExtractionFieldDef() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: createLLMExtractionFieldDef,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminLLMFieldDefKeys.all });
+    },
+  });
+}
+
+export function useUpdateLLMExtractionFieldDef() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      body,
+    }: {
+      id: number;
+      body: Parameters<typeof updateLLMExtractionFieldDef>[1];
+    }) => updateLLMExtractionFieldDef(id, body),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminLLMFieldDefKeys.all });
+    },
+  });
+}
+
+export function useDeleteLLMExtractionFieldDef() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: deleteLLMExtractionFieldDef,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminLLMFieldDefKeys.all });
+    },
   });
 }
 

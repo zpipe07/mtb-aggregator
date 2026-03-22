@@ -1,0 +1,859 @@
+{
+  "exportedAt": "2026-03-20T05:14:48Z",
+  "source": {
+    "type": "neon",
+    "projectId": "shiny-poetry-05811700"
+  },
+  "note": "Point-in-time snapshot from Neon default branch. Not loaded by the app.",
+  "llm_prompt_profiles": [
+    {
+      "id": 1,
+      "canonical_category": [
+        "Bikes",
+        "Mountain"
+      ],
+      "name": "Mountain Bike Classification",
+      "system_prompt": "You are a mountain bike spec extraction expert. Given a product listing, extract structured specs.\n\nOnly include fields you can determine from the provided data. Use null for unknown fields.\nSet confidence 0-1 based on how certain you are about the overall extraction.",
+      "extraction_schema": {
+        "fields": [
+          {
+            "key": "front_travel_mm",
+            "type": "integer",
+            "label": "Front Travel (mm)",
+            "sort_order": 1,
+            "description": "Front fork travel in mm"
+          },
+          {
+            "key": "rear_travel_mm",
+            "type": "integer",
+            "label": "Rear Travel (mm)",
+            "sort_order": 2,
+            "description": "Rear suspension travel in mm (null for hardtails)"
+          },
+          {
+            "key": "wheel_size",
+            "type": "enum",
+            "label": "Wheel Size",
+            "values": [
+              "29",
+              "27.5",
+              "26",
+              "MX"
+            ],
+            "sort_order": 3,
+            "description": "Wheel size"
+          },
+          {
+            "key": "intended_use",
+            "type": "enum",
+            "label": "Intended use",
+            "values": [
+              "XC",
+              "Trail",
+              "Enduro",
+              "DH",
+              "Dirt Jump",
+              "Fat Bike"
+            ],
+            "sort_order": 4,
+            "description": "Intended use or class of the mountain bike."
+          },
+          {
+            "key": "frame_material",
+            "type": "enum",
+            "label": "Frame Material",
+            "values": [
+              "Carbon",
+              "Aluminum",
+              "Steel",
+              "Titanium",
+              "Other"
+            ],
+            "sort_order": 5,
+            "description": "Frame material"
+          },
+          {
+            "key": "confidence",
+            "type": "number",
+            "filterable": false,
+            "description": "Overall confidence 0-1"
+          }
+        ]
+      },
+      "enabled": true,
+      "category_id": 5,
+      "created_at": "2026-03-13T04:56:11.528065+00:00",
+      "updated_at": "2026-03-19T16:09:06.54809+00:00"
+    },
+    {
+      "id": 3,
+      "canonical_category": [
+        "Components",
+        "Drivetrain",
+        "Pedals"
+      ],
+      "name": "Pedals",
+      "system_prompt": "You are a mountain bike spec extraction expert. Given a product listing, extract structured specs.\n\nOnly include fields you can determine from the provided data. Use null for unknown fields.\nSet confidence 0-1 based on how certain you are about the overall extraction.",
+      "extraction_schema": {
+        "fields": [
+          {
+            "key": "type",
+            "type": "enum",
+            "label": "Type",
+            "values": [
+              "clipless",
+              "flat",
+              "other"
+            ],
+            "sort_order": 1,
+            "description": "The type of pedal - how the shoe is attached to the pedal"
+          },
+          {
+            "key": "confidence",
+            "type": "number",
+            "filterable": false,
+            "description": "Overall confidence 0-1"
+          }
+        ]
+      },
+      "enabled": true,
+      "category_id": 27,
+      "created_at": "2026-03-14T01:22:06.376306+00:00",
+      "updated_at": "2026-03-14T01:22:06.376306+00:00"
+    },
+    {
+      "id": 4,
+      "canonical_category": [
+        "Components",
+        "Drivetrain",
+        "Chainrings"
+      ],
+      "name": "Chainrings",
+      "system_prompt": "You are a mountain bike spec extraction expert. Given a product listing, extract structured specs.\n\nOnly include fields you can determine from the provided data. Use null for unknown fields.\nSet confidence 0-1 based on how certain you are about the overall extraction.",
+      "extraction_schema": {
+        "fields": [
+          {
+            "key": "tooth_count",
+            "type": "integer",
+            "label": "Tooth Count",
+            "sort_order": 1,
+            "description": "The number of teeth on the chainring"
+          },
+          {
+            "key": "confidence",
+            "type": "number",
+            "filterable": false,
+            "description": "Overall confidence 0-1"
+          }
+        ]
+      },
+      "enabled": true,
+      "category_id": 24,
+      "created_at": "2026-03-14T01:24:52.72048+00:00",
+      "updated_at": "2026-03-14T01:24:52.72048+00:00"
+    },
+    {
+      "id": 5,
+      "canonical_category": [
+        "Components",
+        "Suspension",
+        "Forks"
+      ],
+      "name": "Suspension Forks",
+      "system_prompt": "You are a mountain bike spec extraction expert. Given a product listing, extract structured specs.\n\nOnly include fields you can determine from the provided data. Use null for unknown fields.\nSet confidence 0-1 based on how certain you are about the overall extraction.",
+      "extraction_schema": {
+        "fields": [
+          {
+            "key": "travel",
+            "type": "integer",
+            "label": "Travel",
+            "sort_order": 1,
+            "description": "The amount of travel of the fork in mm"
+          },
+          {
+            "key": "wheel_size",
+            "type": "enum",
+            "label": "Wheel Size",
+            "values": [
+              "29",
+              "27.5",
+              "26"
+            ],
+            "sort_order": 2,
+            "description": "The size of the wheel in inches"
+          },
+          {
+            "key": "intended_use",
+            "type": "enum",
+            "label": "Intended use",
+            "values": [
+              "XC",
+              "Trail",
+              "Enduro",
+              "DH",
+              "Dirt Jump",
+              "Fat Bike"
+            ],
+            "sort_order": 3,
+            "description": "The intended use of the bike"
+          },
+          {
+            "key": "confidence",
+            "type": "number",
+            "filterable": false,
+            "description": "Overall confidence 0-1"
+          }
+        ]
+      },
+      "enabled": true,
+      "category_id": 31,
+      "created_at": "2026-03-14T16:47:11.76064+00:00",
+      "updated_at": "2026-03-14T16:47:11.76064+00:00"
+    },
+    {
+      "id": 6,
+      "canonical_category": [
+        "Components",
+        "Suspension",
+        "Shocks"
+      ],
+      "name": "Shocks",
+      "system_prompt": "You are a mountain bike spec extraction expert. Given a product listing, extract structured specs.\n\nOnly include fields you can determine from the provided data. Use null for unknown fields.\nSet confidence 0-1 based on how certain you are about the overall extraction.",
+      "extraction_schema": {
+        "fields": [
+          {
+            "key": "type",
+            "type": "enum",
+            "label": "Type",
+            "values": [
+              "air",
+              "coil",
+              "other"
+            ],
+            "sort_order": 0,
+            "description": "The type of shock"
+          },
+          {
+            "key": "eye_to_eye",
+            "type": "integer",
+            "label": "Eye to eye",
+            "sort_order": 1,
+            "description": "The eye to eye length of the shock in inches or mm"
+          },
+          {
+            "key": "stroke",
+            "type": "integer",
+            "label": "Stroke",
+            "sort_order": 2,
+            "description": "The stroke of the shock in inches or mm"
+          },
+          {
+            "key": "confidence",
+            "type": "number",
+            "filterable": false,
+            "description": "Overall confidence 0-1"
+          }
+        ]
+      },
+      "enabled": true,
+      "category_id": 32,
+      "created_at": "2026-03-14T16:52:34.313903+00:00",
+      "updated_at": "2026-03-14T16:52:34.313903+00:00"
+    },
+    {
+      "id": 7,
+      "canonical_category": [
+        "Components",
+        "Wheels/Tires",
+        "Tires"
+      ],
+      "name": "Tires",
+      "system_prompt": "You are a mountain bike spec extraction expert. Given a product listing, extract structured specs.\n\nOnly include fields you can determine from the provided data. Use null for unknown fields.\nSet confidence 0-1 based on how certain you are about the overall extraction.",
+      "extraction_schema": {
+        "fields": [
+          {
+            "key": "wheel_size",
+            "type": "enum",
+            "label": "Wheel Size",
+            "values": [
+              "32",
+              "29",
+              "27.5",
+              "26",
+              "24",
+              "22",
+              "20",
+              "16",
+              "700c",
+              "650b"
+            ],
+            "sort_order": 0,
+            "description": "The size of the wheel"
+          },
+          {
+            "key": "tire_width",
+            "type": "integer",
+            "label": "Tire Width",
+            "sort_order": 1,
+            "description": "The width of the tire in inches or mm"
+          },
+          {
+            "key": "confidence",
+            "type": "number",
+            "filterable": false,
+            "description": "Overall confidence 0-1"
+          }
+        ]
+      },
+      "enabled": true,
+      "category_id": 36,
+      "created_at": "2026-03-14T17:25:00.089877+00:00",
+      "updated_at": "2026-03-14T17:25:00.089877+00:00"
+    },
+    {
+      "id": 8,
+      "canonical_category": [
+        "Components",
+        "Cockpit",
+        "Handlebars"
+      ],
+      "name": "Handlebars",
+      "system_prompt": "You are a mountain bike spec extraction expert. Given a product listing, extract structured specs.\n\nOnly include fields you can determine from the provided data. Use null for unknown fields.\nSet confidence 0-1 based on how certain you are about the overall extraction.",
+      "extraction_schema": {
+        "fields": [
+          {
+            "key": "clamp_diameter",
+            "type": "integer",
+            "label": "Clamp Diameter",
+            "sort_order": 0,
+            "description": "The diameter of the clamp in mm"
+          },
+          {
+            "key": "rise",
+            "type": "integer",
+            "label": "Rise",
+            "sort_order": 1,
+            "description": "The rise of the handlebars in mm"
+          },
+          {
+            "key": "width",
+            "type": "integer",
+            "label": "Width",
+            "sort_order": 2,
+            "description": "The width of the handlebars in mm"
+          },
+          {
+            "key": "material",
+            "type": "enum",
+            "label": "Material",
+            "values": [
+              "Carbon",
+              "Aluminum",
+              "Steel",
+              "Titanium",
+              "Other"
+            ],
+            "sort_order": 3,
+            "description": "The material of the handlebars"
+          },
+          {
+            "key": "confidence",
+            "type": "number",
+            "filterable": false,
+            "description": "Overall confidence 0-1"
+          }
+        ]
+      },
+      "enabled": true,
+      "category_id": 38,
+      "created_at": "2026-03-14T17:33:09.262393+00:00",
+      "updated_at": "2026-03-14T17:33:09.262393+00:00"
+    },
+    {
+      "id": 9,
+      "canonical_category": [
+        "Components",
+        "Cockpit",
+        "Stems"
+      ],
+      "name": "Stems",
+      "system_prompt": "You are a mountain bike spec extraction expert. Given a product listing, extract structured specs.\n\nOnly include fields you can determine from the provided data. Use null for unknown fields.\nSet confidence 0-1 based on how certain you are about the overall extraction.",
+      "extraction_schema": {
+        "fields": [
+          {
+            "key": "clamp_diameter",
+            "type": "integer",
+            "label": "Clamp Diameter",
+            "sort_order": 0,
+            "description": "The diameter of the clamp in mm"
+          },
+          {
+            "key": "length",
+            "type": "integer",
+            "label": "Length",
+            "sort_order": 1,
+            "description": "The length of the stem in mm"
+          },
+          {
+            "key": "confidence",
+            "type": "number",
+            "filterable": false,
+            "description": "Overall confidence 0-1"
+          }
+        ]
+      },
+      "enabled": true,
+      "category_id": 39,
+      "created_at": "2026-03-14T17:37:06.8827+00:00",
+      "updated_at": "2026-03-14T17:37:06.8827+00:00"
+    },
+    {
+      "id": 10,
+      "canonical_category": [
+        "Components",
+        "Brakes",
+        "Brakesets"
+      ],
+      "name": "Brakesets",
+      "system_prompt": "You are a mountain bike spec extraction expert. Given a product listing, extract structured specs.\n\nOnly include fields you can determine from the provided data. Use null for unknown fields.\nSet confidence 0-1 based on how certain you are about the overall extraction.",
+      "extraction_schema": {
+        "fields": [
+          {
+            "key": "intended_use",
+            "type": "enum",
+            "label": "Intended Use",
+            "values": [
+              "XC",
+              "Trail",
+              "Enduro",
+              "DH",
+              "E-bike"
+            ],
+            "sort_order": 0,
+            "description": "The intended use of the bike "
+          },
+          {
+            "key": "brake_fluid",
+            "type": "enum",
+            "label": "Brake Fluid",
+            "values": [
+              "Mineral oil",
+              "DOT",
+              "Other"
+            ],
+            "sort_order": 1,
+            "description": "The type of brake fluid used in the brakes"
+          },
+          {
+            "key": "confidence",
+            "type": "number",
+            "filterable": false,
+            "description": "Overall confidence 0-1"
+          }
+        ]
+      },
+      "enabled": true,
+      "category_id": 28,
+      "created_at": "2026-03-15T21:37:41.284621+00:00",
+      "updated_at": "2026-03-15T21:37:41.284621+00:00"
+    },
+    {
+      "id": 11,
+      "canonical_category": [
+        "Components",
+        "Brakes",
+        "Pads"
+      ],
+      "name": "Brake Pads",
+      "system_prompt": "You are a mountain bike spec extraction expert. Given a product listing, extract structured specs.\n\nOnly include fields you can determine from the provided data. Use null for unknown fields.\nSet confidence 0-1 based on how certain you are about the overall extraction.",
+      "extraction_schema": {
+        "fields": [
+          {
+            "key": "intended_use",
+            "type": "enum",
+            "label": "Intended Use",
+            "values": [
+              "XC",
+              "Trail",
+              "Enduro",
+              "DH",
+              "E-bike"
+            ],
+            "sort_order": 0,
+            "description": "The intended use of the bike"
+          },
+          {
+            "key": "material",
+            "type": "enum",
+            "label": "Material",
+            "values": [
+              "Organic",
+              "Metallic",
+              "Semi-metallic",
+              "Other"
+            ],
+            "sort_order": 1,
+            "description": "The material used in the brake pads."
+          },
+          {
+            "key": "confidence",
+            "type": "number",
+            "filterable": false,
+            "description": "Overall confidence 0-1"
+          }
+        ]
+      },
+      "enabled": true,
+      "category_id": 29,
+      "created_at": "2026-03-15T21:42:34.634711+00:00",
+      "updated_at": "2026-03-15T21:42:34.634711+00:00"
+    },
+    {
+      "id": 12,
+      "canonical_category": [
+        "Components",
+        "Brakes",
+        "Rotors"
+      ],
+      "name": "Rotors",
+      "system_prompt": "You are a mountain bike spec extraction expert. Given a product listing, extract structured specs.\n\nOnly include fields you can determine from the provided data. Use null for unknown fields.\nSet confidence 0-1 based on how certain you are about the overall extraction.",
+      "extraction_schema": {
+        "fields": [
+          {
+            "key": "diameter",
+            "type": "integer",
+            "label": "Diameter",
+            "sort_order": 0,
+            "description": "The diameter of the brake rotor in mm."
+          },
+          {
+            "key": "thickness",
+            "type": "integer",
+            "label": "Thickness",
+            "sort_order": 1,
+            "description": "The thickness of the brake rotor in mm."
+          },
+          {
+            "key": "hub_compatibility",
+            "type": "enum",
+            "label": "Hub compatibility",
+            "values": [
+              "6-bolt",
+              "Center-lock",
+              "Other"
+            ],
+            "sort_order": 2,
+            "description": "Interface between the hub and the brake rotor."
+          },
+          {
+            "key": "confidence",
+            "type": "number",
+            "filterable": false,
+            "description": "Overall confidence 0-1"
+          }
+        ]
+      },
+      "enabled": true,
+      "category_id": 30,
+      "created_at": "2026-03-15T21:50:48.306065+00:00",
+      "updated_at": "2026-03-15T21:50:48.306065+00:00"
+    },
+    {
+      "id": 13,
+      "canonical_category": [
+        "Components",
+        "Wheels/Tires",
+        "Complete wheels"
+      ],
+      "name": "Complete Wheels",
+      "system_prompt": "You are a mountain bike spec extraction expert. Given a product listing, extract structured specs.\n\nOnly include fields you can determine from the provided data. Use null for unknown fields.\nSet confidence 0-1 based on how certain you are about the overall extraction.",
+      "extraction_schema": {
+        "fields": [
+          {
+            "key": "wheel_size",
+            "type": "enum",
+            "label": "Wheel size",
+            "values": [
+              "32",
+              "29",
+              "27.5",
+              "MX",
+              "26",
+              "24",
+              "22",
+              "20",
+              "16",
+              "700c",
+              "650b"
+            ],
+            "sort_order": 0,
+            "description": "The size of the wheel."
+          },
+          {
+            "key": "rim_material",
+            "type": "enum",
+            "label": "Rim material",
+            "values": [
+              "Carbon",
+              "Aluminum",
+              "Other"
+            ],
+            "sort_order": 1,
+            "description": "The material of the rim."
+          },
+          {
+            "key": "intended_use",
+            "type": "enum",
+            "label": "Intended use",
+            "values": [
+              "XC",
+              "Trail",
+              "Enduro",
+              "DH",
+              "E-bike"
+            ],
+            "sort_order": 2,
+            "description": "The intended use of the wheel."
+          },
+          {
+            "key": "confidence",
+            "type": "number",
+            "filterable": false,
+            "description": "Overall confidence 0-1"
+          }
+        ]
+      },
+      "enabled": true,
+      "category_id": 33,
+      "created_at": "2026-03-15T21:55:16.752679+00:00",
+      "updated_at": "2026-03-15T21:55:16.752679+00:00"
+    },
+    {
+      "id": 14,
+      "canonical_category": [
+        "Gear",
+        "Helmets"
+      ],
+      "name": "Helmets",
+      "system_prompt": "You are a mountain bike spec extraction expert. Given a product listing, extract structured specs.\n\nOnly include fields you can determine from the provided data. Use null for unknown fields.\nSet confidence 0-1 based on how certain you are about the overall extraction.",
+      "extraction_schema": {
+        "fields": [
+          {
+            "key": "intended_use",
+            "type": "enum",
+            "label": "Intended Use",
+            "values": [
+              "XC",
+              "Trail",
+              "Enduro",
+              "DH",
+              "Dirt Jump"
+            ],
+            "sort_order": 1,
+            "description": "Intended use of the helmet."
+          },
+          {
+            "key": "coverage",
+            "type": "enum",
+            "label": "Coverage",
+            "values": [
+              "Half shell",
+              "Full face",
+              "3/4 shell",
+              "Other"
+            ],
+            "sort_order": 2,
+            "description": "Amount of coverage the helmet provides."
+          },
+          {
+            "key": "confidence",
+            "type": "number",
+            "filterable": false,
+            "description": "Overall confidence 0-1"
+          }
+        ]
+      },
+      "enabled": true,
+      "category_id": 15,
+      "created_at": "2026-03-19T16:18:03.501326+00:00",
+      "updated_at": "2026-03-19T16:19:41.393714+00:00"
+    },
+    {
+      "id": 15,
+      "canonical_category": [
+        "Gear",
+        "Shoes"
+      ],
+      "name": "Shoes",
+      "system_prompt": "You are a mountain bike spec extraction expert. Given a product listing, extract structured specs.\n\nOnly include fields you can determine from the provided data. Use null for unknown fields.\nSet confidence 0-1 based on how certain you are about the overall extraction.",
+      "extraction_schema": {
+        "fields": [
+          {
+            "key": "type",
+            "type": "enum",
+            "label": "Type",
+            "values": [
+              "Clipless",
+              "Flat",
+              "Other"
+            ],
+            "sort_order": 1,
+            "description": "The type of shoe - how the shoes are attached to the pedal."
+          },
+          {
+            "key": "intended_use",
+            "type": "enum",
+            "label": "Intended Use",
+            "values": [
+              "XC",
+              "Trail",
+              "Enduro",
+              "DH",
+              "Dirt Jump"
+            ],
+            "sort_order": 2,
+            "description": "Intended use of the helmet."
+          },
+          {
+            "key": "gender",
+            "type": "enum",
+            "label": "Gender",
+            "values": [
+              "Men",
+              "Women",
+              "Unisex",
+              "Kids"
+            ],
+            "sort_order": 3,
+            "description": "The gender of the wearer of the shoes."
+          },
+          {
+            "key": "confidence",
+            "type": "number",
+            "filterable": false,
+            "description": "Overall confidence 0-1"
+          }
+        ]
+      },
+      "enabled": true,
+      "category_id": 18,
+      "created_at": "2026-03-19T16:26:07.504624+00:00",
+      "updated_at": "2026-03-19T16:26:07.504624+00:00"
+    },
+    {
+      "id": 16,
+      "canonical_category": [
+        "Gear",
+        "Clothing"
+      ],
+      "name": "Clothing",
+      "system_prompt": "You are a mountain bike spec extraction expert. Given a product listing, extract structured specs.\n\nOnly include fields you can determine from the provided data. Use null for unknown fields.\nSet confidence 0-1 based on how certain you are about the overall extraction.",
+      "extraction_schema": {
+        "fields": [
+          {
+            "key": "gender",
+            "type": "enum",
+            "label": "Gender",
+            "values": [
+              "Men",
+              "Women",
+              "Unisex",
+              "Kids"
+            ],
+            "sort_order": 1,
+            "description": "The gender of the wearer of the clothing."
+          },
+          {
+            "key": "confidence",
+            "type": "number",
+            "filterable": false,
+            "description": "Overall confidence 0-1"
+          }
+        ]
+      },
+      "enabled": true,
+      "category_id": 17,
+      "created_at": "2026-03-19T17:35:44.002526+00:00",
+      "updated_at": "2026-03-19T17:35:44.002526+00:00"
+    },
+    {
+      "id": 17,
+      "canonical_category": [
+        "Bikes",
+        "Frames"
+      ],
+      "name": "Frames",
+      "system_prompt": "You are a mountain bike spec extraction expert. Given a product listing, extract structured specs.\n\nOnly include fields you can determine from the provided data. Use null for unknown fields.\nSet confidence 0-1 based on how certain you are about the overall extraction.",
+      "extraction_schema": {
+        "fields": [
+          {
+            "key": "intended_use",
+            "type": "enum",
+            "label": "Intended use",
+            "values": [
+              "XC",
+              "Trail",
+              "Enduro",
+              "DH",
+              "Dirt Jump",
+              "Fat Bike"
+            ],
+            "sort_order": 1,
+            "description": "Intended use or class of the mountain bike."
+          },
+          {
+            "key": "rear_travel_mm",
+            "type": "integer",
+            "label": "Rear Travel (mm)",
+            "sort_order": 2,
+            "description": "Rear suspension travel in mm (null for hardtails)"
+          },
+          {
+            "key": "wheel_size",
+            "type": "enum",
+            "label": "Wheel Size",
+            "values": [
+              "32",
+              "29",
+              "27.5",
+              "MX",
+              "26",
+              "24",
+              "22",
+              "20",
+              "16",
+              "700c",
+              "650b"
+            ],
+            "sort_order": 3,
+            "description": "The size of the wheels used on the bike."
+          },
+          {
+            "key": "frame_material",
+            "type": "enum",
+            "label": "Frame Material",
+            "values": [
+              "Carbon",
+              "Aluminum",
+              "Steel",
+              "Titanium",
+              "Other"
+            ],
+            "sort_order": 4,
+            "description": "Frame material"
+          },
+          {
+            "key": "confidence",
+            "type": "number",
+            "filterable": false,
+            "description": "Overall confidence 0-1"
+          }
+        ]
+      },
+      "enabled": true,
+      "category_id": 50,
+      "created_at": "2026-03-19T17:48:03.296168+00:00",
+      "updated_at": "2026-03-19T17:48:03.296168+00:00"
+    }
+  ]
+}

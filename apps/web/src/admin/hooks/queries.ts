@@ -18,6 +18,8 @@ import {
   fetchSpecNormalizationRules,
   fetchSpecKeyAliases,
   fetchLLMProfiles,
+  fetchLLMProfile,
+  fetchLLMExtractionFieldDefs,
   fetchCategoryClassifier,
   fetchAdminCategoryTree,
 } from "../api";
@@ -33,6 +35,7 @@ import {
   adminSpecFilterKeys,
   adminNormalizationKeys,
   adminLLMProfileKeys,
+  adminLLMFieldDefKeys,
   adminCategoryClassifierKeys,
   adminCategoryKeys,
 } from "./queryKeys";
@@ -215,6 +218,24 @@ export function useLLMProfiles() {
   return useQuery({
     queryKey: adminLLMProfileKeys.all,
     queryFn: fetchLLMProfiles,
+    staleTime: 60 * 1000,
+  });
+}
+
+export function useLLMProfile(id: number | null) {
+  return useQuery({
+    queryKey:
+      id != null && id > 0 ? adminLLMProfileKeys.detail(id) : (["admin", "llmProfiles", "detail", "none"] as const),
+    queryFn: () => fetchLLMProfile(id!),
+    enabled: id != null && id > 0,
+    staleTime: 30 * 1000,
+  });
+}
+
+export function useLLMExtractionFieldDefs(q: string) {
+  return useQuery({
+    queryKey: adminLLMFieldDefKeys.list(q),
+    queryFn: () => fetchLLMExtractionFieldDefs(q),
     staleTime: 60 * 1000,
   });
 }

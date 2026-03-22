@@ -1568,6 +1568,11 @@ func (db *DB) BackfillLLMSpecs(ctx context.Context) (int, error) {
 	if err != nil {
 		return 0, fmt.Errorf("list profiles: %w", err)
 	}
+	for i := range profiles {
+		if err := db.maybeHydrateLLMProfile(ctx, &profiles[i]); err != nil {
+			return 0, fmt.Errorf("hydrate profile %d: %w", profiles[i].ID, err)
+		}
+	}
 	profileKeys := make(map[string]map[string]struct{}) // "Bikes>Mountain" -> set of keys
 	for _, p := range profiles {
 		if !p.Enabled {

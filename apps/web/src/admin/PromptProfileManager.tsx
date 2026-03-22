@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useLLMProfiles } from "./hooks/queries";
+import { useEffect, useMemo, useState } from "react";
+import { useLLMProfiles, useLLMProfile, useLLMExtractionFieldDefs } from "./hooks/queries";
 import {
   useCreateLLMProfile,
   useUpdateLLMProfile,
@@ -9,6 +9,9 @@ import {
   useTestLLMProfile,
 } from "./hooks/mutations";
 import { CategoryPicker } from "./CategoryPicker";
+import { ExtractionFieldLibraryPanel } from "./ExtractionFieldLibraryPanel";
+import { CompositionProfileForm } from "./CompositionProfileForm";
+import { legacyFieldsToComposition, rowsFromApi } from "./compositionUtils";
 
 function ProfileForm({
   initial,
@@ -129,9 +132,8 @@ function ProfileForm({
           Extraction schema (JSON with &quot;fields&quot; array)
         </label>
         <p className="mb-2 text-xs text-stone-500">
-          Each field: <code>key</code>, <code>type</code>, <code>description</code>, <code>values</code> (enum).
-          Optional: <code>label</code> (filter UI), <code>sort_order</code> (higher = first),
-          <code>filterable</code> (default true; use false e.g. for confidence).
+          Use the <strong>Field library</strong> tab + composition editor when your profile uses migration
+          019 rows. Raw JSON is for legacy profiles or new profiles before composition.
         </p>
         <textarea
           id="profile-schema"
@@ -174,20 +176,32 @@ function ProfileForm({
   );
 }
 
+type Tab = "profiles" | "library";
+
 export function PromptProfileManager() {
+  const [tab, setTab] = useState<Tab>("profiles");
   const { data: profiles, isLoading } = useLLMProfiles();
   const createMutation = useCreateLLMProfile();
   const updateMutation = useUpdateLLMProfile();
   const deleteMutation = useDeleteLLMProfile();
   const testMutation = useTestLLMProfile();
 
+  const { data: defsList, isLoading: defsLoading } = useLLMExtractionFieldDefs("");
+
   const [editingId, setEditingId] = useState<number | null>(null);
+  const { data: editDetail, isLoading: editDetailLoading } = useLLMProfile(editingId);
+  const [composeMode, setComposeMode] = useState(false);
+
   const [creating, setCreating] = useState(false);
   const [testModal, setTestModal] = useState<{ profileId: number; profileName: string } | null>(
     null
   );
   const [testListingId, setTestListingId] = useState("");
   const [testResult, setTestResult] = useState<Record<string, unknown> | null | "no-key">(null);
+
+  useEffect(() => {
+    setComposeMode(false);
+  }, [editingId]);
 
   const emptyForm = {
     canonical_category: [] as string[],
@@ -250,7 +264,7 @@ export function PromptProfileManager() {
     setCreating(false);
   }
 
-  async function handleUpdate(body: {
+  async function handleUpdateLegacy(body: {
     canonical_category: string[];
     name: string;
     system_prompt: string;
@@ -259,6 +273,52 @@ export function PromptProfileManager() {
   }) {
     if (editingId == null) return;
     await updateMutation.mutateAsync({ id: editingId, body });
+    setEditingId(null);
+  }
+
+  const initialCompositionRows = useMemo(() => {
+    if (!editDetail) return null;
+    if (editDetail.profile_fields && editDetail.profile_fields.length > 0) {
+      return rowsFromApi(editDetail.profile_fields);
+    }
+    if (composeMode) {
+      if (!defsList) return null;
+      return legacyFieldsToComposition(editDetail.extraction_schema, defsList);
+    }
+    return null;
+  }, [editDetail, defsList, composeMode]);
+
+  const useCompositionEditor =
+    !!editDetail &&
+    initialCompositionRows !== null &&
+    ((editDetail.profile_fields?.length ?? 0) > 0 || composeMode);
+
+  const waitingForDefsForComposition =
+    !!editDetail &&
+    composeMode &&
+    (editDetail.profile_fields?.length ?? 0) === 0 &&
+    defsLoading;
+
+  async function handleClearComposition() {
+    if (editingId == null || !editDetail) return;
+    if (
+      !confirm(
+        "Remove all composition rows? You can then edit raw extraction_schema JSON again (legacy mode)."
+      )
+    ) {
+      return;
+    }
+    await updateMutation.mutateAsync({
+      id: editingId,
+      body: {
+        canonical_category: editDetail.canonical_category,
+        name: editDetail.name,
+        system_prompt: editDetail.system_prompt,
+        enabled: editDetail.enabled,
+        profile_fields: [],
+      },
+    });
+    setComposeMode(false);
     setEditingId(null);
   }
 
@@ -279,135 +339,222 @@ export function PromptProfileManager() {
     }
   }
 
-  const editingProfile = editingId
-    ? profiles?.find((p) => p.id === editingId)
-    : null;
-
   if (isLoading) {
     return <p className="text-stone-600">Loading profiles…</p>;
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-stone-900">LLM Prompt Profiles</h2>
+      <div className="flex gap-2 border-b border-stone-200 pb-2">
         <button
           type="button"
-          onClick={() => setCreating(true)}
-          className="rounded bg-stone-700 px-3 py-2 text-sm text-white hover:bg-stone-600"
+          onClick={() => setTab("profiles")}
+          className={`rounded px-3 py-1.5 text-sm ${
+            tab === "profiles" ? "bg-stone-200 font-medium text-stone-900" : "text-stone-600 hover:bg-stone-100"
+          }`}
         >
-          Add profile
+          Prompt profiles
+        </button>
+        <button
+          type="button"
+          onClick={() => setTab("library")}
+          className={`rounded px-3 py-1.5 text-sm ${
+            tab === "library" ? "bg-stone-200 font-medium text-stone-900" : "text-stone-600 hover:bg-stone-100"
+          }`}
+        >
+          Field library
         </button>
       </div>
 
-      <p className="text-sm text-stone-600">
-        Profiles define extraction tasks per canonical category. When enrichment runs, the LLM uses
-        the matching profile to extract structured specs (travel, wheel size, mtb_class, etc.) from
-        product descriptions. Set <code className="rounded bg-stone-200 px-1">OPENAI_API_KEY</code> to
-        enable.
-      </p>
+      {tab === "library" && <ExtractionFieldLibraryPanel />}
 
-      {creating && (
-        <div className="rounded border border-stone-200 bg-white p-4">
-          <h3 className="mb-3 font-medium text-stone-800">New profile</h3>
-          <ProfileForm
-            initial={emptyForm}
-            onSubmit={handleCreate}
-            onCancel={() => setCreating(false)}
-            submitLabel="Create"
-          />
-        </div>
-      )}
+      {tab === "profiles" && (
+        <>
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-stone-900">LLM Prompt Profiles</h2>
+            <button
+              type="button"
+              onClick={() => setCreating(true)}
+              className="rounded bg-stone-700 px-3 py-2 text-sm text-white hover:bg-stone-600"
+            >
+              Add profile
+            </button>
+          </div>
 
-      {editingProfile && (
-        <div className="rounded border border-stone-200 bg-white p-4">
-          <h3 className="mb-3 font-medium text-stone-800">Edit profile</h3>
-          <ProfileForm
-            initial={{
-              canonical_category: editingProfile.canonical_category,
-              name: editingProfile.name,
-              system_prompt: editingProfile.system_prompt,
-              extraction_schema:
-                typeof editingProfile.extraction_schema === "object" &&
-                editingProfile.extraction_schema !== null
-                  ? (editingProfile.extraction_schema as Record<string, unknown>)
-                  : { fields: [] },
-              enabled: editingProfile.enabled,
-            }}
-            onSubmit={handleUpdate}
-            onCancel={() => setEditingId(null)}
-            submitLabel="Save"
-          />
-        </div>
-      )}
+          <p className="text-sm text-stone-600">
+            Profiles define extraction tasks per canonical category. When enrichment runs, the LLM uses
+            the matching profile to extract structured specs. After migration{" "}
+            <code className="rounded bg-stone-200 px-1">019</code>, edit composed fields via the composition
+            editor; manage shared templates on the <strong>Field library</strong> tab. Set{" "}
+            <code className="rounded bg-stone-200 px-1">OPENAI_API_KEY</code> on the API to enable.
+          </p>
 
-      <div className="overflow-x-auto">
-        <table className="min-w-full rounded border border-stone-200">
-          <thead>
-            <tr className="border-b border-stone-200 bg-stone-50">
-              <th className="px-3 py-2 text-left text-sm font-medium text-stone-700">
-                Category
-              </th>
-              <th className="px-3 py-2 text-left text-sm font-medium text-stone-700">Name</th>
-              <th className="px-3 py-2 text-left text-sm font-medium text-stone-700">Enabled</th>
-              <th className="px-3 py-2 text-right text-sm font-medium text-stone-700">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {(profiles ?? []).map((p) => (
-              <tr key={p.id} className="border-b border-stone-100">
-                <td className="px-3 py-2 text-sm text-stone-900">
-                  {Array.isArray(p.canonical_category)
-                    ? (p.canonical_category as string[]).join(" > ")
-                    : String(p.canonical_category)}
-                </td>
-                <td className="px-3 py-2 text-sm text-stone-900">{p.name}</td>
-                <td className="px-3 py-2 text-sm">
-                  {p.enabled ? (
-                    <span className="text-green-700">Yes</span>
-                  ) : (
-                    <span className="text-stone-500">No</span>
-                  )}
-                </td>
-                <td className="px-3 py-2 text-right">
-                  <div className="flex justify-end gap-2">
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setTestModal({ profileId: p.id, profileName: p.name })
-                      }
-                      className="rounded border border-stone-300 px-2 py-1 text-xs hover:bg-stone-50"
-                    >
-                      Test
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setEditingId(p.id)}
-                      className="rounded border border-stone-300 px-2 py-1 text-xs hover:bg-stone-50"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (confirm(`Delete profile "${p.name}"?`)) {
-                          deleteMutation.mutate(p.id);
-                        }
-                      }}
-                      className="rounded border border-red-200 px-2 py-1 text-xs text-red-700 hover:bg-red-50"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+          {creating && (
+            <div className="rounded border border-stone-200 bg-white p-4">
+              <h3 className="mb-3 font-medium text-stone-800">New profile</h3>
+              <ProfileForm
+                initial={emptyForm}
+                onSubmit={handleCreate}
+                onCancel={() => setCreating(false)}
+                submitLabel="Create"
+              />
+            </div>
+          )}
 
-      {profiles?.length === 0 && !creating && (
-        <p className="text-sm text-stone-500">No profiles yet. Add one to get started.</p>
+          {editingId != null && editDetailLoading && (
+            <p className="text-sm text-stone-600">Loading profile…</p>
+          )}
+
+          {editingId != null && waitingForDefsForComposition && (
+            <p className="text-sm text-stone-600">Loading field definitions…</p>
+          )}
+
+          {editingId != null &&
+            editDetail &&
+            useCompositionEditor &&
+            initialCompositionRows && (
+            <div className="rounded border border-stone-200 bg-white p-4">
+              <h3 className="mb-3 font-medium text-stone-800">Edit profile (field library)</h3>
+              <CompositionProfileForm
+                key={`${editDetail.id}-${composeMode}-${editDetail.profile_fields?.length ?? 0}`}
+                detail={editDetail}
+                defs={defsList ?? []}
+                initialRows={initialCompositionRows}
+                onSave={async (body) => {
+                  await updateMutation.mutateAsync({
+                    id: editingId,
+                    body: {
+                      canonical_category: body.canonical_category,
+                      name: body.name,
+                      system_prompt: body.system_prompt,
+                      enabled: body.enabled,
+                      profile_fields: body.profile_fields,
+                    },
+                  });
+                  setEditingId(null);
+                  setComposeMode(false);
+                }}
+                onCancel={() => {
+                  setEditingId(null);
+                  setComposeMode(false);
+                }}
+              />
+              <div className="mt-4 border-t border-stone-100 pt-3">
+                <button
+                  type="button"
+                  onClick={handleClearComposition}
+                  className="text-xs text-amber-800 underline"
+                >
+                  Clear composition (switch back to raw JSON editing)
+                </button>
+              </div>
+            </div>
+          )}
+
+          {editingId != null &&
+            editDetail &&
+            !useCompositionEditor &&
+            !editDetailLoading &&
+            !waitingForDefsForComposition && (
+              <div className="rounded border border-stone-200 bg-white p-4">
+                <h3 className="mb-3 font-medium text-stone-800">Edit profile</h3>
+                <p className="mb-3 text-xs text-stone-600">
+                  This profile uses raw <code className="rounded bg-stone-200 px-0.5">extraction_schema</code>{" "}
+                  JSON. Switch to the composition editor to use shared field definitions and overrides.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setComposeMode(true)}
+                  className="mb-4 rounded border border-stone-300 px-3 py-1.5 text-sm hover:bg-stone-50"
+                >
+                  Switch to field library composition
+                </button>
+                <ProfileForm
+                  initial={{
+                    canonical_category: editDetail.canonical_category,
+                    name: editDetail.name,
+                    system_prompt: editDetail.system_prompt,
+                    extraction_schema:
+                      typeof editDetail.extraction_schema === "object" &&
+                      editDetail.extraction_schema !== null
+                        ? (editDetail.extraction_schema as Record<string, unknown>)
+                        : { fields: [] },
+                    enabled: editDetail.enabled,
+                  }}
+                  onSubmit={handleUpdateLegacy}
+                  onCancel={() => setEditingId(null)}
+                  submitLabel="Save"
+                />
+              </div>
+            )}
+
+          <div className="overflow-x-auto">
+            <table className="min-w-full rounded border border-stone-200">
+              <thead>
+                <tr className="border-b border-stone-200 bg-stone-50">
+                  <th className="px-3 py-2 text-left text-sm font-medium text-stone-700">
+                    Category
+                  </th>
+                  <th className="px-3 py-2 text-left text-sm font-medium text-stone-700">Name</th>
+                  <th className="px-3 py-2 text-left text-sm font-medium text-stone-700">Enabled</th>
+                  <th className="px-3 py-2 text-right text-sm font-medium text-stone-700">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(profiles ?? []).map((p) => (
+                  <tr key={p.id} className="border-b border-stone-100">
+                    <td className="px-3 py-2 text-sm text-stone-900">
+                      {Array.isArray(p.canonical_category)
+                        ? (p.canonical_category as string[]).join(" > ")
+                        : String(p.canonical_category)}
+                    </td>
+                    <td className="px-3 py-2 text-sm text-stone-900">{p.name}</td>
+                    <td className="px-3 py-2 text-sm">
+                      {p.enabled ? (
+                        <span className="text-green-700">Yes</span>
+                      ) : (
+                        <span className="text-stone-500">No</span>
+                      )}
+                    </td>
+                    <td className="px-3 py-2 text-right">
+                      <div className="flex justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setTestModal({ profileId: p.id, profileName: p.name })}
+                          className="rounded border border-stone-300 px-2 py-1 text-xs hover:bg-stone-50"
+                        >
+                          Test
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setEditingId(p.id)}
+                          className="rounded border border-stone-300 px-2 py-1 text-xs hover:bg-stone-50"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (confirm(`Delete profile "${p.name}"?`)) {
+                              deleteMutation.mutate(p.id);
+                            }
+                          }}
+                          className="rounded border border-red-200 px-2 py-1 text-xs text-red-700 hover:bg-red-50"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {profiles?.length === 0 && !creating && (
+            <p className="text-sm text-stone-500">No profiles yet. Add one to get started.</p>
+          )}
+        </>
       )}
 
       {testModal && (
