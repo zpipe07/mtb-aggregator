@@ -10,7 +10,12 @@ From repo root, with `DATABASE_URL` in `.env` (or in the environment):
 make db-migrate-remote
 ```
 
-This runs all `*.sql` files in this directory in sorted order using the API’s Go/pgx stack, so it works with Neon and other Postgres (no `psql`/SNI required).
+This runs `apps/api/cmd/migrate`, which:
+
+1. Ensures a `schema_migrations` table exists and **skips any `*.sql` file whose name is already recorded** (so re-running `make db-migrate-remote` is safe).
+2. Applies remaining files in sorted order (Neon and other Postgres; no `psql`/SNI required).
+
+**First run on a database that already had migrations applied manually** (no prior `schema_migrations` rows): the tool may re-execute older files; they are written to be mostly additive / idempotent. If something fails, either fix the migration or insert rows into `schema_migrations` for files you know are already applied, then re-run.
 
 Override the migrations directory: `MIGRATIONS_DIR=path/to/migrations make db-migrate-remote`
 

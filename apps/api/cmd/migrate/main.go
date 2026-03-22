@@ -67,7 +67,27 @@ func main() {
 		log.Fatalf("ping: %v", err)
 	}
 
+	_, err = pool.Exec(ctx, `
+		CREATE TABLE IF NOT EXISTS schema_migrations (
+			filename TEXT PRIMARY KEY,
+			applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+		)
+	`)
+	if err != nil {
+		log.Fatalf("schema_migrations: %v", err)
+	}
+
+	var ran int
 	for _, name := range files {
+		var done bool
+		if err := pool.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM schema_migrations WHERE filename = $1)`, name).Scan(&done); err != nil {
+			log.Fatalf("check %s: %v", name, err)
+		}
+		if done {
+			log.Printf("Skipping %s (already applied)", name)
+			continue
+		}
+
 		path := filepath.Join(absDir, name)
 		sql, err := os.ReadFile(path)
 		if err != nil {
@@ -77,7 +97,11 @@ func main() {
 		if _, err := pool.Exec(ctx, string(sql)); err != nil {
 			log.Fatalf("%s: %v", name, err)
 		}
+		if _, err := pool.Exec(ctx, `INSERT INTO schema_migrations (filename) VALUES ($1)`, name); err != nil {
+			log.Fatalf("record %s: %v", name, err)
+		}
 		log.Printf("  OK")
+		ran++
 	}
-	log.Printf("Migrations complete (%d files).", len(files))
+	log.Printf("Migrations complete (%d files, %d newly applied).", len(files), ran)
 }
