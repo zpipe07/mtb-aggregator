@@ -10,7 +10,7 @@ todos:
     status: completed
   - id: hydrate-db
     content: Implement merge + hydrate in internal/db; wire into all Get/List profile paths with JSONB fallback
-    status: pending
+    status: completed
   - id: admin-api
     content: Add CRUD handlers for defs + PUT profile composition; register routes; update apps/api/README + docs/ARCHITECTURE
     status: pending
@@ -19,7 +19,7 @@ todos:
     status: pending
   - id: tests
     content: "Go tests for merge/hydrate; manual smoke: test extract + facets still work"
-    status: pending
+    status: completed
 isProject: false
 ---
 

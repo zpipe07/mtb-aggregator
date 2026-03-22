@@ -7,6 +7,7 @@ Go HTTP server that orchestrates scraping, enrichment, and serves the REST API. 
 - **Port:** 8080 (default)
 - **Frameworks:** None; stdlib `net/http` only
 - **Database:** PostgreSQL via pgx; all queries in `internal/db/`
+- **LLM profiles:** When `llm_prompt_profile_fields` exists for a profile, getters hydrate `extraction_schema` from the field library + overrides (see [docs/ARCHITECTURE.md](../../docs/ARCHITECTURE.md) enrich section).
 
 ## Key Directories
 

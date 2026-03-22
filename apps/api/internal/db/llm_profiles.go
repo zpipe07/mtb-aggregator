@@ -3,7 +3,9 @@ package db
 import (
 	"context"
 	"encoding/json"
+	"errors"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/lib/pq"
 )
@@ -53,12 +55,15 @@ func (db *DB) GetLLMPromptProfileByID(ctx context.Context, id int) (*LLMPromptPr
 		WHERE id = $1
 	`, id).Scan(&p.ID, &cat, &p.Name, &p.SystemPrompt, &p.ExtractionSchema, &p.Enabled)
 	if err != nil {
-		if err.Error() == "no rows in result set" {
+		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil
 		}
 		return nil, err
 	}
 	p.CanonicalCategory = cat
+	if err := db.maybeHydrateLLMProfile(ctx, &p); err != nil {
+		return nil, err
+	}
 	return &p, nil
 }
 
@@ -72,12 +77,15 @@ func (db *DB) GetLLMPromptProfileForCategoryID(ctx context.Context, categoryID i
 		WHERE category_id = $1 AND enabled = true
 	`, categoryID).Scan(&p.ID, &cat, &p.Name, &p.SystemPrompt, &p.ExtractionSchema, &p.Enabled)
 	if err != nil {
-		if err.Error() == "no rows in result set" {
+		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil
 		}
 		return nil, err
 	}
 	p.CanonicalCategory = cat
+	if err := db.maybeHydrateLLMProfile(ctx, &p); err != nil {
+		return nil, err
+	}
 	return &p, nil
 }
 
@@ -100,12 +108,15 @@ func (db *DB) GetLLMPromptProfileForCategory(ctx context.Context, canonicalCateg
 		WHERE canonical_category = $1 AND enabled = true
 	`, pq.Array(canonicalCategory)).Scan(&p.ID, &cat, &p.Name, &p.SystemPrompt, &p.ExtractionSchema, &p.Enabled)
 	if err != nil {
-		if err.Error() == "no rows in result set" {
+		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil
 		}
 		return nil, err
 	}
 	p.CanonicalCategory = cat
+	if err := db.maybeHydrateLLMProfile(ctx, &p); err != nil {
+		return nil, err
+	}
 	return &p, nil
 }
 
