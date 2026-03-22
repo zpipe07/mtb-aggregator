@@ -49,4 +49,5 @@ How MTB categories are structured and mapped from store-specific paths to a cano
 
 ```bash
 make backfill-canonical-categories   # Recategorize after taxonomy changes
+make backfill-field-library          # After migration 019: LLM field defs + profile composition rows
 ```

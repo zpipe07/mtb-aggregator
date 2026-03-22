@@ -7,7 +7,7 @@ todos:
     status: completed
   - id: backfill
     content: "Backfill: rename ambiguous keys (type->pedal_type/shock_type/shoe_type, material->handlebar_material/pad_material), insert defs, compose profile_fields with overrides for intended_use/wheel_size value variants, migrate existing llm_specs in metadata"
-    status: pending
+    status: completed
   - id: hydrate-db
     content: Implement merge + hydrate in internal/db; wire into all Get/List profile paths with JSONB fallback
     status: pending

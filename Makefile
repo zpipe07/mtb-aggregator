@@ -1,4 +1,4 @@
-.PHONY: dev db-up db-down db-migrate db-migrate-docker db-seed db-up-local db-migrate-local db-migrate-remote db-seed-remote backfill-brands backfill-canonical-categories backfill-llm-specs scrape scrape-now scrape-now-wwc scrape-now-revel scrape-now-ridebicycles build-all install
+.PHONY: dev db-up db-down db-migrate db-migrate-docker db-seed db-up-local db-migrate-local db-migrate-remote db-seed-remote backfill-brands backfill-canonical-categories backfill-llm-specs backfill-field-library scrape scrape-now scrape-now-wwc scrape-now-revel scrape-now-ridebicycles build-all install
 
 # Ensure Make can find docker (Docker Desktop CLI locations)
 export PATH := /Applications/Docker.app/Contents/Resources/bin:/usr/local/bin:/opt/homebrew/bin:$(PATH)
@@ -80,6 +80,10 @@ backfill-canonical-categories:
 # Populate metadata.llm_specs from metadata.specs for listings enriched before the llm_specs split (run once after migration 016)
 backfill-llm-specs:
 	cd apps/api && go run ./cmd/backfill-llm-specs
+
+# Rename ambiguous extraction keys, seed llm_extraction_field_defs, fill llm_prompt_profile_fields (run once after migration 019)
+backfill-field-library:
+	cd apps/api && go run ./cmd/backfill-field-library
 
 # Run scraper manually (for testing)
 scrape:

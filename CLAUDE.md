@@ -73,6 +73,7 @@ make db-migrate-remote
 make backfill-brands
 make backfill-canonical-categories   # recategorize listings after taxonomy changes
 make backfill-llm-specs              # populate llm_specs from specs (after migration 016)
+make backfill-field-library          # migration 019: field defs + profile_fields + key renames
 
 # Build all
 make build-all

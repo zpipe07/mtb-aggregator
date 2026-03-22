@@ -26,6 +26,8 @@ Override the migrations directory: `MIGRATIONS_DIR=path/to/migrations make db-mi
 |------|---------|
 | `019_llm_extraction_field_library.sql` | `llm_extraction_field_defs` + `llm_prompt_profile_fields` for composed extraction schemas |
 
+After 019, run **`make backfill-field-library`** once (from repo root) to rename ambiguous `type` / `material` keys in `extraction_schema` and `metadata.llm_specs`, seed shared defs, and populate `llm_prompt_profile_fields`.
+
 ## Verifying Phase 2 changes (currency, scraper health, category_path)
 
 1. **Apply migrations** (if you haven’t):

@@ -75,4 +75,5 @@ Run from repo root with API not required:
 make backfill-brands
 make backfill-canonical-categories   # Recategorize after taxonomy changes
 make backfill-llm-specs              # Populate llm_specs from specs
+make backfill-field-library          # After migration 019: rename ambiguous keys, seed field defs, fill profile_fields
 ```
