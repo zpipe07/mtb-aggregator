@@ -5,6 +5,8 @@ import { SCRAPER_MAX_PRODUCTS } from "../config.js";
 
 const BASE_URL = "https://ridebicycles.com";
 const PER_PAGE = 250;
+/** Minimum discount vs compare-at price (e.g. 0.1 = 10% off). */
+const MIN_DISCOUNT_FRACTION = 0.1;
 
 interface ShopifyVariant {
   id: number;
@@ -74,7 +76,7 @@ function isGiftCard(product: ShopifyProduct): boolean {
 
 /**
  * Scrape Ride Bicycles deals via Shopify's collection products.json API.
- * Filters for in-stock and discounted variants (rb_stock_status/rb_discount_relative are not honored by API).
+ * Filters for in-stock variants with compare-at price and at least 10% off (MIN_DISCOUNT_FRACTION; rb_stock_status/rb_discount_relative are not honored by API).
  * No browser required; uses fetch + JSON.
  */
 export async function scrapeRideBicycles(
@@ -110,6 +112,10 @@ export async function scrapeRideBicycles(
         ) {
           continue;
         }
+
+        const maxPriceForMinDiscount =
+          compareAtPrice * (1 - MIN_DISCOUNT_FRACTION);
+        if (currentPrice > maxPriceForMinDiscount) continue;
 
         const productUrl = `${origin}/products/${product.handle}`;
         const imageUrl =

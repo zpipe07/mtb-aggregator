@@ -6,9 +6,14 @@ High-fidelity layout reference for the user-facing app (Home, Deals, Deal detail
 
 The working document is opened in Pencil as **`pencil-new.pen`**. To keep it in this repo, use **File → Save As** in Pencil and save as:
 
-`designs/mtb-public-ui.pen`
+| Document | Save as |
+| :--- | :--- |
+| Public UI (Home, Deals, detail) | `designs/mtb-public-ui.pen` |
+| Logo refinement & light/dark brainstorm | `designs/the-dropper-logo-brainstorm.pen` |
 
 (A commit-friendly copy cannot be written here automatically; the editor owns the file.)
+
+**Logo file:** Reference images use the path `../apps/web/public/the-dropper-logo-horizontal.png` relative to `designs/`. If images look missing, confirm the file is saved under `designs/` with that name.
 
 ## Why Pencil and the browser can look different
 

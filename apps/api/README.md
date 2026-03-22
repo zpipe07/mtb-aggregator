@@ -36,13 +36,14 @@ Go HTTP server that orchestrates scraping, enrichment, and serves the REST API. 
 
 ### Trigger (cron or manual)
 
-- `POST /scrape-now` — Trigger scrape job; optional `?store=worldwidecyclery`
-- `POST /enrich-now` — Trigger enrichment job
-- `POST /scrape-now/:store` — Scrape single store
+- `POST /scrape-now` — Trigger scrape job; optional `?store=<store_type>`
+- `POST /enrich-now` — Trigger enrichment job; optional `?force=1`, `?store=`
+
+**Auth:** Valid `CRON_SECRET` via `X-Cron-Secret` (or `?secret=` — avoid in production logs), or `Authorization: Bearer <ADMIN_PASSWORD>`. In production (`APP_ENV=production` or `RENDER=true`), if `CRON_SECRET` is unset, unauthenticated triggers are rejected unless `ALLOW_OPEN_CRON=1` (not recommended). Local dev allows unauthenticated triggers when `CRON_SECRET` is unset.
 
 ### Admin (Bearer token via `ADMIN_PASSWORD`)
 
-- `POST /admin/login` — Get token
+- `POST /admin/auth` — Validate password (`{"password":"..."}`); use same value as `Authorization: Bearer` on other `/admin/*` routes
 - `GET/POST/PUT/PATCH/DELETE /admin/*` — Dashboard, stores, taxonomy, profiles, etc.
 
 **LLM extraction field library** (migration `019`):
@@ -57,9 +58,16 @@ Go HTTP server that orchestrates scraping, enrichment, and serves the REST API. 
 
 - `DATABASE_URL` — Postgres connection string
 - `SCRAPER_SERVICE_URL` — Scraper base URL (default `http://localhost:3000`)
-- `ADMIN_PASSWORD` — Required for admin endpoints
-- `CRON_SECRET` — Optional; validate cron triggers via `X-Cron-Secret`
+- `SCRAPER_SERVICE_SECRET` — Optional locally; **set in production** to match the scraper service. API sends `X-Scraper-Secret` on `POST /scrape` and `POST /enrich` to the scraper.
+- `ADMIN_PASSWORD` — Required for admin endpoints (use a long random value in production)
+- `ADMIN_AUTH_MAX_ATTEMPTS_PER_WINDOW` — Failed `POST /admin/auth` attempts per IP before HTTP 429 (default `5`)
+- `ADMIN_AUTH_WINDOW_SECONDS` — Rolling window for those attempts (default `900` = 15 minutes)
+- `ADMIN_AUTH_RATE_LIMIT` — Set `off` / `false` / `0` to disable the limiter (local dev only)
+- `CRON_SECRET` — Shared secret for `POST /scrape-now` and `POST /enrich-now` (`X-Cron-Secret`); **set in production** (see Trigger section)
+- `APP_ENV` — Set `production` (or `prod`) for production security defaults (with `RENDER`, used to require cron auth when `CRON_SECRET` is unset)
+- `ALLOW_OPEN_CRON` — Set to `1` only if you must allow unauthenticated cron triggers in production (unsafe; prefer `CRON_SECRET`)
 - `SCRAPE_CRON_SPEC` / `ENRICH_CRON_SPEC` — Cron schedules; set `disabled` for external cron
+- **Startup catch-up:** If either in-process cron is enabled (not `disabled`), on each API start the scheduler checks the DB for the last scrape/enrich job start. If that job is older than **24 hours** (or missing), it runs once in the background with `triggered_by=catch-up`. Helps after deploys/restarts or if a scheduled run was missed while the process was down.
 - `SENTRY_DSN` — Optional; enables [Sentry](https://sentry.io) (HTTP panics and 5xx via `sentryhttp`)
 - `SENTRY_ENVIRONMENT` — e.g. `production` / `development` (optional)
 - `SENTRY_RELEASE` — Optional release override; if unset on Render, `RENDER_GIT_COMMIT` is used automatically

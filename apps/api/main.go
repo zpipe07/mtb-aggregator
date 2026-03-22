@@ -100,16 +100,34 @@ func loggingMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-func validateCronSecret(r *http.Request) bool {
-	secret := os.Getenv("CRON_SECRET")
-	if secret == "" {
+// isProduction is used for security defaults (e.g. cron triggers). Set APP_ENV=production, or deploy on Render (RENDER=true).
+func isProduction() bool {
+	switch strings.ToLower(strings.TrimSpace(os.Getenv("APP_ENV"))) {
+	case "production", "prod":
 		return true
 	}
-	got := r.Header.Get("X-Cron-Secret")
-	if got == "" {
-		got = r.URL.Query().Get("secret")
+	return strings.EqualFold(strings.TrimSpace(os.Getenv("RENDER")), "true")
+}
+
+// validateCronSecret checks X-Cron-Secret or ?secret= against CRON_SECRET.
+// With no CRON_SECRET: in production, returns false (fail closed); with ALLOW_OPEN_CRON=1, returns true (escape hatch for staging).
+// Otherwise non-production allows unauthenticated triggers for local dev.
+func validateCronSecret(r *http.Request) bool {
+	secret := strings.TrimSpace(os.Getenv("CRON_SECRET"))
+	if secret != "" {
+		got := r.Header.Get("X-Cron-Secret")
+		if got == "" {
+			got = r.URL.Query().Get("secret")
+		}
+		return got == secret
 	}
-	return got == secret
+	if strings.TrimSpace(os.Getenv("ALLOW_OPEN_CRON")) == "1" {
+		return true
+	}
+	if isProduction() {
+		return false
+	}
+	return true
 }
 
 // validateCronOrAdmin returns true if either CRON_SECRET or admin Bearer token is valid.
@@ -259,6 +277,13 @@ func main() {
 	}
 	log.Printf("[startup] scraper service URL: %s", scraperURL)
 
+	if isProduction() && strings.TrimSpace(os.Getenv("CRON_SECRET")) == "" && strings.TrimSpace(os.Getenv("ALLOW_OPEN_CRON")) != "1" {
+		log.Println("[security] CRON_SECRET unset in production: POST /scrape-now and /enrich-now require admin Bearer or set CRON_SECRET for X-Cron-Secret")
+	}
+	if isProduction() && strings.TrimSpace(os.Getenv("SCRAPER_SERVICE_SECRET")) == "" {
+		log.Println("[security] SCRAPER_SERVICE_SECRET unset in production: set the same value on API and scraper to authenticate POST /scrape and /enrich")
+	}
+
 	database, err := db.New(connString)
 	if err != nil {
 		log.Fatalf("[startup] database: %v", err)
@@ -326,7 +351,15 @@ func main() {
 		log.Println("[startup] enrichment cron disabled (use external cron for /enrich-now)")
 	}
 
-	// Manual trigger for testing: POST /scrape-now (optional ?store=worldwidecyclery; requires CRON_SECRET or admin auth if set)
+	// Catch-up: if the process missed scheduled jobs (was down during cron time,
+	// deploy, restart), run overdue scrape/enrich once on startup.
+	catchUpScrapeInterval := 24 * time.Hour
+	catchUpEnrichInterval := 24 * time.Hour
+	if cronSpec != "disabled" || enrichCronSpec != "disabled" {
+		go sched.RunCatchUp(catchUpScrapeInterval, catchUpEnrichInterval)
+	}
+
+	// Manual trigger: POST /scrape-now (optional ?store=). Auth: valid CRON_SECRET, or admin Bearer, or (non-production only) open cron.
 	http.HandleFunc("/scrape-now", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			log.Printf("[scrape-now] rejected: method %s", r.Method)
@@ -349,7 +382,7 @@ func main() {
 		w.Write([]byte(`{"status":"ok"}`))
 	})
 
-	// Manual trigger for enrichment: POST /enrich-now (add ?force=1 to re-enrich all; requires CRON_SECRET or admin auth if set)
+	// Manual trigger: POST /enrich-now (?force=1 re-enriches all). Same auth as /scrape-now.
 	http.HandleFunc("/enrich-now", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			log.Printf("[enrich-now] rejected: method %s", r.Method)

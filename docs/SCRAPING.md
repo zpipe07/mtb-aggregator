@@ -8,7 +8,9 @@ The scraper is a Node.js Express server that uses Playwright to scrape MTB retai
 |----------|--------|---------|
 | `/scrape` | POST | Scrape sale page → returns `ScrapeResult[]` |
 | `/enrich` | POST | Visit PDP URLs → returns `EnrichResult` (category, specs) |
-| `/health` | GET | Health check |
+| `/health` | GET | Health check (no auth) |
+
+When `SCRAPER_SERVICE_SECRET` is set (recommended in production), `POST /scrape` and `POST /enrich` require `X-Scraper-Secret` or `Authorization: Bearer` matching the API’s env. The Go API sends this header automatically.
 
 ## Parser Structure
 
@@ -58,9 +60,10 @@ curl -X POST http://localhost:3000/scrape \
 
 ## Notes
 
+- **Service auth**: Set `SCRAPER_SERVICE_SECRET` to the same value on the API and scraper in production (see [apps/scraper/README.md](../apps/scraper/README.md)).
 - **Sentry**: Optional `SENTRY_DSN` locally; **set in production** and report 5xx route failures to Sentry (see [apps/scraper/README.md](../apps/scraper/README.md), [docs/ARCHITECTURE.md](ARCHITECTURE.md#error-monitoring-sentry))
 - **Chromium**: Scraper needs ~300MB+ RAM; use Render Standard (2GB) in production, not free tier
 - **Timeouts**: Configure via `SCRAPER_MAX_PAGES` and Playwright timeouts
 - **Testing**: Set `SCRAPER_MAX_PRODUCTS=10` (or similar) to limit products per scrape; 0 = no limit
 - **Store types**: Must match keys in `PARSERS` and `ENRICHERS`
-- **Ride Bicycles**: Uses Shopify products.json API; client-side filters for in-stock and discounted variants (rb_stock_status, rb_discount_relative are not honored by the API)
+- **Ride Bicycles**: Uses Shopify products.json API; parser keeps in-stock variants with compare-at price and **≥10%** off compare-at (rb_stock_status, rb_discount_relative are not honored by the API)

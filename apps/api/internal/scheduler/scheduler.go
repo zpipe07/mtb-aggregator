@@ -646,6 +646,41 @@ func (s *Scheduler) RunEnrichmentJobForStore(storeType string, force bool, trigg
 	}
 }
 
+// RunCatchUp checks the last scrape/enrich job and runs immediately if overdue.
+// Helps when the process was down during the scheduled time (idle spin-down,
+// deploys, crashes, or restarts) so a missed cron can run on the next startup.
+func (s *Scheduler) RunCatchUp(scrapeInterval, enrichInterval time.Duration) {
+	ctx := context.Background()
+
+	scrapeAge, err := s.db.LastScrapeJobAge(ctx)
+	if err != nil {
+		log.Printf("[catch-up] failed to check last scrape job: %v", err)
+	} else if scrapeAge < 0 || scrapeAge > scrapeInterval {
+		label := "never"
+		if scrapeAge >= 0 {
+			label = scrapeAge.Round(time.Minute).String() + " ago"
+		}
+		log.Printf("[catch-up] last scrape is overdue (%s, threshold %s) — running now", label, scrapeInterval)
+		go s.RunScrapeJob("", "catch-up")
+	} else {
+		log.Printf("[catch-up] last scrape was %s ago (threshold %s) — not overdue", scrapeAge.Round(time.Minute), scrapeInterval)
+	}
+
+	enrichAge, err := s.db.LastEnrichJobAge(ctx)
+	if err != nil {
+		log.Printf("[catch-up] failed to check last enrich job: %v", err)
+	} else if enrichAge < 0 || enrichAge > enrichInterval {
+		label := "never"
+		if enrichAge >= 0 {
+			label = enrichAge.Round(time.Minute).String() + " ago"
+		}
+		log.Printf("[catch-up] last enrichment is overdue (%s, threshold %s) — running now", label, enrichInterval)
+		go s.RunEnrichmentJob(false, "catch-up")
+	} else {
+		log.Printf("[catch-up] last enrichment was %s ago (threshold %s) — not overdue", enrichAge.Round(time.Minute), enrichInterval)
+	}
+}
+
 func (s *Scheduler) Start(spec string, triggeredBy string) {
 	if triggeredBy == "" {
 		triggeredBy = "cron"

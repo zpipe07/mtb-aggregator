@@ -33,7 +33,10 @@ export function AdminGate({ onSuccess }: Props) {
   return (
     <div className="min-h-screen bg-stone-100 flex items-center justify-center p-6">
       <div className="w-full max-w-sm rounded-lg border border-stone-200 bg-white p-6 shadow-sm">
-        <h1 className="text-lg font-semibold text-stone-800 mb-4">Admin login</h1>
+        <div className="flex justify-center mb-4">
+          <img src="/logo.png" alt="" className="h-12 w-auto" />
+        </div>
+        <h1 className="text-lg font-semibold text-stone-800 mb-4 text-center">Admin login</h1>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label htmlFor="admin-password" className="sr-only">

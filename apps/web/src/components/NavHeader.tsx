@@ -8,7 +8,13 @@ import { Button } from "./ui/button";
 
 function SunIcon() {
   return (
-    <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden>
+    <svg
+      className="size-5"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      aria-hidden
+    >
       <path
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -21,7 +27,13 @@ function SunIcon() {
 
 function MoonIcon() {
   return (
-    <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden>
+    <svg
+      className="size-5"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      aria-hidden
+    >
       <path
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -54,10 +66,24 @@ export function NavHeader() {
           aria-label="The Dropper - Home"
         >
           <img
-            src="/the-dropper-logo-horizontal.png"
+            src="/logo.png"
             alt="The Dropper"
-            className="h-20 md:h-24 lg:h-30 w-auto"
+            className="h-22 sm:h-24 w-auto dark:hidden"
           />
+          <img
+            src="/logo-light.png"
+            alt=""
+            aria-hidden
+            className="h-22 sm:h-24 w-auto hidden dark:block"
+          />
+          <span className="ml-2 flex flex-col">
+            <span className="text-sm/[1] font-bold tracking-tight sm:text-lg/[1]">
+              THE
+            </span>
+            <span className="text-2xl/[1] font-bold tracking-tight sm:text-5xl/[1]">
+              DROPPER
+            </span>
+          </span>
         </Link>
 
         {/* Desktop nav */}
@@ -75,10 +101,20 @@ export function NavHeader() {
                 : "Toggle theme"
             }
           >
-            {mounted ? (theme === "dark" ? <SunIcon /> : <MoonIcon />) : <MoonIcon />}
+            {mounted ? (
+              theme === "dark" ? (
+                <SunIcon />
+              ) : (
+                <MoonIcon />
+              )
+            ) : (
+              <MoonIcon />
+            )}
           </Button>
           {navLinks.map(({ href, label, exact }) => {
-            const isActive = exact ? pathname === href : pathname.startsWith(href);
+            const isActive = exact
+              ? pathname === href
+              : pathname.startsWith(href);
             return (
               <Link
                 key={href}
@@ -176,7 +212,9 @@ export function NavHeader() {
             )}
           </Button>
           {navLinks.map(({ href, label, exact }) => {
-            const isActive = exact ? pathname === href : pathname.startsWith(href);
+            const isActive = exact
+              ? pathname === href
+              : pathname.startsWith(href);
             return (
               <Link
                 key={href}

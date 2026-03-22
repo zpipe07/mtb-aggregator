@@ -1,9 +1,11 @@
 package api
 
 import (
+	"crypto/subtle"
 	"encoding/json"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -12,9 +14,19 @@ const adminPasswordEnv = "ADMIN_PASSWORD"
 // AllowedStoreTypes are store_type values that have a registered scraper parser. Update when adding parsers.
 var AllowedStoreTypes = []string{"jensonusa", "worldwidecyclery", "revelbikes", "backcountry", "ridebicycles"}
 
+// constantTimeEqual compares two strings in constant time when lengths match.
+func constantTimeEqual(a, b string) bool {
+	aa := []byte(a)
+	bb := []byte(b)
+	if len(aa) != len(bb) {
+		return false
+	}
+	return subtle.ConstantTimeCompare(aa, bb) == 1
+}
+
 // ValidateAdminAuth returns true if r has a valid admin Bearer token.
 func ValidateAdminAuth(r *http.Request) bool {
-	expected := os.Getenv(adminPasswordEnv)
+	expected := strings.TrimSpace(os.Getenv(adminPasswordEnv))
 	if expected == "" {
 		return false
 	}
@@ -26,7 +38,8 @@ func ValidateAdminAuth(r *http.Request) bool {
 	if !strings.HasPrefix(s, prefix) {
 		return false
 	}
-	return strings.TrimSpace(s[len(prefix):]) == expected
+	token := strings.TrimSpace(s[len(prefix):])
+	return constantTimeEqual(token, expected)
 }
 
 // PostAuthHandler handles POST /admin/auth: body {"password":"..."}, returns 200 if match.
@@ -35,11 +48,19 @@ func PostAuthHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	expected := os.Getenv(adminPasswordEnv)
+	expected := strings.TrimSpace(os.Getenv(adminPasswordEnv))
 	if expected == "" {
 		http.Error(w, "admin disabled", http.StatusServiceUnavailable)
 		return
 	}
+
+	ip := clientIP(r)
+	if !globalAdminAuthLimiter.allowAdminAuth(ip) {
+		w.Header().Set("Retry-After", strconv.Itoa(globalAdminAuthLimiter.retryAfterSeconds(ip)))
+		http.Error(w, "too many requests", http.StatusTooManyRequests)
+		return
+	}
+
 	var body struct {
 		Password string `json:"password"`
 	}
@@ -47,10 +68,13 @@ func PostAuthHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "invalid json", http.StatusBadRequest)
 		return
 	}
-	if strings.TrimSpace(body.Password) != expected {
+	guess := strings.TrimSpace(body.Password)
+	if !constantTimeEqual(guess, expected) {
+		globalAdminAuthLimiter.recordAdminAuthFailure(ip)
 		http.Error(w, "forbidden", http.StatusForbidden)
 		return
 	}
+	globalAdminAuthLimiter.resetAdminAuth(ip)
 	w.Header().Set("Content-Type", "application/json")
 	w.Write([]byte(`{"ok":true}`))
 }
