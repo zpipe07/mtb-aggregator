@@ -46,7 +46,7 @@ cd apps/web && pnpm run dev
 - `SCRAPER_SERVICE_SECRET` — same value on API and scraper in production; API sends `X-Scraper-Secret` on scraper requests
 - `ADMIN_PASSWORD` — required for admin UI login (strong random in production); `POST /admin/auth` is rate-limited by failed attempts per IP (`ADMIN_AUTH_*` env vars)
 - `CRON_SECRET` — shared secret for `POST /scrape-now` / `enrich-now` (header `X-Cron-Secret`); **set in production**. If unset in production (`APP_ENV=production` or `RENDER=true`), those endpoints require admin Bearer unless `ALLOW_OPEN_CRON=1`
-- `CORS_ORIGINS` — comma-separated allowed origins (defaults to `*`)
+- `CORS_ORIGINS` — comma-separated allowed origins (defaults to `*`); when using a custom Vercel domain, include `https://yourdomain.com` (and `https://www...` if used) if not using `*`
 - `SCRAPE_CRON_SPEC` / `ENRICH_CRON_SPEC` — override cron schedules (set to `disabled` to use external cron)
 - When in-process cron is enabled, startup **catch-up** runs scrape/enrich if the last DB job is more than 24h old (see [apps/api/README.md](apps/api/README.md))
 - `NEXT_PUBLIC_API_URL` — client-side API base (defaults to `/api`); `API_URL` for server-side (full URL)

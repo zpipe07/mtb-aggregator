@@ -130,6 +130,8 @@ See [.cursor/plans/website_analytics_plan_f835d1a0.plan.md](../.cursor/plans/web
 - **Local**: Docker Postgres, three terminals (scraper, API, web)
 - **Production**: Neon (DB), Render (API + scraper), Vercel (web), external cron (cron-job.org)
 
+**Custom domain (Vercel):** Add apex/`www` under the Vercel project’s **Domains** settings and create the DNS records your registrar (e.g. Porkbun) requires—Vercel shows the exact records. The web app’s `NEXT_PUBLIC_API_URL` stays pointed at the API host (e.g. Render), not the new domain. If `CORS_ORIGINS` on the API is a comma-separated allowlist instead of `*`, add each browser origin you use (`https://yourdomain.com`, `https://www.yourdomain.com` if applicable). Details: [apps/web/README.md](../apps/web/README.md#custom-domain-vercel--dns-at-porkbun-or-any-registrar).
+
 **In-process scheduler (`SCRAPE_CRON_SPEC` / `ENRICH_CRON_SPEC`):** The API runs `robfig/cron` in the same process. Cron uses the container’s local timezone (typically UTC on hosts like Render). **Startup catch-up:** When either cron is enabled (not `disabled`), each process start checks `scrape_jobs` / `enrich_jobs` for the most recent job start; if older than 24h or absent, it runs that job once in the background (`triggered_by=catch-up`) so a missed window after a restart/deploy is recovered without external cron.
 
 **Cron triggers (`POST /scrape-now`, `POST /enrich-now`):** Set `CRON_SECRET` and send `X-Cron-Secret` from the cron provider. In production (`APP_ENV=production` or `RENDER=true`), if `CRON_SECRET` is unset, unauthenticated requests are rejected (admin Bearer still works); local dev allows open triggers when the secret is unset. Escape hatch: `ALLOW_OPEN_CRON=1` (not recommended).

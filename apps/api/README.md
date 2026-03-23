@@ -68,6 +68,7 @@ Go HTTP server that orchestrates scraping, enrichment, and serves the REST API. 
 - `ALLOW_OPEN_CRON` — Set to `1` only if you must allow unauthenticated cron triggers in production (unsafe; prefer `CRON_SECRET`)
 - `SCRAPE_CRON_SPEC` / `ENRICH_CRON_SPEC` — Cron schedules; set `disabled` for external cron
 - **Startup catch-up:** If either in-process cron is enabled (not `disabled`), on each API start the scheduler checks the DB for the last scrape/enrich job start. If that job is older than **24 hours** (or missing), it runs once in the background with `triggered_by=catch-up`. Helps after deploys/restarts or if a scheduled run was missed while the process was down.
+- `CORS_ORIGINS` — Comma-separated allowed `Origin` values for browser requests (e.g. `https://example.com,https://www.example.com`). If unset, defaults to `*` (any origin). Set explicitly when using a custom web domain and you want to restrict cross-origin access to the API.
 - `SENTRY_DSN` — Optional; enables [Sentry](https://sentry.io) (HTTP panics and 5xx via `sentryhttp`)
 - `SENTRY_ENVIRONMENT` — e.g. `production` / `development` (optional)
 - `SENTRY_RELEASE` — Optional release override; if unset on Render, `RENDER_GIT_COMMIT` is used automatically
