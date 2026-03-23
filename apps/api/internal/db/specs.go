@@ -86,7 +86,7 @@ func parseFilterableFields(extractionSchema json.RawMessage) []filterableField {
 	}
 	sort.Slice(out, func(i, j int) bool {
 		if out[i].sortOrder != out[j].sortOrder {
-			return out[i].sortOrder > out[j].sortOrder
+			return out[i].sortOrder < out[j].sortOrder
 		}
 		return out[i].key < out[j].key
 	})
