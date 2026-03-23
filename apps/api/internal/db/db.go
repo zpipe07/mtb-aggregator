@@ -323,7 +323,12 @@ func (db *DB) GetAdminListings(ctx context.Context, params GetAdminListingsParam
 		argNum++
 	}
 	if params.Category != "" {
-		query += fmt.Sprintf(" AND EXISTS (SELECT 1 FROM unnest(COALESCE(l.category_path, '{}')) AS c WHERE c ILIKE $%d)", argNum)
+		// Substring match on any segment. ILIKE without % matches whole segment only ("Pads" missed "Brake Pads").
+		// Include canonical_category so admin search matches taxonomy names, not only retailer paths.
+		query += fmt.Sprintf(` AND (
+			EXISTS (SELECT 1 FROM unnest(COALESCE(l.category_path, '{}')) AS c WHERE strpos(lower(c), lower($%d)) > 0)
+			OR EXISTS (SELECT 1 FROM unnest(COALESCE(l.canonical_category, '{}')) AS cc WHERE strpos(lower(cc), lower($%d)) > 0)
+		)`, argNum, argNum)
 		args = append(args, params.Category)
 		argNum++
 	}
