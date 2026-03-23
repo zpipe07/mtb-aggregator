@@ -10,6 +10,10 @@ export const ScrapeResultSchema = z.object({
   brand: z.string().nullable(),
   category_path: z.array(z.string()).nullable(),
   is_in_stock: z.boolean(),
+  /** Shopify product handle; API stores as `{store_id}:{handle}`. */
+  product_group_key: z.string().nullable().optional(),
+  /** Per-variant options, e.g. { Size: "Large", Color: "Black" }. */
+  variant_options: z.record(z.string(), z.string()).nullable().optional(),
 });
 
 export type ScrapeResult = z.infer<typeof ScrapeResultSchema>;

@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"reflect"
@@ -39,6 +40,9 @@ type Listing struct {
 	CanonicalCategory  []string // MTB taxonomy path e.g. ["Components", "Brakes"]
 	Metadata           []byte   // JSONB: wheel_size, suspension_travel_mm, model_year, groupset
 	IsInStock          bool
+	// ProductGroupHandle is the Shopify product handle from the scraper; stored in DB as "{store_id}:{handle}".
+	ProductGroupHandle *string
+	VariantOptions     []byte // JSONB object
 }
 
 type DB struct {
@@ -180,10 +184,22 @@ func (db *DB) UpsertListing(ctx context.Context, listing Listing) (int, error) {
 	} else {
 		categoryID = nil
 	}
+	var productGroupKey interface{}
+	if listing.ProductGroupHandle != nil {
+		h := strings.TrimSpace(*listing.ProductGroupHandle)
+		if h != "" {
+			productGroupKey = fmt.Sprintf("%d:%s", listing.StoreID, h)
+		}
+	}
+	var variantOpts interface{}
+	if len(listing.VariantOptions) > 0 {
+		variantOpts = listing.VariantOptions
+	}
+
 	var id int
 	err := db.pool.QueryRow(ctx, `
-		INSERT INTO store_listings (store_id, store_sku, product_name, current_price, original_price, product_url, image_url, brand, category_path, canonical_category, category_id, metadata, is_in_stock, last_scraped)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, NOW())
+		INSERT INTO store_listings (store_id, store_sku, product_name, current_price, original_price, product_url, image_url, brand, category_path, canonical_category, category_id, metadata, is_in_stock, product_group_key, variant_options, last_scraped)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, NOW())
 		ON CONFLICT (store_id, store_sku) DO UPDATE SET
 			product_name = EXCLUDED.product_name,
 			current_price = EXCLUDED.current_price,
@@ -196,10 +212,12 @@ func (db *DB) UpsertListing(ctx context.Context, listing Listing) (int, error) {
 			category_id = COALESCE(store_listings.category_id, EXCLUDED.category_id),
 			metadata = EXCLUDED.metadata,
 			is_in_stock = EXCLUDED.is_in_stock,
+			product_group_key = COALESCE(EXCLUDED.product_group_key, store_listings.product_group_key),
+			variant_options = COALESCE(EXCLUDED.variant_options, store_listings.variant_options),
 			last_scraped = NOW()
 		RETURNING id
 	`, listing.StoreID, listing.StoreSKU, listing.ProductName, listing.CurrentPrice, listing.OriginalPrice,
-		listing.ProductURL, listing.ImageURL, listing.Brand, pq.Array(listing.CategoryPath), pq.Array(listing.CanonicalCategory), categoryID, listing.Metadata, listing.IsInStock).Scan(&id)
+		listing.ProductURL, listing.ImageURL, listing.Brand, pq.Array(listing.CategoryPath), pq.Array(listing.CanonicalCategory), categoryID, listing.Metadata, listing.IsInStock, productGroupKey, variantOpts).Scan(&id)
 	return id, err
 }
 
@@ -229,6 +247,11 @@ type Deal struct {
 	IsInStock          bool            `json:"is_in_stock"`
 	DiscountPct   *float64 `json:"discount_pct,omitempty"`
 	LastScraped   string   `json:"last_scraped"`
+	ProductGroupKey *string  `json:"product_group_key,omitempty"`
+	VariantOptions  json.RawMessage `json:"variant_options,omitempty"`
+	Variants        json.RawMessage `json:"variants,omitempty"`
+	VariantCount    *int            `json:"variant_count,omitempty"`
+	PriceRange      []float64       `json:"price_range,omitempty"` // [min, max] when grouped
 }
 
 // AdminListing extends Deal with created_at, last_enriched_at, hidden, and structured category for the admin data browser.
@@ -496,6 +519,8 @@ type GetDealsParams struct {
 	SpecKey           string            // legacy: single spec filter (use SpecFilters for multi)
 	SpecValue         string            // legacy: single spec value
 	SpecFilters       map[string]string // multiple spec filters: key -> value (e.g. hub_spacing=148mm)
+	GroupVariants     bool              // one row per product group (Shopify variants collapsed)
+	VariantFilters    map[string]string // variant option key -> value (e.g. Size -> Large); keys matched case-insensitively
 }
 
 // GetDealsResult includes deals and total count for pagination
@@ -507,6 +532,9 @@ type GetDealsResult struct {
 func (db *DB) GetDeals(ctx context.Context, params GetDealsParams) (*GetDealsResult, error) {
 	if params.Limit <= 0 {
 		params.Limit = 50
+	}
+	if params.GroupVariants {
+		return db.getDealsGrouped(ctx, params)
 	}
 	// Normalize sort: default newest; relevance only valid when Search is set
 	sort := params.Sort
@@ -520,6 +548,7 @@ func (db *DB) GetDeals(ctx context.Context, params GetDealsParams) (*GetDealsRes
 	query := `
 		SELECT l.id, l.store_id, s.name, l.store_sku, l.product_name, l.current_price, l.original_price,
 			l.product_url, l.affiliate_url, l.image_url, l.brand, COALESCE(l.category_path, '{}'), COALESCE(l.canonical_category, '{}'), l.metadata, l.is_in_stock, l.last_scraped::text,
+			l.product_group_key, l.variant_options,
 			COUNT(*) OVER() AS total_count
 		FROM store_listings l
 		JOIN stores s ON s.id = l.store_id
@@ -528,82 +557,13 @@ func (db *DB) GetDeals(ctx context.Context, params GetDealsParams) (*GetDealsRes
 	args := []interface{}{}
 	argNum := 1
 
-	if params.StoreID != nil {
-		query += fmt.Sprintf(" AND l.store_id = $%d", argNum)
-		args = append(args, *params.StoreID)
-		argNum++
+	frag, fragArgs, nextArg, err := db.dealsFilterSQL(ctx, params)
+	if err != nil {
+		return nil, err
 	}
-	if params.StoreName != "" {
-		query += fmt.Sprintf(" AND s.name ILIKE $%d", argNum)
-		args = append(args, params.StoreName)
-		argNum++
-	}
-	if params.Brand != "" {
-		query += fmt.Sprintf(" AND l.brand ILIKE $%d", argNum)
-		args = append(args, params.Brand)
-		argNum++
-	}
-	if params.Category != "" {
-		query += fmt.Sprintf(" AND EXISTS (SELECT 1 FROM unnest(COALESCE(l.category_path, '{}')) AS c WHERE c ILIKE $%d)", argNum)
-		args = append(args, params.Category)
-		argNum++
-	}
-	// Category filter: prefer category_id (slug or resolved from legacy canonical_category)
-	if params.CategorySlug != "" {
-		cat, err := db.GetCategoryBySlug(ctx, strings.TrimSpace(params.CategorySlug))
-		if err == nil && cat != nil {
-			subtreeIDs, err := db.GetCategorySubtreeIDs(ctx, cat.ID)
-			if err == nil && len(subtreeIDs) > 0 {
-				query += fmt.Sprintf(" AND l.category_id = ANY($%d)", argNum)
-				args = append(args, pq.Array(subtreeIDs))
-				argNum++
-			}
-		}
-	} else if params.CanonicalCategory != "" {
-		path := strings.Split(params.CanonicalCategory, " > ")
-		trimmed := make([]string, 0, len(path))
-		for _, p := range path {
-			if t := strings.TrimSpace(p); t != "" {
-				trimmed = append(trimmed, t)
-			}
-		}
-		if len(trimmed) > 0 {
-			categoryID, err := db.ResolveCategoryIDFromPath(ctx, trimmed)
-			if err == nil && categoryID != nil {
-				query += fmt.Sprintf(" AND l.category_id = $%d", argNum)
-				args = append(args, *categoryID)
-				argNum++
-			} else {
-				query += fmt.Sprintf(" AND l.canonical_category = $%d", argNum)
-				args = append(args, pq.Array(trimmed))
-				argNum++
-			}
-		}
-	}
-	// Spec filters: query metadata.llm_specs (LLM-derived). Use SpecFilters map if non-empty, else legacy SpecKey/SpecValue.
-	specFilters := params.SpecFilters
-	if len(specFilters) == 0 && params.SpecKey != "" && params.SpecValue != "" {
-		specFilters = map[string]string{params.SpecKey: params.SpecValue}
-	}
-	expanded := make(map[string][]string)
-	for k, v := range specFilters {
-		if k != "" && v != "" {
-			expanded[k] = []string{v}
-		}
-	}
-	var specSb strings.Builder
-	appendMetadataSpecFilterConditions(&specSb, &args, &argNum, expanded, true)
-	query += specSb.String()
-	if params.MinDiscount != nil && *params.MinDiscount > 0 {
-		query += fmt.Sprintf(" AND l.original_price IS NOT NULL AND l.original_price > 0 AND l.current_price < l.original_price AND (1 - l.current_price / l.original_price) * 100 >= $%d", argNum)
-		args = append(args, *params.MinDiscount)
-		argNum++
-	}
-	if params.Search != "" {
-		query += fmt.Sprintf(" AND l.search_vector @@ plainto_tsquery('english', $%d)", argNum)
-		args = append(args, params.Search)
-		argNum++
-	}
+	query += frag
+	args = append(args, fragArgs...)
+	argNum = nextArg
 
 	// ORDER BY
 	switch sort {
@@ -637,14 +597,23 @@ func (db *DB) GetDeals(ctx context.Context, params GetDealsParams) (*GetDealsRes
 		var lastScraped []byte
 		var cp, canCat pgtype.FlatArray[string]
 		var meta []byte
+		var pgk, vopt []byte
 		if err := rows.Scan(&d.ID, &d.StoreID, &d.StoreName, &d.StoreSKU, &d.ProductName, &d.CurrentPrice, &d.OriginalPrice,
-			&d.ProductURL, &d.AffiliateURL, &d.ImageURL, &d.Brand, &cp, &canCat, &meta, &d.IsInStock, &lastScraped, &totalCount); err != nil {
+			&d.ProductURL, &d.AffiliateURL, &d.ImageURL, &d.Brand, &cp, &canCat, &meta, &d.IsInStock, &lastScraped,
+			&pgk, &vopt, &totalCount); err != nil {
 			return nil, err
 		}
 		d.CategoryPath = cp
 		d.CanonicalCategory = canCat
 		d.Metadata = json.RawMessage(meta)
 		d.LastScraped = string(lastScraped)
+		if len(pgk) > 0 {
+			s := string(pgk)
+			d.ProductGroupKey = &s
+		}
+		if len(vopt) > 0 {
+			d.VariantOptions = json.RawMessage(vopt)
+		}
 		if d.OriginalPrice != nil && *d.OriginalPrice > 0 && *d.OriginalPrice > d.CurrentPrice {
 			pct := (1 - d.CurrentPrice/(*d.OriginalPrice)) * 100
 			if pct > 0 {
@@ -665,14 +634,16 @@ func (db *DB) GetDealByID(ctx context.Context, id int) (*Deal, error) {
 	var cp pgtype.FlatArray[string]
 	var canCat pgtype.FlatArray[string]
 	var meta []byte
+	var pgk, vopt []byte
 	err := db.pool.QueryRow(ctx, `
 		SELECT l.id, l.store_id, s.name, l.store_sku, l.product_name, l.current_price, l.original_price,
-			l.product_url, l.affiliate_url, l.image_url, l.brand, COALESCE(l.category_path, '{}'), COALESCE(l.canonical_category, '{}'), l.metadata, l.is_in_stock, l.last_scraped::text
+			l.product_url, l.affiliate_url, l.image_url, l.brand, COALESCE(l.category_path, '{}'), COALESCE(l.canonical_category, '{}'), l.metadata, l.is_in_stock, l.last_scraped::text,
+			l.product_group_key, l.variant_options
 		FROM store_listings l
 		JOIN stores s ON s.id = l.store_id
 		WHERE l.id = $1 AND l.hidden = false
 	`, id).Scan(&d.ID, &d.StoreID, &d.StoreName, &d.StoreSKU, &d.ProductName, &d.CurrentPrice, &d.OriginalPrice,
-		&d.ProductURL, &d.AffiliateURL, &d.ImageURL, &d.Brand, &cp, &canCat, &meta, &d.IsInStock, &lastScraped)
+		&d.ProductURL, &d.AffiliateURL, &d.ImageURL, &d.Brand, &cp, &canCat, &meta, &d.IsInStock, &lastScraped, &pgk, &vopt)
 	if err != nil {
 		return nil, err
 	}
@@ -680,13 +651,58 @@ func (db *DB) GetDealByID(ctx context.Context, id int) (*Deal, error) {
 	d.CanonicalCategory = canCat
 	d.Metadata = json.RawMessage(meta)
 	d.LastScraped = string(lastScraped)
+	if len(pgk) > 0 {
+		s := string(pgk)
+		d.ProductGroupKey = &s
+	}
+	if len(vopt) > 0 {
+		d.VariantOptions = json.RawMessage(vopt)
+	}
 	if d.OriginalPrice != nil && *d.OriginalPrice > 0 && *d.OriginalPrice > d.CurrentPrice {
 		pct := (1 - d.CurrentPrice/(*d.OriginalPrice)) * 100
 		if pct > 0 {
 			d.DiscountPct = &pct
 		}
 	}
+	if d.ProductGroupKey != nil && *d.ProductGroupKey != "" {
+		_ = db.attachDealVariants(ctx, &d)
+	}
 	return &d, nil
+}
+
+// attachDealVariants sets Variants, VariantCount, PriceRange for grouped Shopify products.
+func (db *DB) attachDealVariants(ctx context.Context, d *Deal) error {
+	var variants []byte
+	var cnt int
+	var minP, maxP sql.NullFloat64
+	err := db.pool.QueryRow(ctx, `
+		SELECT COALESCE(json_agg(json_build_object(
+			'id', s.id,
+			'store_sku', s.store_sku,
+			'variant_options', s.variant_options,
+			'current_price', s.current_price,
+			'original_price', s.original_price,
+			'is_in_stock', s.is_in_stock
+		) ORDER BY s.current_price ASC), '[]'::json),
+		COUNT(*)::int,
+		MIN(s.current_price),
+		MAX(s.current_price)
+		FROM store_listings s
+		WHERE s.store_id = $1 AND s.product_group_key = $2 AND s.hidden = false
+	`, d.StoreID, *d.ProductGroupKey).Scan(&variants, &cnt, &minP, &maxP)
+	if err != nil {
+		return err
+	}
+	if len(variants) > 0 {
+		d.Variants = json.RawMessage(variants)
+	}
+	if cnt > 0 {
+		d.VariantCount = &cnt
+	}
+	if minP.Valid && maxP.Valid && cnt > 1 && minP.Float64 != maxP.Float64 {
+		d.PriceRange = []float64{minP.Float64, maxP.Float64}
+	}
+	return nil
 }
 
 // PriceHistoryPoint is one recorded price for the price-history chart.

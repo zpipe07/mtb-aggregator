@@ -63,8 +63,13 @@ Parsers live in `src/parsers/` — one file per store:
   brand: string | null;
   category_path: string[] | null;
   is_in_stock: boolean;
+  // Shopify stores: product handle + per-variant options (Size, Color, …)
+  product_group_key?: string | null;
+  variant_options?: Record<string, string> | null;
 }
 ```
+
+Shopify parsers (`ridebicycles`, `worldwidecyclery`, `revelbikes`) emit one row per variant; the API stores `product_group_key` as `{store_id}:{handle}` and `variant_options` as JSON for deduplication and filters. Shared helpers: `parsers/shopify-helpers.ts`.
 
 ## Running
 

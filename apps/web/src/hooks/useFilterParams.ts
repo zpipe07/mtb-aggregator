@@ -8,6 +8,7 @@ import {
 export type { SortOption };
 
 const SPEC_PREFIX = "spec_";
+const VARIANT_PREFIX = "variant_";
 
 function applyToParams(
   prev: URLSearchParams,
@@ -18,6 +19,7 @@ function applyToParams(
     categoryFilter: string;
     minDiscount: string;
     specFilters: Record<string, string>;
+    variantFilters: Record<string, string>;
     sort: SortOption;
     offset: number;
   }>
@@ -47,6 +49,15 @@ function applyToParams(
     });
   }
 
+  if (updates.variantFilters !== undefined) {
+    [...next.entries()].forEach(([key]) => {
+      if (key.startsWith(VARIANT_PREFIX)) next.delete(key);
+    });
+    Object.entries(updates.variantFilters).forEach(([k, v]) => {
+      if (v) next.set(`${VARIANT_PREFIX}${k}`, v);
+    });
+  }
+
   return next;
 }
 
@@ -65,6 +76,7 @@ export function useFilterParams() {
         categoryFilter: string;
         minDiscount: string;
         specFilters: Record<string, string>;
+        variantFilters: Record<string, string>;
         sort: SortOption;
         offset: number;
       }>
@@ -92,7 +104,8 @@ export function useFilterParams() {
     [updateParams]
   );
   const setCategoryFilter = useCallback(
-    (v: string) => updateParams({ categoryFilter: v, specFilters: {}, offset: 0 }),
+    (v: string) =>
+      updateParams({ categoryFilter: v, specFilters: {}, variantFilters: {}, offset: 0 }),
     [updateParams]
   );
   const setMinDiscount = useCallback(
@@ -109,6 +122,19 @@ export function useFilterParams() {
     [updateParams, state.specFilters]
   );
   const clearSpecFilter = useCallback((key: string) => setSpecFilter(key, ""), [setSpecFilter]);
+  const setVariantFilter = useCallback(
+    (key: string, value: string) => {
+      const next = { ...state.variantFilters };
+      if (value === "") delete next[key];
+      else next[key] = value;
+      updateParams({ variantFilters: next, offset: 0 });
+    },
+    [updateParams, state.variantFilters]
+  );
+  const clearVariantFilter = useCallback(
+    (key: string) => setVariantFilter(key, ""),
+    [setVariantFilter]
+  );
   const setSort = useCallback((v: SortOption) => updateParams({ sort: v, offset: 0 }), [updateParams]);
   const setOffset = useCallback((v: number) => updateParams({ offset: v }), [updateParams]);
 
@@ -121,6 +147,7 @@ export function useFilterParams() {
         categoryFilter: "",
         minDiscount: "",
         specFilters: {},
+        variantFilters: {},
         offset: 0,
       }),
     [updateParams]
@@ -143,6 +170,8 @@ export function useFilterParams() {
     setMinDiscount,
     setSpecFilter,
     clearSpecFilter,
+    setVariantFilter,
+    clearVariantFilter,
     setSort,
     setOffset,
     clearAllFilters,

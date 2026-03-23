@@ -1,5 +1,15 @@
 import { getApiBase } from "@/lib/api";
 
+/** One SKU variant when deals are grouped (Shopify). */
+export interface DealVariantRow {
+  id: number;
+  store_sku: string;
+  variant_options?: Record<string, string> | null;
+  current_price: number;
+  original_price?: number | null;
+  is_in_stock: boolean;
+}
+
 export interface Deal {
   id: number;
   store_id: number;
@@ -20,6 +30,12 @@ export interface Deal {
   is_in_stock: boolean;
   discount_pct?: number;
   last_scraped: string;
+  product_group_key?: string;
+  variant_options?: Record<string, string>;
+  variants?: DealVariantRow[];
+  variant_count?: number;
+  /** [min, max] when grouped and prices differ */
+  price_range?: number[];
 }
 
 export interface Store {
@@ -51,6 +67,9 @@ export async function fetchDeals(params?: {
   spec_key?: string;
   spec_value?: string;
   specFilters?: Record<string, string>;
+  variantFilters?: Record<string, string>;
+  /** Default true: collapse Shopify variants into one card */
+  group_variants?: boolean;
 }): Promise<DealListResponse> {
   const search = new URLSearchParams();
   if (params?.store) search.set("store", params.store);
@@ -65,6 +84,7 @@ export async function fetchDeals(params?: {
   if (params?.sort) search.set("sort", params.sort);
   if (params?.limit != null) search.set("limit", String(params.limit));
   if (params?.offset != null) search.set("offset", String(params.offset));
+  if (params?.group_variants !== false) search.set("group_variants", "true");
   if (params?.specFilters && Object.keys(params.specFilters).length > 0) {
     for (const [key, value] of Object.entries(params.specFilters)) {
       if (key && value) search.set(`spec_${key}`, value);
@@ -72,6 +92,11 @@ export async function fetchDeals(params?: {
   } else {
     if (params?.spec_key) search.set("spec_key", params.spec_key);
     if (params?.spec_value) search.set("spec_value", params.spec_value);
+  }
+  if (params?.variantFilters) {
+    for (const [key, value] of Object.entries(params.variantFilters)) {
+      if (key && value) search.set(`variant_${key}`, value);
+    }
   }
   const qs = search.toString();
   const url = `${getApiBase()}/deals${qs ? `?${qs}` : ""}`;
@@ -177,9 +202,20 @@ export interface BrandFacet {
   count: number;
 }
 
+export interface VariantFacetValue {
+  value: string;
+  count: number;
+}
+
+export interface VariantFacet {
+  key: string;
+  values: VariantFacetValue[];
+}
+
 export interface FacetsResponse {
   spec_facets: SpecFacet[];
   brand_facets: BrandFacet[];
+  variant_facets: VariantFacet[];
   price_range: { min: number; max: number };
   total_matching: number;
 }
@@ -193,6 +229,7 @@ export interface FacetsParams {
   min_discount?: number;
   q?: string;
   specFilters?: Record<string, string>;
+  variantFilters?: Record<string, string>;
 }
 
 export async function fetchFacets(
@@ -211,6 +248,11 @@ export async function fetchFacets(
   if (params?.specFilters) {
     for (const [key, value] of Object.entries(params.specFilters)) {
       if (key && value) search.set(`spec_${key}`, value);
+    }
+  }
+  if (params?.variantFilters) {
+    for (const [key, value] of Object.entries(params.variantFilters)) {
+      if (key && value) search.set(`variant_${key}`, value);
     }
   }
   const qs = search.toString();

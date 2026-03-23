@@ -1,5 +1,5 @@
 -- MTB Deal Aggregator - Listing-First Schema (MVP)
--- No products/brands tables; deduplication deferred to later phase.
+-- Variant grouping: product_group_key groups Shopify variants; see migration 021 for index/backfill.
 
 -- Retailers we scrape
 CREATE TABLE IF NOT EXISTS stores (
@@ -69,3 +69,8 @@ BEGIN
     ALTER TABLE store_listings DROP COLUMN IF EXISTS category;
   END IF;
 END $$;
+
+-- Variant grouping (Shopify): same columns as migration 021
+ALTER TABLE store_listings ADD COLUMN IF NOT EXISTS product_group_key TEXT;
+ALTER TABLE store_listings ADD COLUMN IF NOT EXISTS variant_options JSONB;
+CREATE INDEX IF NOT EXISTS idx_store_listings_product_group_key ON store_listings (product_group_key) WHERE product_group_key IS NOT NULL;

@@ -43,6 +43,7 @@ export function DealsPageContent({
     categoryFilter,
     minDiscount,
     specFilters,
+    variantFilters,
     sort,
     offset,
     setSearchQuery,
@@ -52,6 +53,8 @@ export function DealsPageContent({
     setMinDiscount,
     setSpecFilter,
     clearSpecFilter,
+    setVariantFilter,
+    clearVariantFilter,
     setSort,
     setOffset,
     clearAllFilters,
@@ -59,7 +62,9 @@ export function DealsPageContent({
 
   const activeFilterCount =
     [storeFilter, brandFilter, categoryFilter, minDiscount].filter(Boolean)
-      .length + Object.values(specFilters).filter(Boolean).length;
+      .length +
+    Object.values(specFilters).filter(Boolean).length +
+    Object.values(variantFilters).filter(Boolean).length;
 
   const activeFilters = useMemo(() => {
     const chips: { key: string; label: string; onRemove: () => void }[] = [];
@@ -119,6 +124,15 @@ export function DealsPageContent({
         });
       }
     });
+    Object.entries(variantFilters).forEach(([key, value]) => {
+      if (value) {
+        chips.push({
+          key: `variant_${key}`,
+          label: `${key}: ${value}`,
+          onRemove: () => setVariantFilter(key, ""),
+        });
+      }
+    });
     return chips;
   }, [
     storeFilter,
@@ -127,12 +141,14 @@ export function DealsPageContent({
     categoryTree,
     minDiscount,
     specFilters,
+    variantFilters,
     facets?.spec_facets,
     setStoreFilter,
     setBrandFilter,
     setCategoryFilter,
     setMinDiscount,
     setSpecFilter,
+    setVariantFilter,
   ]);
 
   const filterSidebarProps = {
@@ -144,13 +160,17 @@ export function DealsPageContent({
     categoryFilter,
     minDiscount,
     specFilters,
+    variantFilters,
     specFacets: facets?.spec_facets ?? [],
+    variantFacets: facets?.variant_facets ?? [],
     onStoreChange: setStoreFilter,
     onBrandChange: setBrandFilter,
     onCategoryChange: setCategoryFilter,
     onMinDiscountChange: setMinDiscount,
     onSpecFilterChange: setSpecFilter,
     onClearSpecFilter: clearSpecFilter,
+    onVariantFilterChange: setVariantFilter,
+    onClearVariantFilter: clearVariantFilter,
   };
 
   return (

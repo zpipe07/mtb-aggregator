@@ -1,4 +1,9 @@
-import type { SpecFacet, Store } from "../api";
+import type {
+  SpecFacet,
+  Store,
+  VariantFacet,
+  VariantFacetValue,
+} from "../api";
 import type { CategoryTreeNode } from "../api";
 import { FilterSelect } from "./FilterSelect";
 import { FilterInput } from "./FilterInput";
@@ -35,13 +40,17 @@ export type FilterSidebarProps = {
   categoryFilter: string;
   minDiscount: string;
   specFilters: Record<string, string>;
+  variantFilters: Record<string, string>;
   specFacets: SpecFacet[];
+  variantFacets?: VariantFacet[];
   onStoreChange: (value: string) => void;
   onBrandChange: (value: string) => void;
   onCategoryChange: (value: string) => void;
   onMinDiscountChange: (value: string) => void;
   onSpecFilterChange: (key: string, value: string) => void;
   onClearSpecFilter: (key: string) => void;
+  onVariantFilterChange: (key: string, value: string) => void;
+  onClearVariantFilter: (key: string) => void;
 };
 
 export function FilterSidebar({
@@ -54,13 +63,17 @@ export function FilterSidebar({
   categoryFilter,
   minDiscount,
   specFilters,
+  variantFilters,
   specFacets,
+  variantFacets = [],
   onStoreChange,
   onBrandChange,
   onCategoryChange,
   onMinDiscountChange,
   onSpecFilterChange,
   onClearSpecFilter,
+  onVariantFilterChange,
+  onClearVariantFilter,
 }: FilterSidebarProps) {
   const storeOptions = [
     { value: "", label: "All stores" },
@@ -140,6 +153,46 @@ export function FilterSidebar({
                   variant="link"
                   size="sm"
                   onClick={() => onClearSpecFilter(facet.key)}
+                  className="mt-1 h-auto p-0 text-sm text-muted-foreground"
+                >
+                  Clear
+                </Button>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {variantFacets.length > 0 && (
+        <div className="space-y-4 border-t border-border pt-4">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+            Variants
+          </p>
+          {variantFacets.map((facet) => (
+            <div key={facet.key}>
+              <label className="block text-sm font-medium text-muted-foreground mb-1.5">
+                {facet.key}
+              </label>
+              <Select
+                value={variantFilters[facet.key] ?? ""}
+                onChange={(e) =>
+                  onVariantFilterChange(facet.key, e.target.value)
+                }
+                className="w-full"
+              >
+                <option value="">Any {facet.key.toLowerCase()}</option>
+                {facet.values.map((v: VariantFacetValue) => (
+                  <option key={v.value} value={v.value}>
+                    {v.value} ({v.count})
+                  </option>
+                ))}
+              </Select>
+              {variantFilters[facet.key] && (
+                <Button
+                  type="button"
+                  variant="link"
+                  size="sm"
+                  onClick={() => onClearVariantFilter(facet.key)}
                   className="mt-1 h-auto p-0 text-sm text-muted-foreground"
                 >
                   Clear

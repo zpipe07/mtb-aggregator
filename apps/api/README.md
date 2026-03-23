@@ -25,12 +25,12 @@ Go HTTP server that orchestrates scraping, enrichment, and serves the REST API. 
 
 ### Public
 
-- `GET /deals` — List deals; filters: `store`, `brand`, `min_discount`, `limit`, `offset`, `category_id`, etc.
+- `GET /deals` — List deals; filters: `store`, `brand`, `min_discount`, `limit`, `offset`, `category_slug`, `spec_<key>`, `variant_<key>` (variant option name, case-insensitive match on JSON keys), `group_variants=true` (default in web; one row per `product_group_key` for Shopify), `q`, `sort`, etc.
 - `GET /deals/:id` — Single deal by ID
 - `GET /stores` — Stores with deal counts
 - `GET /brands` — Distinct brands
 - `GET /categories/tree` — Structured category tree (id, slug, name, parent_id)
-- `GET /facets` — Filter facets for current query
+- `GET /facets` — Filter facets for current query (`spec_facets`, `brand_facets`, `variant_facets` from `variant_options`, `price_range`, `total_matching`)
 - `GET /spec-values` — Spec values for filters
 - `GET /status` — Health: last scrape per store, scraper reachable
 
@@ -94,4 +94,7 @@ make backfill-brands
 make backfill-canonical-categories   # Recategorize after taxonomy changes
 make backfill-llm-specs              # Populate llm_specs from specs
 make backfill-field-library          # After migration 019: rename ambiguous keys, seed field defs, fill profile_fields
+make backfill-variant-options        # After migration 021: fetch Shopify JSON to fill variant_options for existing rows
 ```
+
+`backfill-variant-options` only processes **Shopify** store types (`ridebicycles`, `worldwidecyclery`, `revelbikes`). **Primary path:** paginates each store’s **`stores.scrape_url`** collection **`…/products.json?limit=250&page=N`** (same as the scrapers), indexes products by handle, then matches each listing’s SKU to a variant — **far fewer HTTP calls** than per-product `GET /products/{handle}.json`. **Fallback** (on by default): for handles not in that collection index, fetches `/products/{handle}.json` using the listing’s origin; disable with `BACKFILL_VARIANT_FALLBACK_PRODUCT_JSON=0` if you only want collection data. **Pacing:** `BACKFILL_VARIANT_PAGE_DELAY_MS` between collection pages (default **500ms**); `BACKFILL_VARIANT_DELAY_MS` between fallback product requests (default **1s**); **up to 6** HTTP attempts per URL on **429** / **503** (`BACKFILL_VARIANT_MAX_ATTEMPTS`, max 20). Summary log includes `skipped_not_in_collection` when fallback is off and the handle was missing from the index. **Enrichment does not set `variant_options`**. Per-row debug: `BACKFILL_VARIANT_VERBOSE=1 make backfill-variant-options`.

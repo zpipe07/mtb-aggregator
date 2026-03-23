@@ -2,28 +2,17 @@ import type { ScrapeResult } from "../types.js";
 import type { EnrichResult } from "./jensonusa.js";
 import * as cheerio from "cheerio";
 import { SCRAPER_MAX_PRODUCTS } from "../config.js";
+import {
+  buildVariantOptions,
+  type ShopifyProductWithOptions,
+  type ShopifyVariantWithOptions,
+} from "./shopify-helpers.js";
 
 const BASE_URL = "https://worldwidecyclery.com";
 const PER_PAGE = 250;
 
-interface ShopifyVariant {
-  id: number;
-  sku: string | null;
-  price: string;
-  compare_at_price: string | null;
-  available: boolean;
-  featured_image?: { src: string } | null;
-}
-
-interface ShopifyProduct {
-  id: number;
-  title: string;
-  handle: string;
-  vendor: string;
-  product_type: string;
-  variants: ShopifyVariant[];
-  images?: { src: string }[];
-}
+type ShopifyVariant = ShopifyVariantWithOptions;
+type ShopifyProduct = ShopifyProductWithOptions;
 
 interface ShopifyProductDetail {
   body_html?: string;
@@ -104,6 +93,7 @@ export async function scrapeWorldwideCyclery(
         const categoryPath = product.product_type
           ? [product.product_type]
           : null;
+        const variantOpts = buildVariantOptions(product, variant);
 
         results.push({
           store_sku: storeSku,
@@ -115,6 +105,8 @@ export async function scrapeWorldwideCyclery(
           brand: product.vendor || null,
           category_path: categoryPath,
           is_in_stock: variant.available,
+          product_group_key: product.handle,
+          ...(variantOpts ? { variant_options: variantOpts } : {}),
         });
         if (SCRAPER_MAX_PRODUCTS > 0 && results.length >= SCRAPER_MAX_PRODUCTS)
           break;
