@@ -19,7 +19,7 @@ How MTB categories are structured and mapped from store-specific paths to a cano
 
 ### 3. LLM-Driven Classification
 
-- **Profiles**: `llm_prompt_profiles` define extraction schema (label, sort_order, filterable fields)
+- **Profiles**: `llm_prompt_profiles` define extraction schema (label, sort_order, filterable fields). Use `multi_enum` in `llm_extraction_field_defs` / profile fields when a spec should store multiple values (JSON array in `metadata.llm_specs`); filters still use a single selected value and match if it equals the scalar or appears in the array.
 - **Classifier**: `llm_category_classifier` — optional LLM-based classification when no mapping exists
 - **Spec filters**: LLM-driven per category; legacy `spec_filter_config` is deprecated
 

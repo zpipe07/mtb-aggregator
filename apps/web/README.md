@@ -16,7 +16,7 @@ React frontend for the MTB deal aggregator. Built with Next.js 15 (App Router), 
 - **SSR/ISR** — Home, deals list, and deal detail pages are server-rendered for SEO
 - **Dark mode** — Toggle in nav header; defaults to system preference (`prefers-color-scheme`), persists choice in `localStorage`
 - **Branding** — Primary logo is `public/logo.png` (admin UI). Favicons: `public/favicon.png` / `public/favicon-light.png` via `metadata.icons` in `src/app/layout.tsx` (paired with `prefers-color-scheme`). The public nav uses `logo-light.png` in dark mode (`NavHeader`). Other assets in `public/` are optional (e.g. alternate wordmarks).
-- **Admin** — `/admin/llm-profiles`: LLM prompt profiles with a **Field library** tab (CRUD `llm_extraction_field_defs`) and a composition editor for profiles backed by migration `019` (`profile_fields`), including overrides and inline custom fields; legacy raw JSON editing remains for profiles without composition rows
+- **Admin** — `/admin/llm-profiles`: LLM prompt profiles with a **Field library** tab (CRUD `llm_extraction_field_defs`) and a composition editor for profiles backed by migration `019` (`profile_fields`), including overrides and inline custom fields; legacy raw JSON editing remains for profiles without composition rows. Field types include `multi_enum` (migration `020`) for multiple values per key in `metadata.llm_specs`
 
 ## Development
 
@@ -27,6 +27,28 @@ pnpm run build        # Production build
 ```
 
 The API must be running for data. Configure `NEXT_PUBLIC_API_URL` (client) or `API_URL` (server) or use the default proxy (`/api` → `http://localhost:8080`).
+
+## Custom domain (Vercel + DNS at Porkbun or any registrar)
+
+Use this when the site should load at your own domain (e.g. `https://example.com`) instead of only `*.vercel.app`.
+
+1. **Vercel — add the domain**  
+   In the project: **Settings → Domains → Add**. Enter the apex (`example.com`) and, if you want it, `www.example.com`. Vercel will show the exact **DNS records** to create (types, names, and values). Prefer those over generic instructions; Vercel may update recommended records over time.
+
+2. **Registrar (e.g. Porkbun) — create matching DNS records**  
+   In Porkbun: **Domain Management → your domain → DNS** (or **Authoritative DNS**). Add the records Vercel lists—commonly an **A** (or **ALIAS** if offered) for the apex and a **CNAME** for `www` pointing at Vercel’s host. Remove or replace any old **A** / **AAAA** / **CNAME** on `@` or `www` that would conflict (e.g. parking page, old host).
+
+3. **Wait for DNS + TLS**  
+   Propagation can take minutes to a few hours. Vercel issues HTTPS automatically once DNS verifies. The dashboard shows **Valid Configuration** when ready.
+
+4. **Redirects**  
+   In **Settings → Domains**, set one hostname as the primary (e.g. apex) and add a redirect from `www` → apex (or the reverse) so users only see one canonical URL.
+
+5. **API URL**  
+   `NEXT_PUBLIC_API_URL` should remain your **API origin** (e.g. Render `https://your-api.onrender.com`), not your new web domain, unless you put the API behind the same hostname via a reverse proxy.
+
+6. **CORS (if the API restricts origins)**  
+   If the Go API sets `CORS_ORIGINS` to a comma-separated allowlist (not `*`), add every origin where the browser loads the app, e.g. `https://example.com,https://www.example.com`. See [apps/api/README.md](../api/README.md).
 
 ## Sentry (error monitoring)
 

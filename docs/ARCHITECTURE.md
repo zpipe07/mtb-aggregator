@@ -56,7 +56,7 @@ flowchart LR
 2. API fetches unenriched listings, groups by store
 3. For each store with an enricher: Scraper visits PDP (product detail page) URLs
 4. Parsers extract category path (breadcrumbs), specs (wheel size, travel, etc.)
-5. API updates listings with `category_path`, `llm_specs`, and `category_id` (via taxonomy)
+5. API updates listings with `category_path`, `llm_specs` (per-key values may be scalars or JSON arrays for `multi_enum` fields), and `category_id` (via taxonomy)
 
 **LLM extraction profiles:** For each category, `llm_prompt_profiles` drives structured spec extraction. When migration `019` composition rows exist (`llm_prompt_profile_fields`), the API **hydrates** `extraction_schema` at read time from `llm_extraction_field_defs` plus per-profile overrides (and appends `confidence` when not composed). If there are no composition rows, the stored `extraction_schema` JSONB is used unchanged. Hot paths (`GetLLMPromptProfileForCategory*`, `GetLLMPromptProfileByID`) hydrate; `ListLLMPromptProfiles` keeps raw JSON for the admin table.
 
@@ -129,6 +129,8 @@ See [.cursor/plans/website_analytics_plan_f835d1a0.plan.md](../.cursor/plans/web
 
 - **Local**: Docker Postgres, three terminals (scraper, API, web)
 - **Production**: Neon (DB), Render (API + scraper), Vercel (web), external cron (cron-job.org)
+
+**Custom domain (Vercel):** Add apex/`www` under the Vercel project’s **Domains** settings and create the DNS records your registrar (e.g. Porkbun) requires—Vercel shows the exact records. The web app’s `NEXT_PUBLIC_API_URL` stays pointed at the API host (e.g. Render), not the new domain. If `CORS_ORIGINS` on the API is a comma-separated allowlist instead of `*`, add each browser origin you use (`https://yourdomain.com`, `https://www.yourdomain.com` if applicable). Details: [apps/web/README.md](../apps/web/README.md#custom-domain-vercel--dns-at-porkbun-or-any-registrar).
 
 **In-process scheduler (`SCRAPE_CRON_SPEC` / `ENRICH_CRON_SPEC`):** The API runs `robfig/cron` in the same process. Cron uses the container’s local timezone (typically UTC on hosts like Render). **Startup catch-up:** When either cron is enabled (not `disabled`), each process start checks `scrape_jobs` / `enrich_jobs` for the most recent job start; if older than 24h or absent, it runs that job once in the background (`triggered_by=catch-up`) so a missed window after a restart/deploy is recovered without external cron.
 

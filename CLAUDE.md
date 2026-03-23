@@ -46,7 +46,7 @@ cd apps/web && pnpm run dev
 - `SCRAPER_SERVICE_SECRET` — same value on API and scraper in production; API sends `X-Scraper-Secret` on scraper requests
 - `ADMIN_PASSWORD` — required for admin UI login (strong random in production); `POST /admin/auth` is rate-limited by failed attempts per IP (`ADMIN_AUTH_*` env vars)
 - `CRON_SECRET` — shared secret for `POST /scrape-now` / `enrich-now` (header `X-Cron-Secret`); **set in production**. If unset in production (`APP_ENV=production` or `RENDER=true`), those endpoints require admin Bearer unless `ALLOW_OPEN_CRON=1`
-- `CORS_ORIGINS` — comma-separated allowed origins (defaults to `*`)
+- `CORS_ORIGINS` — comma-separated allowed origins (defaults to `*`); when using a custom Vercel domain, include `https://yourdomain.com` (and `https://www...` if used) if not using `*`
 - `SCRAPE_CRON_SPEC` / `ENRICH_CRON_SPEC` — override cron schedules (set to `disabled` to use external cron)
 - When in-process cron is enabled, startup **catch-up** runs scrape/enrich if the last DB job is more than 24h old (see [apps/api/README.md](apps/api/README.md))
 - `NEXT_PUBLIC_API_URL` — client-side API base (defaults to `/api`); `API_URL` for server-side (full URL)
@@ -111,7 +111,7 @@ pnpm --filter @mtb-aggregator/web run build-storybook  # static build to storybo
 - `internal/taxonomy/` — category mapping with in-memory cache, loaded from `category_mappings` in DB (seeded from `category_taxonomy.json` when empty)
 - `internal/db/categories.go` — structured category tree (id, slug, name, parent_id). Single source of truth; `category_id` FKs on listings, profiles, mappings
 - `internal/metadata/` — extracts structured specs from enriched category paths and raw spec data
-- Spec filters are LLM-driven: `llm_prompt_profiles` extraction schema (label, sort_order, filterable per field) controls which specs appear as filters per category. The legacy SpecFilterManager (spec_filter_config) is deprecated. With migration `019`, composed fields (`llm_prompt_profile_fields`) are hydrated to JSON on profile reads used by enrichment/facets.
+- Spec filters are LLM-driven: `llm_prompt_profiles` extraction schema (label, sort_order, filterable per field) controls which specs appear as filters per category. The legacy SpecFilterManager (spec_filter_config) is deprecated. With migration `019`, composed fields (`llm_prompt_profile_fields`) are hydrated to JSON on profile reads used by enrichment/facets. Field types include `multi_enum` (migration `020`) for multiple values per key (e.g. `intended_use`); facets and `/deals` filters match against scalars or any element of a stored JSON array.
 - Admin endpoints under `/admin/*` require Bearer token auth (password set via `ADMIN_PASSWORD`)
 - Public API: `GET /deals`, `/stores`, `/brands`, `/categories/tree`, `/facets`, `/spec-values`, `/status`. Deprecated: `/canonical-categories` (use `/categories/tree`)
 
