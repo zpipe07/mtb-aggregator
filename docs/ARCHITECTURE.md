@@ -56,7 +56,7 @@ flowchart LR
 2. API fetches unenriched listings, groups by store
 3. For each store with an enricher: Scraper visits PDP (product detail page) URLs
 4. Parsers extract category path (breadcrumbs), specs (wheel size, travel, etc.)
-5. API updates listings with `category_path`, `llm_specs`, and `category_id` (via taxonomy)
+5. API updates listings with `category_path`, `llm_specs` (per-key values may be scalars or JSON arrays for `multi_enum` fields), and `category_id` (via taxonomy)
 
 **LLM extraction profiles:** For each category, `llm_prompt_profiles` drives structured spec extraction. When migration `019` composition rows exist (`llm_prompt_profile_fields`), the API **hydrates** `extraction_schema` at read time from `llm_extraction_field_defs` plus per-profile overrides (and appends `confidence` when not composed). If there are no composition rows, the stored `extraction_schema` JSONB is used unchanged. Hot paths (`GetLLMPromptProfileForCategory*`, `GetLLMPromptProfileByID`) hydrate; `ListLLMPromptProfiles` keeps raw JSON for the admin table.
 

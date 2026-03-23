@@ -100,7 +100,24 @@ func MergeLLMSpecs(existing []byte, llmResult map[string]interface{}) []byte {
 		if overrides != nil && overrides[k] != nil {
 			continue // respect manual override
 		}
-		llmSpecsObj[k] = fmt.Sprint(v)
+		switch val := v.(type) {
+		case []interface{}:
+			arr := make([]string, 0, len(val))
+			for _, elem := range val {
+				if elem == nil {
+					continue
+				}
+				s := fmt.Sprint(elem)
+				if s != "" && s != "<nil>" {
+					arr = append(arr, s)
+				}
+			}
+			if len(arr) > 0 {
+				llmSpecsObj[k] = arr
+			}
+		default:
+			llmSpecsObj[k] = fmt.Sprint(v)
+		}
 	}
 	b, _ := json.Marshal(base)
 	return b

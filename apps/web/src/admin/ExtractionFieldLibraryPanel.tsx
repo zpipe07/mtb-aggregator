@@ -9,7 +9,7 @@ import {
 } from "./hooks/mutations";
 import type { LLMExtractionFieldDef } from "./api";
 
-const FIELD_TYPES = ["string", "integer", "number", "enum"] as const;
+const FIELD_TYPES = ["string", "integer", "number", "enum", "multi_enum"] as const;
 
 function DefModal({
   initial,
@@ -149,7 +149,7 @@ function DefModal({
           </div>
           <div>
             <label className="block text-xs font-medium text-stone-600">
-              values (JSON array for enum, optional)
+              values (JSON array for enum / multi_enum, optional)
             </label>
             <textarea
               value={valuesStr}

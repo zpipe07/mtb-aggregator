@@ -591,20 +591,9 @@ func (db *DB) GetDeals(ctx context.Context, params GetDealsParams) (*GetDealsRes
 			expanded[k] = []string{v}
 		}
 	}
-	for k, values := range expanded {
-		if k == "" || len(values) == 0 {
-			continue
-		}
-		if len(values) == 1 {
-			query += fmt.Sprintf(" AND l.metadata->'llm_specs'->>$%d ILIKE $%d", argNum, argNum+1)
-			args = append(args, k, values[0])
-			argNum += 2
-		} else {
-			query += fmt.Sprintf(" AND (l.metadata->'llm_specs'->>$%d)::text ILIKE ANY($%d::text[])", argNum, argNum+1)
-			args = append(args, k, pq.Array(values))
-			argNum += 2
-		}
-	}
+	var specSb strings.Builder
+	appendMetadataSpecFilterConditions(&specSb, &args, &argNum, expanded, true)
+	query += specSb.String()
 	if params.MinDiscount != nil && *params.MinDiscount > 0 {
 		query += fmt.Sprintf(" AND l.original_price IS NOT NULL AND l.original_price > 0 AND l.current_price < l.original_price AND (1 - l.current_price / l.original_price) * 100 >= $%d", argNum)
 		args = append(args, *params.MinDiscount)

@@ -63,7 +63,7 @@ type ExtractionSchema struct {
 // Display metadata (label, sort_order, filterable) controls how the field appears as a filter.
 type SchemaField struct {
 	Key         string   `json:"key"`
-	Type        string   `json:"type"` // "integer", "number", "string", "enum"
+	Type        string   `json:"type"` // "integer", "number", "string", "enum", "multi_enum"
 	Description string   `json:"description"`
 	Values      []string `json:"values,omitempty"` // for type "enum"
 	// Display metadata for filter UI (optional)
@@ -359,6 +359,19 @@ func (c *Client) buildOpenAISchema(es ExtractionSchema) (map[string]interface{},
 				enumVals[len(f.Values)] = nil
 				prop["enum"] = enumVals
 			}
+		case "multi_enum":
+			itemSchema := map[string]interface{}{
+				"type": "string",
+			}
+			if len(f.Values) > 0 {
+				enumVals := make([]interface{}, len(f.Values))
+				for i, v := range f.Values {
+					enumVals[i] = v
+				}
+				itemSchema["enum"] = enumVals
+			}
+			prop["type"] = []string{"array", "null"}
+			prop["items"] = itemSchema
 		default:
 			prop["type"] = []string{"string", "null"}
 		}
