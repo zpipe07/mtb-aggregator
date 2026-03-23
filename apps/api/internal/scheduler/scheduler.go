@@ -249,19 +249,25 @@ func (s *Scheduler) scrapeStore(ctx context.Context, store db.Store, triggeredBy
 				listingMeta = metadata.MergeSpecs(nil, specs)
 			}
 		}
+		var variantOpts []byte
+		if r.VariantOptions != nil && len(r.VariantOptions) > 0 {
+			variantOpts = r.VariantOptions
+		}
 		listing := db.Listing{
-			StoreID:           store.ID,
-			StoreSKU:          r.StoreSKU,
-			ProductName:       r.ProductName,
-			CurrentPrice:      r.CurrentPrice,
-			OriginalPrice:     r.OriginalPrice,
-			ProductURL:        r.ProductURL,
-			ImageURL:          r.ImageURL,
-			Brand:             normalizedBrand,
-			CategoryPath:      r.CategoryPath,
-			CanonicalCategory: canonicalCat,
-			Metadata:          listingMeta,
-			IsInStock:         r.IsInStock,
+			StoreID:            store.ID,
+			StoreSKU:           r.StoreSKU,
+			ProductName:        r.ProductName,
+			CurrentPrice:       r.CurrentPrice,
+			OriginalPrice:      r.OriginalPrice,
+			ProductURL:         r.ProductURL,
+			ImageURL:           r.ImageURL,
+			Brand:              normalizedBrand,
+			CategoryPath:       r.CategoryPath,
+			CanonicalCategory:  canonicalCat,
+			Metadata:           listingMeta,
+			IsInStock:          r.IsInStock,
+			ProductGroupHandle: r.ProductGroupKey,
+			VariantOptions:     variantOpts,
 		}
 
 		id, err := s.db.UpsertListing(ctx, listing)

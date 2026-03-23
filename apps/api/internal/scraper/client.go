@@ -13,15 +13,17 @@ import (
 
 // ScrapeResult matches the scraper's JSON response
 type ScrapeResult struct {
-	StoreSKU      string   `json:"store_sku"`
-	ProductName   string   `json:"product_name"`
-	CurrentPrice  float64  `json:"current_price"`
-	OriginalPrice *float64 `json:"original_price"`
-	ProductURL    string   `json:"product_url"`
-	ImageURL      *string  `json:"image_url"`
-	Brand         *string   `json:"brand"`
-	CategoryPath  []string  `json:"category_path"`
-	IsInStock     bool      `json:"is_in_stock"`
+	StoreSKU         string          `json:"store_sku"`
+	ProductName      string          `json:"product_name"`
+	CurrentPrice     float64         `json:"current_price"`
+	OriginalPrice    *float64        `json:"original_price"`
+	ProductURL       string          `json:"product_url"`
+	ImageURL         *string         `json:"image_url"`
+	Brand            *string         `json:"brand"`
+	CategoryPath     []string        `json:"category_path"`
+	IsInStock        bool            `json:"is_in_stock"`
+	ProductGroupKey  *string         `json:"product_group_key"` // Shopify handle; API stores as store_id:handle
+	VariantOptions   json.RawMessage `json:"variant_options"`
 }
 
 // ScrapeRequest is sent to the scraper

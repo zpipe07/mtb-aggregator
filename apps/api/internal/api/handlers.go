@@ -86,6 +86,19 @@ func (h *Handlers) GetDeals(w http.ResponseWriter, r *http.Request) {
 			params.SpecValue = strings.TrimSpace(s)
 		}
 	}
+	params.VariantFilters = make(map[string]string)
+	for key, vals := range r.URL.Query() {
+		if strings.HasPrefix(key, "variant_") && len(vals) > 0 && vals[0] != "" {
+			vk := strings.TrimPrefix(key, "variant_")
+			vk = strings.TrimSpace(vk)
+			if vk != "" {
+				params.VariantFilters[vk] = strings.TrimSpace(vals[0])
+			}
+		}
+	}
+	if r.URL.Query().Get("group_variants") == "1" || r.URL.Query().Get("group_variants") == "true" {
+		params.GroupVariants = true
+	}
 
 	result, err := h.DB.GetDeals(r.Context(), params)
 	if err != nil {
@@ -274,6 +287,16 @@ func (h *Handlers) GetFacets(w http.ResponseWriter, r *http.Request) {
 			specKey = strings.TrimSpace(specKey)
 			if specKey != "" {
 				params.SpecFilters[specKey] = strings.TrimSpace(vals[0])
+			}
+		}
+	}
+	params.VariantFilters = make(map[string]string)
+	for key, vals := range r.URL.Query() {
+		if strings.HasPrefix(key, "variant_") && len(vals) > 0 && vals[0] != "" {
+			vk := strings.TrimPrefix(key, "variant_")
+			vk = strings.TrimSpace(vk)
+			if vk != "" {
+				params.VariantFilters[vk] = strings.TrimSpace(vals[0])
 			}
 		}
 	}

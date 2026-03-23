@@ -23,6 +23,7 @@ type GetFacetsParams struct {
 	MinDiscount       *float64
 	Search            string
 	SpecFilters       map[string]string // key -> value, e.g. {"wheel_size": "29"}
+	VariantFilters    map[string]string // variant option key -> value (e.g. Size -> Large)
 	// CategoryFilterIDs is populated by GetFacets from CategorySlug or CanonicalCategory for WHERE clause.
 	CategoryFilterIDs []int
 }
@@ -53,12 +54,25 @@ type PriceRange struct {
 	Max float64 `json:"max"`
 }
 
+// VariantFacetValue is one option for a variant dimension (e.g. size).
+type VariantFacetValue struct {
+	Value string `json:"value"`
+	Count int    `json:"count"`
+}
+
+// VariantFacet groups values under a variant option name (e.g. "Size").
+type VariantFacet struct {
+	Key    string              `json:"key"`
+	Values []VariantFacetValue `json:"values"`
+}
+
 // GetFacetsResult is the response for GET /facets.
 type GetFacetsResult struct {
-	SpecFacets    []SpecFacet  `json:"spec_facets"`
-	BrandFacets   []BrandFacet `json:"brand_facets"`
-	PriceRange    PriceRange   `json:"price_range"`
-	TotalMatching int         `json:"total_matching"`
+	SpecFacets      []SpecFacet    `json:"spec_facets"`
+	BrandFacets     []BrandFacet   `json:"brand_facets"`
+	VariantFacets   []VariantFacet `json:"variant_facets"`
+	PriceRange      PriceRange     `json:"price_range"`
+	TotalMatching   int            `json:"total_matching"`
 }
 
 // filterableField holds display config for a profile field that appears as a filter.
@@ -293,11 +307,55 @@ func (db *DB) GetFacets(ctx context.Context, params GetFacetsParams) (*GetFacets
 		return nil, err
 	}
 
+	// Variant option facets (Shopify variant_options JSON)
+	variantQuery := `
+SELECT kv.key, kv.value, COUNT(DISTINCT l.id) as cnt
+FROM store_listings l
+JOIN stores s ON s.id = l.store_id
+CROSS JOIN LATERAL jsonb_each_text(COALESCE(l.variant_options, '{}'::jsonb)) AS kv(key, value)
+WHERE 1=1` + where + `
+AND l.variant_options IS NOT NULL
+AND jsonb_typeof(l.variant_options) = 'object'
+AND trim(kv.value) <> ''
+GROUP BY kv.key, kv.value
+ORDER BY kv.key, cnt DESC`
+	vrows, err := db.pool.Query(ctx, variantQuery, args...)
+	if err != nil {
+		return nil, fmt.Errorf("facets variant options: %w", err)
+	}
+	defer vrows.Close()
+
+	keyVals := make(map[string][]VariantFacetValue)
+	var keyOrder []string
+	seenKey := make(map[string]bool)
+	for vrows.Next() {
+		var k, v string
+		var c int
+		if err := vrows.Scan(&k, &v, &c); err != nil {
+			return nil, err
+		}
+		if !seenKey[k] {
+			seenKey[k] = true
+			keyOrder = append(keyOrder, k)
+		}
+		if len(keyVals[k]) < 50 {
+			keyVals[k] = append(keyVals[k], VariantFacetValue{Value: v, Count: c})
+		}
+	}
+	if err := vrows.Err(); err != nil {
+		return nil, err
+	}
+	var variantFacets []VariantFacet
+	for _, k := range keyOrder {
+		variantFacets = append(variantFacets, VariantFacet{Key: k, Values: keyVals[k]})
+	}
+
 	return &GetFacetsResult{
-		SpecFacets:    specFacets,
-		BrandFacets:   brandFacets,
-		PriceRange:    priceRange,
-		TotalMatching: totalMatching,
+		SpecFacets:      specFacets,
+		BrandFacets:     brandFacets,
+		VariantFacets:   variantFacets,
+		PriceRange:      priceRange,
+		TotalMatching:   totalMatching,
 	}, nil
 }
 
@@ -399,6 +457,7 @@ func buildFacetsWhereClause(params GetFacetsParams, specFilters map[string][]str
 		args = append(args, params.Search)
 		argNum++
 	}
+	appendVariantFilters(&sb, &args, &argNum, params.VariantFilters)
 
 	return sb.String(), args
 }

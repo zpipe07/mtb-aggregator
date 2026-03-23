@@ -1,26 +1,15 @@
 import type { ScrapeResult } from "../types.js";
 import { SCRAPER_MAX_PRODUCTS } from "../config.js";
+import {
+  buildVariantOptions,
+  type ShopifyProductWithOptions,
+  type ShopifyVariantWithOptions,
+} from "./shopify-helpers.js";
 
 const PER_PAGE = 250;
 
-interface ShopifyVariant {
-  id: number;
-  sku: string | null;
-  price: string;
-  compare_at_price: string | null;
-  available: boolean;
-  featured_image?: { src: string } | null;
-}
-
-interface ShopifyProduct {
-  id: number;
-  title: string;
-  handle: string;
-  vendor: string;
-  product_type: string;
-  variants: ShopifyVariant[];
-  images?: { src: string }[];
-}
+type ShopifyVariant = ShopifyVariantWithOptions;
+type ShopifyProduct = ShopifyProductWithOptions;
 
 interface ShopifyCollectionResponse {
   products: ShopifyProduct[];
@@ -74,6 +63,7 @@ export async function scrapeRevelBikes(collectionUrl: string): Promise<ScrapeRes
         const imageUrl = variant.featured_image?.src ?? product.images?.[0]?.src ?? null;
         const storeSku = variant.sku?.trim() || `v${variant.id}`;
         const categoryPath = product.product_type ? [product.product_type] : null;
+        const variantOpts = buildVariantOptions(product, variant);
 
         results.push({
           store_sku: storeSku,
@@ -85,6 +75,8 @@ export async function scrapeRevelBikes(collectionUrl: string): Promise<ScrapeRes
           brand: product.vendor || null,
           category_path: categoryPath,
           is_in_stock: variant.available,
+          product_group_key: product.handle,
+          ...(variantOpts ? { variant_options: variantOpts } : {}),
         });
         if (SCRAPER_MAX_PRODUCTS > 0 && results.length >= SCRAPER_MAX_PRODUCTS)
           break;

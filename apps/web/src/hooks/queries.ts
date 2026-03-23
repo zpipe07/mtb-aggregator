@@ -34,6 +34,8 @@ export interface DealsParams {
   spec_key?: string;
   spec_value?: string;
   specFilters?: Record<string, string>;
+  variantFilters?: Record<string, string>;
+  group_variants?: boolean;
   q?: string;
   sort?: string;
 }
@@ -51,6 +53,8 @@ function buildDealsParams(params: DealsParams) {
     spec_key: params.spec_key || undefined,
     spec_value: params.spec_value || undefined,
     specFilters: params.specFilters,
+    variantFilters: params.variantFilters,
+    group_variants: params.group_variants ?? true,
     q: params.q?.trim() || undefined,
     sort: params.sort ?? "newest",
   };

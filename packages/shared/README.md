@@ -33,7 +33,7 @@ See [migrations/README.md](migrations/README.md) for migration conventions.
 ## Schema Overview
 
 - **stores** — Retailers; `store_type` determines which scraper parser to use
-- **store_listings** — Per-store listings; `category_path` from scraper or enricher; `category_id` FK to structured tree
+- **store_listings** — Per-store listings (per variant for Shopify); `product_group_key` (`{store_id}:{handle}`) and `variant_options` JSONB for variant grouping/filters (migration `021`); `category_path` from scraper or enricher; `category_id` FK to structured tree
 - **categories** — Structured tree (id, slug, name, parent_id); single source of truth
 - **category_mappings** — Maps raw store category paths → `category_id`
 - **llm_extraction_field_defs** — Reusable LLM extraction field templates (`field_key`, `field_type`, `values`, etc.); merged with per-profile overrides at hydrate time (migration `019`). `field_type` includes `multi_enum` for array-of-enum outputs stored as JSON arrays under `metadata.llm_specs` (migration `020`)

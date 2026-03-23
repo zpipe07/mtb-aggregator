@@ -13,6 +13,7 @@ import {
 import { track } from "@vercel/analytics";
 import type { Deal } from "@/api";
 import type { PriceHistoryResponse } from "@/api";
+import { cn } from "@/lib/utils";
 
 function formatDate(iso: string) {
   try {
@@ -92,7 +93,9 @@ export function DealDetailContent({ deal, priceHistory }: Props) {
               <h1 className="font-semibold text-foreground text-xl mt-0.5">
                 {deal.product_name}
               </h1>
-              <p className="text-sm text-muted-foreground mt-1">{deal.store_name}</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                {deal.store_name}
+              </p>
               <div className="mt-2 flex flex-wrap items-baseline gap-2">
                 <span className="text-2xl font-bold text-foreground">
                   ${deal.current_price.toFixed(2)}
@@ -129,12 +132,103 @@ export function DealDetailContent({ deal, priceHistory }: Props) {
               >
                 Snag the Deal
               </a>
+              {deal.price_range != null &&
+                deal.price_range.length === 2 &&
+                deal.price_range[0] !== deal.price_range[1] && (
+                  <p className="text-sm text-muted-foreground mt-2">
+                    From ${deal.price_range[0].toFixed(2)} to $
+                    {deal.price_range[1].toFixed(2)} across variants
+                  </p>
+                )}
             </div>
           </div>
 
+          {deal.variants != null && deal.variants.length > 1 && (
+            <div className="mt-8 border-t border-border pt-6">
+              <h2 className="font-medium text-foreground mb-3">Variants</h2>
+              <div className="overflow-x-auto rounded-xl border border-border bg-muted/20">
+                <table className="w-full min-w-[min(100%,20rem)] text-sm">
+                  <thead>
+                    <tr className="border-b border-border bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
+                      <th className="px-3 py-2.5 font-medium">Options</th>
+                      <th className="px-3 py-2.5 font-medium text-right">
+                        Price
+                      </th>
+                      <th className="px-3 py-2.5 font-medium text-right w-[7.5rem]">
+                        Availability
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border/80">
+                    {deal.variants.map((v) => (
+                      <tr
+                        key={v.id}
+                        className="transition-colors hover:bg-muted/30"
+                      >
+                        <td className="px-3 py-3 align-top">
+                          {v.variant_options &&
+                          Object.keys(v.variant_options).length > 0 ? (
+                            <div className="flex flex-wrap gap-1.5">
+                              {Object.entries(v.variant_options).map(
+                                ([k, val]) => (
+                                  <span
+                                    key={k}
+                                    className="inline-flex items-baseline gap-1 rounded-md border border-border/80 bg-background/80 px-2 py-1 text-xs shadow-sm"
+                                  >
+                                    <span className="text-muted-foreground">
+                                      {k}
+                                    </span>
+                                    <span className="font-medium text-foreground">
+                                      {val}
+                                    </span>
+                                  </span>
+                                ),
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </td>
+                        <td className="px-3 py-3 align-top text-right tabular-nums">
+                          <span className="font-semibold text-foreground">
+                            ${v.current_price.toFixed(2)}
+                          </span>
+                          {v.original_price != null &&
+                            v.original_price > v.current_price && (
+                              <span className="block text-xs text-muted-foreground line-through">
+                                ${v.original_price.toFixed(2)}
+                              </span>
+                            )}
+                        </td>
+                        <td className="px-3 py-3 align-top text-right">
+                          <span
+                            className={cn(
+                              "inline-flex rounded-full px-2 py-0.5 text-xs font-medium",
+                              v.is_in_stock
+                                ? "bg-emerald-500/15 text-emerald-800 dark:text-emerald-400"
+                                : "bg-muted text-muted-foreground",
+                            )}
+                          >
+                            {v.is_in_stock ? "In stock" : "Out of stock"}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <p className="text-xs text-muted-foreground mt-3">
+                Prices and availability are from the retailer; open the deal to
+                select a variant on the store site.
+              </p>
+            </div>
+          )}
+
           {priceHistory && (
             <div className="mt-8">
-              <h2 className="font-medium text-foreground mb-3">Price history</h2>
+              <h2 className="font-medium text-foreground mb-3">
+                Price history
+              </h2>
               {chartData.length === 0 && (
                 <p className="text-muted-foreground text-sm">No history yet.</p>
               )}

@@ -2,6 +2,7 @@ const VALID_SORTS = ["newest", "discount", "price_asc", "price_desc", "relevance
 export type SortOption = (typeof VALID_SORTS)[number];
 
 const SPEC_PREFIX = "spec_";
+const VARIANT_PREFIX = "variant_";
 
 export interface ParsedFilterParams {
   searchQuery: string;
@@ -10,6 +11,7 @@ export interface ParsedFilterParams {
   categoryFilter: string;
   minDiscount: string;
   specFilters: Record<string, string>;
+  variantFilters: Record<string, string>;
   sort: SortOption;
   offset: number;
 }
@@ -41,11 +43,17 @@ export function parseFilterParamsFromSearch(
   const offset = Math.max(0, parseInt(offsetParam ?? "0", 10) || 0);
 
   const specFilters: Record<string, string> = {};
+  const variantFilters: Record<string, string> = {};
   for (const [key, value] of Object.entries(params)) {
     if (key.startsWith(SPEC_PREFIX) && value != null) {
       const specKey = key.slice(SPEC_PREFIX.length);
       const v = Array.isArray(value) ? value[0] : value;
       if (specKey && v) specFilters[specKey] = v;
+    }
+    if (key.startsWith(VARIANT_PREFIX) && value != null) {
+      const vk = key.slice(VARIANT_PREFIX.length);
+      const v = Array.isArray(value) ? value[0] : value;
+      if (vk && v) variantFilters[vk] = v;
     }
   }
 
@@ -59,6 +67,7 @@ export function parseFilterParamsFromSearch(
     categoryFilter,
     minDiscount,
     specFilters,
+    variantFilters,
     sort: effectiveSort,
     offset,
   };
@@ -82,10 +91,15 @@ export function parseFilterParamsFromURL(
   const offset = Math.max(0, parseInt(offsetParam ?? "0", 10) || 0);
 
   const specFilters: Record<string, string> = {};
+  const variantFilters: Record<string, string> = {};
   params.forEach((value, key) => {
     if (key.startsWith(SPEC_PREFIX)) {
       const specKey = key.slice(SPEC_PREFIX.length);
       if (specKey) specFilters[specKey] = value;
+    }
+    if (key.startsWith(VARIANT_PREFIX)) {
+      const vk = key.slice(VARIANT_PREFIX.length);
+      if (vk) variantFilters[vk] = value;
     }
   });
 
@@ -99,6 +113,7 @@ export function parseFilterParamsFromURL(
     categoryFilter,
     minDiscount,
     specFilters,
+    variantFilters,
     sort: effectiveSort,
     offset,
   };

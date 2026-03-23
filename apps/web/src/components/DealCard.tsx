@@ -70,6 +70,11 @@ export function DealCard({ deal, onSelect }: DealCardProps) {
         <span className="absolute top-2 right-2 bg-trail/92 text-trail-foreground text-xs font-medium px-2 py-1 rounded">
           {deal.store_name}
         </span>
+        {deal.variant_count != null && deal.variant_count > 1 && (
+          <span className="absolute bottom-2 left-2 bg-secondary text-secondary-foreground text-xs font-medium px-2 py-1 rounded">
+            {deal.variant_count} variants
+          </span>
+        )}
       </div>
       <CardContent className="py-4">
         {deal.brand && (
@@ -85,12 +90,22 @@ export function DealCard({ deal, onSelect }: DealCardProps) {
             {deal.category_path[deal.category_path.length - 1]}
           </p>
         )}
-        <div className="mt-2 flex items-baseline gap-2">
-          <span className="text-lg font-bold text-foreground">
-            ${deal.current_price.toFixed(2)}
-          </span>
+        <div className="mt-2 flex items-baseline gap-2 flex-wrap">
+          {deal.price_range != null &&
+          deal.price_range.length === 2 &&
+          deal.price_range[0] !== deal.price_range[1] ? (
+            <span className="text-lg font-bold text-foreground">
+              ${deal.price_range[0].toFixed(2)} – $
+              {deal.price_range[1].toFixed(2)}
+            </span>
+          ) : (
+            <span className="text-lg font-bold text-foreground">
+              ${deal.current_price.toFixed(2)}
+            </span>
+          )}
           {deal.original_price != null &&
-            deal.original_price > deal.current_price && (
+            deal.original_price > deal.current_price &&
+            !(deal.price_range && deal.price_range.length === 2) && (
               <span className="text-sm text-muted-foreground line-through">
                 ${deal.original_price.toFixed(2)}
               </span>
