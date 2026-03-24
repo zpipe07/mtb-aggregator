@@ -178,6 +178,12 @@ function ProfileForm({
 
 type Tab = "profiles" | "library";
 
+function profileCategoryLabel(p: { canonical_category: unknown }): string {
+  return Array.isArray(p.canonical_category)
+    ? (p.canonical_category as string[]).join(" > ")
+    : String(p.canonical_category);
+}
+
 export function PromptProfileManager() {
   const [tab, setTab] = useState<Tab>("profiles");
   const { data: profiles, isLoading } = useLLMProfiles();
@@ -202,6 +208,18 @@ export function PromptProfileManager() {
   useEffect(() => {
     setComposeMode(false);
   }, [editingId]);
+
+  const profilesSortedByCategory = useMemo(() => {
+    const list = [...(profiles ?? [])];
+    list.sort((a, b) => {
+      const byCat = profileCategoryLabel(a).localeCompare(profileCategoryLabel(b), undefined, {
+        sensitivity: "base",
+      });
+      if (byCat !== 0) return byCat;
+      return a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
+    });
+    return list;
+  }, [profiles]);
 
   const emptyForm = {
     canonical_category: [] as string[],
@@ -501,12 +519,10 @@ export function PromptProfileManager() {
                 </tr>
               </thead>
               <tbody>
-                {(profiles ?? []).map((p) => (
+                {profilesSortedByCategory.map((p) => (
                   <tr key={p.id} className="border-b border-stone-100">
                     <td className="px-3 py-2 text-sm text-stone-900">
-                      {Array.isArray(p.canonical_category)
-                        ? (p.canonical_category as string[]).join(" > ")
-                        : String(p.canonical_category)}
+                      {profileCategoryLabel(p)}
                     </td>
                     <td className="px-3 py-2 text-sm text-stone-900">{p.name}</td>
                     <td className="px-3 py-2 text-sm">
