@@ -30,7 +30,7 @@ Go HTTP server that orchestrates scraping, enrichment, and serves the REST API. 
 - `GET /stores` — Stores with deal counts
 - `GET /brands` — Distinct brands
 - `GET /categories/tree` — Structured category tree (id, slug, name, parent_id)
-- `GET /facets` — Filter facets for current query (`spec_facets`, `brand_facets`, `variant_facets` from `variant_options`, `price_range`, `total_matching`). `brand_facets` use the same filters as the rest of the response **except** the `brand` query param (so the UI can list alternative brands while a brand filter is active); top 50 by count.
+- `GET /facets` — Filter facets for current query (`spec_facets`, `brand_facets`, `variant_facets` from `variant_options`, `price_range`, `total_matching`). Faceted behavior: `brand_facets` omit the `brand` query param when aggregating; each `spec_facets` key’s value list omits that key’s `spec_*` filter; each `variant_facets` dimension omits that dimension’s `variant_*` filter—so users can switch options without clearing first. Top 50 values per facet dimension.
 - `GET /spec-values` — Spec values for filters
 - `GET /status` — Health: last scrape per store, scraper reachable
 

@@ -54,6 +54,8 @@ flowchart LR
 
 **Brand facets:** `GET /facets` `brand_facets` are scoped to the same filters as other facets except the `brand` query param is omitted when aggregating brands (so the deals UI can list alternative brands while one is selected).
 
+**Spec and variant facets:** Each `spec_*` facet’s value list is aggregated without applying that key’s own `spec_*` filter; each variant dimension’s value list omits that dimension’s `variant_*` filter (same faceted-navigation pattern as brands).
+
 ### 2. Enrich Job (nightly, 2am)
 
 1. Scheduler triggers `POST /enrich-now`

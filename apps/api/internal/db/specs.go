@@ -68,11 +68,11 @@ type VariantFacet struct {
 
 // GetFacetsResult is the response for GET /facets.
 type GetFacetsResult struct {
-	SpecFacets      []SpecFacet    `json:"spec_facets"`
-	BrandFacets     []BrandFacet   `json:"brand_facets"`
-	VariantFacets   []VariantFacet `json:"variant_facets"`
-	PriceRange      PriceRange     `json:"price_range"`
-	TotalMatching   int            `json:"total_matching"`
+	SpecFacets    []SpecFacet    `json:"spec_facets"`
+	BrandFacets   []BrandFacet   `json:"brand_facets"`
+	VariantFacets []VariantFacet `json:"variant_facets"`
+	PriceRange    PriceRange     `json:"price_range"`
+	TotalMatching int            `json:"total_matching"`
 }
 
 // filterableField holds display config for a profile field that appears as a filter.
@@ -187,28 +187,36 @@ func (db *DB) GetFacets(ctx context.Context, params GetFacetsParams) (*GetFacets
 		priceRange.Max = *priceMax
 	}
 
-	// Spec facets: LLM-driven from profile + metadata.llm_specs
+	// Spec facets: LLM-driven from profile + metadata.llm_specs.
+	// For each filterable key, aggregate values using a WHERE clause that omits that key's spec
+	// filter so the user can switch values (faceted search), matching brand_facets behavior.
 	var specFacets []SpecFacet
 	if profile != nil {
 		fields := parseFilterableFields(profile.ExtractionSchema)
-		if len(fields) > 0 {
-			allowedKeys := make(map[string]filterableField)
-			for _, f := range fields {
-				allowedKeys[f.key] = f
+		const maxKeys = 20
+		for i, f := range fields {
+			if i >= maxKeys {
+				break
 			}
-			keysArr := make([]string, 0, len(allowedKeys))
-			for k := range allowedKeys {
-				keysArr = append(keysArr, k)
+			specWhere, specArgs := buildFacetsWhereClause(params, specFiltersOmit(specFiltersForWhere, f.key), true)
+			if specWhere == "" {
+				specWhere = " AND l.is_in_stock = true"
+			} else {
+				specWhere = " AND l.is_in_stock = true" + specWhere
 			}
+			baseFromSpec := `
+		FROM store_listings l
+		JOIN stores s ON s.id = l.store_id
+		WHERE 1=1` + specWhere
 
 			specKeyValuesQuery := `
 				WITH filtered AS (
 					SELECT l.id, l.metadata
-					` + baseFrom + `
+					` + baseFromSpec + `
 					AND l.metadata->'llm_specs' IS NOT NULL
 					AND jsonb_typeof(l.metadata->'llm_specs') = 'object'
 				)
-				SELECT spec.key, spec.value, COUNT(DISTINCT f.id) as cnt
+				SELECT spec.value, COUNT(DISTINCT f.id) as cnt
 				FROM filtered f
 				CROSS JOIN LATERAL (
 					SELECT e.key, elem.v AS value
@@ -220,63 +228,41 @@ func (db *DB) GetFacets(ctx context.Context, params GetFacetsParams) (*GetFacets
 					) AS elem(v)
 				) AS spec(key, value)
 				WHERE spec.value IS NOT NULL AND trim(spec.value) <> ''
-				  AND spec.key = ANY($` + fmt.Sprint(len(args)+1) + `)
-				GROUP BY spec.key, spec.value
-				ORDER BY spec.key, cnt DESC`
-			queryArgs := append(args, pq.Array(keysArr))
+				  AND spec.key = $` + fmt.Sprint(len(specArgs)+1) + `
+				GROUP BY spec.value
+				ORDER BY cnt DESC
+				LIMIT 50`
+			queryArgs := append(specArgs, f.key)
 			rows, err := db.pool.Query(ctx, specKeyValuesQuery, queryArgs...)
 			if err != nil {
-				return nil, fmt.Errorf("facets spec key/values: %w", err)
+				return nil, fmt.Errorf("facets spec key/values for %s: %w", f.key, err)
 			}
 
-			type kv struct {
-				key   string
-				value string
-				count int
-			}
-			var kvs []kv
+			var values []SpecFacetValue
+			total := 0
 			for rows.Next() {
-				var k, v string
+				var v string
 				var c int
-				if err := rows.Scan(&k, &v, &c); err != nil {
+				if err := rows.Scan(&v, &c); err != nil {
 					rows.Close()
 					return nil, err
 				}
-				kvs = append(kvs, kv{key: k, value: v, count: c})
+				values = append(values, SpecFacetValue{Value: v, Count: c})
+				total += c
 			}
 			rows.Close()
 			if err := rows.Err(); err != nil {
 				return nil, err
 			}
-
-			keyProductCount := make(map[string]int)
-			keyValues := make(map[string][]SpecFacetValue)
-			for _, r := range kvs {
-				if _, ok := allowedKeys[r.key]; !ok {
-					continue
-				}
-				keyProductCount[r.key] += r.count
-				if len(keyValues[r.key]) < 50 {
-					keyValues[r.key] = append(keyValues[r.key], SpecFacetValue{Value: r.value, Count: r.count})
-				}
+			if total == 0 {
+				continue
 			}
-
-			const maxKeys = 20
-			for i, f := range fields {
-				if i >= maxKeys {
-					break
-				}
-				total := keyProductCount[f.key]
-				if total == 0 {
-					continue
-				}
-				specFacets = append(specFacets, SpecFacet{
-					Key:          f.key,
-					Label:        f.label,
-					ProductCount: total,
-					Values:       keyValues[f.key],
-				})
-			}
+			specFacets = append(specFacets, SpecFacet{
+				Key:          f.key,
+				Label:        f.label,
+				ProductCount: total,
+				Values:       values,
+			})
 		}
 	}
 
@@ -320,56 +306,132 @@ func (db *DB) GetFacets(ctx context.Context, params GetFacetsParams) (*GetFacets
 		return nil, err
 	}
 
-	// Variant option facets (Shopify variant_options JSON)
-	variantQuery := `
-SELECT kv.key, kv.value, COUNT(DISTINCT l.id) as cnt
+	// Variant option facets (Shopify variant_options JSON). Per dimension key, omit that key's
+	// variant filter when aggregating values so users can switch options (faceted search).
+	var variantFacets []VariantFacet
+	discParams := params
+	discParams.VariantFilters = nil
+	discWhere, discArgs := buildFacetsWhereClause(discParams, specFiltersForWhere, true)
+	if discWhere == "" {
+		discWhere = " AND l.is_in_stock = true"
+	} else {
+		discWhere = " AND l.is_in_stock = true" + discWhere
+	}
+	discQuery := `
+SELECT DISTINCT kv.key
 FROM store_listings l
 JOIN stores s ON s.id = l.store_id
 CROSS JOIN LATERAL jsonb_each_text(COALESCE(l.variant_options, '{}'::jsonb)) AS kv(key, value)
-WHERE 1=1` + where + `
+WHERE 1=1` + discWhere + `
 AND l.variant_options IS NOT NULL
 AND jsonb_typeof(l.variant_options) = 'object'
 AND trim(kv.value) <> ''
-GROUP BY kv.key, kv.value
-ORDER BY kv.key, cnt DESC`
-	vrows, err := db.pool.Query(ctx, variantQuery, args...)
+ORDER BY kv.key`
+	vkRows, err := db.pool.Query(ctx, discQuery, discArgs...)
 	if err != nil {
-		return nil, fmt.Errorf("facets variant options: %w", err)
+		return nil, fmt.Errorf("facets variant keys: %w", err)
 	}
-	defer vrows.Close()
-
-	keyVals := make(map[string][]VariantFacetValue)
-	var keyOrder []string
-	seenKey := make(map[string]bool)
-	for vrows.Next() {
-		var k, v string
-		var c int
-		if err := vrows.Scan(&k, &v, &c); err != nil {
+	var variantKeys []string
+	for vkRows.Next() {
+		var k string
+		if err := vkRows.Scan(&k); err != nil {
+			vkRows.Close()
 			return nil, err
 		}
-		if !seenKey[k] {
-			seenKey[k] = true
-			keyOrder = append(keyOrder, k)
-		}
-		if len(keyVals[k]) < 50 {
-			keyVals[k] = append(keyVals[k], VariantFacetValue{Value: v, Count: c})
-		}
+		variantKeys = append(variantKeys, k)
 	}
-	if err := vrows.Err(); err != nil {
+	vkRows.Close()
+	if err := vkRows.Err(); err != nil {
 		return nil, err
 	}
-	var variantFacets []VariantFacet
-	for _, k := range keyOrder {
-		variantFacets = append(variantFacets, VariantFacet{Key: k, Values: keyVals[k]})
+
+	for _, vk := range variantKeys {
+		vp := params
+		vp.VariantFilters = variantFiltersOmit(params.VariantFilters, vk)
+		vWhere, vArgs := buildFacetsWhereClause(vp, specFiltersForWhere, true)
+		if vWhere == "" {
+			vWhere = " AND l.is_in_stock = true"
+		} else {
+			vWhere = " AND l.is_in_stock = true" + vWhere
+		}
+		keyArg := len(vArgs) + 1
+		variantPerKeyQuery := `
+SELECT kv.value, COUNT(DISTINCT l.id) as cnt
+FROM store_listings l
+JOIN stores s ON s.id = l.store_id
+CROSS JOIN LATERAL jsonb_each_text(COALESCE(l.variant_options, '{}'::jsonb)) AS kv(key, value)
+WHERE 1=1` + vWhere + `
+AND l.variant_options IS NOT NULL
+AND jsonb_typeof(l.variant_options) = 'object'
+AND trim(kv.value) <> ''
+AND lower(kv.key) = lower($` + fmt.Sprint(keyArg) + `)
+GROUP BY kv.value
+ORDER BY cnt DESC
+LIMIT 50`
+		vArgs = append(vArgs, vk)
+		vrows, err := db.pool.Query(ctx, variantPerKeyQuery, vArgs...)
+		if err != nil {
+			return nil, fmt.Errorf("facets variant options for %s: %w", vk, err)
+		}
+		var vals []VariantFacetValue
+		for vrows.Next() {
+			var v string
+			var c int
+			if err := vrows.Scan(&v, &c); err != nil {
+				vrows.Close()
+				return nil, err
+			}
+			vals = append(vals, VariantFacetValue{Value: v, Count: c})
+		}
+		vrows.Close()
+		if err := vrows.Err(); err != nil {
+			return nil, err
+		}
+		if len(vals) > 0 {
+			variantFacets = append(variantFacets, VariantFacet{Key: vk, Values: vals})
+		}
 	}
 
 	return &GetFacetsResult{
-		SpecFacets:      specFacets,
-		BrandFacets:     brandFacets,
-		VariantFacets:   variantFacets,
-		PriceRange:      priceRange,
-		TotalMatching:   totalMatching,
+		SpecFacets:    specFacets,
+		BrandFacets:   brandFacets,
+		VariantFacets: variantFacets,
+		PriceRange:    priceRange,
+		TotalMatching: totalMatching,
 	}, nil
+}
+
+// specFiltersOmit returns a copy of specFilters without the given key (for faceted spec value lists).
+func specFiltersOmit(specFilters map[string][]string, omitKey string) map[string][]string {
+	if omitKey == "" {
+		return specFilters
+	}
+	out := make(map[string][]string, len(specFilters))
+	for k, v := range specFilters {
+		if k == omitKey {
+			continue
+		}
+		out[k] = v
+	}
+	return out
+}
+
+// variantFiltersOmit returns a copy of filters without the given variant dimension (case-insensitive key match).
+func variantFiltersOmit(filters map[string]string, omitKey string) map[string]string {
+	if len(filters) == 0 || omitKey == "" {
+		return filters
+	}
+	out := make(map[string]string)
+	for k, v := range filters {
+		if strings.EqualFold(k, omitKey) {
+			continue
+		}
+		out[k] = v
+	}
+	if len(out) == len(filters) {
+		return filters
+	}
+	return out
 }
 
 // appendMetadataSpecFilterConditions appends AND clauses for spec filters on metadata.llm_specs
