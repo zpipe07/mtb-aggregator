@@ -3,7 +3,13 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { DEFAULT_PAGE_SIZE } from "../api";
-import type { Deal, Store, FacetsResponse, CategoryTreeNode } from "../api";
+import type {
+  Deal,
+  Store,
+  FacetsResponse,
+  CategoryTreeNode,
+  BrandFacet,
+} from "../api";
 import { useFilterParams } from "../hooks/useFilterParams";
 import {
   Toolbar,
@@ -20,7 +26,6 @@ type Props = {
   totalCount: number;
   facets: FacetsResponse;
   stores: Store[];
-  brands: string[];
   categoryTree: CategoryTreeNode[];
 };
 
@@ -29,7 +34,6 @@ export function DealsPageContent({
   totalCount,
   facets,
   stores,
-  brands,
   categoryTree,
 }: Props) {
   const router = useRouter();
@@ -98,8 +102,10 @@ export function DealsPageContent({
           })()
         : [];
       const label =
-        flat.find((x) => x.slug === categoryFilter)?.path?.split(" > ").pop() ??
-        categoryFilter;
+        flat
+          .find((x) => x.slug === categoryFilter)
+          ?.path?.split(" > ")
+          .pop() ?? categoryFilter;
       chips.push({
         key: "category",
         label: `Category: ${label}`,
@@ -151,9 +157,11 @@ export function DealsPageContent({
     setVariantFilter,
   ]);
 
+  const brandFacets: BrandFacet[] = facets.brand_facets ?? [];
+
   const filterSidebarProps = {
     stores,
-    brands,
+    brandFacets,
     categoryTree: categoryTree ?? undefined,
     storeFilter,
     brandFilter,

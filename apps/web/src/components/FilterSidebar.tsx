@@ -1,4 +1,6 @@
+import { useMemo } from "react";
 import type {
+  BrandFacet,
   SpecFacet,
   Store,
   VariantFacet,
@@ -29,7 +31,7 @@ function flattenCategoryTree(
 
 export type FilterSidebarProps = {
   stores: Store[];
-  brands: string[];
+  brandFacets: BrandFacet[];
   /** Structured category tree from API. Preferred over canonicalCategories. */
   categoryTree?: CategoryTreeNode[];
   /** Legacy: flat "Parent > Child" paths when tree not available */
@@ -55,7 +57,7 @@ export type FilterSidebarProps = {
 
 export function FilterSidebar({
   stores,
-  brands,
+  brandFacets,
   categoryTree,
   canonicalCategories = [],
   storeFilter,
@@ -82,10 +84,22 @@ export function FilterSidebar({
       label: `${s.name} (${s.deal_count})`,
     })),
   ];
-  const brandOptions = [
-    { value: "", label: "All brands" },
-    ...(brands ?? []).map((b) => ({ value: b, label: b })),
-  ];
+
+  const brandOptions = useMemo(() => {
+    const facetList = brandFacets ?? [];
+    const seen = new Set(facetList.map((b) => b.value));
+    const rows: BrandFacet[] =
+      brandFilter && !seen.has(brandFilter)
+        ? [{ value: brandFilter, count: 0 }, ...facetList]
+        : facetList;
+    return [
+      { value: "", label: "All brands" },
+      ...rows.map((b) => ({
+        value: b.value,
+        label: `${b.value} (${b.count})`,
+      })),
+    ];
+  }, [brandFacets, brandFilter]);
 
   const flat = categoryTree ? flattenCategoryTree(categoryTree) : [];
   const slugToPath = Object.fromEntries(flat.map((f) => [f.slug, f.path]));

@@ -280,15 +280,28 @@ func (db *DB) GetFacets(ctx context.Context, params GetFacetsParams) (*GetFacets
 		}
 	}
 
-	// Brand facets
+	// Brand facets — exclude brand filter so users can see/switch alternatives (faceted search).
+	brandParams := params
+	brandParams.Brand = ""
+	brandWhere, brandArgs := buildFacetsWhereClause(brandParams, specFiltersForWhere, true)
+	if brandWhere == "" {
+		brandWhere = " AND l.is_in_stock = true"
+	} else {
+		brandWhere = " AND l.is_in_stock = true" + brandWhere
+	}
+	brandBaseFrom := `
+		FROM store_listings l
+		JOIN stores s ON s.id = l.store_id
+		WHERE 1=1` + brandWhere
+
 	brandQuery := `
 		SELECT l.brand, COUNT(*) as cnt
-		` + baseFrom + `
+		` + brandBaseFrom + `
 		AND l.brand IS NOT NULL AND trim(l.brand) <> ''
 		GROUP BY l.brand
 		ORDER BY cnt DESC
 		LIMIT 50`
-	rows2, err := db.pool.Query(ctx, brandQuery, args...)
+	rows2, err := db.pool.Query(ctx, brandQuery, brandArgs...)
 	if err != nil {
 		return nil, fmt.Errorf("facets brands: %w", err)
 	}
