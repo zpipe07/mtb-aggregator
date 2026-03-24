@@ -3,9 +3,9 @@ import {
   fetchDeals,
   fetchFacets,
   fetchStores,
-  fetchBrands,
   fetchCategoryTree,
   DEFAULT_PAGE_SIZE,
+  type FacetsResponse,
 } from "@/api";
 import { parseFilterParamsFromSearch } from "../../../lib/filterParams";
 import { DealsPageContent } from "@/views/DealsPageContent";
@@ -61,23 +61,34 @@ export default async function DealsPage({ searchParams }: Props) {
     q: filterParams.searchQuery.trim() || undefined,
   };
 
-  const [dealsResponse, facetsResponse, stores, brands, categoryTree] =
+  /** When a brand is selected, fetch facets again without `brand` so `brand_facets` lists all brands for the rest of the filters (matches faceted UX; avoids relying on a single response when cache/proxy differs). */
+  const facetsForBrandOptionsPromise: Promise<FacetsResponse | null> =
+    filterParams.brandFilter
+      ? fetchFacets({ ...facetsParams, brand: undefined })
+      : Promise.resolve(null);
+
+  const [dealsResponse, facetsResponse, facetsForBrandOptions, stores, categoryTree] =
     await Promise.all([
       fetchDeals(dealsParams),
       fetchFacets(facetsParams),
+      facetsForBrandOptionsPromise,
       fetchStores(),
-      fetchBrands(),
       fetchCategoryTree(),
     ]);
 
   const deals = dealsResponse.deals ?? [];
   const totalCount = dealsResponse.total_count ?? 0;
-  const facets = facetsResponse ?? {
+  const facetsBase = facetsResponse ?? {
     spec_facets: [],
     brand_facets: [],
     variant_facets: [],
     price_range: { min: 0, max: 0 },
     total_matching: 0,
+  };
+  const facets = {
+    ...facetsBase,
+    brand_facets:
+      facetsForBrandOptions?.brand_facets ?? facetsBase.brand_facets,
   };
 
   return (
@@ -87,7 +98,6 @@ export default async function DealsPage({ searchParams }: Props) {
         totalCount={totalCount}
         facets={facets}
         stores={stores}
-        brands={brands}
         categoryTree={categoryTree}
       />
     </Suspense>
