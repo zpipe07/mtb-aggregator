@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import posthog from "posthog-js";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 
 type CategoryCardProps = {
@@ -10,7 +13,11 @@ type CategoryCardProps = {
 
 export function CategoryCard({ label, to, description, imageSrc }: CategoryCardProps) {
   return (
-    <Link href={to} className="block group">
+    <Link
+      href={to}
+      className="block group"
+      onClick={() => posthog.capture("category_clicked", { category: label, href: to })}
+    >
       <Card className="shadow-sm hover:shadow-md transition-all cursor-pointer overflow-hidden">
         {imageSrc && (
           <div className="aspect-[4/3] overflow-hidden bg-muted">
