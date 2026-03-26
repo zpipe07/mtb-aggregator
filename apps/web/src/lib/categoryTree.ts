@@ -47,18 +47,36 @@ function sortNodes(nodes: CategoryTreeNode[]): CategoryTreeNode[] {
   return [...nodes].sort((a, b) => a.sort_order - b.sort_order);
 }
 
+export type CategoryChipMode = "roots" | "children" | "siblings";
+
 /**
- * Nodes to show as chips: top-level roots when nothing selected;
- * otherwise direct children of the selected category.
+ * Chips for the category row:
+ * - **roots** — nothing selected: top-level categories.
+ * - **children** — current category has subcategories: show them (drill down).
+ * - **siblings** — current category is a leaf: show peers under the same parent
+ *   so users can switch without going up (highlight matches `categoryFilter`).
  */
-export function getBrowseChildNodes(
+export function getBrowseChipNodes(
   tree: CategoryTreeNode[],
   selectedSlug: string,
-): CategoryTreeNode[] {
+): { nodes: CategoryTreeNode[]; mode: CategoryChipMode } {
   if (!selectedSlug) {
-    return sortNodes(tree);
+    return { nodes: sortNodes(tree), mode: "roots" };
   }
-  const found = findCategoryBySlug(tree, selectedSlug);
-  if (!found?.children?.length) return [];
-  return sortNodes(found.children);
+  const found = findCategoryWithAncestors(tree, selectedSlug);
+  if (!found) {
+    return { nodes: sortNodes(tree), mode: "roots" };
+  }
+  const { node, ancestors } = found;
+  if (node.children?.length) {
+    return { nodes: sortNodes(node.children), mode: "children" };
+  }
+  if (ancestors.length === 0) {
+    return { nodes: sortNodes(tree), mode: "siblings" };
+  }
+  const parent = ancestors[ancestors.length - 1];
+  return {
+    nodes: sortNodes(parent.children ?? []),
+    mode: "siblings",
+  };
 }

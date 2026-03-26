@@ -1,7 +1,10 @@
 "use client";
 
 import type { CategoryTreeNode } from "../api";
-import { findCategoryWithAncestors, getBrowseChildNodes } from "../lib/categoryTree";
+import {
+  findCategoryWithAncestors,
+  getBrowseChipNodes,
+} from "../lib/categoryTree";
 import { Button } from "./ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { cn } from "@/lib/utils";
@@ -32,11 +35,23 @@ export function DealsCategoryNav({
   const resolved = categoryFilter
     ? findCategoryWithAncestors(categoryTree, categoryFilter)
     : null;
-  const chips = getBrowseChildNodes(categoryTree, categoryFilter);
+  const { nodes: chips, mode: chipMode } = getBrowseChipNodes(
+    categoryTree,
+    categoryFilter,
+  );
+  const chipSectionLabel =
+    chipMode === "roots"
+      ? "Browse by type"
+      : chipMode === "children"
+        ? "Subcategories"
+        : "Related categories";
 
   return (
     <nav aria-label="Category" className="mb-4">
-      <Card size="sm" className="gap-3 py-3">
+      <Card
+        // size="sm"
+        className="gap-1 py-2"
+      >
         <CardHeader className="px-4 pb-0 pt-0">
           <CardTitle className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
             Category
@@ -44,17 +59,19 @@ export function DealsCategoryNav({
         </CardHeader>
         <CardContent className="space-y-3 px-4 pb-1 pt-0">
           {!categoryFilter ? (
-            <p className="text-sm font-medium text-foreground">All deals</p>
+            <p className="text-sm font-medium text-foreground min-h-9 flex items-center">
+              All deals
+            </p>
           ) : (
             <ol className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm">
               <li className="flex min-h-9 items-center">
                 <Button
                   type="button"
                   variant="link"
-                  className="h-auto min-h-9 px-0 py-1 text-primary underline-offset-4 hover:underline"
+                  className="h-auto min-h-9 px-0 py-1 text-primary underline-offset-4 hover:underline border-none"
                   onClick={() => onCategoryChange("", "all_clear")}
                 >
-                  All
+                  All deals
                 </Button>
               </li>
               {resolved ? (
@@ -101,9 +118,9 @@ export function DealsCategoryNav({
           {chips.length > 0 && (
             <div className="space-y-2">
               <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                {categoryFilter ? "Subcategories" : "Browse by type"}
+                {chipSectionLabel}
               </p>
-              <div className="-mx-1 flex gap-2 overflow-x-auto pb-1">
+              <div className="-mx-1 flex flex-wrap gap-2 overflow-x-auto pb-1">
                 {chips.map((node) => {
                   const selected = node.slug === categoryFilter;
                   return (
@@ -118,9 +135,7 @@ export function DealsCategoryNav({
                       )}
                       disabled={selected}
                       aria-current={selected ? "true" : undefined}
-                      onClick={() =>
-                        onCategoryChange(node.slug, "chip")
-                      }
+                      onClick={() => onCategoryChange(node.slug, "chip")}
                     >
                       {node.name}
                     </Button>
