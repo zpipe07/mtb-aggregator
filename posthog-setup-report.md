@@ -23,7 +23,7 @@ The wizard has completed a deep integration of PostHog analytics into The Droppe
 |-------|-------------|------|
 | `search_submitted` | User submits a search query from the home page hero search form | `apps/web/src/views/HomePageContent.tsx` |
 | `category_clicked` | User clicks a category card on the home page to browse deals by category | `apps/web/src/components/CategoryCard.tsx` |
-| `filter_applied` | User applies a filter (store, brand, category, min_discount, spec, variant) on the deals page | `apps/web/src/views/DealsPageContent.tsx` |
+| `filter_applied` | User applies a filter (store, brand, category, min_discount, spec, variant) on the deals page. For **category**, properties include `nav_source` (`breadcrumb` \| `chip` \| `all_clear`), `category_slug` (when set), and `value` (slug or empty) | `apps/web/src/views/DealsPageContent.tsx` |
 | `sort_changed` | User changes the sort order on the deals page | `apps/web/src/components/Toolbar.tsx` |
 | `deal_detail_viewed` | User opens the deal detail page — top of store-referral funnel | `apps/web/src/app/(public)/deals/[id]/DealDetailContent.tsx` |
 | `deals_paginated` | User navigates to a new page of results | `apps/web/src/views/DealsPageContent.tsx` |
