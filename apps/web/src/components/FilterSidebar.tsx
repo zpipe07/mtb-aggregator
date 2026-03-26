@@ -1,4 +1,6 @@
+import { useMemo } from "react";
 import type {
+  BrandFacet,
   SpecFacet,
   Store,
   VariantFacet,
@@ -10,6 +12,17 @@ import { FilterInput } from "./FilterInput";
 import { CategoryDrillDown } from "./CategoryDrillDown";
 import { Select } from "./ui/select";
 import { Button } from "./ui/button";
+
+/** If the URL has a selected value not present in facet values (stale bookmark), show it so the user can clear or change. */
+function mergeSelectedFacetValue<T extends { value: string; count: number }>(
+  values: T[],
+  selected: string | undefined,
+): T[] {
+  if (!selected) return values;
+  const seen = new Set(values.map((v) => v.value));
+  if (seen.has(selected)) return values;
+  return [{ value: selected, count: 0 } as T, ...values];
+}
 
 /** Flatten tree to { slug, path } for drill-down options. Path = "Parent > Child" for display. */
 function flattenCategoryTree(
@@ -29,7 +42,7 @@ function flattenCategoryTree(
 
 export type FilterSidebarProps = {
   stores: Store[];
-  brands: string[];
+  brandFacets: BrandFacet[];
   /** Structured category tree from API. Preferred over canonicalCategories. */
   categoryTree?: CategoryTreeNode[];
   /** Legacy: flat "Parent > Child" paths when tree not available */
@@ -55,7 +68,7 @@ export type FilterSidebarProps = {
 
 export function FilterSidebar({
   stores,
-  brands,
+  brandFacets,
   categoryTree,
   canonicalCategories = [],
   storeFilter,
@@ -82,10 +95,22 @@ export function FilterSidebar({
       label: `${s.name} (${s.deal_count})`,
     })),
   ];
-  const brandOptions = [
-    { value: "", label: "All brands" },
-    ...(brands ?? []).map((b) => ({ value: b, label: b })),
-  ];
+
+  const brandOptions = useMemo(() => {
+    const facetList = brandFacets ?? [];
+    const seen = new Set(facetList.map((b) => b.value));
+    const rows: BrandFacet[] =
+      brandFilter && !seen.has(brandFilter)
+        ? [{ value: brandFilter, count: 0 }, ...facetList]
+        : facetList;
+    return [
+      { value: "", label: "All brands" },
+      ...rows.map((b) => ({
+        value: b.value,
+        label: `${b.value} (${b.count})`,
+      })),
+    ];
+  }, [brandFacets, brandFilter]);
 
   const flat = categoryTree ? flattenCategoryTree(categoryTree) : [];
   const slugToPath = Object.fromEntries(flat.map((f) => [f.slug, f.path]));
@@ -130,7 +155,12 @@ export function FilterSidebar({
 
       {categoryFilter && specFacets.length > 0 && (
         <div className="space-y-4 border-t border-border pt-4">
-          {specFacets.map((facet) => (
+          {specFacets.map((facet) => {
+            const specValueOptions = mergeSelectedFacetValue(
+              facet.values,
+              specFilters[facet.key],
+            );
+            return (
             <div key={facet.key}>
               <label className="block text-sm font-medium text-muted-foreground mb-1.5">
                 {facet.label}
@@ -141,7 +171,7 @@ export function FilterSidebar({
                 className="w-full"
               >
                 <option value="">Any {facet.label.toLowerCase()}</option>
-                {facet.values.map((v) => (
+                {specValueOptions.map((v) => (
                   <option key={v.value} value={v.value}>
                     {v.value} ({v.count})
                   </option>
@@ -159,7 +189,8 @@ export function FilterSidebar({
                 </Button>
               )}
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
@@ -168,7 +199,12 @@ export function FilterSidebar({
           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
             Variants
           </p>
-          {variantFacets.map((facet) => (
+          {variantFacets.map((facet) => {
+            const variantValueOptions = mergeSelectedFacetValue(
+              facet.values,
+              variantFilters[facet.key],
+            );
+            return (
             <div key={facet.key}>
               <label className="block text-sm font-medium text-muted-foreground mb-1.5">
                 {facet.key}
@@ -181,7 +217,7 @@ export function FilterSidebar({
                 className="w-full"
               >
                 <option value="">Any {facet.key.toLowerCase()}</option>
-                {facet.values.map((v: VariantFacetValue) => (
+                {variantValueOptions.map((v: VariantFacetValue) => (
                   <option key={v.value} value={v.value}>
                     {v.value} ({v.count})
                   </option>
@@ -199,7 +235,8 @@ export function FilterSidebar({
                 </Button>
               )}
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

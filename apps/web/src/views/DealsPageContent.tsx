@@ -4,7 +4,13 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import posthog from "posthog-js";
 import { DEFAULT_PAGE_SIZE } from "../api";
-import type { Deal, Store, FacetsResponse, CategoryTreeNode } from "../api";
+import type {
+  Deal,
+  Store,
+  FacetsResponse,
+  CategoryTreeNode,
+  BrandFacet,
+} from "../api";
 import { useFilterParams } from "../hooks/useFilterParams";
 import {
   Toolbar,
@@ -21,7 +27,6 @@ type Props = {
   totalCount: number;
   facets: FacetsResponse;
   stores: Store[];
-  brands: string[];
   categoryTree: CategoryTreeNode[];
 };
 
@@ -30,7 +35,6 @@ export function DealsPageContent({
   totalCount,
   facets,
   stores,
-  brands,
   categoryTree,
 }: Props) {
   const router = useRouter();
@@ -99,8 +103,10 @@ export function DealsPageContent({
           })()
         : [];
       const label =
-        flat.find((x) => x.slug === categoryFilter)?.path?.split(" > ").pop() ??
-        categoryFilter;
+        flat
+          .find((x) => x.slug === categoryFilter)
+          ?.path?.split(" > ")
+          .pop() ?? categoryFilter;
       chips.push({
         key: "category",
         label: `Category: ${label}`,
@@ -153,27 +159,41 @@ export function DealsPageContent({
   ]);
 
   const handleStoreChange = (value: string) => {
-    if (value) posthog.capture("filter_applied", { filter_type: "store", value });
+    if (value)
+      posthog.capture("filter_applied", { filter_type: "store", value });
     setStoreFilter(value);
   };
   const handleBrandChange = (value: string) => {
-    if (value) posthog.capture("filter_applied", { filter_type: "brand", value });
+    if (value)
+      posthog.capture("filter_applied", { filter_type: "brand", value });
     setBrandFilter(value);
   };
   const handleCategoryChange = (value: string) => {
-    if (value) posthog.capture("filter_applied", { filter_type: "category", value });
+    if (value)
+      posthog.capture("filter_applied", { filter_type: "category", value });
     setCategoryFilter(value);
   };
   const handleMinDiscountChange = (value: string) => {
-    if (value) posthog.capture("filter_applied", { filter_type: "min_discount", value });
+    if (value)
+      posthog.capture("filter_applied", { filter_type: "min_discount", value });
     setMinDiscount(value);
   };
   const handleSpecFilterChange = (key: string, value: string) => {
-    if (value) posthog.capture("filter_applied", { filter_type: "spec", spec_key: key, value });
+    if (value)
+      posthog.capture("filter_applied", {
+        filter_type: "spec",
+        spec_key: key,
+        value,
+      });
     setSpecFilter(key, value);
   };
   const handleVariantFilterChange = (key: string, value: string) => {
-    if (value) posthog.capture("filter_applied", { filter_type: "variant", variant_key: key, value });
+    if (value)
+      posthog.capture("filter_applied", {
+        filter_type: "variant",
+        variant_key: key,
+        value,
+      });
     setVariantFilter(key, value);
   };
   const handleClearAllFilters = () => {
@@ -191,10 +211,11 @@ export function DealsPageContent({
     posthog.capture("filter_drawer_opened");
     setFilterDrawerOpen(true);
   };
+  const brandFacets: BrandFacet[] = facets.brand_facets ?? [];
 
   const filterSidebarProps = {
     stores,
-    brands,
+    brandFacets,
     categoryTree: categoryTree ?? undefined,
     storeFilter,
     brandFilter,
@@ -239,7 +260,10 @@ export function DealsPageContent({
             activeFilterCount={activeFilterCount}
           />
 
-          <FilterChips filters={activeFilters} onClearAll={handleClearAllFilters} />
+          <FilterChips
+            filters={activeFilters}
+            onClearAll={handleClearAllFilters}
+          />
 
           <p className="text-sm text-muted-foreground mb-4">
             {totalCount === 0
@@ -285,7 +309,6 @@ export function DealsPageContent({
         isOpen={filterDrawerOpen}
         onClose={() => setFilterDrawerOpen(false)}
       />
-
     </div>
   );
 }
