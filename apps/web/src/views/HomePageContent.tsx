@@ -2,6 +2,7 @@
 
 import { useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import posthog from "posthog-js";
 import Link from "next/link";
 import { SearchBar } from "../components/SearchBar";
 import { DealGrid } from "../components/DealGrid";
@@ -60,6 +61,7 @@ export function HomePageContent({ categoryTree, topDeals }: Props) {
     e.preventDefault();
     const q = searchValue.trim();
     if (q) {
+      posthog.capture("search_submitted", { query: q });
       router.push(`/deals?q=${encodeURIComponent(q)}`);
     } else {
       router.push("/deals");

@@ -1,3 +1,6 @@
+"use client";
+
+import posthog from "posthog-js";
 import type { SortOption } from "../hooks/useFilterParams";
 import { SearchBar } from "./SearchBar";
 import { Select } from "./ui/select";
@@ -76,7 +79,11 @@ export function Toolbar({
           <Select
             id="sort-select"
             value={sort}
-            onChange={(e) => onSortChange(e.target.value as SortOption)}
+            onChange={(e) => {
+              const value = e.target.value as SortOption;
+              posthog.capture("sort_changed", { sort: value });
+              onSortChange(value);
+            }}
             className="min-w-[10rem]"
           >
             {sortOptions.map((opt) => (

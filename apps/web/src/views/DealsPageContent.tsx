@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import posthog from "posthog-js";
 import { DEFAULT_PAGE_SIZE } from "../api";
 import type { Deal, Store, FacetsResponse, CategoryTreeNode } from "../api";
 import { useFilterParams } from "../hooks/useFilterParams";
@@ -151,6 +152,46 @@ export function DealsPageContent({
     setVariantFilter,
   ]);
 
+  const handleStoreChange = (value: string) => {
+    if (value) posthog.capture("filter_applied", { filter_type: "store", value });
+    setStoreFilter(value);
+  };
+  const handleBrandChange = (value: string) => {
+    if (value) posthog.capture("filter_applied", { filter_type: "brand", value });
+    setBrandFilter(value);
+  };
+  const handleCategoryChange = (value: string) => {
+    if (value) posthog.capture("filter_applied", { filter_type: "category", value });
+    setCategoryFilter(value);
+  };
+  const handleMinDiscountChange = (value: string) => {
+    if (value) posthog.capture("filter_applied", { filter_type: "min_discount", value });
+    setMinDiscount(value);
+  };
+  const handleSpecFilterChange = (key: string, value: string) => {
+    if (value) posthog.capture("filter_applied", { filter_type: "spec", spec_key: key, value });
+    setSpecFilter(key, value);
+  };
+  const handleVariantFilterChange = (key: string, value: string) => {
+    if (value) posthog.capture("filter_applied", { filter_type: "variant", variant_key: key, value });
+    setVariantFilter(key, value);
+  };
+  const handleClearAllFilters = () => {
+    posthog.capture("filters_cleared");
+    clearAllFilters();
+  };
+  const handlePageChange = (newOffset: number) => {
+    posthog.capture("deals_paginated", {
+      page: Math.floor(newOffset / DEFAULT_PAGE_SIZE) + 1,
+      offset: newOffset,
+    });
+    setOffset(newOffset);
+  };
+  const handleFilterDrawerOpen = () => {
+    posthog.capture("filter_drawer_opened");
+    setFilterDrawerOpen(true);
+  };
+
   const filterSidebarProps = {
     stores,
     brands,
@@ -163,13 +204,13 @@ export function DealsPageContent({
     variantFilters,
     specFacets: facets?.spec_facets ?? [],
     variantFacets: facets?.variant_facets ?? [],
-    onStoreChange: setStoreFilter,
-    onBrandChange: setBrandFilter,
-    onCategoryChange: setCategoryFilter,
-    onMinDiscountChange: setMinDiscount,
-    onSpecFilterChange: setSpecFilter,
+    onStoreChange: handleStoreChange,
+    onBrandChange: handleBrandChange,
+    onCategoryChange: handleCategoryChange,
+    onMinDiscountChange: handleMinDiscountChange,
+    onSpecFilterChange: handleSpecFilterChange,
     onClearSpecFilter: clearSpecFilter,
-    onVariantFilterChange: setVariantFilter,
+    onVariantFilterChange: handleVariantFilterChange,
     onClearVariantFilter: clearVariantFilter,
   };
 
@@ -194,11 +235,11 @@ export function DealsPageContent({
             sort={sort}
             onSortChange={setSort}
             searchQuery={searchQuery}
-            onFilterClick={() => setFilterDrawerOpen(true)}
+            onFilterClick={handleFilterDrawerOpen}
             activeFilterCount={activeFilterCount}
           />
 
-          <FilterChips filters={activeFilters} onClearAll={clearAllFilters} />
+          <FilterChips filters={activeFilters} onClearAll={handleClearAllFilters} />
 
           <p className="text-sm text-muted-foreground mb-4">
             {totalCount === 0
@@ -212,7 +253,7 @@ export function DealsPageContent({
                 totalCount={totalCount}
                 limit={DEFAULT_PAGE_SIZE}
                 offset={offset}
-                onPageChange={setOffset}
+                onPageChange={handlePageChange}
               />
             </div>
           )}
@@ -232,7 +273,7 @@ export function DealsPageContent({
                 totalCount={totalCount}
                 limit={DEFAULT_PAGE_SIZE}
                 offset={offset}
-                onPageChange={setOffset}
+                onPageChange={handlePageChange}
               />
             </div>
           )}
@@ -244,6 +285,7 @@ export function DealsPageContent({
         isOpen={filterDrawerOpen}
         onClose={() => setFilterDrawerOpen(false)}
       />
+
     </div>
   );
 }

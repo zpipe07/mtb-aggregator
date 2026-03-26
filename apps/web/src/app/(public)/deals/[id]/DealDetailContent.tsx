@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
 import {
   LineChart,
@@ -11,6 +12,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { track } from "@vercel/analytics";
+import posthog from "posthog-js";
 import type { Deal } from "@/api";
 import type { PriceHistoryResponse } from "@/api";
 import { cn } from "@/lib/utils";
@@ -58,6 +60,17 @@ export function DealDetailContent({ deal, priceHistory }: Props) {
       ...p,
       dateLabel: formatAxisDate(p.recorded_at),
     })) ?? [];
+
+  useEffect(() => {
+    posthog.capture("deal_detail_viewed", {
+      deal_id: deal.id,
+      store: deal.store_name,
+      brand: deal.brand ?? "",
+      current_price: deal.current_price,
+      discount_pct: discountPct,
+      price_dropped: priceHistory?.price_dropped ?? false,
+    });
+  }, []);
 
   return (
     <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8">
