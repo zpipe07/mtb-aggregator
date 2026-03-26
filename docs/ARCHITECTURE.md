@@ -122,11 +122,11 @@ High-level components (DealCard, CategoryCard, Pagination, SearchBar, FilterInpu
 
 The web app uses [Vercel Web Analytics](https://vercel.com/docs/analytics) via `@vercel/analytics`. Enable Web Analytics in the Vercel project dashboard (Analytics → Enable) after deploying. Page views and visitors are tracked automatically.
 
-**Custom events** (require Vercel Pro or an alternative such as PostHog) are wired via `track()` in [DealCard](apps/web/src/components/DealCard.tsx), [DealDetailModal](apps/web/src/components/DealDetailModal.tsx), [DealFilters](apps/web/src/components/DealFilters.tsx), and [SearchBar](apps/web/src/components/SearchBar.tsx):
+**Custom events** (require Vercel Pro or an alternative such as PostHog) are wired via `track()` and/or `posthog.capture()` in [DealCard](apps/web/src/components/DealCard.tsx), [DealDetailModal](apps/web/src/components/DealDetailModal.tsx), [DealFilters](apps/web/src/components/DealFilters.tsx), [SearchBar](apps/web/src/components/SearchBar.tsx), [DealsPageContent](apps/web/src/views/DealsPageContent.tsx), and related components:
 
 - `deal_card_click` — user opens deal modal (deal_id, store, brand)
 - `view_deal` / `view_at_store` — user clicks through to retailer (deal_id, store, brand)
-- `filter_applied` — store, brand, category, sort, min_discount, or spec (type, value)
+- `filter_applied` — store, brand, category, sort, min_discount, or spec (type, value). For **category**, PostHog also sends `nav_source` (`breadcrumb` | `chip` | `all_clear`) and `category_slug` when applicable
 - `search` — search query (debounced)
 
 See [.cursor/plans/website_analytics_plan_f835d1a0.plan.md](../.cursor/plans/website_analytics_plan_f835d1a0.plan.md) for details and alternatives.

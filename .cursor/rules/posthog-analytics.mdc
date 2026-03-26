@@ -1,0 +1,33 @@
+---
+description: When changing product behavior, verify PostHog events and dashboards stay accurate
+alwaysApply: true
+---
+
+# PostHog / product analytics
+
+When you change **user-visible behavior**, **navigation**, **filters**, **search**, **conversion paths**, or **anything already instrumented with `posthog.capture`**, treat analytics as part of the same change.
+
+## Before finishing a change, check
+
+1. **Search the repo** for `posthog.capture` and `posthog.` in the area you touched (especially [`apps/web/`](apps/web/)).
+2. **Decide** whether to:
+   - add or rename an event,
+   - add structured properties (prefer stable names; document breaking renames),
+   - keep an existing event for funnel continuity and only extend properties, or
+   - intentionally leave analytics unchanged (rare; note in PR if so).
+3. **Update docs** if event contracts or recommended dashboards change: [`apps/web/README.md`](apps/web/README.md) (web app), and/or [`posthog-setup-report.md`](posthog-setup-report.md) if you maintain a project-level event table there.
+4. **PostHog app** (optional but ideal): add or adjust insights/dashboards when new events or properties matter for monitoring.
+
+## Hot spots in this repo
+
+- Client init: [`apps/web/src/instrumentation-client.ts`](apps/web/src/instrumentation-client.ts)
+- Deals filters and navigation: [`apps/web/src/views/DealsPageContent.tsx`](apps/web/src/views/DealsPageContent.tsx)
+- Home search: [`apps/web/src/views/HomePageContent.tsx`](apps/web/src/views/HomePageContent.tsx)
+- Category cards: [`apps/web/src/components/CategoryCard.tsx`](apps/web/src/components/CategoryCard.tsx)
+- Deal detail: [`apps/web/src/app/(public)/deals/[id]/DealDetailContent.tsx`](apps/web/src/app/(public)/deals/[id]/DealDetailContent.tsx)
+- Toolbar sort: [`apps/web/src/components/Toolbar.tsx`](apps/web/src/components/Toolbar.tsx)
+
+## Conventions
+
+- Prefer **one event name** with **discriminating properties** (e.g. `filter_type`, `nav_source`) over many near-duplicate event names, unless Product explicitly wants separate event types in PostHog.
+- Avoid high-cardinality properties (e.g. raw search strings) unless needed; follow existing patterns in the codebase.

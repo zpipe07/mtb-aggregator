@@ -20,6 +20,8 @@ import {
   DealGrid,
   Pagination,
   EmptyState,
+  DealsCategoryNav,
+  type CategoryNavSource,
 } from "../components";
 
 type Props = {
@@ -66,8 +68,7 @@ export function DealsPageContent({
   } = filterParams;
 
   const activeFilterCount =
-    [storeFilter, brandFilter, categoryFilter, minDiscount].filter(Boolean)
-      .length +
+    [storeFilter, brandFilter, minDiscount].filter(Boolean).length +
     Object.values(specFilters).filter(Boolean).length +
     Object.values(variantFilters).filter(Boolean).length;
 
@@ -85,32 +86,6 @@ export function DealsPageContent({
         key: "brand",
         label: `Brand: ${brandFilter}`,
         onRemove: () => setBrandFilter(""),
-      });
-    }
-    if (categoryFilter) {
-      const flat = categoryTree
-        ? (() => {
-            const r: { slug: string; path: string }[] = [];
-            function f(t: typeof categoryTree, p = "") {
-              for (const n of t) {
-                const path = p ? `${p} > ${n.name}` : n.name;
-                r.push({ slug: n.slug, path });
-                if (n.children?.length) f(n.children, path);
-              }
-            }
-            f(categoryTree);
-            return r;
-          })()
-        : [];
-      const label =
-        flat
-          .find((x) => x.slug === categoryFilter)
-          ?.path?.split(" > ")
-          .pop() ?? categoryFilter;
-      chips.push({
-        key: "category",
-        label: `Category: ${label}`,
-        onRemove: () => setCategoryFilter(""),
       });
     }
     if (minDiscount) {
@@ -144,15 +119,12 @@ export function DealsPageContent({
   }, [
     storeFilter,
     brandFilter,
-    categoryFilter,
-    categoryTree,
     minDiscount,
     specFilters,
     variantFilters,
     facets?.spec_facets,
     setStoreFilter,
     setBrandFilter,
-    setCategoryFilter,
     setMinDiscount,
     setSpecFilter,
     setVariantFilter,
@@ -168,9 +140,14 @@ export function DealsPageContent({
       posthog.capture("filter_applied", { filter_type: "brand", value });
     setBrandFilter(value);
   };
-  const handleCategoryChange = (value: string) => {
-    if (value)
-      posthog.capture("filter_applied", { filter_type: "category", value });
+  const handleCategoryChange = (value: string, navSource: CategoryNavSource) => {
+    if (value === categoryFilter) return;
+    posthog.capture("filter_applied", {
+      filter_type: "category",
+      value: value || "",
+      nav_source: navSource,
+      ...(value ? { category_slug: value } : {}),
+    });
     setCategoryFilter(value);
   };
   const handleMinDiscountChange = (value: string) => {
@@ -216,7 +193,6 @@ export function DealsPageContent({
   const filterSidebarProps = {
     stores,
     brandFacets,
-    categoryTree: categoryTree ?? undefined,
     storeFilter,
     brandFilter,
     categoryFilter,
@@ -227,7 +203,6 @@ export function DealsPageContent({
     variantFacets: facets?.variant_facets ?? [],
     onStoreChange: handleStoreChange,
     onBrandChange: handleBrandChange,
-    onCategoryChange: handleCategoryChange,
     onMinDiscountChange: handleMinDiscountChange,
     onSpecFilterChange: handleSpecFilterChange,
     onClearSpecFilter: clearSpecFilter,
@@ -258,6 +233,12 @@ export function DealsPageContent({
             searchQuery={searchQuery}
             onFilterClick={handleFilterDrawerOpen}
             activeFilterCount={activeFilterCount}
+          />
+
+          <DealsCategoryNav
+            categoryTree={categoryTree}
+            categoryFilter={categoryFilter}
+            onCategoryChange={handleCategoryChange}
           />
 
           <FilterChips
