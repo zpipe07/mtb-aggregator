@@ -1,7 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useMemo, useState } from "react";
 import posthog from "posthog-js";
 import { DEFAULT_PAGE_SIZE } from "../api";
 import type {
@@ -14,6 +13,7 @@ import type {
 import { useFilterParams } from "../hooks/useFilterParams";
 import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { buildDealDetailHref } from "@/lib/dealsBackHref";
 import {
   Toolbar,
   FilterSidebar,
@@ -32,6 +32,8 @@ type Props = {
   facets: FacetsResponse;
   stores: Store[];
   categoryTree: CategoryTreeNode[];
+  /** Current `/deals` URL (path + query) so deal cards preserve filters on detail → back. */
+  dealsListPath: string;
 };
 
 export function DealsPageContent({
@@ -40,10 +42,9 @@ export function DealsPageContent({
   facets,
   stores,
   categoryTree,
+  dealsListPath,
 }: Props) {
-  const router = useRouter();
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
-  const [isNavPending, startNavTransition] = useTransition();
 
   const filterParams = useFilterParams();
   const {
@@ -71,7 +72,7 @@ export function DealsPageContent({
     clearAllFilters,
   } = filterParams;
 
-  const resultsPending = isFilterPending || isNavPending;
+  const resultsPending = isFilterPending;
 
   const activeFilterCount =
     [storeFilter, brandFilter, minDiscount].filter(Boolean).length +
@@ -291,9 +292,7 @@ export function DealsPageContent({
               {deals.length > 0 ? (
                 <DealGrid
                   deals={deals}
-                  onSelectDeal={(d) =>
-                    startNavTransition(() => router.push(`/deals/${d.id}`))
-                  }
+                  getHref={(d) => buildDealDetailHref(d.id, dealsListPath)}
                 />
               ) : (
                 <EmptyState />

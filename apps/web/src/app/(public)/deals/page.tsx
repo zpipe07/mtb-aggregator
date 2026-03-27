@@ -7,6 +7,7 @@ import {
   type FacetsResponse,
 } from "@/api";
 import { parseFilterParamsFromSearch } from "../../../lib/filterParams";
+import { searchParamsRecordToDealsListPath } from "@/lib/dealsBackHref";
 import { DealsPageContent } from "@/views/DealsPageContent";
 
 export const revalidate = 60;
@@ -89,6 +90,8 @@ export default async function DealsPage({ searchParams }: Props) {
       facetsForBrandOptions?.brand_facets ?? facetsBase.brand_facets,
   };
 
+  const dealsListPath = searchParamsRecordToDealsListPath(params);
+
   return (
     <DealsPageContent
       deals={deals}
@@ -96,6 +99,7 @@ export default async function DealsPage({ searchParams }: Props) {
       facets={facets}
       stores={stores}
       categoryTree={categoryTree}
+      dealsListPath={dealsListPath}
     />
   );
 }

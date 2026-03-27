@@ -42,9 +42,15 @@ function formatAxisDate(iso: string) {
 type Props = {
   deal: Deal;
   priceHistory?: PriceHistoryResponse | null;
+  /** Preserves `/deals` query when opening a deal from the filtered list (`?from=`). */
+  backToDealsHref?: string;
 };
 
-export function DealDetailContent({ deal, priceHistory }: Props) {
+export function DealDetailContent({
+  deal,
+  priceHistory,
+  backToDealsHref = "/deals",
+}: Props) {
   const viewUrl = deal.affiliate_url || deal.product_url;
   const discountPct =
     deal.discount_pct != null
@@ -75,7 +81,7 @@ export function DealDetailContent({ deal, priceHistory }: Props) {
   return (
     <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8">
       <Link
-        href="/deals"
+        href={backToDealsHref}
         className="text-sm text-muted-foreground hover:text-foreground mb-6 inline-block"
       >
         ← Back to deals

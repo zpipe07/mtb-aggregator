@@ -7,8 +7,7 @@ import Link from "next/link";
 import { SearchBar } from "../components/SearchBar";
 import { DealGrid } from "../components/DealGrid";
 import { CategoryCard } from "../components/CategoryCard";
-import { CategoryTreeNode } from "../api";
-import type { Deal } from "../api";
+import { CategoryTreeNode, type Deal } from "../api";
 import { Button } from "../components/ui/button";
 
 /** Slug-to-image mapping for root category cards. Images in public/. */
@@ -130,9 +129,7 @@ export function HomePageContent({ categoryTree, topDeals }: Props) {
         {topDeals.length > 0 ? (
           <DealGrid
             deals={topDeals}
-            onSelectDeal={(deal) =>
-              startTransition(() => router.push(`/deals/${deal.id}`))
-            }
+            getHref={(deal) => `/deals/${deal.id}`}
           />
         ) : (
           <p className="text-muted-foreground py-8">No deals available right now.</p>

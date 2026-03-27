@@ -1,11 +1,13 @@
 import { notFound } from "next/navigation";
 import { fetchDeal, fetchPriceHistory } from "@/api";
+import { sanitizeDealsListBackHref } from "@/lib/dealsBackHref";
 import { DealDetailContent } from "./DealDetailContent";
 
 export const revalidate = 60;
 
 type Props = {
   params: Promise<{ id: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
 export async function generateMetadata({ params }: Props) {
@@ -23,10 +25,18 @@ export async function generateMetadata({ params }: Props) {
   }
 }
 
-export default async function DealPage({ params }: Props) {
-  const { id } = await params;
+export default async function DealPage({ params, searchParams }: Props) {
+  const [{ id }, sp] = await Promise.all([params, searchParams]);
   const dealId = parseInt(id, 10);
   if (isNaN(dealId)) notFound();
+
+  const fromRaw =
+    typeof sp.from === "string"
+      ? sp.from
+      : Array.isArray(sp.from)
+        ? sp.from[0]
+        : undefined;
+  const backToDealsHref = sanitizeDealsListBackHref(fromRaw);
 
   const [deal, priceHistory] = await Promise.all([
     fetchDeal(dealId),
@@ -39,6 +49,7 @@ export default async function DealPage({ params }: Props) {
     <DealDetailContent
       deal={deal}
       priceHistory={priceHistory ?? undefined}
+      backToDealsHref={backToDealsHref}
     />
   );
 }
