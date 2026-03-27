@@ -14,6 +14,7 @@ React frontend for the MTB deal aggregator. Built with Next.js 15 (App Router), 
 ## Features
 
 - **SSR/ISR** — Home, deals list, and deal detail pages are server-rendered for SEO
+- **Navigation feedback** — Route-level `loading.tsx` skeletons for cross-route navigations; on `/deals`, same-route URL updates (filters, sort, pagination, toolbar search) wrap `router.replace` in `useTransition` and show a dimmed results area with a spinner until the RSC payload arrives
 - **Deals filters** — Brand options on `/deals` come from `GET /facets` `brand_facets` (scoped to category and other filters), not the global `/brands` list
 - **Deals categories** — Category selection is **above** the product grid (`DealsCategoryNav`): breadcrumbs (All + ancestors) and a chip row that shows **subcategories** when the current category has children (drill down), or **sibling** categories when it is a leaf (so users can switch peers without going up). At the site root with no category selected, chips list top-level categories. Store, brand, discount, and spec/variant filters are only in the **sidebar** (desktop) or **filter drawer** (mobile). URL state remains `?category=<slug>` via existing filter params
 - **Dark mode** — Toggle in nav header; defaults to system preference (`prefers-color-scheme`), persists choice in `localStorage`

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, FormEvent } from "react";
+import { useState, FormEvent, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import posthog from "posthog-js";
 import Link from "next/link";
@@ -54,6 +54,7 @@ type Props = {
 export function HomePageContent({ categoryTree, topDeals }: Props) {
   const router = useRouter();
   const [searchValue, setSearchValue] = useState("");
+  const [isPending, startTransition] = useTransition();
 
   const categoryCards = buildCategoryCards(categoryTree);
 
@@ -62,10 +63,14 @@ export function HomePageContent({ categoryTree, topDeals }: Props) {
     const q = searchValue.trim();
     if (q) {
       posthog.capture("search_submitted", { query: q });
-      router.push(`/deals?q=${encodeURIComponent(q)}`);
-    } else {
-      router.push("/deals");
     }
+    startTransition(() => {
+      if (q) {
+        router.push(`/deals?q=${encodeURIComponent(q)}`);
+      } else {
+        router.push("/deals");
+      }
+    });
   };
 
   return (
@@ -85,7 +90,9 @@ export function HomePageContent({ categoryTree, topDeals }: Props) {
               onChange={setSearchValue}
               placeholder="Search deals…"
             />
-            <Button type="submit">Search</Button>
+            <Button type="submit" disabled={isPending}>
+              {isPending ? "Searching…" : "Search"}
+            </Button>
           </div>
         </form>
       </section>
@@ -123,7 +130,9 @@ export function HomePageContent({ categoryTree, topDeals }: Props) {
         {topDeals.length > 0 ? (
           <DealGrid
             deals={topDeals}
-            onSelectDeal={(deal) => router.push(`/deals/${deal.id}`)}
+            onSelectDeal={(deal) =>
+              startTransition(() => router.push(`/deals/${deal.id}`))
+            }
           />
         ) : (
           <p className="text-muted-foreground py-8">No deals available right now.</p>

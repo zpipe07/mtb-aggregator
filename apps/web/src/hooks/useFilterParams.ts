@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useTransition } from "react";
 import { useSearchParams, usePathname, useRouter } from "next/navigation";
 import {
   parseFilterParamsFromURL,
@@ -65,6 +65,7 @@ export function useFilterParams() {
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const router = useRouter();
+  const [isPending, startTransition] = useTransition();
   const state = parseFilterParamsFromURL(searchParams);
 
   const updateParams = useCallback(
@@ -86,7 +87,9 @@ export function useFilterParams() {
         updates
       );
       const qs = next.toString();
-      router.replace(qs ? `${pathname}?${qs}` : pathname);
+      startTransition(() => {
+        router.replace(qs ? `${pathname}?${qs}` : pathname);
+      });
     },
     [searchParams, pathname, router]
   );
@@ -163,6 +166,7 @@ export function useFilterParams() {
 
   return {
     ...state,
+    isPending,
     setSearchQuery,
     setStoreFilter,
     setBrandFilter,
