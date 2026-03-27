@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 import posthog from "posthog-js";
 import { DEFAULT_PAGE_SIZE } from "../api";
 import type {
@@ -12,6 +11,9 @@ import type {
   BrandFacet,
 } from "../api";
 import { useFilterParams } from "../hooks/useFilterParams";
+import { Loader2 } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { buildDealDetailHref } from "@/lib/dealsBackHref";
 import {
   Toolbar,
   FilterSidebar,
@@ -30,6 +32,8 @@ type Props = {
   facets: FacetsResponse;
   stores: Store[];
   categoryTree: CategoryTreeNode[];
+  /** Current `/deals` URL (path + query) so deal cards preserve filters on detail → back. */
+  dealsListPath: string;
 };
 
 export function DealsPageContent({
@@ -38,12 +42,13 @@ export function DealsPageContent({
   facets,
   stores,
   categoryTree,
+  dealsListPath,
 }: Props) {
-  const router = useRouter();
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
 
   const filterParams = useFilterParams();
   const {
+    isPending: isFilterPending,
     searchQuery,
     storeFilter,
     brandFilter,
@@ -66,6 +71,8 @@ export function DealsPageContent({
     setOffset,
     clearAllFilters,
   } = filterParams;
+
+  const resultsPending = isFilterPending;
 
   const activeFilterCount =
     [storeFilter, brandFilter, minDiscount].filter(Boolean).length +
@@ -246,42 +253,63 @@ export function DealsPageContent({
             onClearAll={handleClearAllFilters}
           />
 
-          <p className="text-sm text-muted-foreground mb-4">
-            {totalCount === 0
-              ? "No deals found"
-              : `${totalCount} deal${totalCount === 1 ? "" : "s"} found`}
-          </p>
+          <div className="relative" aria-busy={resultsPending}>
+            {resultsPending && (
+              <div
+                className="pointer-events-none absolute inset-0 z-10 flex items-start justify-center pt-24 sm:pt-32"
+                aria-hidden
+              >
+                <Loader2
+                  className="size-8 animate-spin text-muted-foreground"
+                  aria-hidden
+                />
+              </div>
+            )}
 
-          {totalCount > 0 && (
-            <div className="border-b border-border mb-4">
-              <Pagination
-                totalCount={totalCount}
-                limit={DEFAULT_PAGE_SIZE}
-                offset={offset}
-                onPageChange={handlePageChange}
-              />
+            <div
+              className={cn(
+                "transition-opacity duration-150",
+                resultsPending && "pointer-events-none opacity-50"
+              )}
+            >
+              <p className="text-sm text-muted-foreground mb-4">
+                {totalCount === 0
+                  ? "No deals found"
+                  : `${totalCount} deal${totalCount === 1 ? "" : "s"} found`}
+              </p>
+
+              {totalCount > 0 && (
+                <div className="border-b border-border mb-4">
+                  <Pagination
+                    totalCount={totalCount}
+                    limit={DEFAULT_PAGE_SIZE}
+                    offset={offset}
+                    onPageChange={handlePageChange}
+                  />
+                </div>
+              )}
+
+              {deals.length > 0 ? (
+                <DealGrid
+                  deals={deals}
+                  getHref={(d) => buildDealDetailHref(d.id, dealsListPath)}
+                />
+              ) : (
+                <EmptyState />
+              )}
+
+              {totalCount > 0 && (
+                <div className="border-t border-border mt-8">
+                  <Pagination
+                    totalCount={totalCount}
+                    limit={DEFAULT_PAGE_SIZE}
+                    offset={offset}
+                    onPageChange={handlePageChange}
+                  />
+                </div>
+              )}
             </div>
-          )}
-
-          {deals.length > 0 ? (
-            <DealGrid
-              deals={deals}
-              onSelectDeal={(d) => router.push(`/deals/${d.id}`)}
-            />
-          ) : (
-            <EmptyState />
-          )}
-
-          {totalCount > 0 && (
-            <div className="border-t border-border mt-8">
-              <Pagination
-                totalCount={totalCount}
-                limit={DEFAULT_PAGE_SIZE}
-                offset={offset}
-                onPageChange={handlePageChange}
-              />
-            </div>
-          )}
+          </div>
         </div>
       </div>
 

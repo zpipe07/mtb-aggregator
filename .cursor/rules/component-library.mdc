@@ -12,6 +12,7 @@ When creating or modifying UI in `apps/web`, follow these conventions for visual
 - **Buttons** → Use `Button` from `@/components/ui/button` (not raw `<button>`)
 - **Inputs** → Use `Input` from `@/components/ui/input` (not raw `<input>`)
 - **Cards** → Use `Card`, `CardHeader`, `CardContent`, etc. from `@/components/ui/card` (not custom divs with shadow/border)
+- **Navigation** → Use `Link` from `next/link` for any clickable element that navigates to an internal route (not `router.push` + `onClick`). This yields crawlable `<a>` tags, prefetch-on-hover, and instant `loading.tsx` skeletons. Reserve `router.push` for programmatic navigation (e.g. form submissions, redirects after async actions).
 
 Add new primitives via `pnpm dlx shadcn@latest add <component>` when needed.
 

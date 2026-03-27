@@ -1,4 +1,3 @@
-import { Suspense } from "react";
 import {
   fetchDeals,
   fetchFacets,
@@ -8,8 +7,8 @@ import {
   type FacetsResponse,
 } from "@/api";
 import { parseFilterParamsFromSearch } from "../../../lib/filterParams";
+import { searchParamsRecordToDealsListPath } from "@/lib/dealsBackHref";
 import { DealsPageContent } from "@/views/DealsPageContent";
-import { LoadingState } from "@/components/LoadingState";
 
 export const revalidate = 60;
 
@@ -91,15 +90,16 @@ export default async function DealsPage({ searchParams }: Props) {
       facetsForBrandOptions?.brand_facets ?? facetsBase.brand_facets,
   };
 
+  const dealsListPath = searchParamsRecordToDealsListPath(params);
+
   return (
-    <Suspense fallback={<LoadingState />}>
-      <DealsPageContent
-        deals={deals}
-        totalCount={totalCount}
-        facets={facets}
-        stores={stores}
-        categoryTree={categoryTree}
-      />
-    </Suspense>
+    <DealsPageContent
+      deals={deals}
+      totalCount={totalCount}
+      facets={facets}
+      stores={stores}
+      categoryTree={categoryTree}
+      dealsListPath={dealsListPath}
+    />
   );
 }

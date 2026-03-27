@@ -14,5 +14,4 @@ export { DealGrid } from "./DealGrid";
 export { Pagination } from "./Pagination";
 export { DealCard } from "./DealCard";
 export { ErrorMessage } from "./ErrorMessage";
-export { LoadingState } from "./LoadingState";
 export { EmptyState } from "./EmptyState";

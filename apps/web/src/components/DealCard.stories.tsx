@@ -43,7 +43,7 @@ const meta = {
   },
   tags: ["autodocs"],
   argTypes: {
-    onSelect: { action: "dealSelected" },
+    href: { control: "text" },
   },
 } satisfies Meta<typeof DealCard>;
 
@@ -53,25 +53,27 @@ type Story = StoryObj<typeof meta>;
 export const Default: Story = {
   args: {
     deal: mockDeal,
-    onSelect: (deal) => console.log("Selected:", deal.product_name),
+    href: "/deals/1",
   },
 };
 
 export const NoImage: Story = {
   args: {
     deal: mockDealNoImage,
+    href: "/deals/2",
   },
 };
 
 export const NoDiscount: Story = {
   args: {
     deal: mockDealNoDiscount,
+    href: "/deals/3",
   },
 };
 
 export const ReadOnly: Story = {
   args: {
     deal: mockDeal,
-    onSelect: undefined,
+    href: undefined,
   },
 };
