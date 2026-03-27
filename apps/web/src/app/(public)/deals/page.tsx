@@ -1,4 +1,3 @@
-import { Suspense } from "react";
 import {
   fetchDeals,
   fetchFacets,
@@ -9,7 +8,6 @@ import {
 } from "@/api";
 import { parseFilterParamsFromSearch } from "../../../lib/filterParams";
 import { DealsPageContent } from "@/views/DealsPageContent";
-import { LoadingState } from "@/components/LoadingState";
 
 export const revalidate = 60;
 
@@ -92,14 +90,12 @@ export default async function DealsPage({ searchParams }: Props) {
   };
 
   return (
-    <Suspense fallback={<LoadingState />}>
-      <DealsPageContent
-        deals={deals}
-        totalCount={totalCount}
-        facets={facets}
-        stores={stores}
-        categoryTree={categoryTree}
-      />
-    </Suspense>
+    <DealsPageContent
+      deals={deals}
+      totalCount={totalCount}
+      facets={facets}
+      stores={stores}
+      categoryTree={categoryTree}
+    />
   );
 }
