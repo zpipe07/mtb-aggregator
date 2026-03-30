@@ -1,6 +1,8 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { fetchDeal, fetchPriceHistory } from "@/api";
 import { sanitizeDealsListBackHref } from "@/lib/dealsBackHref";
+import { absoluteUrl } from "@/lib/siteUrl";
 import { DealDetailContent } from "./DealDetailContent";
 
 export const revalidate = 60;
@@ -10,15 +12,47 @@ type Props = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
-export async function generateMetadata({ params }: Props) {
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
   const dealId = parseInt(id, 10);
   if (isNaN(dealId)) return { title: "Deal not found" };
   try {
     const deal = await fetchDeal(dealId);
+    const path = `/deals/${dealId}`;
+    const titleSegment = `${deal.product_name}${deal.brand ? ` | ${deal.brand}` : ""}`;
+    const priceStr = `$${deal.current_price.toFixed(2)}`;
+    const orig =
+      deal.original_price != null && deal.original_price > deal.current_price
+        ? ` (was $${deal.original_price.toFixed(2)})`
+        : "";
+    const discount =
+      deal.discount_pct != null && deal.discount_pct > 0
+        ? ` — ${Math.round(deal.discount_pct)}% off`
+        : "";
+    const description = `${priceStr} at ${deal.store_name}${orig}${discount}. Compare MTB deals on The Dropper.`;
+    const canonical = absoluteUrl(path);
+    const ogImages = deal.image_url
+      ? [{ url: deal.image_url, alt: deal.product_name }]
+      : undefined;
+
     return {
-      title: `${deal.product_name}${deal.brand ? ` | ${deal.brand}` : ""}`,
-      description: `$${deal.current_price.toFixed(2)} at ${deal.store_name}${deal.discount_pct ? ` — ${Math.round(deal.discount_pct)}% off` : ""}`,
+      title: titleSegment,
+      description,
+      alternates: { canonical: path },
+      openGraph: {
+        title: `${titleSegment} | The Dropper`,
+        description,
+        url: canonical,
+        siteName: "The Dropper",
+        type: "website",
+        images: ogImages,
+      },
+      twitter: {
+        card: deal.image_url ? "summary_large_image" : "summary",
+        title: `${titleSegment} | The Dropper`,
+        description,
+        images: deal.image_url ? [deal.image_url] : undefined,
+      },
     };
   } catch {
     return { title: "Deal not found" };

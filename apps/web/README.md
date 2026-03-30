@@ -33,6 +33,8 @@ pnpm run build        # Production build
 
 The API must be running for data. Configure `NEXT_PUBLIC_API_URL` (client) or `API_URL` (server) or use the default proxy (`/api` → `http://localhost:8080`).
 
+**Canonical site URL (SEO):** Set `NEXT_PUBLIC_SITE_URL` to your public origin (e.g. `https://example.com`) so `metadataBase`, Open Graph `url`, and canonical links resolve correctly. On Vercel, `VERCEL_URL` is used when unset. Local dev defaults to `http://localhost:3000` (set `NEXT_PUBLIC_SITE_URL` if you use another port). See [`src/lib/siteUrl.ts`](src/lib/siteUrl.ts).
+
 ## Custom domain (Vercel + DNS at Porkbun or any registrar)
 
 Use this when the site should load at your own domain (e.g. `https://example.com`) instead of only `*.vercel.app`.

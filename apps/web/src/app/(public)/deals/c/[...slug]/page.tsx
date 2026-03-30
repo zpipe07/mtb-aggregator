@@ -12,6 +12,7 @@ import { parseFilterParamsFromSearch } from "@/lib/filterParams";
 import { searchParamsRecordToDealsCategoryListPath } from "@/lib/dealsBackHref";
 import { findCategoryBySlug } from "@/lib/categoryTree";
 import { categoryMetadataForSlug } from "@/lib/categorySeo";
+import { absoluteUrl } from "@/lib/siteUrl";
 import { DealsPageContent } from "@/views/DealsPageContent";
 
 export const revalidate = 60;
@@ -24,11 +25,29 @@ type Props = {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const categorySlug = slug.join("-");
+  const pathname = `/deals/c/${slug.join("/")}`;
   const tree = await fetchCategoryTree();
   if (!findCategoryBySlug(tree, categorySlug)) {
     return { title: "Category not found" };
   }
-  return categoryMetadataForSlug(categorySlug);
+  const base = categoryMetadataForSlug(categorySlug);
+  const ogTitle = `${base.title} | The Dropper`;
+  return {
+    ...base,
+    alternates: { canonical: pathname },
+    openGraph: {
+      title: ogTitle,
+      description: base.description ?? undefined,
+      url: absoluteUrl(pathname),
+      siteName: "The Dropper",
+      type: "website",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: ogTitle,
+      description: base.description ?? undefined,
+    },
+  };
 }
 
 export default async function CategoryDealsPage({ params, searchParams }: Props) {
