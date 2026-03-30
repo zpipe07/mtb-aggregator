@@ -11,7 +11,7 @@ Schema, migrations, seed data, and JSON config files shared across the mtb-aggre
 | `migrations/` | Numbered incremental migrations; run in sorted order |
 | `brand_aliases.json` | Brand normalization; maps variants → canonical names |
 | `category_taxonomy.json` | Legacy category tree; used for seed when `category_mappings` empty |
-| `categories.export.json` | Optional point-in-time export of live `categories` rows (not loaded by the app; regenerate from Neon when comparing taxonomy) |
+| `categories.export.json` | Point-in-time export of live `categories` rows from Neon (regenerate when taxonomy changes). Used by the web app [`apps/web/src/lib/categorySeo.ts`](../../apps/web/src/lib/categorySeo.ts) for category-page titles/descriptions; also useful for comparing taxonomy locally. |
 | `llm_prompt_profiles.export.json` | Optional point-in-time export of live `llm_prompt_profiles` rows (not loaded by the app) |
 
 ## Database Setup
