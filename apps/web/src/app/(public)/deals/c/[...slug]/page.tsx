@@ -10,8 +10,10 @@ import {
 } from "@/api";
 import { parseFilterParamsFromSearch } from "@/lib/filterParams";
 import { searchParamsRecordToDealsCategoryListPath } from "@/lib/dealsBackHref";
+import { JsonLd } from "@/components/JsonLd";
 import { findCategoryBySlug } from "@/lib/categoryTree";
-import { categoryMetadataForSlug } from "@/lib/categorySeo";
+import { categoryMetadataForSlug, getCategorySeo } from "@/lib/categorySeo";
+import { buildItemListJsonLd } from "@/lib/jsonLd";
 import { absoluteUrl } from "@/lib/siteUrl";
 import { DealsPageContent } from "@/views/DealsPageContent";
 
@@ -136,14 +138,29 @@ export default async function CategoryDealsPage({ params, searchParams }: Props)
     paramsRecord
   );
 
+  const seo = getCategorySeo(categorySlug);
+
   return (
-    <DealsPageContent
-      deals={deals}
-      totalCount={totalCount}
-      facets={facets}
-      stores={stores}
-      categoryTree={categoryTree}
-      dealsListPath={dealsListPath}
-    />
+    <>
+      <JsonLd
+        data={buildItemListJsonLd({
+          name: seo.title,
+          description: seo.description,
+          totalCount,
+          deals: deals.map((d) => ({
+            id: d.id,
+            product_name: d.product_name,
+          })),
+        })}
+      />
+      <DealsPageContent
+        deals={deals}
+        totalCount={totalCount}
+        facets={facets}
+        stores={stores}
+        categoryTree={categoryTree}
+        dealsListPath={dealsListPath}
+      />
+    </>
   );
 }

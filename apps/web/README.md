@@ -14,6 +14,7 @@ React frontend for the MTB deal aggregator. Built with Next.js 15 (App Router), 
 ## Features
 
 - **SSR/ISR** — Home, deals list, and deal detail pages are server-rendered for SEO
+- **Structured data (JSON-LD)** — `WebSite` + `SearchAction` and `ItemList` on the home page; `Product` + `Offer` on deal detail; `ItemList` on `/deals/c/[...slug]` category pages. Implemented via [`src/components/JsonLd.tsx`](src/components/JsonLd.tsx) and [`src/lib/jsonLd.ts`](src/lib/jsonLd.ts)
 - **SEO / internal links** — Public navigations use `<Link>` from `next/link` (crawlable `<a>` tags, prefetch-on-hover). Deal cards and category cards link to internal routes; `router.push` is reserved for programmatic actions (e.g. home search form submit). From the deals list, deal URLs include `?from=<encoded list path>` so “Back to deals” restores the current filters; values are validated server-side to `/deals`, `/deals?...`, or `/deals/c/...` (category routes).
 - **Navigation feedback** — Route-level `loading.tsx` skeletons for cross-route navigations; on `/deals` and `/deals/c/[...slug]`, same-route URL updates (filters, sort, pagination, toolbar search) wrap `router.replace` in `useTransition` and show a dimmed results area with a spinner until the RSC payload arrives
 - **Deals filters** — Brand options on `/deals` come from `GET /facets` `brand_facets` (scoped to category and other filters), not the global `/brands` list

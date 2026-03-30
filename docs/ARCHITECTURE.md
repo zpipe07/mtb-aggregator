@@ -122,6 +122,8 @@ High-level components (DealCard, CategoryCard, Pagination, SearchBar, FilterInpu
 
 The web app sets `metadataBase`, default Open Graph/Twitter fields, and `robots` in [`apps/web/src/app/layout.tsx`](apps/web/src/app/layout.tsx). [`apps/web/src/lib/siteUrl.ts`](apps/web/src/lib/siteUrl.ts) resolves the public origin from `NEXT_PUBLIC_SITE_URL`, or `VERCEL_URL` on Vercel, or `http://localhost:3000` for local dev. Home and `/deals` export static `metadata`; deal detail and `/deals/c/[...slug]` use `generateMetadata` with canonical URLs and (for deals) OG images when `image_url` is present.
 
+**JSON-LD** — [`apps/web/src/components/JsonLd.tsx`](apps/web/src/components/JsonLd.tsx) + [`apps/web/src/lib/jsonLd.ts`](apps/web/src/lib/jsonLd.ts): home emits `WebSite` + `SearchAction` (deals search) and an `ItemList` for featured deals; deal detail emits `Product` + `Offer`; category routes emit `ItemList` (first 12 URLs, `numberOfItems` = total matching).
+
 ## Analytics
 
 The web app uses [Vercel Web Analytics](https://vercel.com/docs/analytics) via `@vercel/analytics`. Enable Web Analytics in the Vercel project dashboard (Analytics → Enable) after deploying. Page views and visitors are tracked automatically.

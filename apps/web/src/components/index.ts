@@ -15,3 +15,4 @@ export { Pagination } from "./Pagination";
 export { DealCard } from "./DealCard";
 export { ErrorMessage } from "./ErrorMessage";
 export { EmptyState } from "./EmptyState";
+export { JsonLd } from "./JsonLd";

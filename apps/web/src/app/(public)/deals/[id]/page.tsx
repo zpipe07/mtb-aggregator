@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { fetchDeal, fetchPriceHistory } from "@/api";
+import { JsonLd } from "@/components/JsonLd";
 import { sanitizeDealsListBackHref } from "@/lib/dealsBackHref";
+import { buildProductJsonLd } from "@/lib/jsonLd";
 import { absoluteUrl } from "@/lib/siteUrl";
 import { DealDetailContent } from "./DealDetailContent";
 
@@ -80,10 +82,13 @@ export default async function DealPage({ params, searchParams }: Props) {
   if (!deal) notFound();
 
   return (
-    <DealDetailContent
-      deal={deal}
-      priceHistory={priceHistory ?? undefined}
-      backToDealsHref={backToDealsHref}
-    />
+    <>
+      <JsonLd data={buildProductJsonLd(deal)} />
+      <DealDetailContent
+        deal={deal}
+        priceHistory={priceHistory ?? undefined}
+        backToDealsHref={backToDealsHref}
+      />
+    </>
   );
 }

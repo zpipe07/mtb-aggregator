@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { fetchCategoryTree, fetchDeals } from "@/api";
+import { JsonLd } from "@/components/JsonLd";
+import { buildItemListJsonLd, buildWebSiteSearchJsonLd } from "@/lib/jsonLd";
 import { absoluteUrl } from "@/lib/siteUrl";
 import { HomePageContent } from "@/views/HomePageContent";
 
@@ -34,6 +36,23 @@ export default async function Home() {
   ]);
 
   const topDeals = dealsResponse.deals ?? [];
+  const totalFeatured = dealsResponse.total_count ?? topDeals.length;
 
-  return <HomePageContent categoryTree={categoryTree} topDeals={topDeals} />;
+  return (
+    <>
+      <JsonLd data={buildWebSiteSearchJsonLd()} />
+      <JsonLd
+        data={buildItemListJsonLd({
+          name: "Featured mountain bike deals",
+          description: homeDescription,
+          totalCount: totalFeatured,
+          deals: topDeals.map((d) => ({
+            id: d.id,
+            product_name: d.product_name,
+          })),
+        })}
+      />
+      <HomePageContent categoryTree={categoryTree} topDeals={topDeals} />
+    </>
+  );
 }
