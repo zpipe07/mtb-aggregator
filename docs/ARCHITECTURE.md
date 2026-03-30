@@ -124,6 +124,8 @@ The web app sets `metadataBase`, default Open Graph/Twitter fields, and `robots`
 
 **JSON-LD** — [`apps/web/src/components/JsonLd.tsx`](apps/web/src/components/JsonLd.tsx) + [`apps/web/src/lib/jsonLd.ts`](apps/web/src/lib/jsonLd.ts): home emits `WebSite` + `SearchAction` (deals search) and an `ItemList` for featured deals; deal detail emits `Product` + `Offer`; category routes emit `ItemList` (first 12 URLs, `numberOfItems` = total matching).
 
+**Sitemap / robots** — [`apps/web/src/app/sitemap.ts`](apps/web/src/app/sitemap.ts) and [`apps/web/src/app/robots.ts`](apps/web/src/app/robots.ts). Sitemap includes static routes, all category paths from the tree, and paginated deal detail URLs (capped). **Middleware** [`apps/web/src/middleware.ts`](apps/web/src/middleware.ts): `308` from `/deals?category=` to `/deals/c/...` for canonical category URLs.
+
 ## Analytics
 
 The web app uses [Vercel Web Analytics](https://vercel.com/docs/analytics) via `@vercel/analytics`. Enable Web Analytics in the Vercel project dashboard (Analytics → Enable) after deploying. Page views and visitors are tracked automatically.
