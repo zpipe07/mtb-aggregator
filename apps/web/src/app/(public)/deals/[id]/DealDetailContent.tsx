@@ -44,12 +44,17 @@ type Props = {
   priceHistory?: PriceHistoryResponse | null;
   /** Preserves `/deals` query when opening a deal from the filtered list (`?from=`). */
   backToDealsHref?: string;
+  /** When `canonical_category` resolves, link to `/deals/c/...` for internal SEO. */
+  categoryBrowseHref?: string;
+  categoryBrowseLabel?: string;
 };
 
 export function DealDetailContent({
   deal,
   priceHistory,
   backToDealsHref = "/deals",
+  categoryBrowseHref,
+  categoryBrowseLabel,
 }: Props) {
   const viewUrl = deal.affiliate_url || deal.product_url;
   const discountPct =
@@ -80,12 +85,25 @@ export function DealDetailContent({
 
   return (
     <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8">
-      <Link
-        href={backToDealsHref}
-        className="text-sm text-muted-foreground hover:text-foreground mb-6 inline-block"
-      >
-        ← Back to deals
-      </Link>
+      <div className="mb-6 space-y-2">
+        <Link
+          href={backToDealsHref}
+          className="text-sm text-muted-foreground hover:text-foreground inline-block"
+        >
+          ← Back to deals
+        </Link>
+        {categoryBrowseHref && categoryBrowseLabel ? (
+          <p className="text-sm text-muted-foreground">
+            <Link
+              href={categoryBrowseHref}
+              className="font-medium text-foreground underline-offset-4 hover:underline"
+            >
+              {categoryBrowseLabel}
+            </Link>
+            <span className="font-normal"> — more deals in this category</span>
+          </p>
+        ) : null}
+      </div>
 
       <div className="bg-card rounded-xl shadow-lg border border-border overflow-hidden">
         <div className="p-6">

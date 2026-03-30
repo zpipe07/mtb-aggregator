@@ -1,7 +1,12 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { fetchDeal, fetchPriceHistory } from "@/api";
+import { fetchDeal, fetchPriceHistory, fetchCategoryTree } from "@/api";
 import { JsonLd } from "@/components/JsonLd";
+import {
+  categoryPathLabelFromSlug,
+  categorySlugFromCanonicalPath,
+} from "@/lib/categoryTree";
+import { buildDealsCategoryPath } from "@/lib/dealsCategoryPath";
 import { sanitizeDealsListBackHref } from "@/lib/dealsBackHref";
 import { buildProductJsonLd } from "@/lib/jsonLd";
 import { absoluteUrl } from "@/lib/siteUrl";
@@ -81,6 +86,19 @@ export default async function DealPage({ params, searchParams }: Props) {
 
   if (!deal) notFound();
 
+  const categoryTree = await fetchCategoryTree().catch(() => []);
+
+  const categorySlug = categorySlugFromCanonicalPath(
+    categoryTree,
+    deal.canonical_category
+  );
+  const categoryBrowseHref =
+    categorySlug != null ? buildDealsCategoryPath(categorySlug) : undefined;
+  const categoryBrowseLabel =
+    categorySlug != null
+      ? categoryPathLabelFromSlug(categoryTree, categorySlug) ?? undefined
+      : undefined;
+
   return (
     <>
       <JsonLd data={buildProductJsonLd(deal)} />
@@ -88,6 +106,8 @@ export default async function DealPage({ params, searchParams }: Props) {
         deal={deal}
         priceHistory={priceHistory ?? undefined}
         backToDealsHref={backToDealsHref}
+        categoryBrowseHref={categoryBrowseHref}
+        categoryBrowseLabel={categoryBrowseLabel}
       />
     </>
   );

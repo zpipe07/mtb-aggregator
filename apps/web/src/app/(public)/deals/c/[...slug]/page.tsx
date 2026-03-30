@@ -160,6 +160,7 @@ export default async function CategoryDealsPage({ params, searchParams }: Props)
         stores={stores}
         categoryTree={categoryTree}
         dealsListPath={dealsListPath}
+        categoryIntro={seo.intro}
       />
     </>
   );

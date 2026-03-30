@@ -34,6 +34,8 @@ type Props = {
   categoryTree: CategoryTreeNode[];
   /** Current `/deals` URL (path + query) so deal cards preserve filters on detail → back. */
   dealsListPath: string;
+  /** Optional GEO intro (e.g. `/deals/c/...` routes from `getCategorySeo().intro`). */
+  categoryIntro?: string;
 };
 
 export function DealsPageContent({
@@ -43,6 +45,7 @@ export function DealsPageContent({
   stores,
   categoryTree,
   dealsListPath,
+  categoryIntro,
 }: Props) {
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
 
@@ -247,6 +250,12 @@ export function DealsPageContent({
             categoryFilter={categoryFilter}
             onCategoryChange={handleCategoryChange}
           />
+
+          {categoryIntro ? (
+            <p className="text-sm text-muted-foreground mb-4 max-w-3xl leading-relaxed">
+              {categoryIntro}
+            </p>
+          ) : null}
 
           <FilterChips
             filters={activeFilters}

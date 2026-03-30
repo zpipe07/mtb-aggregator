@@ -1,5 +1,39 @@
 import type { CategoryTreeNode } from "../api";
 
+/**
+ * Map API `canonical_category` (e.g. `["Bikes", "Electric"]`) to a `categories.slug`
+ * by walking the tree and matching names at each depth. Returns null if no match.
+ */
+export function categorySlugFromCanonicalPath(
+  tree: CategoryTreeNode[],
+  canonical: string[] | undefined | null
+): string | null {
+  if (!canonical?.length) return null;
+  const target = canonical.map((s) => s.trim().toLowerCase());
+
+  function walk(nodes: CategoryTreeNode[], depth: number): string | null {
+    for (const n of nodes) {
+      if (n.name.trim().toLowerCase() !== target[depth]) continue;
+      if (depth === target.length - 1) return n.slug;
+      const deeper = walk(n.children ?? [], depth + 1);
+      if (deeper) return deeper;
+    }
+    return null;
+  }
+
+  return walk(tree, 0);
+}
+
+/** Display label for breadcrumbs: `Parent › Child`. */
+export function categoryPathLabelFromSlug(
+  tree: CategoryTreeNode[],
+  slug: string
+): string | null {
+  const found = findCategoryWithAncestors(tree, slug);
+  if (!found) return null;
+  return [...found.ancestors.map((a) => a.name), found.node.name].join(" › ");
+}
+
 /** Depth-first search for a category by slug. */
 export function findCategoryBySlug(
   tree: CategoryTreeNode[],
