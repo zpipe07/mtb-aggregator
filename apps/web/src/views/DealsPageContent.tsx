@@ -23,7 +23,7 @@ import {
   Pagination,
   EmptyState,
   DealsCategoryNav,
-  type CategoryNavSource,
+  DealsBrowseFooter,
 } from "../components";
 
 type Props = {
@@ -64,7 +64,6 @@ export function DealsPageContent({
     setSearchQuery,
     setStoreFilter,
     setBrandFilter,
-    setCategoryFilter,
     setMinDiscount,
     setSpecFilter,
     clearSpecFilter,
@@ -149,16 +148,6 @@ export function DealsPageContent({
     if (value)
       posthog.capture("filter_applied", { filter_type: "brand", value });
     setBrandFilter(value);
-  };
-  const handleCategoryChange = (value: string, navSource: CategoryNavSource) => {
-    if (value === categoryFilter) return;
-    posthog.capture("filter_applied", {
-      filter_type: "category",
-      value: value || "",
-      nav_source: navSource,
-      ...(value ? { category_slug: value } : {}),
-    });
-    setCategoryFilter(value);
   };
   const handleMinDiscountChange = (value: string) => {
     if (value)
@@ -248,7 +237,6 @@ export function DealsPageContent({
           <DealsCategoryNav
             categoryTree={categoryTree}
             categoryFilter={categoryFilter}
-            onCategoryChange={handleCategoryChange}
           />
 
           {categoryIntro ? (
@@ -327,6 +315,8 @@ export function DealsPageContent({
         isOpen={filterDrawerOpen}
         onClose={() => setFilterDrawerOpen(false)}
       />
+
+      <DealsBrowseFooter rootCategories={categoryTree} />
     </div>
   );
 }

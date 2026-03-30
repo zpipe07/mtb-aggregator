@@ -67,3 +67,21 @@ export function sanitizeDealsListBackHref(
 export function buildDealDetailHref(dealId: number, dealsListPath: string): string {
   return `/deals/${dealId}?from=${encodeURIComponent(dealsListPath)}`;
 }
+
+/**
+ * True when the category browse URL would send the user to the same deals list
+ * path as "Back to deals" (only pathname compared; query on `backHref` ignored).
+ */
+export function isCategoryBrowseRedundantWithBack(
+  backHref: string,
+  categoryBrowseHref: string | undefined,
+): boolean {
+  if (!categoryBrowseHref) return false;
+  try {
+    const back = new URL(backHref, "http://localhost");
+    const cat = new URL(categoryBrowseHref, "http://localhost");
+    return back.pathname === cat.pathname;
+  } catch {
+    return false;
+  }
+}

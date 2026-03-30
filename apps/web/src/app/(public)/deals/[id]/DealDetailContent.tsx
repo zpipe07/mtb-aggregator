@@ -15,6 +15,7 @@ import { track } from "@vercel/analytics";
 import posthog from "posthog-js";
 import type { Deal } from "@/api";
 import type { PriceHistoryResponse } from "@/api";
+import { isCategoryBrowseRedundantWithBack } from "@/lib/dealsBackHref";
 import { cn } from "@/lib/utils";
 
 function formatDate(iso: string) {
@@ -44,7 +45,7 @@ type Props = {
   priceHistory?: PriceHistoryResponse | null;
   /** Preserves `/deals` query when opening a deal from the filtered list (`?from=`). */
   backToDealsHref?: string;
-  /** When `canonical_category` resolves, link to `/deals/c/...` for internal SEO. */
+  /** When `canonical_category` resolves and `backToDealsHref` is a different path, link to `/deals/c/...`. */
   categoryBrowseHref?: string;
   categoryBrowseLabel?: string;
 };
@@ -92,7 +93,9 @@ export function DealDetailContent({
         >
           ← Back to deals
         </Link>
-        {categoryBrowseHref && categoryBrowseLabel ? (
+        {categoryBrowseHref &&
+        categoryBrowseLabel &&
+        !isCategoryBrowseRedundantWithBack(backToDealsHref, categoryBrowseHref) ? (
           <p className="text-sm text-muted-foreground">
             <Link
               href={categoryBrowseHref}

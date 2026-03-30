@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import {
   fetchDeals,
   fetchFacets,
@@ -16,6 +17,7 @@ import { categoryMetadataForSlug, getCategorySeo } from "@/lib/categorySeo";
 import { buildItemListJsonLd } from "@/lib/jsonLd";
 import { absoluteUrl } from "@/lib/siteUrl";
 import { DealsPageContent } from "@/views/DealsPageContent";
+import CategoryDealsLoading from "./loading";
 
 export const revalidate = 60;
 
@@ -153,15 +155,17 @@ export default async function CategoryDealsPage({ params, searchParams }: Props)
           })),
         })}
       />
-      <DealsPageContent
-        deals={deals}
-        totalCount={totalCount}
-        facets={facets}
-        stores={stores}
-        categoryTree={categoryTree}
-        dealsListPath={dealsListPath}
-        categoryIntro={seo.intro}
-      />
+      <Suspense fallback={<CategoryDealsLoading />}>
+        <DealsPageContent
+          deals={deals}
+          totalCount={totalCount}
+          facets={facets}
+          stores={stores}
+          categoryTree={categoryTree}
+          dealsListPath={dealsListPath}
+          categoryIntro={seo.intro}
+        />
+      </Suspense>
     </>
   );
 }

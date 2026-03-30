@@ -1,7 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { useState } from "react";
 import type { CategoryTreeNode } from "../api";
-import { DealsCategoryNav } from "./DealsCategoryNav";
+import { DealsCategoryNavInner } from "./DealsCategoryNav";
 
 const tree: CategoryTreeNode[] = [
   {
@@ -63,53 +62,38 @@ const tree: CategoryTreeNode[] = [
   },
 ];
 
-function InteractiveWrapper({
-  initialSlug = "",
-}: {
-  initialSlug?: string;
-}) {
-  const [slug, setSlug] = useState(initialSlug);
-  return (
-    <div className="max-w-md">
-      <DealsCategoryNav
-        categoryTree={tree}
-        categoryFilter={slug}
-        onCategoryChange={(s) => {
-          setSlug(s);
-        }}
-      />
-      <p className="mt-4 text-xs text-muted-foreground">
-        Current slug: <code>{slug || "(none)"}</code>
-      </p>
-    </div>
-  );
-}
-
-const noop = () => {};
-
 const meta = {
   title: "Components/DealsCategoryNav",
-  component: DealsCategoryNav,
+  component: DealsCategoryNavInner,
   parameters: { layout: "padded" },
   args: {
     categoryTree: tree,
     categoryFilter: "",
-    onCategoryChange: noop,
+    searchParams: new URLSearchParams(),
   },
-} satisfies Meta<typeof DealsCategoryNav>;
+} satisfies Meta<typeof DealsCategoryNavInner>;
 
 export default meta;
 
 type Story = StoryObj<typeof meta>;
 
 export const RootLevel: Story = {
-  render: () => <InteractiveWrapper />,
+  args: {
+    categoryFilter: "",
+    searchParams: new URLSearchParams(),
+  },
 };
 
 export const DrilledIntoComponents: Story = {
-  render: () => <InteractiveWrapper initialSlug="components" />,
+  args: {
+    categoryFilter: "components",
+    searchParams: new URLSearchParams(),
+  },
 };
 
 export const DeepLeaf: Story = {
-  render: () => <InteractiveWrapper initialSlug="components-brakes-disc" />,
+  args: {
+    categoryFilter: "components-brakes-disc",
+    searchParams: new URLSearchParams("q=hydraulic"),
+  },
 };

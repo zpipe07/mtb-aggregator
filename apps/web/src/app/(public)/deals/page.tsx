@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import {
   fetchDeals,
   fetchFacets,
@@ -11,6 +12,7 @@ import { parseFilterParamsFromSearch } from "../../../lib/filterParams";
 import { searchParamsRecordToDealsListPath } from "@/lib/dealsBackHref";
 import { absoluteUrl } from "@/lib/siteUrl";
 import { DealsPageContent } from "@/views/DealsPageContent";
+import DealsLoading from "./loading";
 
 export const revalidate = 60;
 
@@ -115,13 +117,15 @@ export default async function DealsPage({ searchParams }: Props) {
   const dealsListPath = searchParamsRecordToDealsListPath(params);
 
   return (
-    <DealsPageContent
-      deals={deals}
-      totalCount={totalCount}
-      facets={facets}
-      stores={stores}
-      categoryTree={categoryTree}
-      dealsListPath={dealsListPath}
-    />
+    <Suspense fallback={<DealsLoading />}>
+      <DealsPageContent
+        deals={deals}
+        totalCount={totalCount}
+        facets={facets}
+        stores={stores}
+        categoryTree={categoryTree}
+        dealsListPath={dealsListPath}
+      />
+    </Suspense>
   );
 }
