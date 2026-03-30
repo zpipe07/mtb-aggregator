@@ -14,10 +14,14 @@ React frontend for the MTB deal aggregator. Built with Next.js 15 (App Router), 
 ## Features
 
 - **SSR/ISR** — Home, deals list, and deal detail pages are server-rendered for SEO
-- **SEO / internal links** — Public navigations use `<Link>` from `next/link` (crawlable `<a>` tags, prefetch-on-hover). Deal cards and category cards link to internal routes; `router.push` is reserved for programmatic actions (e.g. home search form submit). From the deals list, deal URLs include `?from=<encoded /deals?...>` so “Back to deals” restores the current filters; values are validated server-side to `/deals` paths only.
-- **Navigation feedback** — Route-level `loading.tsx` skeletons for cross-route navigations; on `/deals`, same-route URL updates (filters, sort, pagination, toolbar search) wrap `router.replace` in `useTransition` and show a dimmed results area with a spinner until the RSC payload arrives
+- **Structured data (JSON-LD)** — `WebSite` + `SearchAction` and `ItemList` on the home page; `Product` + `Offer` on deal detail; `ItemList` on `/deals/c/[...slug]` category pages. Implemented via [`src/components/JsonLd.tsx`](src/components/JsonLd.tsx) and [`src/lib/jsonLd.ts`](src/lib/jsonLd.ts)
+- **Sitemap & robots** — [`src/app/sitemap.ts`](src/app/sitemap.ts) (revalidated hourly): `/`, `/deals`, every `/deals/c/...` from `GET /categories/tree`, and deal detail URLs from `GET /deals` (paginated; caps at 48k deal URLs). [`src/app/robots.ts`](src/app/robots.ts) allows crawlers on public routes and disallows `/admin/`. Requires API at build/runtime for full URL lists; falls back to static routes if the API is unreachable
+- **Canonical category URLs** — [`src/middleware.ts`](src/middleware.ts) 308-redirects `/deals?category=<slug>` to `/deals/c/...`, preserving other query params. Home category cards link directly to `/deals/c/...` via [`src/lib/dealsCategoryPath.ts`](src/lib/dealsCategoryPath.ts)
+- **GEO / category intros** — `/deals/c/[...slug]` passes optional `intro` from [`src/lib/categorySeo.ts`](src/lib/categorySeo.ts) into `DealsPageContent` above the filter chips. **Deal detail** resolves `canonical_category` to a category slug via [`src/lib/categoryTree.ts`](src/lib/categoryTree.ts) and, when it would not duplicate “Back to deals” (same pathname), shows a link to `/deals/c/...` with the path label (`Parent › Child — more deals in this category`). Hidden when `from=` already points at that category list
+- **SEO / internal links** — Public navigations use `<Link>` from `next/link` (crawlable `<a>` tags, prefetch-on-hover). Deal cards and category cards link to internal routes; `router.push` is reserved for programmatic actions (e.g. home search form submit). From the deals list, deal URLs include `?from=<encoded list path>` so “Back to deals” restores the current filters; values are validated server-side to `/deals`, `/deals?...`, or `/deals/c/...` (category routes).
+- **Navigation feedback** — Route-level `loading.tsx` skeletons for cross-route navigations; on `/deals` and `/deals/c/[...slug]`, same-route URL updates (filters, sort, pagination, toolbar search) wrap `router.replace` in `useTransition` and show a dimmed results area with a spinner until the RSC payload arrives
 - **Deals filters** — Brand options on `/deals` come from `GET /facets` `brand_facets` (scoped to category and other filters), not the global `/brands` list
-- **Deals categories** — Category selection is **above** the product grid (`DealsCategoryNav`): breadcrumbs (All + ancestors) and a chip row that shows **subcategories** when the current category has children (drill down), or **sibling** categories when it is a leaf (so users can switch peers without going up). At the site root with no category selected, chips list top-level categories. Store, brand, discount, and spec/variant filters are only in the **sidebar** (desktop) or **filter drawer** (mobile). URL state remains `?category=<slug>` via existing filter params
+- **Deals categories** — Category selection is **above** the product grid (`DealsCategoryNav`): breadcrumbs (All + ancestors) and a chip row that shows **subcategories** when the current category has children (drill down), or **sibling** categories when it is a leaf (so users can switch peers without going up). At the site root with no category selected, chips list top-level categories. **`DealsBrowseFooter`** at the bottom lists crawlable `<Link>`s to each top-level department (cross-linking for SEO). Store, brand, discount, and spec/variant filters are only in the **sidebar** (desktop) or **filter drawer** (mobile). **SEO category URLs** use `/deals/c/<segments>` (slug segments joined by `/`, e.g. `/deals/c/bikes/electric` for `bikes-electric`); changing category in the nav moves to that path. The legacy `?category=<slug>` query on `/deals` still works; programmatic category changes prefer the `/deals/c/...` form.
 - **Dark mode** — Toggle in nav header; defaults to system preference (`prefers-color-scheme`), persists choice in `localStorage`
 - **PostHog** — With `NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN` set, [`instrumentation-client.ts`](src/instrumentation-client.ts) initializes PostHog. Deals page category changes emit `filter_applied` with `filter_type: "category"` plus `nav_source` (`breadcrumb` | `chip` | `all_clear`) and `category_slug` when a slug is selected; `value` is the category slug or empty when cleared
 - **Branding** — Primary logo is `public/logo.png` (admin UI). Favicons: `public/favicon.png` / `public/favicon-light.png` via `metadata.icons` in `src/app/layout.tsx` (paired with `prefers-color-scheme`). The public nav uses `logo-light.png` in dark mode (`NavHeader`). Other assets in `public/` are optional (e.g. alternate wordmarks).
@@ -32,6 +36,8 @@ pnpm run build        # Production build
 ```
 
 The API must be running for data. Configure `NEXT_PUBLIC_API_URL` (client) or `API_URL` (server) or use the default proxy (`/api` → `http://localhost:8080`).
+
+**Canonical site URL (SEO):** Set `NEXT_PUBLIC_SITE_URL` to your public origin (e.g. `https://example.com`) so `metadataBase`, Open Graph `url`, and canonical links resolve correctly. On Vercel, `VERCEL_URL` is used when unset. Local dev defaults to `http://localhost:3000` (set `NEXT_PUBLIC_SITE_URL` if you use another port). See [`src/lib/siteUrl.ts`](src/lib/siteUrl.ts).
 
 ## Custom domain (Vercel + DNS at Porkbun or any registrar)
 
@@ -85,7 +91,7 @@ Add more: `pnpm dlx shadcn@latest add <component>`
 
 ### Composed Components (`src/components/`)
 
-DealCard, CategoryCard, DealsCategoryNav, Pagination, SearchBar, FilterInput, etc. — built from primitives. CategoryCard supports optional `imageSrc` for home page category imagery (`stock-bikes.jpg`, `stock-components.jpg`, etc. in `public/`).
+DealCard, CategoryCard, DealsCategoryNav, DealsBrowseFooter, Pagination, SearchBar, FilterInput, etc. — built from primitives. CategoryCard supports optional `imageSrc` for home page category imagery (`stock-bikes.jpg`, `stock-components.jpg`, etc. in `public/`).
 
 ### Storybook
 

@@ -8,6 +8,7 @@ import { SearchBar } from "../components/SearchBar";
 import { DealGrid } from "../components/DealGrid";
 import { CategoryCard } from "../components/CategoryCard";
 import { CategoryTreeNode, type Deal } from "../api";
+import { buildDealsCategoryPath } from "../lib/dealsCategoryPath";
 import { Button } from "../components/ui/button";
 
 /** Slug-to-image mapping for root category cards. Images in public/. */
@@ -26,8 +27,8 @@ const FALLBACK_CATEGORIES: { path: string; label: string }[] = [
   { path: "gear-helmets", label: "Helmets" },
   { path: "components-brakes", label: "Brakes" },
   { path: "components-suspension-forks", label: "Forks" },
-  { path: "components-wheels", label: "Wheels" },
-  { path: "components-pedals", label: "Pedals" },
+  { path: "components-wheels-tires", label: "Wheels" },
+  { path: "components-drivetrain-pedals", label: "Pedals" },
 ];
 
 function buildCategoryCards(categoryTree: CategoryTreeNode[]) {
@@ -106,7 +107,7 @@ export function HomePageContent({ categoryTree, topDeals }: Props) {
             <CategoryCard
               key={path}
               label={label}
-              to={`/deals?category=${encodeURIComponent(path)}`}
+              to={buildDealsCategoryPath(path)}
               imageSrc={imageSrc}
             />
           ))}

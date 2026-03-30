@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+import { Suspense } from "react";
 import {
   fetchDeals,
   fetchFacets,
@@ -8,9 +10,31 @@ import {
 } from "@/api";
 import { parseFilterParamsFromSearch } from "../../../lib/filterParams";
 import { searchParamsRecordToDealsListPath } from "@/lib/dealsBackHref";
+import { absoluteUrl } from "@/lib/siteUrl";
 import { DealsPageContent } from "@/views/DealsPageContent";
+import DealsLoading from "./loading";
 
 export const revalidate = 60;
+
+const dealsDescription =
+  "Browse all mountain bike deals. Filter by category, brand, price, and specs to find your next ride at the best price.";
+
+export const metadata: Metadata = {
+  title: "All mountain bike deals",
+  description: dealsDescription,
+  alternates: {
+    canonical: "/deals",
+  },
+  openGraph: {
+    title: "All mountain bike deals | The Dropper",
+    description: dealsDescription,
+    url: absoluteUrl("/deals"),
+  },
+  twitter: {
+    title: "All mountain bike deals | The Dropper",
+    description: dealsDescription,
+  },
+};
 
 type Props = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -93,13 +117,15 @@ export default async function DealsPage({ searchParams }: Props) {
   const dealsListPath = searchParamsRecordToDealsListPath(params);
 
   return (
-    <DealsPageContent
-      deals={deals}
-      totalCount={totalCount}
-      facets={facets}
-      stores={stores}
-      categoryTree={categoryTree}
-      dealsListPath={dealsListPath}
-    />
+    <Suspense fallback={<DealsLoading />}>
+      <DealsPageContent
+        deals={deals}
+        totalCount={totalCount}
+        facets={facets}
+        stores={stores}
+        categoryTree={categoryTree}
+        dealsListPath={dealsListPath}
+      />
+    </Suspense>
   );
 }

@@ -19,7 +19,30 @@ export function searchParamsRecordToDealsListPath(
   return s ? `/deals?${s}` : "/deals";
 }
 
-/** Safe internal back target for deal detail "Back to deals" (only `/deals` or `/deals?...`). */
+/**
+ * Build deals list path for `/deals/c/...` routes: pathname + query (category is in the path, not `category=`).
+ */
+export function searchParamsRecordToDealsCategoryListPath(
+  pathname: string,
+  record: Record<string, string | string[] | undefined>
+): string {
+  const qs = new URLSearchParams();
+  for (const [key, value] of Object.entries(record)) {
+    if (key === "category") continue;
+    if (value === undefined || value === "") continue;
+    if (Array.isArray(value)) {
+      value.forEach((v) => {
+        if (v !== "") qs.append(key, v);
+      });
+    } else {
+      qs.set(key, value);
+    }
+  }
+  const s = qs.toString();
+  return s ? `${pathname}?${s}` : pathname;
+}
+
+/** Safe internal back target for deal detail "Back to deals" (`/deals`, `/deals?...`, or `/deals/c/...`). */
 export function sanitizeDealsListBackHref(
   raw: string | null | undefined
 ): string {
@@ -32,8 +55,10 @@ export function sanitizeDealsListBackHref(
   }
   try {
     const u = new URL(decoded, "http://localhost");
-    if (u.pathname !== "/deals") return "/deals";
-    return `${u.pathname}${u.search}`;
+    if (u.pathname === "/deals" || u.pathname.startsWith("/deals/c/")) {
+      return `${u.pathname}${u.search}`;
+    }
+    return "/deals";
   } catch {
     return "/deals";
   }
@@ -41,4 +66,22 @@ export function sanitizeDealsListBackHref(
 
 export function buildDealDetailHref(dealId: number, dealsListPath: string): string {
   return `/deals/${dealId}?from=${encodeURIComponent(dealsListPath)}`;
+}
+
+/**
+ * True when the category browse URL would send the user to the same deals list
+ * path as "Back to deals" (only pathname compared; query on `backHref` ignored).
+ */
+export function isCategoryBrowseRedundantWithBack(
+  backHref: string,
+  categoryBrowseHref: string | undefined,
+): boolean {
+  if (!categoryBrowseHref) return false;
+  try {
+    const back = new URL(backHref, "http://localhost");
+    const cat = new URL(categoryBrowseHref, "http://localhost");
+    return back.pathname === cat.pathname;
+  } catch {
+    return false;
+  }
 }

@@ -1,0 +1,73 @@
+import type { MetadataRoute } from "next";
+import { fetchCategoryTree, fetchDeals } from "@/api";
+import { allDealsCategoryPathsFromTree } from "@/lib/dealsCategoryPath";
+import { absoluteUrl } from "@/lib/siteUrl";
+
+export const revalidate = 3600;
+
+const DEAL_PAGE_SIZE = 5000;
+/** Google’s per-sitemap URL limit; leave headroom for static + category URLs. */
+const MAX_DEAL_URLS_IN_SITEMAP = 48_000;
+
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const entries: MetadataRoute.Sitemap = [
+    {
+      url: absoluteUrl("/"),
+      lastModified: new Date(),
+      changeFrequency: "daily",
+      priority: 1,
+    },
+    {
+      url: absoluteUrl("/deals"),
+      lastModified: new Date(),
+      changeFrequency: "hourly",
+      priority: 0.9,
+    },
+  ];
+
+  try {
+    const tree = await fetchCategoryTree();
+    for (const path of allDealsCategoryPathsFromTree(tree)) {
+      entries.push({
+        url: absoluteUrl(path),
+        lastModified: new Date(),
+        changeFrequency: "daily",
+        priority: 0.8,
+      });
+    }
+  } catch {
+    // API unavailable during build — keep static entries only
+  }
+
+  try {
+    let offset = 0;
+    let dealUrls = 0;
+    for (;;) {
+      const res = await fetchDeals({
+        limit: DEAL_PAGE_SIZE,
+        offset,
+        sort: "newest",
+        group_variants: true,
+      });
+      const deals = res.deals ?? [];
+      if (deals.length === 0) break;
+      for (const d of deals) {
+        if (dealUrls >= MAX_DEAL_URLS_IN_SITEMAP) break;
+        entries.push({
+          url: absoluteUrl(`/deals/${d.id}`),
+          lastModified: new Date(),
+          changeFrequency: "weekly",
+          priority: 0.5,
+        });
+        dealUrls += 1;
+      }
+      if (dealUrls >= MAX_DEAL_URLS_IN_SITEMAP) break;
+      if (deals.length < DEAL_PAGE_SIZE) break;
+      offset += DEAL_PAGE_SIZE;
+    }
+  } catch {
+    // Skip deal URLs if API is down
+  }
+
+  return entries;
+}

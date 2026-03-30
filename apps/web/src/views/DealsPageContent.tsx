@@ -23,7 +23,7 @@ import {
   Pagination,
   EmptyState,
   DealsCategoryNav,
-  type CategoryNavSource,
+  DealsBrowseFooter,
 } from "../components";
 
 type Props = {
@@ -34,6 +34,8 @@ type Props = {
   categoryTree: CategoryTreeNode[];
   /** Current `/deals` URL (path + query) so deal cards preserve filters on detail → back. */
   dealsListPath: string;
+  /** Optional GEO intro (e.g. `/deals/c/...` routes from `getCategorySeo().intro`). */
+  categoryIntro?: string;
 };
 
 export function DealsPageContent({
@@ -43,6 +45,7 @@ export function DealsPageContent({
   stores,
   categoryTree,
   dealsListPath,
+  categoryIntro,
 }: Props) {
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
 
@@ -61,7 +64,6 @@ export function DealsPageContent({
     setSearchQuery,
     setStoreFilter,
     setBrandFilter,
-    setCategoryFilter,
     setMinDiscount,
     setSpecFilter,
     clearSpecFilter,
@@ -146,16 +148,6 @@ export function DealsPageContent({
     if (value)
       posthog.capture("filter_applied", { filter_type: "brand", value });
     setBrandFilter(value);
-  };
-  const handleCategoryChange = (value: string, navSource: CategoryNavSource) => {
-    if (value === categoryFilter) return;
-    posthog.capture("filter_applied", {
-      filter_type: "category",
-      value: value || "",
-      nav_source: navSource,
-      ...(value ? { category_slug: value } : {}),
-    });
-    setCategoryFilter(value);
   };
   const handleMinDiscountChange = (value: string) => {
     if (value)
@@ -245,8 +237,13 @@ export function DealsPageContent({
           <DealsCategoryNav
             categoryTree={categoryTree}
             categoryFilter={categoryFilter}
-            onCategoryChange={handleCategoryChange}
           />
+
+          {categoryIntro ? (
+            <p className="text-sm text-muted-foreground mb-4 max-w-3xl leading-relaxed">
+              {categoryIntro}
+            </p>
+          ) : null}
 
           <FilterChips
             filters={activeFilters}
@@ -318,6 +315,8 @@ export function DealsPageContent({
         isOpen={filterDrawerOpen}
         onClose={() => setFilterDrawerOpen(false)}
       />
+
+      <DealsBrowseFooter rootCategories={categoryTree} />
     </div>
   );
 }
