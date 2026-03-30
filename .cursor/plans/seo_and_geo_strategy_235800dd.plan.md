@@ -4,28 +4,28 @@ overview: Implement dedicated category pages, comprehensive metadata, structured
 todos:
   - id: category-route
     content: Create /deals/c/[...slug] route with generateMetadata, category resolution, and data fetching
-    status: pending
+    status: completed
   - id: category-seo-data
     content: Create categorySeo.ts with per-category titles, descriptions, and intro copy for all 21 categories
-    status: pending
+    status: completed
   - id: root-metadata
     content: Add metadataBase, OG defaults, and twitter card config to root layout.tsx
-    status: pending
+    status: completed
   - id: page-metadata
     content: Add metadata exports to home page and deals page; enhance deal detail generateMetadata with OG tags
-    status: pending
+    status: completed
   - id: json-ld
     content: Create JsonLd component and add Product schema (deal detail), ItemList (category pages), WebSite+SearchAction (home)
-    status: pending
+    status: completed
   - id: sitemap-robots
     content: "Create sitemap.ts (dynamic: categories + top deals) and robots.ts (allow public, disallow admin)"
-    status: pending
+    status: completed
   - id: internal-linking
     content: Update HomePageContent category links to /deals/c/..., add breadcrumb links on deal detail
-    status: pending
+    status: completed
   - id: query-param-redirect
     content: Redirect /deals?category=slug to /deals/c/... via middleware or page-level redirect
-    status: pending
+    status: completed
 isProject: false
 ---
 
@@ -283,3 +283,63 @@ export const CATEGORY_SEO: Record<
 | **Modify** | `apps/web/src/app/(public)/deals/[id]/page.tsx` (enhanced metadata, JSON-LD)       |
 | **Modify** | `apps/web/src/views/HomePageContent.tsx` (update category links to `/deals/c/...`) |
 | **Modify** | `apps/web/next.config.ts` (if adding redirect logic)                               |
+
+---
+
+## Status
+
+**Core implementation:** Done (see todos above — all `completed`). Redirect from `?category=` is handled in **middleware** (not `next.config`), preserving query params.
+
+**Optional follow-ups:** Tracked below; prioritize by traffic, scale, and Search Console feedback.
+
+---
+
+## Optional follow-ups
+
+### Content and GEO (`categorySeo`, taxonomy)
+
+- Add or refine **hand-tuned intros** (and optionally titles/descriptions) in `HAND_TUNED` for **every slug** in `[packages/shared/categories.export.json](packages/shared/categories.export.json)`, especially **deep leaf** categories (e.g. drivetrain/brakes/wheels children) that still fall back to generated copy only.
+- **Regenerate `categories.export.json`** from Neon when the category tree changes (operational step; documented in `[packages/shared/README.md](packages/shared/README.md)`).
+
+### Deal detail metadata (`apps/web/src/app/(public)/deals/[id]/page.tsx`)
+
+- Enrich `**generateMetadata` description** with **canonical category\*\* when resolvable (plan §2 suggested including category; current copy focuses on price/store/discount).
+- Revisit **title** format if product SEO needs brand/category ordering tweaks.
+
+### Structured data (`apps/web/src/lib/jsonLd.ts` and consumers)
+
+- Extend `**Product` JSON-LD\*\* (e.g. `category`, identifiers like `sku`/`mpn` if the API ever exposes them).
+- Consider `**BreadcrumbList`\*\* JSON-LD on category and/or deal pages (common for rich results; not in original plan).
+- `**ItemList` on category pages** caps at **12\*\* deals (`ITEM_LIST_MAX`) — confirm policy (raise cap, or document “sample of listing” intentionally).
+
+### Sitemap (`apps/web/src/app/sitemap.ts`)
+
+- `**lastModified`:** Currently effectively “build/runtime generation time,” not per-URL content change — improve if the API or DB can expose **real change signals\*\* (e.g. last listing update).
+- **Scale:** At ~50k URLs or for clearer crawl hints, add a **sitemap index** and/or **split** static + deal sitemaps.
+- **Deal inclusion:** Policy is **paginated fetch with cap** (~48k deal URLs) — revisit **newest vs full inventory** as product needs change.
+
+### Crawling, canonicals, redirects
+
+- Periodically verify **canonicals**: `/deals` static canonical for filtered `?` URLs; `**/deals/c/...`\*\* routes use route-level metadata (ensure no accidental duplicates).
+- **308 vs 301** for `?category=` → path: middleware uses **308** (permanent). Change only if you explicitly want **301** semantics everywhere.
+- If **faceted URL explosion** becomes an issue, revisit **robots / noindex** or canonical strategy for low-value filter combinations (not required at current scale).
+
+### PostHog and analytics
+
+- **Validate funnels/dashboards** after category nav moved to `<Link>` (event order or timing may shift vs `router.replace`).
+- Update `**[posthog-setup-report.md](posthog-setup-report.md)`\*\* (if maintained) and `[apps/web/README.md](apps/web/README.md)` if event contracts or recommended dashboards change.
+
+### Storybook and docs
+
+- **Storybook:** `DealsBrowseFooter` and `DealsCategoryNav` have stories; add stories for any new SEO-related UI as it ships.
+- Keep **architecture / web README** in sync when changing routes, middleware, or analytics (see repo documentation-sync rule).
+
+### Operations and QA (non-code)
+
+- **Google Search Console:** Submit sitemap, monitor coverage, enhancements, and **SearchAction** / rich results where applicable.
+- **Bing Webmaster Tools** if Bing/Copilot surfaces matter.
+- **Lighthouse / Core Web Vitals** on key templates (`/`, `/deals`, `/deals/c/...`, `/deals/[id]`).
+
+### Internationalization (future)
+
+- `**hreflang`\*\* and locale-specific metadata only if the site becomes multi-region/multi-language.
