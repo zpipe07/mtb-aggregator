@@ -1,5 +1,48 @@
 import type { CategoryTreeNode } from "../api";
 
+/** Flat category row (API list or `categories.export.json`) before nesting. */
+export type CategoryFlatRow = {
+  id: number;
+  slug: string;
+  name: string;
+  parent_id: number | null;
+  sort_order: number;
+  depth: number;
+};
+
+/**
+ * Build a nested tree from flat rows (same shape as `GET /categories/tree` / DB list).
+ * Order matches API: depth, sort_order, id.
+ */
+export function buildCategoryTreeFromFlat(flat: CategoryFlatRow[]): CategoryTreeNode[] {
+  const list = [...flat].sort((a, b) => {
+    if (a.depth !== b.depth) return a.depth - b.depth;
+    if (a.sort_order !== b.sort_order) return a.sort_order - b.sort_order;
+    return a.id - b.id;
+  });
+
+  function build(parentId: number | null): CategoryTreeNode[] {
+    const nodes: CategoryTreeNode[] = [];
+    for (const c of list) {
+      const match =
+        parentId === null ? c.parent_id === null : c.parent_id === parentId;
+      if (!match) continue;
+      nodes.push({
+        id: c.id,
+        slug: c.slug,
+        name: c.name,
+        parent_id: c.parent_id,
+        sort_order: c.sort_order,
+        depth: c.depth,
+        children: build(c.id),
+      });
+    }
+    return nodes;
+  }
+
+  return build(null);
+}
+
 /**
  * Map API `canonical_category` (e.g. `["Bikes", "Electric"]`) to a `categories.slug`
  * by walking the tree and matching names at each depth. Returns null if no match.

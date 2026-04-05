@@ -107,7 +107,7 @@ export function HomePageContent({ categoryTree, topDeals }: Props) {
             <CategoryCard
               key={path}
               label={label}
-              to={buildDealsCategoryPath(path)}
+              to={buildDealsCategoryPath(path, categoryTree)}
               imageSrc={imageSrc}
             />
           ))}

@@ -1,0 +1,2215 @@
+{
+  "version": "2.9",
+  "children": [
+    {
+      "children": [
+        {
+          "alignItems": "center",
+          "children": [
+            {
+              "alignItems": "center",
+              "children": [
+                {
+                  "content": "MTB DEALS",
+                  "fill": "#F5F5F4",
+                  "fontFamily": "Bricolage Grotesque",
+                  "fontSize": 18,
+                  "fontWeight": "700",
+                  "id": "Er1YV",
+                  "letterSpacing": 2,
+                  "type": "text"
+                }
+              ],
+              "gap": 12,
+              "id": "zeRYn",
+              "name": "navBrand",
+              "type": "frame"
+            },
+            {
+              "alignItems": "center",
+              "children": [
+                {
+                  "content": "Deals",
+                  "fill": "#A8A29E",
+                  "fontFamily": "Inter",
+                  "fontSize": 14,
+                  "fontWeight": "500",
+                  "id": "CsaX7",
+                  "type": "text"
+                },
+                {
+                  "content": "Categories",
+                  "fill": "#A8A29E",
+                  "fontFamily": "Inter",
+                  "fontSize": 14,
+                  "fontWeight": "500",
+                  "id": "nU5Kf",
+                  "type": "text"
+                },
+                {
+                  "content": "Brands",
+                  "fill": "#A8A29E",
+                  "fontFamily": "Inter",
+                  "fontSize": 14,
+                  "fontWeight": "500",
+                  "id": "twgAP",
+                  "type": "text"
+                }
+              ],
+              "gap": 28,
+              "id": "ZZtx9",
+              "name": "navLinks",
+              "type": "frame"
+            },
+            {
+              "alignItems": "center",
+              "children": [
+                {
+                  "content": "How it works",
+                  "fill": "#D6D3D1",
+                  "fontFamily": "Inter",
+                  "fontSize": 13,
+                  "fontWeight": "500",
+                  "id": "CWo7P",
+                  "type": "text"
+                },
+                {
+                  "children": [
+                    {
+                      "content": "Browse deals",
+                      "fill": "#0C0A09",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "600",
+                      "id": "mUJnW",
+                      "type": "text"
+                    }
+                  ],
+                  "cornerRadius": 10,
+                  "effect": {
+                    "blur": 20,
+                    "color": "#FF5E0044",
+                    "offset": {
+                      "x": 0,
+                      "y": 6
+                    },
+                    "shadowType": "outer",
+                    "type": "shadow"
+                  },
+                  "fill": {
+                    "colors": [
+                      {
+                        "color": "#FF5E00",
+                        "position": 0
+                      },
+                      {
+                        "color": "#FF8533",
+                        "position": 1
+                      }
+                    ],
+                    "enabled": true,
+                    "gradientType": "linear",
+                    "rotation": 90,
+                    "size": {
+                      "height": 1
+                    },
+                    "type": "gradient"
+                  },
+                  "id": "vRMae",
+                  "name": "primaryNavBtn",
+                  "padding": [
+                    12,
+                    20
+                  ],
+                  "type": "frame"
+                }
+              ],
+              "gap": 12,
+              "id": "7HKll",
+              "name": "navCtas",
+              "type": "frame"
+            }
+          ],
+          "effect": {
+            "blur": 32,
+            "color": "#00000088",
+            "offset": {
+              "x": 0,
+              "y": 8
+            },
+            "shadowType": "outer",
+            "type": "shadow"
+          },
+          "fill": "#0A0F0CCC",
+          "id": "yWwD0",
+          "justifyContent": "space_between",
+          "name": "nav",
+          "padding": [
+            18,
+            40
+          ],
+          "type": "frame",
+          "width": "fill_container"
+        },
+        {
+          "alignItems": "center",
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "content": "Fresh from the trailhead",
+                      "fill": "#FF9F66",
+                      "fontFamily": "Plus Jakarta Sans",
+                      "fontSize": 11,
+                      "fontWeight": "600",
+                      "id": "Hhcdb",
+                      "letterSpacing": 1.2,
+                      "type": "text"
+                    }
+                  ],
+                  "cornerRadius": 100,
+                  "fill": "#FF5E0018",
+                  "id": "pLP4H",
+                  "name": "badge",
+                  "padding": [
+                    8,
+                    16
+                  ],
+                  "stroke": {
+                    "fill": "#FF5E004D",
+                    "thickness": 1
+                  },
+                  "type": "frame"
+                },
+                {
+                  "content": "Dialed-in deals across the sport you love.",
+                  "fill": "#FAFAF8",
+                  "fontFamily": "Bricolage Grotesque",
+                  "fontSize": 52,
+                  "fontWeight": "700",
+                  "id": "VG76v",
+                  "lineHeight": 1.05,
+                  "name": "h1",
+                  "textGrowth": "fixed-width",
+                  "type": "text",
+                  "width": "fill_container"
+                },
+                {
+                  "content": "We scan dozens of shops for sale-priced bikes, components, and kit—so you spend less time tab-hopping and more time riding.",
+                  "fill": "#C4C4C0",
+                  "fontFamily": "Plus Jakarta Sans",
+                  "fontSize": 17,
+                  "fontWeight": "normal",
+                  "id": "bzOfk",
+                  "lineHeight": 1.45,
+                  "name": "sub",
+                  "textGrowth": "fixed-width",
+                  "type": "text",
+                  "width": "fill_container"
+                },
+                {
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "content": "Snag the deals",
+                          "fill": "#0C0A09",
+                          "fontFamily": "Plus Jakarta Sans",
+                          "fontSize": 15,
+                          "fontWeight": "600",
+                          "id": "ctBYP",
+                          "type": "text"
+                        }
+                      ],
+                      "cornerRadius": 12,
+                      "effect": {
+                        "blur": 28,
+                        "color": "#FF5E0055",
+                        "offset": {
+                          "x": 0,
+                          "y": 10
+                        },
+                        "shadowType": "outer",
+                        "type": "shadow"
+                      },
+                      "fill": {
+                        "colors": [
+                          {
+                            "color": "#FF5E00",
+                            "position": 0
+                          },
+                          {
+                            "color": "#FF7A33",
+                            "position": 1
+                          }
+                        ],
+                        "enabled": true,
+                        "gradientType": "linear",
+                        "rotation": 90,
+                        "size": {
+                          "height": 1
+                        },
+                        "type": "gradient"
+                      },
+                      "id": "Njvdf",
+                      "name": "cta1",
+                      "padding": [
+                        16,
+                        28
+                      ],
+                      "type": "frame"
+                    },
+                    {
+                      "children": [
+                        {
+                          "content": "See categories",
+                          "fill": "#E7E5E4",
+                          "fontFamily": "Plus Jakarta Sans",
+                          "fontSize": 15,
+                          "fontWeight": "600",
+                          "id": "KGmed",
+                          "type": "text"
+                        }
+                      ],
+                      "cornerRadius": 12,
+                      "fill": "#0F1512",
+                      "id": "2x24Y",
+                      "name": "cta2",
+                      "padding": [
+                        16,
+                        24
+                      ],
+                      "stroke": {
+                        "fill": "#2A3D34",
+                        "thickness": 1
+                      },
+                      "type": "frame"
+                    }
+                  ],
+                  "gap": 14,
+                  "id": "JJhYq",
+                  "name": "heroCtas",
+                  "type": "frame"
+                }
+              ],
+              "gap": 28,
+              "id": "ZSUJB",
+              "layout": "vertical",
+              "name": "heroLeft",
+              "type": "frame",
+              "width": 620
+            },
+            {
+              "children": [
+                {
+                  "clip": true,
+                  "cornerRadius": 20,
+                  "effect": {
+                    "blur": 48,
+                    "color": "#00000099",
+                    "offset": {
+                      "x": 0,
+                      "y": 24
+                    },
+                    "shadowType": "outer",
+                    "type": "shadow"
+                  },
+                  "fill": {
+                    "enabled": true,
+                    "mode": "fill",
+                    "type": "image",
+                    "url": "https://images.unsplash.com/photo-1644249037905-0048bdbe24a8?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NDM0ODN8MHwxfHJhbmRvbXx8fHx8fHx8fDE3NzQ5MDE0NTF8&ixlib=rb-4.1.0&q=80&w=1080"
+                  },
+                  "height": 420,
+                  "id": "ddFG9",
+                  "metadata": {
+                    "author": "Tom Vanhoof",
+                    "link": "https://unsplash.com/@tomvh4",
+                    "type": "unsplash",
+                    "username": "tomvh4"
+                  },
+                  "name": "heroImage",
+                  "stroke": {
+                    "fill": "#2F3D36",
+                    "thickness": 1
+                  },
+                  "type": "frame",
+                  "width": "fill_container"
+                },
+                {
+                  "content": "Placeholder imagery — swap for loam, bike detail, or uplift day photography.",
+                  "fill": "#78716C",
+                  "fontFamily": "Plus Jakarta Sans",
+                  "fontSize": 12,
+                  "fontWeight": "normal",
+                  "id": "4JTRC",
+                  "name": "heroCaption",
+                  "textGrowth": "fixed-width",
+                  "type": "text",
+                  "width": "fill_container"
+                }
+              ],
+              "gap": 16,
+              "id": "kTqp7",
+              "layout": "vertical",
+              "name": "heroRight",
+              "type": "frame",
+              "width": "fill_container"
+            }
+          ],
+          "fill": {
+            "colors": [
+              {
+                "color": "#0E1612",
+                "position": 0
+              },
+              {
+                "color": "#1B302280",
+                "position": 1
+              }
+            ],
+            "enabled": true,
+            "gradientType": "linear",
+            "rotation": 95,
+            "size": {
+              "height": 1
+            },
+            "type": "gradient"
+          },
+          "gap": 40,
+          "id": "0TBsU",
+          "name": "hero",
+          "padding": [
+            56,
+            40
+          ],
+          "type": "frame",
+          "width": "fill_container"
+        },
+        {
+          "alignItems": "center",
+          "children": [
+            {
+              "children": [
+                {
+                  "content": "50+",
+                  "fill": "#FF5E00",
+                  "fontFamily": "Bricolage Grotesque",
+                  "fontSize": 28,
+                  "fontWeight": "700",
+                  "id": "1uIC4",
+                  "type": "text"
+                },
+                {
+                  "content": "shops tracked",
+                  "fill": "#A8A29E",
+                  "fontFamily": "Plus Jakarta Sans",
+                  "fontSize": 13,
+                  "fontWeight": "normal",
+                  "id": "fX4SA",
+                  "textGrowth": "fixed-width",
+                  "type": "text",
+                  "width": "fill_container"
+                }
+              ],
+              "gap": 6,
+              "id": "BnKUy",
+              "layout": "vertical",
+              "name": "stat1",
+              "type": "frame",
+              "width": "fill_container"
+            },
+            {
+              "children": [
+                {
+                  "content": "Daily",
+                  "fill": "#F5F5F4",
+                  "fontFamily": "Bricolage Grotesque",
+                  "fontSize": 28,
+                  "fontWeight": "700",
+                  "id": "w2JWZ",
+                  "type": "text"
+                },
+                {
+                  "content": "fresh sale scans",
+                  "fill": "#A8A29E",
+                  "fontFamily": "Plus Jakarta Sans",
+                  "fontSize": 13,
+                  "fontWeight": "normal",
+                  "id": "57tjh",
+                  "textGrowth": "fixed-width",
+                  "type": "text",
+                  "width": "fill_container"
+                }
+              ],
+              "gap": 6,
+              "id": "9Uqy2",
+              "layout": "vertical",
+              "name": "stat2",
+              "type": "frame",
+              "width": "fill_container"
+            },
+            {
+              "children": [
+                {
+                  "content": "Specs-first",
+                  "fill": "#F5F5F4",
+                  "fontFamily": "Bricolage Grotesque",
+                  "fontSize": 28,
+                  "fontWeight": "700",
+                  "id": "W84lI",
+                  "type": "text"
+                },
+                {
+                  "content": "filters that actually help",
+                  "fill": "#A8A29E",
+                  "fontFamily": "Plus Jakarta Sans",
+                  "fontSize": 13,
+                  "fontWeight": "normal",
+                  "id": "QIohz",
+                  "textGrowth": "fixed-width",
+                  "type": "text",
+                  "width": "fill_container"
+                }
+              ],
+              "gap": 6,
+              "id": "Q0wxk",
+              "layout": "vertical",
+              "name": "stat3",
+              "type": "frame",
+              "width": "fill_container"
+            },
+            {
+              "fill": "#2A3F35",
+              "height": 48,
+              "id": "Txz7z",
+              "name": "vDivider",
+              "type": "rectangle",
+              "width": 1
+            },
+            {
+              "children": [
+                {
+                  "content": "Zero",
+                  "fill": "#F5F5F4",
+                  "fontFamily": "Bricolage Grotesque",
+                  "fontSize": 28,
+                  "fontWeight": "700",
+                  "id": "EuI6d",
+                  "type": "text"
+                },
+                {
+                  "content": "paywall — free to browse",
+                  "fill": "#A8A29E",
+                  "fontFamily": "Plus Jakarta Sans",
+                  "fontSize": 13,
+                  "fontWeight": "normal",
+                  "id": "VtkTy",
+                  "textGrowth": "fixed-width",
+                  "type": "text",
+                  "width": "fill_container"
+                }
+              ],
+              "gap": 6,
+              "id": "gPa08",
+              "layout": "vertical",
+              "name": "stat4",
+              "type": "frame",
+              "width": "fill_container"
+            }
+          ],
+          "fill": "#0C1210",
+          "id": "4E461",
+          "justifyContent": "space_between",
+          "name": "statsStrip",
+          "padding": [
+            28,
+            40
+          ],
+          "stroke": {
+            "fill": "#1F2E26",
+            "thickness": {
+              "bottom": 1,
+              "top": 1
+            }
+          },
+          "type": "frame",
+          "width": "fill_container"
+        },
+        {
+          "children": [
+            {
+              "alignItems": "end",
+              "children": [
+                {
+                  "children": [
+                    {
+                      "content": "Shop by terrain",
+                      "fill": "#F5F5F4",
+                      "fontFamily": "Bricolage Grotesque",
+                      "fontSize": 36,
+                      "fontWeight": "700",
+                      "id": "if9vE",
+                      "textGrowth": "fixed-width",
+                      "type": "text",
+                      "width": "fill_container"
+                    },
+                    {
+                      "content": "Big imagery, tight hierarchy—pick a lane and we will keep the filters honest.",
+                      "fill": "#A8A29E",
+                      "fontFamily": "Plus Jakarta Sans",
+                      "fontSize": 15,
+                      "fontWeight": "normal",
+                      "id": "S912W",
+                      "lineHeight": 1.5,
+                      "textGrowth": "fixed-width",
+                      "type": "text",
+                      "width": "fill_container"
+                    }
+                  ],
+                  "gap": 10,
+                  "id": "TLQM1",
+                  "layout": "vertical",
+                  "name": "catHeadL",
+                  "type": "frame",
+                  "width": 720
+                },
+                {
+                  "content": "View all →",
+                  "fill": "#FF5E00",
+                  "fontFamily": "Plus Jakarta Sans",
+                  "fontSize": 14,
+                  "fontWeight": "600",
+                  "id": "UMBR9",
+                  "type": "text"
+                }
+              ],
+              "id": "3OQNZ",
+              "justifyContent": "space_between",
+              "name": "catHead",
+              "type": "frame",
+              "width": "fill_container"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "clip": true,
+                      "fill": {
+                        "enabled": true,
+                        "mode": "fill",
+                        "type": "image",
+                        "url": "https://images.unsplash.com/photo-1681076307092-d2d1e3bd6038?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NDM0ODN8MHwxfHJhbmRvbXx8fHx8fHx8fDE3NzQ5MDE0NzB8&ixlib=rb-4.1.0&q=80&w=1080"
+                      },
+                      "height": 200,
+                      "id": "wg1NN",
+                      "metadata": {
+                        "author": "Emil Karlsen",
+                        "link": "https://unsplash.com/@emil_karlsen",
+                        "type": "unsplash",
+                        "username": "emil_karlsen"
+                      },
+                      "name": "img1",
+                      "type": "frame",
+                      "width": "fill_container"
+                    },
+                    {
+                      "children": [
+                        {
+                          "content": "Trail / all-mountain",
+                          "fill": "#FAFAF8",
+                          "fontFamily": "Bricolage Grotesque",
+                          "fontSize": 17,
+                          "fontWeight": "700",
+                          "id": "bN7Ou",
+                          "textGrowth": "fixed-width",
+                          "type": "text",
+                          "width": "fill_container"
+                        },
+                        {
+                          "content": "Travel, geometry, intended use—dialed for long days.",
+                          "fill": "#A8A29E",
+                          "fontFamily": "Plus Jakarta Sans",
+                          "fontSize": 13,
+                          "fontWeight": "normal",
+                          "id": "ubKpM",
+                          "lineHeight": 1.4,
+                          "textGrowth": "fixed-width",
+                          "type": "text",
+                          "width": "fill_container"
+                        }
+                      ],
+                      "gap": 8,
+                      "id": "yZrC8",
+                      "layout": "vertical",
+                      "name": "card1Body",
+                      "padding": [
+                        16,
+                        16,
+                        20,
+                        16
+                      ],
+                      "type": "frame",
+                      "width": "fill_container"
+                    }
+                  ],
+                  "clip": true,
+                  "cornerRadius": 16,
+                  "effect": {
+                    "blur": 32,
+                    "color": "#00000066",
+                    "offset": {
+                      "x": 0,
+                      "y": 16
+                    },
+                    "shadowType": "outer",
+                    "type": "shadow"
+                  },
+                  "fill": "#0F1512",
+                  "id": "JRwQp",
+                  "layout": "vertical",
+                  "name": "card1",
+                  "stroke": {
+                    "fill": "#24332C",
+                    "thickness": 1
+                  },
+                  "type": "frame",
+                  "width": "fill_container"
+                },
+                {
+                  "children": [
+                    {
+                      "clip": true,
+                      "fill": {
+                        "enabled": true,
+                        "mode": "fill",
+                        "type": "image",
+                        "url": "https://images.unsplash.com/photo-1769445837366-331adaa10a7b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NDM0ODN8MHwxfHJhbmRvbXx8fHx8fHx8fDE3NzQ5MDE0NzB8&ixlib=rb-4.1.0&q=80&w=1080"
+                      },
+                      "height": 200,
+                      "id": "AXJ8A",
+                      "metadata": {
+                        "author": "Acelane Bikes",
+                        "link": "https://unsplash.com/@acelanebikes",
+                        "type": "unsplash",
+                        "username": "acelanebikes"
+                      },
+                      "name": "img2",
+                      "type": "frame",
+                      "width": "fill_container"
+                    },
+                    {
+                      "children": [
+                        {
+                          "content": "Components",
+                          "fill": "#FAFAF8",
+                          "fontFamily": "Bricolage Grotesque",
+                          "fontSize": 17,
+                          "fontWeight": "700",
+                          "id": "kdDRm",
+                          "textGrowth": "fixed-width",
+                          "type": "text",
+                          "width": "fill_container"
+                        },
+                        {
+                          "content": "Brakes, drivetrain, cockpits—priced like you care about grams.",
+                          "fill": "#A8A29E",
+                          "fontFamily": "Plus Jakarta Sans",
+                          "fontSize": 13,
+                          "fontWeight": "normal",
+                          "id": "ZIlcn",
+                          "lineHeight": 1.4,
+                          "textGrowth": "fixed-width",
+                          "type": "text",
+                          "width": "fill_container"
+                        }
+                      ],
+                      "gap": 8,
+                      "id": "HAsEp",
+                      "layout": "vertical",
+                      "name": "card2Body",
+                      "padding": [
+                        16,
+                        16,
+                        20,
+                        16
+                      ],
+                      "type": "frame",
+                      "width": "fill_container"
+                    }
+                  ],
+                  "clip": true,
+                  "cornerRadius": 16,
+                  "effect": {
+                    "blur": 32,
+                    "color": "#00000066",
+                    "offset": {
+                      "x": 0,
+                      "y": 16
+                    },
+                    "shadowType": "outer",
+                    "type": "shadow"
+                  },
+                  "fill": "#0F1512",
+                  "id": "nElJj",
+                  "layout": "vertical",
+                  "name": "card2",
+                  "stroke": {
+                    "fill": "#24332C",
+                    "thickness": 1
+                  },
+                  "type": "frame",
+                  "width": "fill_container"
+                },
+                {
+                  "children": [
+                    {
+                      "clip": true,
+                      "fill": {
+                        "enabled": true,
+                        "mode": "fill",
+                        "type": "image",
+                        "url": "https://images.unsplash.com/photo-1600492110105-c655b4bbec31?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NDM0ODN8MHwxfHJhbmRvbXx8fHx8fHx8fDE3NzQ5MDE0NzF8&ixlib=rb-4.1.0&q=80&w=1080"
+                      },
+                      "height": 200,
+                      "id": "AIbFi",
+                      "metadata": {
+                        "author": "Jordan",
+                        "link": "https://unsplash.com/@jordphotography",
+                        "type": "unsplash",
+                        "username": "jordphotography"
+                      },
+                      "name": "img3",
+                      "type": "frame",
+                      "width": "fill_container"
+                    },
+                    {
+                      "children": [
+                        {
+                          "content": "Protection & apparel",
+                          "fill": "#FAFAF8",
+                          "fontFamily": "Bricolage Grotesque",
+                          "fontSize": 17,
+                          "fontWeight": "700",
+                          "id": "wr1MK",
+                          "textGrowth": "fixed-width",
+                          "type": "text",
+                          "width": "fill_container"
+                        },
+                        {
+                          "content": "Helmets, pads, layers—because the weather owes you nothing.",
+                          "fill": "#A8A29E",
+                          "fontFamily": "Plus Jakarta Sans",
+                          "fontSize": 13,
+                          "fontWeight": "normal",
+                          "id": "tldep",
+                          "lineHeight": 1.4,
+                          "textGrowth": "fixed-width",
+                          "type": "text",
+                          "width": "fill_container"
+                        }
+                      ],
+                      "gap": 8,
+                      "id": "SBbOO",
+                      "layout": "vertical",
+                      "name": "card3Body",
+                      "padding": [
+                        16,
+                        16,
+                        20,
+                        16
+                      ],
+                      "type": "frame",
+                      "width": "fill_container"
+                    }
+                  ],
+                  "clip": true,
+                  "cornerRadius": 16,
+                  "effect": {
+                    "blur": 32,
+                    "color": "#00000066",
+                    "offset": {
+                      "x": 0,
+                      "y": 16
+                    },
+                    "shadowType": "outer",
+                    "type": "shadow"
+                  },
+                  "fill": "#0F1512",
+                  "id": "V4RqG",
+                  "layout": "vertical",
+                  "name": "card3",
+                  "stroke": {
+                    "fill": "#24332C",
+                    "thickness": 1
+                  },
+                  "type": "frame",
+                  "width": "fill_container"
+                }
+              ],
+              "gap": 20,
+              "id": "5wZBZ",
+              "name": "catRow",
+              "type": "frame",
+              "width": "fill_container"
+            }
+          ],
+          "fill": {
+            "colors": [
+              {
+                "color": "#080B09",
+                "position": 0
+              },
+              {
+                "color": "#101814",
+                "position": 1
+              }
+            ],
+            "enabled": true,
+            "gradientType": "linear",
+            "rotation": 180,
+            "size": {
+              "height": 1
+            },
+            "type": "gradient"
+          },
+          "gap": 28,
+          "id": "DAg4S",
+          "layout": "vertical",
+          "name": "categorySection",
+          "padding": [
+            56,
+            40
+          ],
+          "type": "frame",
+          "width": "fill_container"
+        },
+        {
+          "children": [
+            {
+              "alignItems": "center",
+              "children": [
+                {
+                  "children": [
+                    {
+                      "content": "Fresh drops",
+                      "fill": "#F5F5F4",
+                      "fontFamily": "Bricolage Grotesque",
+                      "fontSize": 32,
+                      "fontWeight": "700",
+                      "id": "vuW2S",
+                      "type": "text"
+                    },
+                    {
+                      "content": "High-signal picks updated as shops change pricing.",
+                      "fill": "#A8A29E",
+                      "fontFamily": "Plus Jakarta Sans",
+                      "fontSize": 14,
+                      "fontWeight": "normal",
+                      "id": "5AbDA",
+                      "type": "text"
+                    }
+                  ],
+                  "gap": 8,
+                  "id": "5va3B",
+                  "layout": "vertical",
+                  "name": "dealHeadL",
+                  "type": "frame"
+                },
+                {
+                  "children": [
+                    {
+                      "content": "Live feed",
+                      "fill": "#FF8A4C",
+                      "fontFamily": "Plus Jakarta Sans",
+                      "fontSize": 12,
+                      "fontWeight": "600",
+                      "id": "X23JC",
+                      "type": "text"
+                    }
+                  ],
+                  "cornerRadius": 8,
+                  "fill": "#FF5E0014",
+                  "id": "WSrkv",
+                  "name": "dealChip",
+                  "padding": [
+                    10,
+                    18
+                  ],
+                  "stroke": {
+                    "fill": "#FF5E0033",
+                    "thickness": 1
+                  },
+                  "type": "frame"
+                }
+              ],
+              "id": "GIQWX",
+              "justifyContent": "space_between",
+              "name": "dealHead",
+              "type": "frame",
+              "width": "fill_container"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "content": "Placeholder product title",
+                      "fill": "#F5F5F4",
+                      "fontFamily": "Plus Jakarta Sans",
+                      "fontSize": 15,
+                      "fontWeight": "600",
+                      "id": "Y4Ebg",
+                      "type": "text"
+                    },
+                    {
+                      "content": "Store name",
+                      "fill": "#78716C",
+                      "fontFamily": "Plus Jakarta Sans",
+                      "fontSize": 12,
+                      "fontWeight": "normal",
+                      "id": "iwuI0",
+                      "type": "text"
+                    },
+                    {
+                      "content": "$1,299  $999",
+                      "fill": "#FF5E00",
+                      "fontFamily": "Bricolage Grotesque",
+                      "fontSize": 18,
+                      "fontWeight": "700",
+                      "id": "NhSWt",
+                      "type": "text"
+                    }
+                  ],
+                  "cornerRadius": 14,
+                  "fill": "#111816",
+                  "gap": 12,
+                  "id": "xhOKn",
+                  "layout": "vertical",
+                  "name": "d1",
+                  "padding": 16,
+                  "stroke": {
+                    "fill": "#24332C",
+                    "thickness": 1
+                  },
+                  "type": "frame",
+                  "width": "fill_container"
+                },
+                {
+                  "children": [
+                    {
+                      "content": "Carbon wheelset — 29\"",
+                      "fill": "#F5F5F4",
+                      "fontFamily": "Plus Jakarta Sans",
+                      "fontSize": 15,
+                      "fontWeight": "600",
+                      "id": "5PWpd",
+                      "type": "text"
+                    },
+                    {
+                      "content": "Store name",
+                      "fill": "#78716C",
+                      "fontFamily": "Plus Jakarta Sans",
+                      "fontSize": 12,
+                      "fontWeight": "normal",
+                      "id": "eL5sK",
+                      "type": "text"
+                    },
+                    {
+                      "content": "$899  $720",
+                      "fill": "#FF5E00",
+                      "fontFamily": "Bricolage Grotesque",
+                      "fontSize": 18,
+                      "fontWeight": "700",
+                      "id": "P7CUK",
+                      "type": "text"
+                    }
+                  ],
+                  "cornerRadius": 14,
+                  "fill": "#111816",
+                  "gap": 12,
+                  "id": "VZ3rm",
+                  "layout": "vertical",
+                  "name": "d2",
+                  "padding": 16,
+                  "stroke": {
+                    "fill": "#24332C",
+                    "thickness": 1
+                  },
+                  "type": "frame",
+                  "width": "fill_container"
+                },
+                {
+                  "children": [
+                    {
+                      "content": "Dropper post — 200mm",
+                      "fill": "#F5F5F4",
+                      "fontFamily": "Plus Jakarta Sans",
+                      "fontSize": 15,
+                      "fontWeight": "600",
+                      "id": "8UG3z",
+                      "type": "text"
+                    },
+                    {
+                      "content": "Store name",
+                      "fill": "#78716C",
+                      "fontFamily": "Plus Jakarta Sans",
+                      "fontSize": 12,
+                      "fontWeight": "normal",
+                      "id": "zw9cZ",
+                      "type": "text"
+                    },
+                    {
+                      "content": "$399  $299",
+                      "fill": "#FF5E00",
+                      "fontFamily": "Bricolage Grotesque",
+                      "fontSize": 18,
+                      "fontWeight": "700",
+                      "id": "zsHNp",
+                      "type": "text"
+                    }
+                  ],
+                  "cornerRadius": 14,
+                  "fill": "#111816",
+                  "gap": 12,
+                  "id": "OH9GF",
+                  "layout": "vertical",
+                  "name": "d3",
+                  "padding": 16,
+                  "stroke": {
+                    "fill": "#24332C",
+                    "thickness": 1
+                  },
+                  "type": "frame",
+                  "width": "fill_container"
+                }
+              ],
+              "gap": 16,
+              "id": "Jf3rc",
+              "name": "dealGrid",
+              "type": "frame",
+              "width": "fill_container"
+            }
+          ],
+          "fill": "#0A0E0C",
+          "gap": 24,
+          "id": "eq9o9",
+          "layout": "vertical",
+          "name": "featuredDeals",
+          "padding": [
+            48,
+            40
+          ],
+          "type": "frame",
+          "width": "fill_container"
+        },
+        {
+          "children": [
+            {
+              "clip": true,
+              "fill": {
+                "enabled": true,
+                "mode": "fill",
+                "type": "image",
+                "url": "https://images.unsplash.com/photo-1641241714723-4c450e937044?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NDM0ODN8MHwxfHJhbmRvbXx8fHx8fHx8fDE3NzQ5MDE0ODZ8&ixlib=rb-4.1.0&q=80&w=1080"
+              },
+              "height": 340,
+              "id": "FGZ5v",
+              "metadata": {
+                "author": "Tim Foster",
+                "link": "https://unsplash.com/@timberfoster",
+                "type": "unsplash",
+                "username": "timberfoster"
+              },
+              "name": "editImg",
+              "type": "frame",
+              "width": 720
+            },
+            {
+              "children": [
+                {
+                  "content": "Built like a workshop, not a mall.",
+                  "fill": "#FAFAF8",
+                  "fontFamily": "Bricolage Grotesque",
+                  "fontSize": 28,
+                  "fontWeight": "700",
+                  "id": "a5B1i",
+                  "lineHeight": 1.15,
+                  "textGrowth": "fixed-width",
+                  "type": "text",
+                  "width": "fill_container"
+                },
+                {
+                  "content": "We lean into gritty detail: tires, travel, brakes, and the weird compatibility edge cases—because “on sale” only matters when the spec is right.",
+                  "fill": "#D6D3D1",
+                  "fontFamily": "Plus Jakarta Sans",
+                  "fontSize": 15,
+                  "fontWeight": "normal",
+                  "id": "9Zxj8",
+                  "lineHeight": 1.55,
+                  "textGrowth": "fixed-width",
+                  "type": "text",
+                  "width": "fill_container"
+                },
+                {
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "content": "Read our approach",
+                          "fill": "#0C0A09",
+                          "fontFamily": "Plus Jakarta Sans",
+                          "fontSize": 14,
+                          "fontWeight": "600",
+                          "id": "QgUPW",
+                          "type": "text"
+                        }
+                      ],
+                      "cornerRadius": 10,
+                      "fill": "#FF5E00",
+                      "id": "6dZgB",
+                      "name": "editBtn",
+                      "padding": [
+                        12,
+                        20
+                      ],
+                      "type": "frame"
+                    },
+                    {
+                      "content": "Transparent sourcing · Aggregator",
+                      "fill": "#A8A29E",
+                      "fontFamily": "Plus Jakarta Sans",
+                      "fontSize": 12,
+                      "fontWeight": "normal",
+                      "id": "ugCu8",
+                      "type": "text"
+                    }
+                  ],
+                  "gap": 12,
+                  "id": "85aOF",
+                  "name": "editCta",
+                  "type": "frame"
+                }
+              ],
+              "fill": {
+                "colors": [
+                  {
+                    "color": "#1B3022",
+                    "position": 0
+                  },
+                  {
+                    "color": "#0E1814",
+                    "position": 1
+                  }
+                ],
+                "enabled": true,
+                "gradientType": "linear",
+                "rotation": 90,
+                "size": {
+                  "height": 1
+                },
+                "type": "gradient"
+              },
+              "gap": 20,
+              "id": "ykcuZ",
+              "justifyContent": "center",
+              "layout": "vertical",
+              "name": "editCopy",
+              "padding": 48,
+              "type": "frame",
+              "width": "fill_container"
+            }
+          ],
+          "id": "TXc44",
+          "name": "editorialBand",
+          "type": "frame",
+          "width": "fill_container"
+        },
+        {
+          "alignItems": "center",
+          "children": [
+            {
+              "content": "The Friday Drop",
+              "fill": "#F5F5F4",
+              "fontFamily": "Bricolage Grotesque",
+              "fontSize": 26,
+              "fontWeight": "700",
+              "id": "kaAzT",
+              "type": "text"
+            },
+            {
+              "content": "Weekly highlights—new sales, weird steals, and spec notes worth reading.",
+              "fill": "#A8A29E",
+              "fontFamily": "Plus Jakarta Sans",
+              "fontSize": 14,
+              "fontWeight": "normal",
+              "id": "CkQie",
+              "lineHeight": 1.5,
+              "textAlign": "center",
+              "textGrowth": "fixed-width",
+              "type": "text",
+              "width": 560
+            },
+            {
+              "alignItems": "center",
+              "children": [
+                {
+                  "children": [
+                    {
+                      "content": "you@trail.email",
+                      "fill": "#57534E",
+                      "fontFamily": "Plus Jakarta Sans",
+                      "fontSize": 14,
+                      "fontWeight": "normal",
+                      "id": "UjNhR",
+                      "type": "text"
+                    }
+                  ],
+                  "cornerRadius": 10,
+                  "fill": "#0E1411",
+                  "id": "wg92z",
+                  "name": "field",
+                  "padding": [
+                    14,
+                    18
+                  ],
+                  "stroke": {
+                    "fill": "#2A3D34",
+                    "thickness": 1
+                  },
+                  "type": "frame",
+                  "width": 420
+                },
+                {
+                  "children": [
+                    {
+                      "content": "Subscribe",
+                      "fill": "#0C0A09",
+                      "fontFamily": "Plus Jakarta Sans",
+                      "fontSize": 14,
+                      "fontWeight": "600",
+                      "id": "EyJNE",
+                      "type": "text"
+                    }
+                  ],
+                  "cornerRadius": 10,
+                  "fill": {
+                    "colors": [
+                      {
+                        "color": "#FF5E00",
+                        "position": 0
+                      },
+                      {
+                        "color": "#FF7A33",
+                        "position": 1
+                      }
+                    ],
+                    "enabled": true,
+                    "gradientType": "linear",
+                    "rotation": 90,
+                    "size": {
+                      "height": 1
+                    },
+                    "type": "gradient"
+                  },
+                  "id": "Usc9T",
+                  "name": "newsBtn",
+                  "padding": [
+                    14,
+                    22
+                  ],
+                  "type": "frame"
+                }
+              ],
+              "gap": 12,
+              "id": "6e3S0",
+              "name": "newsRow",
+              "type": "frame"
+            }
+          ],
+          "fill": {
+            "colors": [
+              {
+                "color": "#0B100D",
+                "position": 0
+              },
+              {
+                "color": "#15261C",
+                "position": 1
+              }
+            ],
+            "enabled": true,
+            "gradientType": "linear",
+            "rotation": 180,
+            "size": {
+              "height": 1
+            },
+            "type": "gradient"
+          },
+          "gap": 16,
+          "id": "9zagQ",
+          "layout": "vertical",
+          "name": "newsletter",
+          "padding": [
+            56,
+            40
+          ],
+          "stroke": {
+            "fill": "#1F2E26",
+            "thickness": {
+              "top": 1
+            }
+          },
+          "type": "frame",
+          "width": "fill_container"
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "content": "MTB Deals",
+                  "fill": "#F5F5F4",
+                  "fontFamily": "Bricolage Grotesque",
+                  "fontSize": 18,
+                  "fontWeight": "700",
+                  "id": "eyC8n",
+                  "type": "text"
+                },
+                {
+                  "content": "An aggregator—not a shop. We link out to retailers you already trust.",
+                  "fill": "#78716C",
+                  "fontFamily": "Plus Jakarta Sans",
+                  "fontSize": 13,
+                  "fontWeight": "normal",
+                  "id": "ySEpT",
+                  "lineHeight": 1.45,
+                  "textGrowth": "fixed-width",
+                  "type": "text",
+                  "width": "fill_container"
+                }
+              ],
+              "gap": 12,
+              "id": "TENu7",
+              "layout": "vertical",
+              "name": "footL",
+              "type": "frame",
+              "width": 320
+            },
+            {
+              "children": [
+                {
+                  "content": "Explore",
+                  "fill": "#FF5E00",
+                  "fontFamily": "Plus Jakarta Sans",
+                  "fontSize": 12,
+                  "fontWeight": "600",
+                  "id": "QOX3H",
+                  "type": "text"
+                },
+                {
+                  "content": "Deals",
+                  "fill": "#D6D3D1",
+                  "fontFamily": "Plus Jakarta Sans",
+                  "fontSize": 13,
+                  "fontWeight": "normal",
+                  "id": "ztBYD",
+                  "type": "text"
+                },
+                {
+                  "content": "Categories",
+                  "fill": "#D6D3D1",
+                  "fontFamily": "Plus Jakarta Sans",
+                  "fontSize": 13,
+                  "fontWeight": "normal",
+                  "id": "f9UPC",
+                  "type": "text"
+                }
+              ],
+              "gap": 10,
+              "id": "LUJ0W",
+              "layout": "vertical",
+              "name": "footM",
+              "type": "frame"
+            },
+            {
+              "children": [
+                {
+                  "content": "Company",
+                  "fill": "#FF5E00",
+                  "fontFamily": "Plus Jakarta Sans",
+                  "fontSize": 12,
+                  "fontWeight": "600",
+                  "id": "8vsiB",
+                  "type": "text"
+                },
+                {
+                  "content": "About",
+                  "fill": "#D6D3D1",
+                  "fontFamily": "Plus Jakarta Sans",
+                  "fontSize": 13,
+                  "fontWeight": "normal",
+                  "id": "GnlXC",
+                  "type": "text"
+                },
+                {
+                  "content": "Privacy",
+                  "fill": "#D6D3D1",
+                  "fontFamily": "Plus Jakarta Sans",
+                  "fontSize": 13,
+                  "fontWeight": "normal",
+                  "id": "hhatD",
+                  "type": "text"
+                }
+              ],
+              "gap": 10,
+              "id": "EH10Q",
+              "layout": "vertical",
+              "name": "footR",
+              "type": "frame"
+            }
+          ],
+          "fill": "#050807",
+          "id": "BK94w",
+          "justifyContent": "space_between",
+          "name": "footer",
+          "padding": 40,
+          "stroke": {
+            "fill": "#1A2620",
+            "thickness": {
+              "top": 1
+            }
+          },
+          "type": "frame",
+          "width": "fill_container"
+        }
+      ],
+      "clip": true,
+      "fill": {
+        "colors": [
+          {
+            "color": "#050807",
+            "position": 0
+          },
+          {
+            "color": "#13251C",
+            "position": 0.4
+          },
+          {
+            "color": "#070A08",
+            "position": 1
+          }
+        ],
+        "enabled": true,
+        "gradientType": "linear",
+        "rotation": 180,
+        "size": {
+          "height": 1
+        },
+        "type": "gradient"
+      },
+      "id": "qwIL8",
+      "layout": "vertical",
+      "name": "Home — Trail Pulse (v2)",
+      "type": "frame",
+      "width": 1440,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "children": [
+        {
+          "alignItems": "center",
+          "children": [
+            {
+              "content": "← Back to home",
+              "fill": "#A8A29E",
+              "fontFamily": "Plus Jakarta Sans",
+              "fontSize": 13,
+              "fontWeight": "normal",
+              "id": "tNY7p",
+              "type": "text"
+            },
+            {
+              "content": "All deals",
+              "fill": "#F5F5F4",
+              "fontFamily": "Bricolage Grotesque",
+              "fontSize": 20,
+              "fontWeight": "700",
+              "id": "07Zor",
+              "type": "text"
+            },
+            {
+              "content": "Sort: Best discount",
+              "fill": "#FF5E00",
+              "fontFamily": "Plus Jakarta Sans",
+              "fontSize": 13,
+              "fontWeight": "normal",
+              "id": "yF8l4",
+              "type": "text"
+            }
+          ],
+          "effect": {
+            "blur": 20,
+            "color": "#00000077",
+            "offset": {
+              "x": 0,
+              "y": 6
+            },
+            "shadowType": "outer",
+            "type": "shadow"
+          },
+          "fill": "#070A08EE",
+          "id": "92hac",
+          "justifyContent": "space_between",
+          "name": "dTop",
+          "padding": [
+            16,
+            32
+          ],
+          "type": "frame",
+          "width": "fill_container"
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "content": "Filters",
+                  "fill": "#FAFAF8",
+                  "fontFamily": "Bricolage Grotesque",
+                  "fontSize": 14,
+                  "fontWeight": "700",
+                  "id": "tMpLs",
+                  "type": "text"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "content": "29\"",
+                          "fill": "#FFB38A",
+                          "fontFamily": "Plus Jakarta Sans",
+                          "fontSize": 12,
+                          "fontWeight": "600",
+                          "id": "qGVOS",
+                          "type": "text"
+                        }
+                      ],
+                      "cornerRadius": 100,
+                      "fill": "#FF5E0020",
+                      "id": "feEAi",
+                      "name": "c1",
+                      "padding": [
+                        8,
+                        12
+                      ],
+                      "stroke": {
+                        "fill": "#FF5E0044",
+                        "thickness": 1
+                      },
+                      "type": "frame"
+                    },
+                    {
+                      "children": [
+                        {
+                          "content": "Full suspension",
+                          "fill": "#D6D3D1",
+                          "fontFamily": "Plus Jakarta Sans",
+                          "fontSize": 12,
+                          "fontWeight": "normal",
+                          "id": "mpkHL",
+                          "type": "text"
+                        }
+                      ],
+                      "cornerRadius": 100,
+                      "fill": "#111816",
+                      "id": "WGr7f",
+                      "name": "c2",
+                      "padding": [
+                        8,
+                        12
+                      ],
+                      "stroke": {
+                        "fill": "#2A3D34",
+                        "thickness": 1
+                      },
+                      "type": "frame"
+                    },
+                    {
+                      "children": [
+                        {
+                          "content": "$500 – $2k",
+                          "fill": "#D6D3D1",
+                          "fontFamily": "Plus Jakarta Sans",
+                          "fontSize": 12,
+                          "fontWeight": "normal",
+                          "id": "5AXh2",
+                          "type": "text"
+                        }
+                      ],
+                      "cornerRadius": 100,
+                      "fill": "#111816",
+                      "id": "dOUMp",
+                      "name": "c3",
+                      "padding": [
+                        8,
+                        12
+                      ],
+                      "stroke": {
+                        "fill": "#2A3D34",
+                        "thickness": 1
+                      },
+                      "type": "frame"
+                    }
+                  ],
+                  "gap": 10,
+                  "id": "g2IF2",
+                  "layout": "vertical",
+                  "name": "chips",
+                  "type": "frame"
+                }
+              ],
+              "cornerRadius": 16,
+              "fill": "#0C1210",
+              "gap": 16,
+              "id": "KZIiZ",
+              "layout": "vertical",
+              "name": "side",
+              "padding": 20,
+              "stroke": {
+                "fill": "#1F2E26",
+                "thickness": 1
+              },
+              "type": "frame",
+              "width": 300
+            },
+            {
+              "children": [
+                {
+                  "content": "Showing 128 deals · Updated moments ago",
+                  "fill": "#78716C",
+                  "fontFamily": "Plus Jakarta Sans",
+                  "fontSize": 13,
+                  "fontWeight": "normal",
+                  "id": "170Wl",
+                  "type": "text"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "clip": true,
+                              "fill": {
+                                "enabled": true,
+                                "mode": "fill",
+                                "type": "image",
+                                "url": "https://images.unsplash.com/photo-1592222491987-aebdb920e1a0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NDM0ODN8MHwxfHJhbmRvbXx8fHx8fHx8fDE3NzQ5MDE1MDZ8&ixlib=rb-4.1.0&q=80&w=1080"
+                              },
+                              "height": 160,
+                              "id": "s0F3o",
+                              "metadata": {
+                                "author": "Helio Dilolwa",
+                                "link": "https://unsplash.com/@abzortu",
+                                "type": "unsplash",
+                                "username": "abzortu"
+                              },
+                              "name": "th1",
+                              "type": "frame",
+                              "width": "fill_container"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "content": "Enduro bike — medium",
+                                  "fill": "#F5F5F4",
+                                  "fontFamily": "Plus Jakarta Sans",
+                                  "fontSize": 14,
+                                  "fontWeight": "600",
+                                  "id": "PnMe9",
+                                  "textGrowth": "fixed-width",
+                                  "type": "text",
+                                  "width": "fill_container"
+                                },
+                                {
+                                  "content": "-28% · Store",
+                                  "fill": "#FF8A4C",
+                                  "fontFamily": "Plus Jakarta Sans",
+                                  "fontSize": 12,
+                                  "fontWeight": "normal",
+                                  "id": "Zm1Mx",
+                                  "type": "text"
+                                }
+                              ],
+                              "gap": 6,
+                              "id": "u7HIn",
+                              "layout": "vertical",
+                              "name": "pc1b",
+                              "padding": 14,
+                              "type": "frame",
+                              "width": "fill_container"
+                            }
+                          ],
+                          "clip": true,
+                          "cornerRadius": 14,
+                          "effect": {
+                            "blur": 28,
+                            "color": "#00000055",
+                            "offset": {
+                              "x": 0,
+                              "y": 12
+                            },
+                            "shadowType": "outer",
+                            "type": "shadow"
+                          },
+                          "fill": "#111816",
+                          "id": "IxchE",
+                          "layout": "vertical",
+                          "name": "pc1",
+                          "stroke": {
+                            "fill": "#24332C",
+                            "thickness": 1
+                          },
+                          "type": "frame",
+                          "width": "fill_container"
+                        },
+                        {
+                          "children": [
+                            {
+                              "clip": true,
+                              "fill": {
+                                "enabled": true,
+                                "mode": "fill",
+                                "type": "image",
+                                "url": "https://images.unsplash.com/photo-1710429498920-e63ffe6f258c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NDM0ODN8MHwxfHJhbmRvbXx8fHx8fHx8fDE3NzQ5MDE1MDd8&ixlib=rb-4.1.0&q=80&w=1080"
+                              },
+                              "height": 160,
+                              "id": "d7qXD",
+                              "metadata": {
+                                "author": "ᛟᛞᚨᛚᚹ",
+                                "link": "https://unsplash.com/@odalv",
+                                "type": "unsplash",
+                                "username": "odalv"
+                              },
+                              "name": "th2",
+                              "type": "frame",
+                              "width": "fill_container"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "content": "Fork — 170mm",
+                                  "fill": "#F5F5F4",
+                                  "fontFamily": "Plus Jakarta Sans",
+                                  "fontSize": 14,
+                                  "fontWeight": "600",
+                                  "id": "8QMdd",
+                                  "textGrowth": "fixed-width",
+                                  "type": "text",
+                                  "width": "fill_container"
+                                },
+                                {
+                                  "content": "-18% · Store",
+                                  "fill": "#FF8A4C",
+                                  "fontFamily": "Plus Jakarta Sans",
+                                  "fontSize": 12,
+                                  "fontWeight": "normal",
+                                  "id": "p1CrS",
+                                  "type": "text"
+                                }
+                              ],
+                              "gap": 6,
+                              "id": "H2rcG",
+                              "layout": "vertical",
+                              "name": "pc2b",
+                              "padding": 14,
+                              "type": "frame",
+                              "width": "fill_container"
+                            }
+                          ],
+                          "clip": true,
+                          "cornerRadius": 14,
+                          "effect": {
+                            "blur": 28,
+                            "color": "#00000055",
+                            "offset": {
+                              "x": 0,
+                              "y": 12
+                            },
+                            "shadowType": "outer",
+                            "type": "shadow"
+                          },
+                          "fill": "#111816",
+                          "id": "eaczg",
+                          "layout": "vertical",
+                          "name": "pc2",
+                          "stroke": {
+                            "fill": "#24332C",
+                            "thickness": 1
+                          },
+                          "type": "frame",
+                          "width": "fill_container"
+                        },
+                        {
+                          "children": [
+                            {
+                              "clip": true,
+                              "fill": {
+                                "enabled": true,
+                                "mode": "fill",
+                                "type": "image",
+                                "url": "https://images.unsplash.com/photo-1663524963787-1a58b1338bc9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NDM0ODN8MHwxfHJhbmRvbXx8fHx8fHx8fDE3NzQ5MDE1MDh8&ixlib=rb-4.1.0&q=80&w=1080"
+                              },
+                              "height": 160,
+                              "id": "KGh0F",
+                              "metadata": {
+                                "author": "Tom Jur",
+                                "link": "https://unsplash.com/@tomjur",
+                                "type": "unsplash",
+                                "username": "tomjur"
+                              },
+                              "name": "th3",
+                              "type": "frame",
+                              "width": "fill_container"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "content": "Helmet — MIPS",
+                                  "fill": "#F5F5F4",
+                                  "fontFamily": "Plus Jakarta Sans",
+                                  "fontSize": 14,
+                                  "fontWeight": "600",
+                                  "id": "FerN4",
+                                  "textGrowth": "fixed-width",
+                                  "type": "text",
+                                  "width": "fill_container"
+                                },
+                                {
+                                  "content": "-35% · Store",
+                                  "fill": "#FF8A4C",
+                                  "fontFamily": "Plus Jakarta Sans",
+                                  "fontSize": 12,
+                                  "fontWeight": "normal",
+                                  "id": "ACgg4",
+                                  "type": "text"
+                                }
+                              ],
+                              "gap": 6,
+                              "id": "8ec9E",
+                              "layout": "vertical",
+                              "name": "pc3b",
+                              "padding": 14,
+                              "type": "frame",
+                              "width": "fill_container"
+                            }
+                          ],
+                          "clip": true,
+                          "cornerRadius": 14,
+                          "effect": {
+                            "blur": 28,
+                            "color": "#00000055",
+                            "offset": {
+                              "x": 0,
+                              "y": 12
+                            },
+                            "shadowType": "outer",
+                            "type": "shadow"
+                          },
+                          "fill": "#111816",
+                          "id": "Q3b0e",
+                          "layout": "vertical",
+                          "name": "pc3",
+                          "stroke": {
+                            "fill": "#24332C",
+                            "thickness": 1
+                          },
+                          "type": "frame",
+                          "width": "fill_container"
+                        }
+                      ],
+                      "gap": 16,
+                      "id": "EM9yj",
+                      "name": "row1",
+                      "type": "frame",
+                      "width": "fill_container"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "clip": true,
+                              "fill": {
+                                "enabled": true,
+                                "mode": "fill",
+                                "type": "image",
+                                "url": "https://images.unsplash.com/photo-1760588774880-c010b7f942ef?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NDM0ODN8MHwxfHJhbmRvbXx8fHx8fHx8fDE3NzQ5MDE1MTJ8&ixlib=rb-4.1.0&q=80&w=1080"
+                              },
+                              "height": 160,
+                              "id": "cu8V5",
+                              "metadata": {
+                                "author": "leon lee",
+                                "link": "https://unsplash.com/@liyongfun",
+                                "type": "unsplash",
+                                "username": "liyongfun"
+                              },
+                              "name": "qth1",
+                              "type": "frame",
+                              "width": "fill_container"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "content": "Pedals — clipless",
+                                  "fill": "#F5F5F4",
+                                  "fontFamily": "Plus Jakarta Sans",
+                                  "fontSize": 14,
+                                  "fontWeight": "600",
+                                  "id": "CUDDi",
+                                  "textGrowth": "fixed-width",
+                                  "type": "text",
+                                  "width": "fill_container"
+                                },
+                                {
+                                  "content": "-12% · Store",
+                                  "fill": "#FF8A4C",
+                                  "fontFamily": "Plus Jakarta Sans",
+                                  "fontSize": 12,
+                                  "fontWeight": "normal",
+                                  "id": "BdXE8",
+                                  "type": "text"
+                                }
+                              ],
+                              "gap": 6,
+                              "id": "F6g6q",
+                              "layout": "vertical",
+                              "name": "q1b",
+                              "padding": 14,
+                              "type": "frame",
+                              "width": "fill_container"
+                            }
+                          ],
+                          "clip": true,
+                          "cornerRadius": 14,
+                          "fill": "#111816",
+                          "id": "doFD9",
+                          "layout": "vertical",
+                          "name": "q1",
+                          "stroke": {
+                            "fill": "#24332C",
+                            "thickness": 1
+                          },
+                          "type": "frame",
+                          "width": "fill_container"
+                        },
+                        {
+                          "children": [
+                            {
+                              "clip": true,
+                              "fill": {
+                                "enabled": true,
+                                "mode": "fill",
+                                "type": "image",
+                                "url": "https://images.unsplash.com/photo-1699253845172-44a205ad3a37?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NDM0ODN8MHwxfHJhbmRvbXx8fHx8fHx8fDE3NzQ5MDE1MTJ8&ixlib=rb-4.1.0&q=80&w=1080"
+                              },
+                              "height": 160,
+                              "id": "uPTXG",
+                              "metadata": {
+                                "author": "KINGBULL Bikes",
+                                "link": "https://unsplash.com/@ethan_doo",
+                                "type": "unsplash",
+                                "username": "ethan_doo"
+                              },
+                              "name": "qth2",
+                              "type": "frame",
+                              "width": "fill_container"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "content": "Tire — 29 aggressive",
+                                  "fill": "#F5F5F4",
+                                  "fontFamily": "Plus Jakarta Sans",
+                                  "fontSize": 14,
+                                  "fontWeight": "600",
+                                  "id": "bDxvY",
+                                  "textGrowth": "fixed-width",
+                                  "type": "text",
+                                  "width": "fill_container"
+                                },
+                                {
+                                  "content": "-22% · Store",
+                                  "fill": "#FF8A4C",
+                                  "fontFamily": "Plus Jakarta Sans",
+                                  "fontSize": 12,
+                                  "fontWeight": "normal",
+                                  "id": "KO4Ya",
+                                  "type": "text"
+                                }
+                              ],
+                              "gap": 6,
+                              "id": "N71Gp",
+                              "layout": "vertical",
+                              "name": "q2b",
+                              "padding": 14,
+                              "type": "frame",
+                              "width": "fill_container"
+                            }
+                          ],
+                          "clip": true,
+                          "cornerRadius": 14,
+                          "fill": "#111816",
+                          "id": "wR1sS",
+                          "layout": "vertical",
+                          "name": "q2",
+                          "stroke": {
+                            "fill": "#24332C",
+                            "thickness": 1
+                          },
+                          "type": "frame",
+                          "width": "fill_container"
+                        },
+                        {
+                          "children": [
+                            {
+                              "clip": true,
+                              "fill": {
+                                "enabled": true,
+                                "mode": "fill",
+                                "type": "image",
+                                "url": "https://images.unsplash.com/photo-1766119406825-66655547c223?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NDM0ODN8MHwxfHJhbmRvbXx8fHx8fHx8fDE3NzQ5MDE1MTN8&ixlib=rb-4.1.0&q=80&w=1080"
+                              },
+                              "height": 160,
+                              "id": "xn8I6",
+                              "metadata": {
+                                "author": "Kouji Tsuru",
+                                "link": "https://unsplash.com/@pafuxu",
+                                "type": "unsplash",
+                                "username": "pafuxu"
+                              },
+                              "name": "qth3",
+                              "type": "frame",
+                              "width": "fill_container"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "content": "Chain — 12-speed",
+                                  "fill": "#F5F5F4",
+                                  "fontFamily": "Plus Jakarta Sans",
+                                  "fontSize": 14,
+                                  "fontWeight": "600",
+                                  "id": "tYhLv",
+                                  "textGrowth": "fixed-width",
+                                  "type": "text",
+                                  "width": "fill_container"
+                                },
+                                {
+                                  "content": "-9% · Store",
+                                  "fill": "#FF8A4C",
+                                  "fontFamily": "Plus Jakarta Sans",
+                                  "fontSize": 12,
+                                  "fontWeight": "normal",
+                                  "id": "vGdZa",
+                                  "type": "text"
+                                }
+                              ],
+                              "gap": 6,
+                              "id": "p0UJ3",
+                              "layout": "vertical",
+                              "name": "q3b",
+                              "padding": 14,
+                              "type": "frame",
+                              "width": "fill_container"
+                            }
+                          ],
+                          "clip": true,
+                          "cornerRadius": 14,
+                          "fill": "#111816",
+                          "id": "eIBop",
+                          "layout": "vertical",
+                          "name": "q3",
+                          "stroke": {
+                            "fill": "#24332C",
+                            "thickness": 1
+                          },
+                          "type": "frame",
+                          "width": "fill_container"
+                        }
+                      ],
+                      "gap": 16,
+                      "id": "V7ybT",
+                      "name": "row2",
+                      "type": "frame",
+                      "width": "fill_container"
+                    }
+                  ],
+                  "gap": 16,
+                  "id": "Apv54",
+                  "layout": "vertical",
+                  "name": "grid",
+                  "type": "frame",
+                  "width": "fill_container"
+                }
+              ],
+              "gap": 20,
+              "id": "on6fY",
+              "layout": "vertical",
+              "name": "main",
+              "type": "frame",
+              "width": "fill_container"
+            }
+          ],
+          "gap": 24,
+          "id": "9pQTP",
+          "name": "dBody",
+          "padding": [
+            24,
+            32,
+            48,
+            32
+          ],
+          "type": "frame",
+          "width": "fill_container"
+        }
+      ],
+      "clip": true,
+      "fill": {
+        "colors": [
+          {
+            "color": "#040605",
+            "position": 0
+          },
+          {
+            "color": "#0F1C16",
+            "position": 1
+          }
+        ],
+        "enabled": true,
+        "gradientType": "linear",
+        "rotation": 180,
+        "size": {
+          "height": 1
+        },
+        "type": "gradient"
+      },
+      "id": "qwGlG",
+      "layout": "vertical",
+      "name": "Deals — Forest Grid (v2)",
+      "type": "frame",
+      "width": 1440,
+      "x": 1480,
+      "y": 0
+    }
+  ]
+}

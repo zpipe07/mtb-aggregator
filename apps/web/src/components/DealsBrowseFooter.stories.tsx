@@ -38,6 +38,7 @@ const meta = {
   parameters: { layout: "padded" },
   args: {
     rootCategories: tree,
+    categoryTree: tree,
     searchParams: new URLSearchParams(),
   },
 } satisfies Meta<typeof DealsBrowseFooterInner>;

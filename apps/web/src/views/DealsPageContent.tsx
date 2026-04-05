@@ -49,7 +49,7 @@ export function DealsPageContent({
 }: Props) {
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
 
-  const filterParams = useFilterParams();
+  const filterParams = useFilterParams({ categoryTree });
   const {
     isPending: isFilterPending,
     searchQuery,
@@ -316,7 +316,7 @@ export function DealsPageContent({
         onClose={() => setFilterDrawerOpen(false)}
       />
 
-      <DealsBrowseFooter rootCategories={categoryTree} />
+      <DealsBrowseFooter rootCategories={categoryTree} categoryTree={categoryTree} />
     </div>
   );
 }

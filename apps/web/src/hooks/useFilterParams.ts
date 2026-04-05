@@ -1,5 +1,6 @@
 import { useEffect, useCallback, useTransition } from "react";
 import { useSearchParams, usePathname, useRouter } from "next/navigation";
+import type { CategoryTreeNode } from "../api";
 import {
   parseFilterParamsFromURL,
   type SortOption,
@@ -65,7 +66,10 @@ function applyToParams(
   return next;
 }
 
-export function useFilterParams() {
+export function useFilterParams(options?: {
+  categoryTree?: CategoryTreeNode[] | null;
+}) {
+  const categoryTree = options?.categoryTree;
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const router = useRouter();
@@ -126,12 +130,12 @@ export function useFilterParams() {
         offset: 0,
       });
       const qs = next.toString();
-      const path = v ? buildDealsCategoryPath(v) : "/deals";
+      const path = v ? buildDealsCategoryPath(v, categoryTree) : "/deals";
       startTransition(() => {
         router.replace(qs ? `${path}?${qs}` : path);
       });
     },
-    [searchParams, router]
+    [searchParams, router, categoryTree]
   );
   const setMinDiscount = useCallback(
     (v: string) => updateParams({ minDiscount: v, offset: 0 }),

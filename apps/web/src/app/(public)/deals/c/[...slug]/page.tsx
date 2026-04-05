@@ -13,6 +13,7 @@ import { parseFilterParamsFromSearch } from "@/lib/filterParams";
 import { searchParamsRecordToDealsCategoryListPath } from "@/lib/dealsBackHref";
 import { JsonLd } from "@/components/JsonLd";
 import { findCategoryBySlug } from "@/lib/categoryTree";
+import { buildDealsCategoryPath } from "@/lib/dealsCategoryPath";
 import { categoryMetadataForSlug, getCategorySeo } from "@/lib/categorySeo";
 import { buildItemListJsonLd } from "@/lib/jsonLd";
 import { absoluteUrl } from "@/lib/siteUrl";
@@ -29,11 +30,11 @@ type Props = {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const categorySlug = slug.join("-");
-  const pathname = `/deals/c/${slug.join("/")}`;
   const tree = await fetchCategoryTree();
   if (!findCategoryBySlug(tree, categorySlug)) {
     return { title: "Category not found" };
   }
+  const pathname = buildDealsCategoryPath(categorySlug, tree);
   const base = categoryMetadataForSlug(categorySlug);
   const ogTitle = `${base.title} | The Dropper`;
   return {
@@ -59,11 +60,11 @@ export default async function CategoryDealsPage({ params, searchParams }: Props)
     params,
     searchParams,
   ]);
-  const pathname = `/deals/c/${slugSegments.join("/")}`;
   const categorySlug = slugSegments.join("-");
 
   const categoryTree = await fetchCategoryTree();
   if (!findCategoryBySlug(categoryTree, categorySlug)) notFound();
+  const pathname = buildDealsCategoryPath(categorySlug, categoryTree);
 
   const filterParams = parseFilterParamsFromSearch(paramsRecord);
 
