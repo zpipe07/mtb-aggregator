@@ -16,6 +16,7 @@ How MTB categories are structured and mapped from store-specific paths to a cano
 - **Purpose**: Maps raw store category paths (e.g. `["Components", "Brakes"]`) to `category_id`
 - **Seeded from**: `packages/shared/category_taxonomy.json` when empty
 - **Caching**: In-memory cache in `internal/taxonomy/`
+- **Match order**: Mappings load with `priority DESC`; `taxonomy.Map` takes the **first** substring match in that order. Put specific rules (e.g. eMTB vs generic electric) at **higher** priority than broad rules. After changing mappings in the DB, **restart the API** so the in-memory list reloads.
 
 ### 3. LLM-Driven Classification
 

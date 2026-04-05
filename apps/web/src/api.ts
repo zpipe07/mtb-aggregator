@@ -173,6 +173,8 @@ export interface CategoryTreeNode {
   parent_id: number | null;
   sort_order: number;
   depth: number;
+  /** In-stock, visible listings in this category or any descendant (subtree rollup). */
+  deal_count: number;
   children: CategoryTreeNode[];
 }
 

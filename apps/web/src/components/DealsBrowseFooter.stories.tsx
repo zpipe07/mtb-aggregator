@@ -10,6 +10,7 @@ const tree: CategoryTreeNode[] = [
     parent_id: null,
     sort_order: 0,
     depth: 0,
+    deal_count: 10,
     children: [],
   },
   {
@@ -19,6 +20,7 @@ const tree: CategoryTreeNode[] = [
     parent_id: null,
     sort_order: 1,
     depth: 0,
+    deal_count: 8,
     children: [],
   },
   {
@@ -28,6 +30,7 @@ const tree: CategoryTreeNode[] = [
     parent_id: null,
     sort_order: 2,
     depth: 0,
+    deal_count: 4,
     children: [],
   },
 ];
@@ -38,6 +41,7 @@ const meta = {
   parameters: { layout: "padded" },
   args: {
     rootCategories: tree,
+    categoryTree: tree,
     searchParams: new URLSearchParams(),
   },
 } satisfies Meta<typeof DealsBrowseFooterInner>;

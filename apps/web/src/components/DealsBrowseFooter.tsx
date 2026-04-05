@@ -3,20 +3,25 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import type { CategoryTreeNode } from "@/api";
+import { categoryHasDeals } from "@/lib/categoryTree";
 import { buildDealsBrowseHref } from "@/lib/dealsBrowseHref";
 
 type Props = {
   /** Top-level categories only (e.g. from `categoryTree` roots). */
   rootCategories: CategoryTreeNode[];
+  /** Full tree for correct `/deals/c/...` paths when slugs contain hyphens. */
+  categoryTree: CategoryTreeNode[];
 };
 
 export function DealsBrowseFooterInner({
   rootCategories,
+  categoryTree,
   searchParams,
 }: Props & { searchParams: URLSearchParams }) {
-  if (rootCategories.length === 0) return null;
+  const roots = rootCategories.filter((n) => categoryHasDeals(n));
+  if (roots.length === 0) return null;
 
-  const sorted = [...rootCategories].sort((a, b) => a.sort_order - b.sort_order);
+  const sorted = [...roots].sort((a, b) => a.sort_order - b.sort_order);
 
   return (
     <nav
@@ -30,7 +35,7 @@ export function DealsBrowseFooterInner({
         {sorted.map((node) => (
           <li key={node.slug}>
             <Link
-              href={buildDealsBrowseHref(node.slug, searchParams)}
+              href={buildDealsBrowseHref(node.slug, searchParams, categoryTree)}
               className="text-muted-foreground hover:text-foreground underline-offset-4 hover:underline"
             >
               {node.name}
@@ -45,11 +50,12 @@ export function DealsBrowseFooterInner({
 /**
  * Crawlable cross-links to top-level category routes; complements in-card chips.
  */
-export function DealsBrowseFooter({ rootCategories }: Props) {
+export function DealsBrowseFooter({ rootCategories, categoryTree }: Props) {
   const searchParams = useSearchParams();
   return (
     <DealsBrowseFooterInner
       rootCategories={rootCategories}
+      categoryTree={categoryTree}
       searchParams={searchParams}
     />
   );

@@ -1,3 +1,4 @@
+import type { CategoryTreeNode } from "@/api";
 import { buildDealsCategoryPath } from "./dealsCategoryPath";
 
 /**
@@ -7,11 +8,14 @@ import { buildDealsCategoryPath } from "./dealsCategoryPath";
  */
 export function buildDealsBrowseHref(
   categorySlug: string,
-  searchParams: URLSearchParams
+  searchParams: URLSearchParams,
+  categoryTree?: CategoryTreeNode[] | null,
 ): string {
   const qs = new URLSearchParams(searchParams.toString());
   qs.delete("category");
   const s = qs.toString();
-  const path = categorySlug ? buildDealsCategoryPath(categorySlug) : "/deals";
+  const path = categorySlug
+    ? buildDealsCategoryPath(categorySlug, categoryTree)
+    : "/deals";
   return s ? `${path}?${s}` : path;
 }

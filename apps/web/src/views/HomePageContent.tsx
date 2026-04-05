@@ -8,6 +8,7 @@ import { SearchBar } from "../components/SearchBar";
 import { DealGrid } from "../components/DealGrid";
 import { CategoryCard } from "../components/CategoryCard";
 import { CategoryTreeNode, type Deal } from "../api";
+import { categoryHasDeals } from "../lib/categoryTree";
 import { buildDealsCategoryPath } from "../lib/dealsCategoryPath";
 import { Button } from "../components/ui/button";
 
@@ -39,7 +40,15 @@ function buildCategoryCards(categoryTree: CategoryTreeNode[]) {
       imageSrc: CATEGORY_IMAGES[path.split("-")[0]] ?? undefined,
     }));
   }
-  return categoryTree.slice(0, 8).map((category) => ({
+  const withDeals = categoryTree.filter((c) => categoryHasDeals(c));
+  if (withDeals.length === 0) {
+    return FALLBACK_CATEGORIES.map(({ path, label }) => ({
+      path,
+      label,
+      imageSrc: CATEGORY_IMAGES[path.split("-")[0]] ?? undefined,
+    }));
+  }
+  return withDeals.slice(0, 8).map((category) => ({
     path: category.slug,
     label: category.name,
     imageSrc: CATEGORY_IMAGES[category.slug] ?? undefined,
@@ -107,7 +116,7 @@ export function HomePageContent({ categoryTree, topDeals }: Props) {
             <CategoryCard
               key={path}
               label={label}
-              to={buildDealsCategoryPath(path)}
+              to={buildDealsCategoryPath(path, categoryTree)}
               imageSrc={imageSrc}
             />
           ))}

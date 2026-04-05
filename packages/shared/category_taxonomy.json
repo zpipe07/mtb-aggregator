@@ -2,16 +2,59 @@
   "mappings": [
     {
       "raw": [
-        "E-Mountain Bike",
-        "e-bike",
-        "e-bikes",
+        "emtb",
+        "e-mtb",
+        "e mtb",
+        "e-mountain bike",
         "electric mountain bike",
-        "electric bike",
-        "electric bikes",
-        "ebike",
-        "ebikes"
+        "electric mountain",
+        "e-mountain"
       ],
-      "canonical": ["Bikes", "Electric"]
+      "canonical": ["Bikes", "Electric Mountain Bikes"]
+    },
+    {
+      "raw": [
+        "full power emtb",
+        "full power e-mtb",
+        "full-power ebike",
+        "full power electric mountain"
+      ],
+      "canonical": ["Bikes", "Electric Mountain Bikes", "Full Power"]
+    },
+    {
+      "raw": ["lightweight emtb", "light emtb", "lightweight e-mtb", "sl emtb"],
+      "canonical": ["Bikes", "Electric Mountain Bikes", "Lightweight"]
+    },
+    {
+      "raw": [
+        "xc racing",
+        "xc race",
+        "cross country mountain",
+        "xc mountain",
+        "xc bike",
+        "cross country bike"
+      ],
+      "canonical": ["Bikes", "Mountain", "XC"]
+    },
+    {
+      "raw": ["trail bike", "trail mountain", "trail riding"],
+      "canonical": ["Bikes", "Mountain", "Trail"]
+    },
+    {
+      "raw": ["enduro bike", "enduro mountain", "enduro"],
+      "canonical": ["Bikes", "Mountain", "Enduro"]
+    },
+    {
+      "raw": ["downhill bike", "dh bike", "downhill mountain", "downhill"],
+      "canonical": ["Bikes", "Mountain", "Downhill"]
+    },
+    {
+      "raw": ["dirt jump bike", "dirt jumper", "dj bike", "dirt jump"],
+      "canonical": ["Bikes", "Mountain", "Dirt Jump"]
+    },
+    {
+      "raw": ["fat bike", "fatbike", "fat tire bike"],
+      "canonical": ["Bikes", "Mountain", "Fat Bike"]
     },
     {
       "raw": [
@@ -19,16 +62,30 @@
         "mtb",
         "mountain bikes",
         "full suspension",
-        "trail bike",
-        "trail bikes",
-        "enduro",
-        "xc bike",
-        "downhill",
-        "dirt jump",
-        "fat bike",
         "hardtail"
       ],
       "canonical": ["Bikes", "Mountain"]
+    },
+    {
+      "raw": [
+        "electric road bike",
+        "electric gravel bike",
+        "electric commuter",
+        "electric city bike",
+        "hybrid e-bike"
+      ],
+      "canonical": ["Bikes", "Electric"]
+    },
+    {
+      "raw": [
+        "e-bike",
+        "e-bikes",
+        "electric bike",
+        "electric bikes",
+        "ebike",
+        "ebikes"
+      ],
+      "canonical": ["Bikes", "Electric"]
     },
     { "raw": ["bike", "bikes", "bicycle"], "canonical": ["Bikes"] },
     { "raw": ["gravel"], "canonical": ["Bikes", "Gravel"] },

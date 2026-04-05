@@ -174,6 +174,8 @@ export interface AdminCategoryTreeNode {
   parent_id: number | null;
   sort_order: number;
   depth: number;
+  /** Present on GET /categories/tree (subtree listing rollup). */
+  deal_count?: number;
   children: AdminCategoryTreeNode[];
 }
 

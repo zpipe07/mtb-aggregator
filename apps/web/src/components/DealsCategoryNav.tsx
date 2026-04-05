@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import posthog from "posthog-js";
 import type { CategoryTreeNode } from "../api";
 import {
+  categoryHasDeals,
   findCategoryWithAncestors,
   getBrowseChipNodes,
 } from "../lib/categoryTree";
@@ -42,10 +43,11 @@ export function DealsCategoryNavInner({
   const resolved = categoryFilter
     ? findCategoryWithAncestors(categoryTree, categoryFilter)
     : null;
-  const { nodes: chips, mode: chipMode } = getBrowseChipNodes(
+  const { nodes: chipsRaw, mode: chipMode } = getBrowseChipNodes(
     categoryTree,
     categoryFilter,
   );
+  const chips = chipsRaw.filter((n) => categoryHasDeals(n));
   const chipSectionLabel =
     chipMode === "roots"
       ? "Browse by type"
@@ -55,6 +57,7 @@ export function DealsCategoryNavInner({
 
   return (
     <DealsCategoryNavPresentation
+      categoryTree={categoryTree}
       categoryFilter={categoryFilter}
       resolved={resolved}
       chips={chips}
@@ -70,6 +73,7 @@ export function DealsCategoryNav(props: DealsCategoryNavProps) {
 }
 
 type PresentationProps = {
+  categoryTree: CategoryTreeNode[];
   categoryFilter: string;
   resolved: ReturnType<typeof findCategoryWithAncestors>;
   chips: CategoryTreeNode[];
@@ -78,6 +82,7 @@ type PresentationProps = {
 };
 
 function DealsCategoryNavPresentation({
+  categoryTree,
   categoryFilter,
   resolved,
   chips,
@@ -102,7 +107,7 @@ function DealsCategoryNavPresentation({
               <li className="flex min-h-9 items-center">
                 <Button variant="link" asChild className="h-auto min-h-9 px-0 py-1">
                   <Link
-                    href={buildDealsBrowseHref("", searchParams)}
+                    href={buildDealsBrowseHref("", searchParams, categoryTree)}
                     onClick={() => captureCategoryNav("", "all_clear")}
                   >
                     All deals
@@ -119,7 +124,7 @@ function DealsCategoryNavPresentation({
                       <BreadcrumbSep />
                       <Button variant="link" asChild className="h-auto min-h-9 px-0 py-1">
                         <Link
-                          href={buildDealsBrowseHref(node.slug, searchParams)}
+                          href={buildDealsBrowseHref(node.slug, searchParams, categoryTree)}
                           onClick={() =>
                             captureCategoryNav(node.slug, "breadcrumb")
                           }
@@ -158,7 +163,7 @@ function DealsCategoryNavPresentation({
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
                 {chips.map((node) => {
                   const selected = node.slug === categoryFilter;
-                  const href = buildDealsBrowseHref(node.slug, searchParams);
+                  const href = buildDealsBrowseHref(node.slug, searchParams, categoryTree);
                   if (selected) {
                     return (
                       <span

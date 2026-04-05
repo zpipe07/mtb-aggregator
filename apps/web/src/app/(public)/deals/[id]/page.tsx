@@ -93,7 +93,9 @@ export default async function DealPage({ params, searchParams }: Props) {
     deal.canonical_category
   );
   const categoryBrowseHref =
-    categorySlug != null ? buildDealsCategoryPath(categorySlug) : undefined;
+    categorySlug != null
+      ? buildDealsCategoryPath(categorySlug, categoryTree)
+      : undefined;
   const categoryBrowseLabel =
     categorySlug != null
       ? categoryPathLabelFromSlug(categoryTree, categorySlug) ?? undefined

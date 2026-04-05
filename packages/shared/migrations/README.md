@@ -32,6 +32,7 @@ Override the migrations directory: `MIGRATIONS_DIR=path/to/migrations make db-mi
 | `019_llm_extraction_field_library.sql` | `llm_extraction_field_defs` + `llm_prompt_profile_fields` for composed extraction schemas |
 | `020_multi_value_specs.sql` | Adds `multi_enum` to `llm_extraction_field_defs.field_type` (array values in `metadata.llm_specs`) |
 | `021_variant_grouping.sql` | `store_listings.product_group_key`, `variant_options` (JSONB); index; backfill key from Shopify URLs |
+| `022_bikes_taxonomy_subcategories.sql` | Bikes: `bikes-emtb` + MTB discipline children under `bikes-mountain` + Full Power/Lightweight under eMTB; high-priority `category_mappings` rows |
 
 After 019, run **`make backfill-field-library`** once (from repo root) to rename ambiguous `type` / `material` keys in `extraction_schema` and `metadata.llm_specs`, seed shared defs, and populate `llm_prompt_profile_fields`.
 
