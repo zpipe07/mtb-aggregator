@@ -12,7 +12,7 @@ import {
 import { parseFilterParamsFromSearch } from "@/lib/filterParams";
 import { searchParamsRecordToDealsCategoryListPath } from "@/lib/dealsBackHref";
 import { JsonLd } from "@/components/JsonLd";
-import { findCategoryBySlug } from "@/lib/categoryTree";
+import { categoryHasDeals, findCategoryBySlug } from "@/lib/categoryTree";
 import { buildDealsCategoryPath } from "@/lib/dealsCategoryPath";
 import { categoryMetadataForSlug, getCategorySeo } from "@/lib/categorySeo";
 import { buildItemListJsonLd } from "@/lib/jsonLd";
@@ -31,14 +31,17 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const categorySlug = slug.join("-");
   const tree = await fetchCategoryTree();
-  if (!findCategoryBySlug(tree, categorySlug)) {
+  const categoryNode = findCategoryBySlug(tree, categorySlug);
+  if (!categoryNode) {
     return { title: "Category not found" };
   }
   const pathname = buildDealsCategoryPath(categorySlug, tree);
   const base = categoryMetadataForSlug(categorySlug);
   const ogTitle = `${base.title} | The Dropper`;
+  const emptyCategory = !categoryHasDeals(categoryNode);
   return {
     ...base,
+    ...(emptyCategory ? { robots: { index: false, follow: true } } : {}),
     alternates: { canonical: pathname },
     openGraph: {
       title: ogTitle,

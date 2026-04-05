@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import type { CategoryTreeNode } from "@/api";
+import { categoryHasDeals } from "@/lib/categoryTree";
 import { buildDealsBrowseHref } from "@/lib/dealsBrowseHref";
 
 type Props = {
@@ -17,9 +18,10 @@ export function DealsBrowseFooterInner({
   categoryTree,
   searchParams,
 }: Props & { searchParams: URLSearchParams }) {
-  if (rootCategories.length === 0) return null;
+  const roots = rootCategories.filter((n) => categoryHasDeals(n));
+  if (roots.length === 0) return null;
 
-  const sorted = [...rootCategories].sort((a, b) => a.sort_order - b.sort_order);
+  const sorted = [...roots].sort((a, b) => a.sort_order - b.sort_order);
 
   return (
     <nav

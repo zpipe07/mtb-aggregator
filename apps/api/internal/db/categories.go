@@ -21,9 +21,12 @@ type Category struct {
 }
 
 // CategoryTreeNode is a category with nested children for API response.
+// DealCount is the number of in-stock, visible listings in this category or any descendant
+// (same subtree semantics as GET /deals?category_slug=).
 type CategoryTreeNode struct {
 	Category
-	Children []CategoryTreeNode `json:"children,omitempty"`
+	DealCount int                `json:"deal_count"`
+	Children  []CategoryTreeNode `json:"children,omitempty"`
 }
 
 // ListCategories returns all categories flat, ordered by depth, then sort_order, then id.
@@ -50,13 +53,65 @@ func (db *DB) ListCategories(ctx context.Context) ([]Category, error) {
 	return list, rows.Err()
 }
 
-// ListCategoriesTree returns the category hierarchy as a nested tree.
+// ListCategoriesTree returns the category hierarchy as a nested tree with deal_count per node.
 func (db *DB) ListCategoriesTree(ctx context.Context) ([]CategoryTreeNode, error) {
 	list, err := db.ListCategories(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return buildCategoryTree(list, nil), nil
+	counts, err := db.categorySubtreeDealCounts(ctx)
+	if err != nil {
+		return nil, err
+	}
+	tree := buildCategoryTree(list, nil)
+	annotateCategoryTreeDealCounts(tree, counts)
+	return tree, nil
+}
+
+// categorySubtreeDealCounts returns, for each category id, the count of listings with
+// category_id in that category's subtree (including self), in stock and not hidden.
+func (db *DB) categorySubtreeDealCounts(ctx context.Context) (map[int]int, error) {
+	rows, err := db.pool.Query(ctx, `
+		WITH RECURSIVE descendants AS (
+			SELECT id AS root_id, id AS cat_id FROM categories
+			UNION ALL
+			SELECT d.root_id, c.id
+			FROM categories c
+			INNER JOIN descendants d ON c.parent_id = d.cat_id
+		),
+		listing_counts AS (
+			SELECT category_id, COUNT(*)::int AS cnt
+			FROM store_listings
+			WHERE is_in_stock = true AND hidden = false AND category_id IS NOT NULL
+			GROUP BY category_id
+		)
+		SELECT d.root_id, COALESCE(SUM(lc.cnt), 0)::int
+		FROM descendants d
+		LEFT JOIN listing_counts lc ON lc.category_id = d.cat_id
+		GROUP BY d.root_id
+	`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := make(map[int]int)
+	for rows.Next() {
+		var id, cnt int
+		if err := rows.Scan(&id, &cnt); err != nil {
+			return nil, err
+		}
+		out[id] = cnt
+	}
+	return out, rows.Err()
+}
+
+func annotateCategoryTreeDealCounts(nodes []CategoryTreeNode, counts map[int]int) {
+	for i := range nodes {
+		nodes[i].DealCount = counts[nodes[i].ID]
+		if len(nodes[i].Children) > 0 {
+			annotateCategoryTreeDealCounts(nodes[i].Children, counts)
+		}
+	}
 }
 
 func buildCategoryTree(list []Category, parentID *int) []CategoryTreeNode {

@@ -34,6 +34,7 @@ export function buildCategoryTreeFromFlat(flat: CategoryFlatRow[]): CategoryTree
         parent_id: c.parent_id,
         sort_order: c.sort_order,
         depth: c.depth,
+        deal_count: 0,
         children: build(c.id),
       });
     }
@@ -41,6 +42,30 @@ export function buildCategoryTreeFromFlat(flat: CategoryFlatRow[]): CategoryTree
   }
 
   return build(null);
+}
+
+/** True when the API reported at least one deal in this category’s subtree. */
+export function categoryHasDeals(node: CategoryTreeNode): boolean {
+  return (node.deal_count ?? 0) > 0;
+}
+
+/**
+ * Keep only categories with `deal_count > 0`, recursively. Used for sitemap and
+ * other “only show categories that have inventory” cases. Navigation still uses the
+ * full tree when resolving the current slug (including empty category pages).
+ */
+export function filterCategoryTreeWithDeals(
+  tree: CategoryTreeNode[],
+): CategoryTreeNode[] {
+  const out: CategoryTreeNode[] = [];
+  for (const n of tree) {
+    if (!categoryHasDeals(n)) continue;
+    const children = n.children?.length
+      ? filterCategoryTreeWithDeals(n.children)
+      : [];
+    out.push({ ...n, children });
+  }
+  return out;
 }
 
 /**

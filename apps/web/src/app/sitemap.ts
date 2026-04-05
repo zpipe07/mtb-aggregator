@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 import { fetchCategoryTree, fetchDeals } from "@/api";
+import { filterCategoryTreeWithDeals } from "@/lib/categoryTree";
 import { allDealsCategoryPathsFromTree } from "@/lib/dealsCategoryPath";
 import { absoluteUrl } from "@/lib/siteUrl";
 
@@ -27,7 +28,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   try {
     const tree = await fetchCategoryTree();
-    for (const path of allDealsCategoryPathsFromTree(tree)) {
+    for (const path of allDealsCategoryPathsFromTree(
+      filterCategoryTreeWithDeals(tree),
+    )) {
       entries.push({
         url: absoluteUrl(path),
         lastModified: new Date(),

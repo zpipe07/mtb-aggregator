@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import posthog from "posthog-js";
 import type { CategoryTreeNode } from "../api";
 import {
+  categoryHasDeals,
   findCategoryWithAncestors,
   getBrowseChipNodes,
 } from "../lib/categoryTree";
@@ -42,10 +43,11 @@ export function DealsCategoryNavInner({
   const resolved = categoryFilter
     ? findCategoryWithAncestors(categoryTree, categoryFilter)
     : null;
-  const { nodes: chips, mode: chipMode } = getBrowseChipNodes(
+  const { nodes: chipsRaw, mode: chipMode } = getBrowseChipNodes(
     categoryTree,
     categoryFilter,
   );
+  const chips = chipsRaw.filter((n) => categoryHasDeals(n));
   const chipSectionLabel =
     chipMode === "roots"
       ? "Browse by type"
