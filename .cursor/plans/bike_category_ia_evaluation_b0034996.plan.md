@@ -13,19 +13,19 @@ todos:
     status: completed
   - id: migration-new-categories
     content: Create DB migration adding bikes-emtb (Electric Mountain Bikes) + depth-2 subcategories under bikes-mountain and bikes-emtb
-    status: pending
+    status: completed
   - id: taxonomy-mappings
     content: Update category_taxonomy.json with granular keyword mappings for new subcategories
-    status: pending
+    status: completed
   - id: category-seo-metadata
     content: Add targeted titles, descriptions, and intro copy in categorySeo.ts for each new subcategory
-    status: pending
+    status: completed
   - id: recategorize-listings
     content: Re-categorize existing listings using intended_use spec data + backfill
     status: pending
   - id: nav-internal-linking
     content: Update DealsCategoryNav, home page cards, and hub pages for 3-level navigation
-    status: pending
+    status: completed
 isProject: false
 ---
 

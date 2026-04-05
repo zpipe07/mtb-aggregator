@@ -30,7 +30,8 @@ function defaultSeoFromRow(row: ExportCategory): CategorySeoMeta {
   let title = `${name} deals`;
   if (slug === "bikes") title = "Mountain bike deals";
   else if (slug === "bikes-mountain") title = "Mountain bike deals";
-  else if (slug === "bikes-electric") title = "Electric mountain bike deals";
+  else if (slug === "bikes-emtb") title = "Electric mountain bike deals";
+  else if (slug === "bikes-electric") title = "Electric bike deals";
   else if (slug === "bikes-gravel") title = "Gravel bike deals";
   else if (slug === "bikes-road") title = "Road bike deals";
   else if (slug === "bikes-kids") title = "Kids bike deals";
@@ -38,7 +39,13 @@ function defaultSeoFromRow(row: ExportCategory): CategorySeoMeta {
   else if (slug === "components") title = "Mountain bike component deals";
   else if (slug === "gear") title = "Mountain bike gear deals";
   else if (slug === "accessories") title = "Mountain bike accessory deals";
-  else if (slug.startsWith("bikes-")) title = `${name} bike deals`;
+  else if (slug.startsWith("bikes-mountain-")) {
+    const seg = slug.slice("bikes-mountain-".length).replace(/-/g, " ");
+    title = `${seg} mountain bike deals`;
+  } else if (slug.startsWith("bikes-emtb-")) {
+    const seg = slug.slice("bikes-emtb-".length).replace(/-/g, " ");
+    title = `${seg} eMTB deals`;
+  } else if (slug.startsWith("bikes-")) title = `${name} bike deals`;
   else if (slug.startsWith("components-")) title = `MTB ${lower} deals`;
   else if (slug.startsWith("gear-")) title = `MTB ${lower} deals`;
   else if (slug.startsWith("accessories-")) title = `Bike ${lower} deals`;
@@ -67,9 +74,72 @@ const HAND_TUNED: Partial<Record<string, Partial<CategorySeoMeta>>> = {
   },
   "bikes-electric": {
     description:
-      "Compare prices on electric mountain bikes and eMTBs. Find full-power and lightweight e-bike deals from top retailers.",
+      "Compare prices on electric road, gravel, and commuter bikes. Find e-bike deals from top retailers.",
     intro:
-      "Browse full-power and lightweight eMTB deals, updated regularly. Compare prices before you buy.",
+      "Browse electric bike deals outside the MTB category—road, gravel, city, and hybrid. Compare prices across shops.",
+  },
+  "bikes-emtb": {
+    title: "Electric mountain bike deals",
+    description:
+      "Compare prices on electric mountain bikes and eMTBs. Find full-power and lightweight eMTB deals from top retailers.",
+    intro:
+      "Shop eMTB sale prices: full-power and lightweight builds. Compare retailers in one place.",
+  },
+  "bikes-emtb-full-power": {
+    title: "Full power eMTB deals",
+    description:
+      "Find full-power eMTB deals. Compare prices on high-torque electric mountain bikes from top retailers.",
+    intro:
+      "Browse full-power electric mountain bikes on sale. Compare specs and prices before you buy.",
+  },
+  "bikes-emtb-lightweight": {
+    title: "Lightweight eMTB deals",
+    description:
+      "Compare lightweight eMTB deals. Find lighter electric mountain bikes on sale across retailers.",
+    intro:
+      "Shop lightweight eMTBs—less weight, same trail fun. Compare current sale prices.",
+  },
+  "bikes-mountain-xc": {
+    title: "XC mountain bike deals",
+    description:
+      "Find XC mountain bike deals. Compare cross-country and race-ready MTBs on sale.",
+    intro:
+      "Browse XC bike sale prices—efficient pedaling for climbs and marathon laps.",
+  },
+  "bikes-mountain-trail": {
+    title: "Trail mountain bike deals",
+    description:
+      "Compare trail mountain bike deals. Find all-mountain and trail bikes on sale.",
+    intro:
+      "Shop trail bike discounts—versatile geometry for everyday singletrack.",
+  },
+  "bikes-mountain-enduro": {
+    title: "Enduro mountain bike deals",
+    description:
+      "Find enduro mountain bike deals. Compare long-travel bikes built for big terrain.",
+    intro:
+      "Browse enduro MTB sale prices—descend fast, still pedal to the top.",
+  },
+  "bikes-mountain-downhill": {
+    title: "Downhill mountain bike deals",
+    description:
+      "Compare downhill mountain bike deals. Find DH bikes and park rigs on sale.",
+    intro:
+      "Shop downhill bike discounts—maximum travel for lift laps and steep tracks.",
+  },
+  "bikes-mountain-dirt-jump": {
+    title: "Dirt jump bike deals",
+    description:
+      "Find dirt jump bike deals. Compare DJ bikes and slopestyle rigs on sale.",
+    intro:
+      "Browse dirt jump and pump-track bikes at sale prices across retailers.",
+  },
+  "bikes-mountain-fat-bike": {
+    title: "Fat bike deals",
+    description:
+      "Compare fat bike deals. Find fat-tire mountain bikes for snow, sand, and trail.",
+    intro:
+      "Shop fat bike sale prices—extra traction when the surface gets soft.",
   },
   "bikes-gravel": {
     intro:
@@ -195,9 +265,12 @@ const HAND_TUNED: Partial<Record<string, Partial<CategorySeoMeta>>> = {
 
 export function getCategorySeo(slug: string): CategorySeoMeta {
   const row = slugToRow.get(slug);
-  if (!row) return DEFAULTS;
-  const base = defaultSeoFromRow(row);
   const tuned = HAND_TUNED[slug];
+  if (!row) {
+    if (tuned) return { ...DEFAULTS, ...tuned };
+    return DEFAULTS;
+  }
+  const base = defaultSeoFromRow(row);
   if (!tuned) return base;
   return { ...base, ...tuned };
 }
