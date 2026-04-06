@@ -411,10 +411,11 @@ func (s *Scheduler) runLLMCategoryClassification(ctx context.Context, listingID 
 	if err != nil || cfg == nil || !cfg.Enabled {
 		return
 	}
-	validPaths, err := s.db.GetAllCategoryPaths(ctx)
-	if err != nil || len(validPaths) == 0 {
+	pathRows, err := s.db.GetAllCategoryPathsWithDescriptions(ctx)
+	if err != nil || len(pathRows) == 0 {
 		return
 	}
+	validPaths, categoryDesc := db.ClassifierPathsFromTreeRows(pathRows, llm.CategoryPathSeparator)
 	listing, err := s.db.GetListingForCategoryClassification(ctx, listingID)
 	if err != nil || listing == nil {
 		return
@@ -439,9 +440,10 @@ func (s *Scheduler) runLLMCategoryClassification(ctx context.Context, listingID 
 		CategoryPath: listing.CategoryPath,
 	}
 	config := llm.ClassifyConfig{
-		SystemPrompt:        cfg.SystemPrompt,
-		ValidCategories:     validPaths,
-		ConfidenceThreshold: cfg.ConfidenceThreshold,
+		SystemPrompt:         cfg.SystemPrompt,
+		ValidCategories:      validPaths,
+		CategoryDescriptions: categoryDesc,
+		ConfidenceThreshold:  cfg.ConfidenceThreshold,
 	}
 	result, err := s.llm.Classify(ctx, config, input)
 	if err != nil {

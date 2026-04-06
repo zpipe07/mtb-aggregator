@@ -41,10 +41,11 @@ func (h *Handlers) PostAdminCategory(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var body struct {
-		Slug      string `json:"slug"`
-		Name      string `json:"name"`
-		ParentID  *int   `json:"parent_id,omitempty"`
-		SortOrder int    `json:"sort_order"`
+		Slug        string `json:"slug"`
+		Name        string `json:"name"`
+		ParentID    *int   `json:"parent_id,omitempty"`
+		SortOrder   int    `json:"sort_order"`
+		Description string `json:"description"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		http.Error(w, "invalid json", http.StatusBadRequest)
@@ -56,7 +57,7 @@ func (h *Handlers) PostAdminCategory(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "slug and name required", http.StatusBadRequest)
 		return
 	}
-	id, err := h.DB.CreateCategory(r.Context(), body.Slug, body.Name, body.ParentID, body.SortOrder)
+	id, err := h.DB.CreateCategory(r.Context(), body.Slug, body.Name, body.ParentID, body.SortOrder, body.Description)
 	if err != nil {
 		log.Printf("[api] PostAdminCategory error: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -93,9 +94,10 @@ func (h *Handlers) PutAdminCategory(w http.ResponseWriter, r *http.Request, id i
 		return
 	}
 	var body struct {
-		Slug      string `json:"slug"`
-		Name      string `json:"name"`
-		SortOrder int    `json:"sort_order"`
+		Slug        string `json:"slug"`
+		Name        string `json:"name"`
+		SortOrder   int    `json:"sort_order"`
+		Description string `json:"description"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		http.Error(w, "invalid json", http.StatusBadRequest)
@@ -107,7 +109,7 @@ func (h *Handlers) PutAdminCategory(w http.ResponseWriter, r *http.Request, id i
 		http.Error(w, "slug and name required", http.StatusBadRequest)
 		return
 	}
-	if err := h.DB.UpdateCategory(r.Context(), id, body.Slug, body.Name, body.SortOrder); err != nil {
+	if err := h.DB.UpdateCategory(r.Context(), id, body.Slug, body.Name, body.SortOrder, body.Description); err != nil {
 		log.Printf("[api] PutAdminCategory error: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

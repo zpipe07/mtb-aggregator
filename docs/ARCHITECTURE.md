@@ -70,9 +70,9 @@ flowchart LR
 
 ### 3. Category Taxonomy
 
-- **Structured tree**: `categories` table (id, slug, name, parent_id) — single source of truth
+- **Structured tree**: `categories` table (id, slug, name, parent_id, optional `description` for LLM rubrics — migration `023`) — single source of truth
 - **Mappings**: `category_mappings` map raw store paths (e.g. `["Components", "Brakes"]`) to `category_id`
-- **LLM classifier**: Optional LLM-based classification when no mapping exists
+- **LLM classifier**: Optional LLM-based classification; valid outputs are paths from the live tree; non-empty per-category `description` values are appended to the classifier user prompt as “Category definitions” (distinct from public SEO copy in the web app)
 
 ## Key Directories
 

@@ -91,9 +91,10 @@ type ClassifyInput struct {
 
 // ClassifyConfig configures the category classifier.
 type ClassifyConfig struct {
-	SystemPrompt        string     `json:"system_prompt"`
-	ValidCategories     [][]string `json:"valid_categories"`
-	ConfidenceThreshold float64    `json:"confidence_threshold"`
+	SystemPrompt         string            `json:"system_prompt"`
+	ValidCategories      [][]string        `json:"valid_categories"`
+	CategoryDescriptions map[string]string `json:"category_descriptions,omitempty"` // keyed by joined path (CategoryPathSeparator)
+	ConfidenceThreshold  float64           `json:"confidence_threshold"`
 }
 
 // ClassifyResult is the output of category classification.
@@ -173,8 +174,8 @@ func (c *Client) Extract(ctx context.Context, profile Profile, input ExtractInpu
 	return result, nil
 }
 
-// categoryPathSeparator is used to stringify/parse category paths for the LLM enum.
-const categoryPathSeparator = " > "
+// CategoryPathSeparator joins category path segments for the LLM enum and description map keys.
+const CategoryPathSeparator = " > "
 
 // Classify runs the LLM to determine the canonical category for a product.
 // Returns (nil, nil) when API key is not set.
@@ -186,7 +187,7 @@ func (c *Client) Classify(ctx context.Context, config ClassifyConfig, input Clas
 		return nil, fmt.Errorf("valid_categories cannot be empty")
 	}
 
-	userContent := c.buildClassifyUserMessage(input)
+	userContent := c.buildClassifyUserMessage(input, config.ValidCategories, config.CategoryDescriptions)
 	schema := c.buildClassifySchema(config.ValidCategories)
 
 	reqBody := map[string]interface{}{
@@ -248,7 +249,7 @@ func (c *Client) Classify(ctx context.Context, config ClassifyConfig, input Clas
 	if catStr == "" {
 		return nil, fmt.Errorf("LLM returned empty canonical_category")
 	}
-	canonical := strings.Split(catStr, categoryPathSeparator)
+	canonical := strings.Split(catStr, CategoryPathSeparator)
 	// Trim spaces from each segment
 	for i := range canonical {
 		canonical[i] = strings.TrimSpace(canonical[i])
@@ -264,7 +265,7 @@ func (c *Client) Classify(ctx context.Context, config ClassifyConfig, input Clas
 	}, nil
 }
 
-func (c *Client) buildClassifyUserMessage(input ClassifyInput) string {
+func (c *Client) buildClassifyUserMessage(input ClassifyInput, validPaths [][]string, categoryDescriptions map[string]string) string {
 	var buf bytes.Buffer
 	buf.WriteString("Classify this product into the correct canonical category:\n\n")
 	buf.WriteString("Product name: " + input.ProductName + "\n\n")
@@ -281,13 +282,25 @@ func (c *Client) buildClassifyUserMessage(input ClassifyInput) string {
 	if len(input.CategoryPath) > 0 {
 		buf.WriteString("Store breadcrumb path: " + fmt.Sprint(input.CategoryPath) + "\n")
 	}
+	if len(categoryDescriptions) > 0 && len(validPaths) > 0 {
+		buf.WriteString("\nCategory definitions:\n")
+		for _, path := range validPaths {
+			if len(path) == 0 {
+				continue
+			}
+			key := strings.Join(path, CategoryPathSeparator)
+			if desc, ok := categoryDescriptions[key]; ok && desc != "" {
+				buf.WriteString("- " + key + ": " + desc + "\n")
+			}
+		}
+	}
 	return buf.String()
 }
 
 func (c *Client) buildClassifySchema(validCategories [][]string) map[string]interface{} {
 	enumStrs := make([]interface{}, 0, len(validCategories))
 	for _, path := range validCategories {
-		s := strings.Join(path, categoryPathSeparator)
+		s := strings.Join(path, CategoryPathSeparator)
 		if s != "" {
 			enumStrs = append(enumStrs, s)
 		}

@@ -391,11 +391,12 @@ func (h *Handlers) PostCategoryClassifierTest(w http.ResponseWriter, r *http.Req
 		http.Error(w, "category classifier not configured or disabled", http.StatusNotFound)
 		return
 	}
-	validPaths, err := h.DB.GetAllCategoryPaths(r.Context())
+	pathRows, err := h.DB.GetAllCategoryPathsWithDescriptions(r.Context())
 	if err != nil {
 		http.Error(w, "failed to load categories: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
+	validPaths, categoryDesc := db.ClassifierPathsFromTreeRows(pathRows, llm.CategoryPathSeparator)
 	if len(validPaths) == 0 {
 		http.Error(w, "no categories in tree (run migrations 017 and 018 to seed categories)", http.StatusInternalServerError)
 		return
@@ -429,9 +430,10 @@ func (h *Handlers) PostCategoryClassifierTest(w http.ResponseWriter, r *http.Req
 		CategoryPath: listing.CategoryPath,
 	}
 	config := llm.ClassifyConfig{
-		SystemPrompt:        cfg.SystemPrompt,
-		ValidCategories:     validPaths,
-		ConfidenceThreshold: cfg.ConfidenceThreshold,
+		SystemPrompt:         cfg.SystemPrompt,
+		ValidCategories:      validPaths,
+		CategoryDescriptions: categoryDesc,
+		ConfidenceThreshold:  cfg.ConfidenceThreshold,
 	}
 	result, err := h.LLM.Classify(r.Context(), config, input)
 	if err != nil {
