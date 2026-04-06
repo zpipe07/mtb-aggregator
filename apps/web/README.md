@@ -26,6 +26,7 @@ React frontend for the MTB deal aggregator. Built with Next.js 15 (App Router), 
 - **PostHog** — With `NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN` set, [`instrumentation-client.ts`](src/instrumentation-client.ts) initializes PostHog. Deals page category changes emit `filter_applied` with `filter_type: "category"` plus `nav_source` (`breadcrumb` | `chip` | `all_clear`) and `category_slug` when a slug is selected; `value` is the category slug or empty when cleared
 - **Branding** — Primary logo is `public/logo.png` (admin UI). Favicons: `public/favicon.png` / `public/favicon-light.png` via `metadata.icons` in `src/app/layout.tsx` (paired with `prefers-color-scheme`). The public nav uses `logo-light.png` in dark mode (`NavHeader`). Other assets in `public/` are optional (e.g. alternate wordmarks).
 - **Admin** — `/admin/llm-profiles`: LLM prompt profiles with a **Field library** tab (CRUD `llm_extraction_field_defs`) and a composition editor for profiles backed by migration `019` (`profile_fields`), including overrides and inline custom fields; legacy raw JSON editing remains for profiles without composition rows. Field types include `multi_enum` (migration `020`) for multiple values per key in `metadata.llm_specs`
+- **Admin categories** — `/admin/categories`: optional per-category **description** (LLM classification rubrics; not the same as SEO copy in [`src/lib/categorySeo.ts`](src/lib/categorySeo.ts)). Returned on `GET /categories/tree` and used by the API when building the LLM category classifier prompt
 
 ## Development
 

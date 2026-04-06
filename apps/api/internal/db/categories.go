@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/lib/pq"
@@ -10,14 +11,21 @@ import (
 
 // Category is one row in the categories table.
 type Category struct {
-	ID        int     `json:"id"`
-	Slug      string  `json:"slug"`
-	Name      string  `json:"name"`
-	ParentID  *int    `json:"parent_id,omitempty"`
-	SortOrder int     `json:"sort_order"`
-	Depth     int     `json:"depth"`
-	CreatedAt string  `json:"created_at,omitempty"`
-	UpdatedAt string  `json:"updated_at,omitempty"`
+	ID          int    `json:"id"`
+	Slug        string `json:"slug"`
+	Name        string `json:"name"`
+	ParentID    *int   `json:"parent_id,omitempty"`
+	SortOrder   int    `json:"sort_order"`
+	Depth       int    `json:"depth"`
+	Description string `json:"description"`
+	CreatedAt   string `json:"created_at,omitempty"`
+	UpdatedAt   string `json:"updated_at,omitempty"`
+}
+
+// CategoryPathWithDescription is one valid LLM path (root to leaf) with the leaf node's classification hint.
+type CategoryPathWithDescription struct {
+	Path        []string
+	Description string
 }
 
 // CategoryTreeNode is a category with nested children for API response.
@@ -32,7 +40,7 @@ type CategoryTreeNode struct {
 // ListCategories returns all categories flat, ordered by depth, then sort_order, then id.
 func (db *DB) ListCategories(ctx context.Context) ([]Category, error) {
 	rows, err := db.pool.Query(ctx, `
-		SELECT id, slug, name, parent_id, sort_order, depth, created_at::text, updated_at::text
+		SELECT id, slug, name, parent_id, sort_order, depth, COALESCE(description, ''), created_at::text, updated_at::text
 		FROM categories
 		ORDER BY depth, sort_order, id
 	`)
@@ -44,7 +52,7 @@ func (db *DB) ListCategories(ctx context.Context) ([]Category, error) {
 	for rows.Next() {
 		var c Category
 		var parentID *int
-		if err := rows.Scan(&c.ID, &c.Slug, &c.Name, &parentID, &c.SortOrder, &c.Depth, &c.CreatedAt, &c.UpdatedAt); err != nil {
+		if err := rows.Scan(&c.ID, &c.Slug, &c.Name, &parentID, &c.SortOrder, &c.Depth, &c.Description, &c.CreatedAt, &c.UpdatedAt); err != nil {
 			return nil, err
 		}
 		c.ParentID = parentID
@@ -138,9 +146,9 @@ func (db *DB) GetCategoryByID(ctx context.Context, id int) (*Category, error) {
 	var c Category
 	var parentID *int
 	err := db.pool.QueryRow(ctx, `
-		SELECT id, slug, name, parent_id, sort_order, depth, created_at::text, updated_at::text
+		SELECT id, slug, name, parent_id, sort_order, depth, COALESCE(description, ''), created_at::text, updated_at::text
 		FROM categories WHERE id = $1
-	`, id).Scan(&c.ID, &c.Slug, &c.Name, &parentID, &c.SortOrder, &c.Depth, &c.CreatedAt, &c.UpdatedAt)
+	`, id).Scan(&c.ID, &c.Slug, &c.Name, &parentID, &c.SortOrder, &c.Depth, &c.Description, &c.CreatedAt, &c.UpdatedAt)
 	if err != nil {
 		if err.Error() == "no rows in result set" {
 			return nil, nil
@@ -156,9 +164,9 @@ func (db *DB) GetCategoryBySlug(ctx context.Context, slug string) (*Category, er
 	var c Category
 	var parentID *int
 	err := db.pool.QueryRow(ctx, `
-		SELECT id, slug, name, parent_id, sort_order, depth, created_at::text, updated_at::text
+		SELECT id, slug, name, parent_id, sort_order, depth, COALESCE(description, ''), created_at::text, updated_at::text
 		FROM categories WHERE slug = $1
-	`, slug).Scan(&c.ID, &c.Slug, &c.Name, &parentID, &c.SortOrder, &c.Depth, &c.CreatedAt, &c.UpdatedAt)
+	`, slug).Scan(&c.ID, &c.Slug, &c.Name, &parentID, &c.SortOrder, &c.Depth, &c.Description, &c.CreatedAt, &c.UpdatedAt)
 	if err != nil {
 		if err.Error() == "no rows in result set" {
 			return nil, nil
@@ -170,7 +178,7 @@ func (db *DB) GetCategoryBySlug(ctx context.Context, slug string) (*Category, er
 }
 
 // CreateCategory inserts a category and returns its id.
-func (db *DB) CreateCategory(ctx context.Context, slug, name string, parentID *int, sortOrder int) (int, error) {
+func (db *DB) CreateCategory(ctx context.Context, slug, name string, parentID *int, sortOrder int, description string) (int, error) {
 	depth := 0
 	if parentID != nil {
 		parent, err := db.GetCategoryByID(ctx, *parentID)
@@ -184,16 +192,16 @@ func (db *DB) CreateCategory(ctx context.Context, slug, name string, parentID *i
 	}
 	var id int
 	err := db.pool.QueryRow(ctx, `
-		INSERT INTO categories (slug, name, parent_id, sort_order, depth) VALUES ($1, $2, $3, $4, $5) RETURNING id
-	`, slug, name, parentID, sortOrder, depth).Scan(&id)
+		INSERT INTO categories (slug, name, parent_id, sort_order, depth, description) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id
+	`, slug, name, parentID, sortOrder, depth, description).Scan(&id)
 	return id, err
 }
 
 // UpdateCategory updates a category by id.
-func (db *DB) UpdateCategory(ctx context.Context, id int, slug, name string, sortOrder int) error {
+func (db *DB) UpdateCategory(ctx context.Context, id int, slug, name string, sortOrder int, description string) error {
 	_, err := db.pool.Exec(ctx, `
-		UPDATE categories SET slug = $1, name = $2, sort_order = $3, updated_at = NOW() WHERE id = $4
-	`, slug, name, sortOrder, id)
+		UPDATE categories SET slug = $1, name = $2, sort_order = $3, description = $4, updated_at = NOW() WHERE id = $5
+	`, slug, name, sortOrder, description, id)
 	return err
 }
 
@@ -261,6 +269,54 @@ func (db *DB) GetAllCategoryPaths(ctx context.Context) ([][]string, error) {
 		}
 	}
 	return paths, rows.Err()
+}
+
+// GetAllCategoryPathsWithDescriptions returns each category's path (root to leaf) with the leaf node's description,
+// in the same order as GetAllCategoryPaths. Used by the LLM classifier to attach rubric text per selectable path.
+func (db *DB) GetAllCategoryPathsWithDescriptions(ctx context.Context) ([]CategoryPathWithDescription, error) {
+	rows, err := db.pool.Query(ctx, `
+		WITH RECURSIVE cat_tree(id, path, depth, sort_order, description) AS (
+			SELECT id, (ARRAY[name])::text[], depth, sort_order, COALESCE(description, '') FROM categories WHERE parent_id IS NULL
+			UNION ALL
+			SELECT c.id, (ct.path || c.name)::text[], c.depth, c.sort_order, COALESCE(c.description, '')
+			FROM categories c JOIN cat_tree ct ON c.parent_id = ct.id
+		)
+		SELECT path, description FROM cat_tree ORDER BY depth, sort_order, id
+	`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []CategoryPathWithDescription
+	for rows.Next() {
+		var path pgtype.FlatArray[string]
+		var desc string
+		if err := rows.Scan(&path, &desc); err != nil {
+			return nil, err
+		}
+		if len(path) == 0 {
+			continue
+		}
+		out = append(out, CategoryPathWithDescription{
+			Path:        []string(path),
+			Description: desc,
+		})
+	}
+	return out, rows.Err()
+}
+
+// ClassifierPathsFromTreeRows splits GetAllCategoryPathsWithDescriptions into valid paths and a description map.
+// pathSeparator must match llm.CategoryPathSeparator (e.g. " > ").
+func ClassifierPathsFromTreeRows(rows []CategoryPathWithDescription, pathSeparator string) ([][]string, map[string]string) {
+	validPaths := make([][]string, len(rows))
+	desc := make(map[string]string)
+	for i, r := range rows {
+		validPaths[i] = r.Path
+		if r.Description != "" {
+			desc[strings.Join(r.Path, pathSeparator)] = r.Description
+		}
+	}
+	return validPaths, desc
 }
 
 // GetCategorySubtreeIDs returns the given category ID plus all descendant IDs, for subtree filtering (e.g. "Bikes" includes Bikes, Mountain, Electric, etc.).

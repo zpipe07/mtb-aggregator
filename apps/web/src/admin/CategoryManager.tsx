@@ -16,7 +16,7 @@ function CategoryForm({
   onCancel,
   submitLabel,
 }: {
-  initial?: { slug: string; name: string; sort_order: number };
+  initial?: { slug: string; name: string; sort_order: number; description?: string };
   parentId?: number | null;
   onSubmit: (body: CreateCategoryBody) => Promise<void>;
   onCancel: () => void;
@@ -25,6 +25,7 @@ function CategoryForm({
   const [slug, setSlug] = useState(initial?.slug ?? "");
   const [name, setName] = useState(initial?.name ?? "");
   const [sortOrder, setSortOrder] = useState(initial?.sort_order ?? 0);
+  const [description, setDescription] = useState(initial?.description ?? "");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -44,6 +45,7 @@ function CategoryForm({
         name: n,
         parent_id: parentId ?? undefined,
         sort_order: sortOrder,
+        description: description.trim(),
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Request failed");
@@ -112,6 +114,19 @@ function CategoryForm({
         >
           Cancel
         </button>
+      </div>
+      <div>
+        <label htmlFor="cat-description" className="block text-xs font-medium text-stone-500 mb-1">
+          Description (LLM classification hint)
+        </label>
+        <textarea
+          id="cat-description"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="Optional rubric: what belongs in this category vs siblings (shown to the category classifier)."
+          rows={3}
+          className="w-full rounded border border-stone-300 px-2 py-1.5 text-sm text-stone-900"
+        />
       </div>
     </form>
   );
@@ -188,15 +203,29 @@ function CategoryRow({
           </button>
         </div>
       </div>
+      {node.description ? (
+        <p
+          className="text-xs text-stone-500 ml-7 mt-0.5 max-w-2xl line-clamp-2"
+          title={node.description}
+        >
+          {node.description}
+        </p>
+      ) : null}
       {isEditing && (
         <div className="ml-7 mt-2 mb-2 p-3 bg-stone-50 rounded border border-stone-200">
           <CategoryForm
-            initial={{ slug: node.slug, name: node.name, sort_order: node.sort_order }}
+            initial={{
+              slug: node.slug,
+              name: node.name,
+              sort_order: node.sort_order,
+              description: node.description ?? "",
+            }}
             onSubmit={async (body) => {
               await onUpdate(node.id, {
                 slug: body.slug,
                 name: body.name,
                 sort_order: body.sort_order,
+                description: body.description ?? "",
               });
               setEditingId(null);
             }}
@@ -306,7 +335,9 @@ export function CategoryManager() {
         </button>
       </div>
       <p className="text-sm text-stone-600">
-        Manage the structured category tree used for deals filtering. Slug is used in URLs (e.g. <code className="bg-stone-200 px-1 rounded">/deals?category=brakes</code>).
+        Manage the structured category tree used for deals filtering. Slug is used in URLs (e.g.{" "}
+        <code className="bg-stone-200 px-1 rounded">/deals?category=brakes</code>). Optional descriptions are sent to
+        the LLM category classifier as rubrics (not the same as SEO copy on public category pages).
       </p>
       {addingRoot && (
         <div className="p-4 bg-stone-50 rounded border border-stone-200">

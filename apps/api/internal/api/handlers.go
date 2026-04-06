@@ -970,10 +970,11 @@ func (h *Handlers) runLLMCategoryClassification(ctx context.Context, listingID i
 	if err != nil || cfg == nil || !cfg.Enabled {
 		return
 	}
-	validPaths, err := h.DB.GetAllCategoryPaths(ctx)
-	if err != nil || len(validPaths) == 0 {
+	pathRows, err := h.DB.GetAllCategoryPathsWithDescriptions(ctx)
+	if err != nil || len(pathRows) == 0 {
 		return
 	}
+	validPaths, categoryDesc := db.ClassifierPathsFromTreeRows(pathRows, llm.CategoryPathSeparator)
 	listing, err := h.DB.GetListingForCategoryClassification(ctx, listingID)
 	if err != nil || listing == nil {
 		return
@@ -998,9 +999,10 @@ func (h *Handlers) runLLMCategoryClassification(ctx context.Context, listingID i
 		CategoryPath: listing.CategoryPath,
 	}
 	config := llm.ClassifyConfig{
-		SystemPrompt:        cfg.SystemPrompt,
-		ValidCategories:     validPaths,
-		ConfidenceThreshold: cfg.ConfidenceThreshold,
+		SystemPrompt:         cfg.SystemPrompt,
+		ValidCategories:      validPaths,
+		CategoryDescriptions: categoryDesc,
+		ConfidenceThreshold:  cfg.ConfidenceThreshold,
 	}
 	result, err := h.LLM.Classify(ctx, config, input)
 	if err != nil {

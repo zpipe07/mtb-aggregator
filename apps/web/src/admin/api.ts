@@ -174,6 +174,8 @@ export interface AdminCategoryTreeNode {
   parent_id: number | null;
   sort_order: number;
   depth: number;
+  /** LLM classification rubric (optional). */
+  description?: string;
   /** Present on GET /categories/tree (subtree listing rollup). */
   deal_count?: number;
   children: AdminCategoryTreeNode[];
@@ -191,6 +193,8 @@ export interface CreateCategoryBody {
   name: string;
   parent_id?: number | null;
   sort_order?: number;
+  /** Optional rubric for LLM category classification. */
+  description?: string;
 }
 
 export async function createAdminCategory(body: CreateCategoryBody): Promise<{ id: number }> {
@@ -202,6 +206,7 @@ export async function createAdminCategory(body: CreateCategoryBody): Promise<{ i
       name: body.name,
       parent_id: body.parent_id ?? null,
       sort_order: body.sort_order ?? 0,
+      description: body.description ?? "",
     }),
   });
   if (!res.ok) {
@@ -215,6 +220,7 @@ export interface UpdateCategoryBody {
   slug: string;
   name: string;
   sort_order?: number;
+  description?: string;
 }
 
 export async function updateAdminCategory(id: number, body: UpdateCategoryBody): Promise<void> {
@@ -225,6 +231,7 @@ export async function updateAdminCategory(id: number, body: UpdateCategoryBody):
       slug: body.slug,
       name: body.name,
       sort_order: body.sort_order ?? 0,
+      description: body.description ?? "",
     }),
   });
   if (!res.ok) {
