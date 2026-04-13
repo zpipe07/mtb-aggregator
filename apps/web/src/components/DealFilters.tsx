@@ -3,6 +3,8 @@ import type { SpecFacet, Store } from "../api";
 import { FilterSelect } from "./FilterSelect";
 import { FilterInput } from "./FilterInput";
 import { CategoryDrillDown } from "./CategoryDrillDown";
+import { Select } from "./ui/select";
+import { Button } from "./ui/button";
 
 export type SortOption = "newest" | "discount" | "price_asc" | "price_desc" | "relevance";
 
@@ -108,13 +110,15 @@ export function DealFilters({
       {activeFilterCount > 0 && (
         <div className="flex items-center gap-3 text-sm">
           <span className="text-muted-foreground">{activeFilterCount} filter{activeFilterCount === 1 ? "" : "s"} active</span>
-          <button
+          <Button
             type="button"
+            variant="link"
+            size="sm"
             onClick={onClearAll}
-            className="text-foreground underline hover:text-foreground font-medium"
+            className="h-auto p-0 text-foreground underline font-medium"
           >
             Clear all
-          </button>
+          </Button>
         </div>
       )}
 
@@ -157,16 +161,16 @@ export function DealFilters({
       </div>
 
       {canonicalCategoryFilter && specFacets.length > 0 && (
-        <div className="flex flex-wrap gap-6 border-t border-border pt-4">
+        <div className="flex flex-wrap gap-6 border-t-2 border-border/50 pt-4">
           {specFacets.map((facet) => (
             <div key={facet.key}>
               <label className="block text-sm font-medium text-muted-foreground mb-1.5">
                 {facet.label}
               </label>
-              <select
+              <Select
                 value={specFilters[facet.key] ?? ""}
                 onChange={(e) => handleSpecFilterChange(facet.key, e.target.value)}
-                className="rounded-lg border border-input px-3 py-2 bg-background text-foreground text-sm"
+                className="w-full min-w-[12rem]"
               >
                 <option value="">Any {facet.label.toLowerCase()}</option>
                 {facet.values.map((v) => (
@@ -174,15 +178,17 @@ export function DealFilters({
                     {v.value} ({v.count})
                   </option>
                 ))}
-              </select>
+              </Select>
               {specFilters[facet.key] && (
-                <button
+                <Button
                   type="button"
+                  variant="link"
+                  size="sm"
                   onClick={() => onClearSpecFilter(facet.key)}
-                  className="ml-2 text-sm text-muted-foreground underline hover:text-foreground"
+                  className="mt-1 h-auto p-0 text-sm text-muted-foreground"
                 >
                   Clear
-                </button>
+                </Button>
               )}
             </div>
           ))}

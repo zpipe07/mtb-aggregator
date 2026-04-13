@@ -44,7 +44,7 @@ export function Pagination({
 
   return (
     <nav
-      className="flex flex-wrap items-center justify-between gap-4 py-4 border-t border-border"
+      className="flex flex-wrap items-center justify-between gap-4 py-4 border-t-2 border-border/50"
       aria-label="Deals pagination"
     >
       <div className="text-sm text-muted-foreground">

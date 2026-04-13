@@ -85,7 +85,7 @@ Use shadcn primitives for new UI:
 
 - **Button** — `variant`, `size`, `asChild`
 - **Input** — text, search, number, password
-- **Select** — native select styled to match Input (border, focus ring, height)
+- **Select** — native `<select>` styled to match Input (border, focus ring, `min-h-9` so text doesn’t clip on small screens)
 - **Card** — CardHeader, CardTitle, CardDescription, CardContent, CardFooter
 
 Add more: `pnpm dlx shadcn@latest add <component>`

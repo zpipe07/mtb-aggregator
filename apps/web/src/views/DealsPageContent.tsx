@@ -276,7 +276,7 @@ export function DealsPageContent({
               </p>
 
               {totalCount > 0 && (
-                <div className="border-b border-border mb-4">
+                <div className="border-b-2 border-border/50 mb-4">
                   <Pagination
                     totalCount={totalCount}
                     limit={DEFAULT_PAGE_SIZE}
@@ -296,7 +296,7 @@ export function DealsPageContent({
               )}
 
               {totalCount > 0 && (
-                <div className="border-t border-border mt-8">
+                <div className="border-t-2 border-border/50 mt-8">
                   <Pagination
                     totalCount={totalCount}
                     limit={DEFAULT_PAGE_SIZE}

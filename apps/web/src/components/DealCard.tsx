@@ -75,8 +75,9 @@ export function DealCard({ deal, href }: DealCardProps) {
         </div>
       )}
       {discountPct != null && discountPct > 0 && (
-        <span className="absolute top-2 left-2 bg-destructive text-white text-xs font-semibold px-2 py-1 rounded">
-          {discountPct}% off
+        <span className="absolute top-2 left-2 bg-primary text-primary-foreground text-xs font-semibold px-2 py-1 rounded shadow-sm">
+          <span className="font-mono tabular-nums">{discountPct}</span>
+          <span className="font-sans">% off</span>
         </span>
       )}
       <span className="absolute top-2 right-2 bg-trail/92 text-trail-foreground text-xs font-medium px-2 py-1 rounded">
