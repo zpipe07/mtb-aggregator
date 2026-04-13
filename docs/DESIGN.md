@@ -47,8 +47,8 @@ Since it's an aggregator, be honest:
 
 ## Implementation Notes
 
-- **Colors**: Mapped in `apps/web/src/app/globals.css` and `apps/web/src/index.css` (`:root`, `.dark`):
-- **Light mode**: **Soft warm-grey canvas** (low chroma) vs **near-white cards**; neutral-ish **`--foreground`**; **`--secondary`** / **`--muted`** / **`--border`** read as grey with only a hint of hue; **`--accent`** is a cool blue-grey wash; **`--trail`** stays a muted teal for accents; orange **`--primary`** unchanged.
+- **Colors**: Mapped in `apps/web/src/app/globals.css` (`:root`, `.dark`):
+- **Light mode**: **Soft warm-grey canvas** (low chroma) vs **near-white cards**; neutral-ish **`--foreground`**; **`--secondary`** / **`--muted`** / **`--border`** read as grey with only a hint of hue; **`--accent`** is a cool blue-grey wash; **`--trail`** stays a muted teal for accents; orange **`--primary`** unchanged. **`--input`** is tuned darker than the page background so form controls (inputs, native selects, outline buttons) have visible borders on both canvas and cards.
 - **Dark mode**: **Neutral-warm grey** base (~oklch 0.34 L, very low chroma) and **lighter cards**; **`--secondary`**, **`--muted`**, **`--accent`**, **`--trail`** are toned down so the UI isn’t forest-green; primary orange unchanged.
 - **Typography**: `--app-font-display` (Bricolage Grotesque Variable) for h1–h3; `--app-font-sans` (Plus Jakarta Sans Variable) for body. Wired in `apps/web/src/app/globals.css` via `@fontsource-variable/*`.
 - **Components**: CTA buttons should use the Hazard Orange accent. See [docs/ARCHITECTURE.md](ARCHITECTURE.md#component-library) for the component system.

@@ -112,7 +112,7 @@ export function FilterSidebar({
       />
 
       {categoryFilter && specFacets.length > 0 && (
-        <div className="space-y-4 border-t border-border pt-4">
+        <div className="space-y-4 border-t-2 border-border/50 pt-4">
           {specFacets.map((facet) => {
             const specValueOptions = mergeSelectedFacetValue(
               facet.values,
@@ -153,7 +153,7 @@ export function FilterSidebar({
       )}
 
       {variantFacets.length > 0 && (
-        <div className="space-y-4 border-t border-border pt-4">
+        <div className="space-y-4 border-t-2 border-border/50 pt-4">
           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
             Variants
           </p>

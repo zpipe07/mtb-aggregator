@@ -84,7 +84,7 @@ flowchart LR
 | `apps/api/internal/taxonomy/` | Category mapping, in-memory cache |
 | `apps/api/internal/metadata/` | Spec extraction from enriched data |
 | `apps/scraper/src/parsers/` | One parser per store |
-| `apps/web/src/components/ui/` | shadcn primitives (Button, Input, Card) |
+| `apps/web/src/components/ui/` | shadcn primitives (Button, Input, Card, Drawer/Vaul, etc.) |
 | `apps/web/src/components/` | Composed components (DealCard, CategoryCard, Pagination, etc.) |
 | `apps/web/.storybook/` | Storybook config, preview decorators |
 

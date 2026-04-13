@@ -18,7 +18,7 @@ export function CategoryCard({ label, to, description, imageSrc }: CategoryCardP
       className="block group"
       onClick={() => posthog.capture("category_clicked", { category: label, href: to })}
     >
-      <Card className="shadow-sm hover:shadow-md transition-all cursor-pointer overflow-hidden">
+      <Card className="shadow-sm hover:ring-primary/40 hover:shadow-md transition-all cursor-pointer overflow-hidden">
         {imageSrc && (
           <div className="aspect-[4/3] overflow-hidden bg-muted">
             <img

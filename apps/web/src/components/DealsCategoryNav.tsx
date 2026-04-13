@@ -105,7 +105,7 @@ function DealsCategoryNavPresentation({
           ) : (
             <ol className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm">
               <li className="flex min-h-9 items-center">
-                <Button variant="link" asChild className="h-auto min-h-9 px-0 py-1">
+                <Button variant="outline" size="sm" asChild>
                   <Link
                     href={buildDealsBrowseHref("", searchParams, categoryTree)}
                     onClick={() => captureCategoryNav("", "all_clear")}
@@ -122,9 +122,13 @@ function DealsCategoryNavPresentation({
                       className="flex min-h-9 items-center gap-1.5"
                     >
                       <BreadcrumbSep />
-                      <Button variant="link" asChild className="h-auto min-h-9 px-0 py-1">
+                      <Button variant="outline" size="sm" asChild>
                         <Link
-                          href={buildDealsBrowseHref(node.slug, searchParams, categoryTree)}
+                          href={buildDealsBrowseHref(
+                            node.slug,
+                            searchParams,
+                            categoryTree,
+                          )}
                           onClick={() =>
                             captureCategoryNav(node.slug, "breadcrumb")
                           }
@@ -160,17 +164,24 @@ function DealsCategoryNavPresentation({
               <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                 {chipSectionLabel}
               </p>
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
                 {chips.map((node) => {
                   const selected = node.slug === categoryFilter;
-                  const href = buildDealsBrowseHref(node.slug, searchParams, categoryTree);
+                  const href = buildDealsBrowseHref(
+                    node.slug,
+                    searchParams,
+                    categoryTree,
+                  );
                   if (selected) {
                     return (
                       <span
                         key={node.slug}
                         className={cn(
-                          buttonVariants({ variant: "default", size: "default" }),
-                          "shrink-0 rounded-sm justify-center pointer-events-none opacity-100"
+                          buttonVariants({
+                            variant: "default",
+                            size: "lg",
+                          }),
+                          "shrink-0 rounded-sm justify-center pointer-events-none opacity-100",
                         )}
                         aria-current="page"
                       >
@@ -179,7 +190,7 @@ function DealsCategoryNavPresentation({
                     );
                   }
                   return (
-                    <Button key={node.slug} variant="outline" asChild>
+                    <Button key={node.slug} variant="outline" asChild size="lg">
                       <Link
                         href={href}
                         onClick={() => captureCategoryNav(node.slug, "chip")}
@@ -206,4 +217,3 @@ function BreadcrumbSep() {
     </span>
   );
 }
-
