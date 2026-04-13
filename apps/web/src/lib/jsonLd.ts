@@ -84,3 +84,31 @@ export function buildItemListJsonLd(opts: {
     })),
   };
 }
+
+export type CollectionPageRootPart = {
+  name: string;
+  url: string;
+  description?: string;
+};
+
+/** CollectionPage hub with hasPart for each top-level category (GEO / rich results). */
+export function buildCollectionPageJsonLd(opts: {
+  name: string;
+  description: string;
+  pageUrl: string;
+  rootCategories: CollectionPageRootPart[];
+}): Record<string, unknown> {
+  return {
+    "@context": CTX,
+    "@type": "CollectionPage",
+    name: opts.name,
+    description: opts.description,
+    url: opts.pageUrl,
+    hasPart: opts.rootCategories.map((r) => ({
+      "@type": "CollectionPage",
+      name: r.name,
+      url: r.url,
+      ...(r.description ? { description: r.description } : {}),
+    })),
+  };
+}

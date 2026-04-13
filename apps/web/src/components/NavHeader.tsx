@@ -54,6 +54,7 @@ export function NavHeader() {
 
   const navLinks = [
     { href: "/", label: "Home", exact: true },
+    { href: "/categories", label: "Categories", exact: true },
     { href: "/deals", label: "Deals", exact: false },
   ];
 
