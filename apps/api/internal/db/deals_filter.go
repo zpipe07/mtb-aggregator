@@ -85,6 +85,17 @@ func (db *DB) dealsFilterSQL(ctx context.Context, params GetDealsParams) (string
 			}
 		}
 	}
+	if params.ExcludeCategorySlug != "" {
+		cat, err := db.GetCategoryBySlug(ctx, strings.TrimSpace(params.ExcludeCategorySlug))
+		if err == nil && cat != nil {
+			subtreeIDs, err := db.GetCategorySubtreeIDs(ctx, cat.ID)
+			if err == nil && len(subtreeIDs) > 0 {
+				sb.WriteString(fmt.Sprintf(" AND (l.category_id IS NULL OR NOT (l.category_id = ANY($%d)))", argNum))
+				args = append(args, pq.Array(subtreeIDs))
+				argNum++
+			}
+		}
+	}
 	specFilters := params.SpecFilters
 	if len(specFilters) == 0 && params.SpecKey != "" && params.SpecValue != "" {
 		specFilters = map[string]string{params.SpecKey: params.SpecValue}
@@ -99,6 +110,11 @@ func (db *DB) dealsFilterSQL(ctx context.Context, params GetDealsParams) (string
 	if params.MinDiscount != nil && *params.MinDiscount > 0 {
 		sb.WriteString(fmt.Sprintf(" AND l.original_price IS NOT NULL AND l.original_price > 0 AND l.current_price < l.original_price AND (1 - l.current_price / l.original_price) * 100 >= $%d", argNum))
 		args = append(args, *params.MinDiscount)
+		argNum++
+	}
+	if params.MinPrice != nil && *params.MinPrice > 0 {
+		sb.WriteString(fmt.Sprintf(" AND l.current_price >= $%d", argNum))
+		args = append(args, *params.MinPrice)
 		argNum++
 	}
 	if params.Search != "" {

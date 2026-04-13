@@ -60,6 +60,10 @@ export async function fetchDeals(params?: {
   category_slug?: string;
   canonical_category?: string;
   min_discount?: number;
+  /** Minimum current_price (inclusive). */
+  min_price?: number;
+  /** Exclude listings in this category subtree (e.g. `accessories`). */
+  exclude_category_slug?: string;
   q?: string;
   sort?: string;
   limit?: number;
@@ -80,6 +84,10 @@ export async function fetchDeals(params?: {
     search.set("canonical_category", params.canonical_category);
   if (params?.min_discount != null)
     search.set("min_discount", String(params.min_discount));
+  if (params?.min_price != null)
+    search.set("min_price", String(params.min_price));
+  if (params?.exclude_category_slug)
+    search.set("exclude_category_slug", params.exclude_category_slug);
   if (params?.q) search.set("q", params.q);
   if (params?.sort) search.set("sort", params.sort);
   if (params?.limit != null) search.set("limit", String(params.limit));

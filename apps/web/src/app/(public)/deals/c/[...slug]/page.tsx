@@ -80,6 +80,10 @@ export default async function CategoryDealsPage({ params, searchParams }: Props)
     min_discount: filterParams.minDiscount
       ? parseFloat(filterParams.minDiscount) || undefined
       : undefined,
+    min_price: filterParams.minPrice
+      ? parseFloat(filterParams.minPrice) || undefined
+      : undefined,
+    exclude_category_slug: filterParams.excludeCategorySlug || undefined,
     specFilters:
       Object.keys(filterParams.specFilters).length > 0
         ? filterParams.specFilters

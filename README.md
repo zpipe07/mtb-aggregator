@@ -77,7 +77,7 @@ Runs up to 50 listings per batch. Enrichment also runs nightly at 2am (configura
 
 | Endpoint           | Description                                                                 |
 | ------------------ | --------------------------------------------------------------------------- |
-| `GET /deals`       | List deals (`?store=`, `?brand=`, `?min_discount=`, `?limit=`, `?offset=`)  |
+| `GET /deals`       | List deals (`?store=`, `?brand=`, `?min_discount=`, `?min_price=`, `?exclude_category_slug=`, `?sort=`, `?limit=`, `?offset=`)  |
 | `GET /deals/:id`   | Single deal by ID                                                           |
 | `GET /stores`      | List stores with deal counts                                                |
 | `GET /status`      | Health: last scrape per store, scraper reachable                            |
