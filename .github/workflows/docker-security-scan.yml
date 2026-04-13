@@ -1,0 +1,32 @@
+name: Docker Security Scan
+
+on:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: api
+            dockerfile: apps/api/Dockerfile
+            image: mtb-api-scan
+          - name: scraper
+            dockerfile: apps/scraper/Dockerfile
+            image: mtb-scraper-scan
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build image
+        run: docker build -t ${{ matrix.image }} -f ${{ matrix.dockerfile }} .
+
+      - name: Trivy scan
+        uses: aquasecurity/trivy-action@v0.28.0
+        with:
+          image-ref: ${{ matrix.image }}
+          severity: HIGH,CRITICAL
+          exit-code: "1"

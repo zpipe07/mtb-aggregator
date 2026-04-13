@@ -29,6 +29,12 @@ React frontend for the MTB deal aggregator. Built with Next.js 15 (App Router), 
 - **Admin** — `/admin/llm-profiles`: LLM prompt profiles with a **Field library** tab (CRUD `llm_extraction_field_defs`) and a composition editor for profiles backed by migration `019` (`profile_fields`), including overrides and inline custom fields; legacy raw JSON editing remains for profiles without composition rows. Field types include `multi_enum` (migration `020`) for multiple values per key in `metadata.llm_specs`
 - **Admin categories** — `/admin/categories`: optional per-category **description** (LLM classification rubrics; not the same as SEO copy in [`src/lib/categorySeo.ts`](src/lib/categorySeo.ts)). Returned on `GET /categories/tree` and used by the API when building the LLM category classifier prompt
 
+## Linting & security (ESLint)
+
+- **`pnpm run lint`** — `next lint` using [`eslint.config.mjs`](eslint.config.mjs): extends `next/core-web-vitals`, `next/typescript`, and [`eslint-plugin-security`](https://github.com/eslint-community/eslint-plugin-security) (`security/recommended`). CI runs this on every PR.
+- **`pnpm exec tsc --noEmit`** — TypeScript check without emit (also in CI).
+- The **`security/detect-object-injection`** rule is noisy for safe dynamic record access in React/TS; it is left at **warn** so builds still succeed—review warnings in admin/data-heavy components when changing those patterns.
+
 ## Development
 
 ```bash

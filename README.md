@@ -15,7 +15,7 @@ Mountain bike deals aggregator - scrapes deals from retailers and displays them 
 
 - Node.js 20+
 - pnpm 9+
-- Go 1.22+
+- Go 1.24+
 - Docker (or Docker Compose)
 
 ### Setup
