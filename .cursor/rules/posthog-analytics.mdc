@@ -18,14 +18,7 @@ When you change **user-visible behavior**, **navigation**, **filters**, **search
 3. **Update docs** if event contracts or recommended dashboards change: [`apps/web/README.md`](apps/web/README.md) (web app), and/or [`posthog-setup-report.md`](posthog-setup-report.md) if you maintain a project-level event table there.
 4. **PostHog app** (optional but ideal): add or adjust insights/dashboards when new events or properties matter for monitoring.
 
-## Hot spots in this repo
-
-- Client init: [`apps/web/src/instrumentation-client.ts`](apps/web/src/instrumentation-client.ts)
-- Deals filters and navigation: [`apps/web/src/views/DealsPageContent.tsx`](apps/web/src/views/DealsPageContent.tsx)
-- Home search: [`apps/web/src/views/HomePageContent.tsx`](apps/web/src/views/HomePageContent.tsx)
-- Category cards: [`apps/web/src/components/CategoryCard.tsx`](apps/web/src/components/CategoryCard.tsx)
-- Deal detail: [`apps/web/src/app/(public)/deals/[id]/DealDetailContent.tsx`](apps/web/src/app/(public)/deals/[id]/DealDetailContent.tsx)
-- Toolbar sort: [`apps/web/src/components/Toolbar.tsx`](apps/web/src/components/Toolbar.tsx)
+**Where to look:** search `posthog.` under [`apps/web/`](apps/web/); see [`apps/web/README.md`](apps/web/README.md) for analytics notes and typical call sites.
 
 ## Conventions
 

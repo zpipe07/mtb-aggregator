@@ -2,6 +2,8 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+**Optional agent workflows** (spec-driven development, TDD, debugging, shipping, etc.) are **not** loaded automatically. They live in [`.agents/skills/workflows/`](.agents/skills/workflows/README.md); start from [`using-agent-skills/SKILL.md`](.agents/skills/workflows/using-agent-skills/SKILL.md) to pick a playbook. Stack-specific skills sit in [`.agents/skills/`](.agents/skills/) next to that folder.
+
 ## Project Overview
 
 Mountain bike deals aggregator. Scrapes sale pages from MTB retailers, stores listings in Postgres, and serves them through a React UI.
