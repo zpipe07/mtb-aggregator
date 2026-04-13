@@ -40,6 +40,7 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-sm: calc(var(--radius) - 4px);
 
+  /* Use --app-font-sans here to avoid circular reference with :root --font-sans */
   --font-sans: var(--app-font-sans), ui-sans-serif, system-ui, sans-serif;
   --font-display: var(--app-font-display), var(--app-font-sans), ui-sans-serif, system-ui, sans-serif;
 }

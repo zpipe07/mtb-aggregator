@@ -17,6 +17,7 @@ import type { Deal } from "@/api";
 import type { PriceHistoryResponse } from "@/api";
 import { isCategoryBrowseRedundantWithBack } from "@/lib/dealsBackHref";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 function formatDate(iso: string) {
   try {
@@ -157,21 +158,22 @@ export function DealDetailContent({
                   </span>
                 )}
               </div>
-              <a
-                href={viewUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-4 inline-block bg-primary text-primary-foreground font-medium py-2 px-4 rounded-lg transition-colors hover:bg-primary/90"
-                onClick={() =>
-                  track("view_at_store", {
-                    deal_id: deal.id,
-                    store: deal.store_name,
-                    brand: deal.brand ?? "",
-                  })
-                }
-              >
-                Snag the Deal
-              </a>
+              <Button asChild className="mt-4">
+                <a
+                  href={viewUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() =>
+                    track("view_at_store", {
+                      deal_id: deal.id,
+                      store: deal.store_name,
+                      brand: deal.brand ?? "",
+                    })
+                  }
+                >
+                  Snag the Deal
+                </a>
+              </Button>
               {deal.price_range != null &&
                 deal.price_range.length === 2 &&
                 deal.price_range[0] !== deal.price_range[1] && (

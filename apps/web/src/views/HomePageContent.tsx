@@ -102,6 +102,10 @@ export function HomePageContent({ categoryTree, topDeals }: Props) {
             <Button type="submit" disabled={isPending}>
               {isPending ? "Searching…" : "Search"}
             </Button>
+
+            <Button variant="outline" className="" asChild>
+              <Link href="/deals">View all deals</Link>
+            </Button>
           </div>
         </form>
       </section>
@@ -137,12 +141,11 @@ export function HomePageContent({ categoryTree, topDeals }: Props) {
           </Link>
         </div>
         {topDeals.length > 0 ? (
-          <DealGrid
-            deals={topDeals}
-            getHref={(deal) => `/deals/${deal.id}`}
-          />
+          <DealGrid deals={topDeals} getHref={(deal) => `/deals/${deal.id}`} />
         ) : (
-          <p className="text-muted-foreground py-8">No deals available right now.</p>
+          <p className="text-muted-foreground py-8">
+            No deals available right now.
+          </p>
         )}
       </section>
     </div>
