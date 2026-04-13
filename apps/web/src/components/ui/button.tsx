@@ -23,15 +23,16 @@ const buttonVariants = cva(
       size: {
         default:
           "min-h-9 gap-1.5 px-3 py-2 text-base md:text-sm has-data-[icon=inline-end]:pr-2.5 has-data-[icon=inline-start]:pl-2.5",
-        xs: "h-7 gap-1 rounded-[min(var(--radius-md),10px)] px-2.5 text-xs in-data-[slot=button-group]:rounded-lg has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*='size-'])]:size-3",
-        sm: "h-8 gap-1 rounded-[min(var(--radius-md),12px)] px-3 text-[0.8rem] in-data-[slot=button-group]:rounded-lg has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2 [&_svg:not([class*='size-'])]:size-3.5",
-        lg: "h-10 gap-1.5 px-3 text-sm has-data-[icon=inline-end]:pr-3 has-data-[icon=inline-start]:pl-3",
-        icon: "size-9 text-sm",
+        xs: "min-h-7 gap-1 rounded-[min(var(--radius-md),10px)] px-2.5 py-1.5 text-xs in-data-[slot=button-group]:rounded-lg has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*='size-'])]:size-3",
+        sm: "min-h-8 gap-1 rounded-[min(var(--radius-md),12px)] px-3 py-1.5 text-sm md:text-[0.8rem] in-data-[slot=button-group]:rounded-lg has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2 [&_svg:not([class*='size-'])]:size-3.5",
+        lg: "min-h-10 gap-1.5 px-4 py-2 text-base md:text-lg has-data-[icon=inline-end]:pr-3 has-data-[icon=inline-start]:pl-3",
+        icon: "aspect-square min-h-9 min-w-9 shrink-0 gap-0 p-0 text-sm [&_svg:not([class*='size-'])]:size-4",
         "icon-xs":
-          "size-7 rounded-[min(var(--radius-md),10px)] text-xs in-data-[slot=button-group]:rounded-lg [&_svg:not([class*='size-'])]:size-3",
+          "aspect-square min-h-7 min-w-7 shrink-0 gap-0 rounded-[min(var(--radius-md),10px)] p-0 text-xs in-data-[slot=button-group]:rounded-lg [&_svg:not([class*='size-'])]:size-3",
         "icon-sm":
-          "size-8 rounded-[min(var(--radius-md),12px)] text-sm in-data-[slot=button-group]:rounded-lg",
-        "icon-lg": "size-10 text-sm",
+          "aspect-square min-h-8 min-w-8 shrink-0 gap-0 rounded-[min(var(--radius-md),12px)] p-0 text-sm in-data-[slot=button-group]:rounded-lg [&_svg:not([class*='size-'])]:size-3.5",
+        "icon-lg":
+          "aspect-square min-h-10 min-w-10 shrink-0 gap-0 p-0 text-sm [&_svg:not([class*='size-'])]:size-4",
       },
     },
     defaultVariants: {
