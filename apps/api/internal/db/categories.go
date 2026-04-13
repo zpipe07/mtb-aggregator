@@ -30,11 +30,13 @@ type CategoryPathWithDescription struct {
 
 // CategoryTreeNode is a category with nested children for API response.
 // DealCount is the number of in-stock, visible listings in this category or any descendant
-// (same subtree semantics as GET /deals?category_slug=).
+// (same subtree semantics as GET /deals?category_slug= without variant grouping).
+// ProductCount is distinct product groups in that subtree (same semantics as GET /deals?group_variants=true&category_slug=).
 type CategoryTreeNode struct {
 	Category
-	DealCount int                `json:"deal_count"`
-	Children  []CategoryTreeNode `json:"children,omitempty"`
+	DealCount    int                `json:"deal_count"`
+	ProductCount int                `json:"product_count"`
+	Children     []CategoryTreeNode `json:"children,omitempty"`
 }
 
 // ListCategories returns all categories flat, ordered by depth, then sort_order, then id.
@@ -61,7 +63,7 @@ func (db *DB) ListCategories(ctx context.Context) ([]Category, error) {
 	return list, rows.Err()
 }
 
-// ListCategoriesTree returns the category hierarchy as a nested tree with deal_count per node.
+// ListCategoriesTree returns the category hierarchy as a nested tree with deal_count and product_count per node.
 func (db *DB) ListCategoriesTree(ctx context.Context) ([]CategoryTreeNode, error) {
 	list, err := db.ListCategories(ctx)
 	if err != nil {
@@ -71,8 +73,13 @@ func (db *DB) ListCategoriesTree(ctx context.Context) ([]CategoryTreeNode, error
 	if err != nil {
 		return nil, err
 	}
+	productCounts, err := db.categorySubtreeProductCounts(ctx)
+	if err != nil {
+		return nil, err
+	}
 	tree := buildCategoryTree(list, nil)
 	annotateCategoryTreeDealCounts(tree, counts)
+	annotateCategoryTreeProductCounts(tree, productCounts)
 	return tree, nil
 }
 
@@ -113,11 +120,58 @@ func (db *DB) categorySubtreeDealCounts(ctx context.Context) (map[int]int, error
 	return out, rows.Err()
 }
 
+// categorySubtreeProductCounts returns, for each category id, the count of distinct product groups
+// (COALESCE(product_group_key, 'single:'||id)) for in-stock, visible listings whose category_id
+// lies in that category's subtree — matching GET /deals with group_variants=true.
+func (db *DB) categorySubtreeProductCounts(ctx context.Context) (map[int]int, error) {
+	rows, err := db.pool.Query(ctx, `
+		WITH RECURSIVE descendants AS (
+			SELECT id AS root_id, id AS cat_id FROM categories
+			UNION ALL
+			SELECT d.root_id, c.id
+			FROM categories c
+			INNER JOIN descendants d ON c.parent_id = d.cat_id
+		),
+		grouped AS (
+			SELECT d.root_id,
+				COALESCE(l.product_group_key, 'single:' || l.id::text) AS gk
+			FROM descendants d
+			INNER JOIN store_listings l ON l.category_id = d.cat_id
+			WHERE l.is_in_stock = true AND l.hidden = false
+		)
+		SELECT root_id, COUNT(DISTINCT gk)::int
+		FROM grouped
+		GROUP BY root_id
+	`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := make(map[int]int)
+	for rows.Next() {
+		var id, cnt int
+		if err := rows.Scan(&id, &cnt); err != nil {
+			return nil, err
+		}
+		out[id] = cnt
+	}
+	return out, rows.Err()
+}
+
 func annotateCategoryTreeDealCounts(nodes []CategoryTreeNode, counts map[int]int) {
 	for i := range nodes {
 		nodes[i].DealCount = counts[nodes[i].ID]
 		if len(nodes[i].Children) > 0 {
 			annotateCategoryTreeDealCounts(nodes[i].Children, counts)
+		}
+	}
+}
+
+func annotateCategoryTreeProductCounts(nodes []CategoryTreeNode, counts map[int]int) {
+	for i := range nodes {
+		nodes[i].ProductCount = counts[nodes[i].ID]
+		if len(nodes[i].Children) > 0 {
+			annotateCategoryTreeProductCounts(nodes[i].Children, counts)
 		}
 	}
 }

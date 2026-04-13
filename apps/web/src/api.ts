@@ -183,6 +183,11 @@ export interface CategoryTreeNode {
   depth: number;
   /** In-stock, visible listings in this category or any descendant (subtree rollup). */
   deal_count: number;
+  /**
+   * Distinct product groups in this subtree (matches `GET /deals?group_variants=true` totals).
+   * When missing (older API), fall back to `deal_count` for display.
+   */
+  product_count?: number;
   children: CategoryTreeNode[];
 }
 
