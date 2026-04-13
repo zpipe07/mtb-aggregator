@@ -143,6 +143,26 @@ The web app uses [Vercel Web Analytics](https://vercel.com/docs/analytics) via `
 
 See [.cursor/plans/website_analytics_plan_f835d1a0.plan.md](../.cursor/plans/website_analytics_plan_f835d1a0.plan.md) for details and alternatives.
 
+## CI security checks
+
+GitHub Actions (`.github/workflows/ci.yml`) runs on every push and PR to `main`:
+
+| Step | Purpose |
+|------|---------|
+| **gitleaks** | Secret scanning on the repo history / PR diff |
+| **`pnpm audit --audit-level=high`** | npm advisory database; fails on high/critical (moderate/low do not block) |
+| **`next lint` + `tsc --noEmit`** | ESLint (including `eslint-plugin-security` rules) and TypeScript for the web app |
+| **`go vet`**, **staticcheck** (`v0.7.0`), **govulncheck** (`v1.2.0`) | Go correctness and known-vulnerability checks on reachable code paths |
+| **Scraper tests**, **API + web build** | Existing quality gates |
+
+The CI workflow sets `permissions: contents: read` and `pull-requests: read` so `GITHUB_TOKEN` can list PR commits for **gitleaks** (without this, `pull_request` runs can fail with HTTP 403 from the GitHub API).
+
+**Go patch version:** [`apps/api/go.mod`](../apps/api/go.mod) sets `toolchain go1.25.9` so local and CI builds use a stdlib that satisfies **govulncheck** (security fixes land in patch releases; pinning only `go 1.25` is not enough). CI uses Go **1.25.9**; the API **Dockerfile** uses `golang:1.25.9-alpine`.
+
+**Dependency hygiene:** Root `package.json` defines `pnpm.overrides` to align transitive packages with patched versions where advisories affected nested dependencies; keep overrides minimal and revisit when upgrading direct deps.
+
+**Scheduled scans:** `.github/workflows/docker-security-scan.yml` builds API and scraper images weekly and runs **Trivy** on `HIGH`/`CRITICAL` CVEs. **Dependabot** (`.github/dependabot.yml`) opens weekly/monthly PRs for npm, Go modules, Docker base images, and GitHub Actions.
+
 ## Environment & Deployment
 
 - **Local**: Docker Postgres, three terminals (scraper, API, web)

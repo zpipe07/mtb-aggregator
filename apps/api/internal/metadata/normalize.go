@@ -220,17 +220,3 @@ func toTitleCase(s string) string {
 	}
 	return strings.Join(words, " ")
 }
-
-// toSnakeCase converts "Frame Material" -> "frame_material", "Hub Spacing (mm)" -> "hub_spacing_mm".
-func toSnakeCase(s string) string {
-	s = strings.TrimSpace(s)
-	if s == "" {
-		return ""
-	}
-	s = snakeRe.ReplaceAllString(s, "_")
-	s = strings.Trim(strings.ToLower(s), "_")
-	for strings.Contains(s, "__") {
-		s = strings.ReplaceAll(s, "__", "_")
-	}
-	return s
-}

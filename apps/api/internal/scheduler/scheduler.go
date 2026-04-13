@@ -250,7 +250,7 @@ func (s *Scheduler) scrapeStore(ctx context.Context, store db.Store, triggeredBy
 			}
 		}
 		var variantOpts []byte
-		if r.VariantOptions != nil && len(r.VariantOptions) > 0 {
+		if len(r.VariantOptions) > 0 {
 			variantOpts = r.VariantOptions
 		}
 		listing := db.Listing{

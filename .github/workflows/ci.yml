@@ -6,6 +6,12 @@ on:
   pull_request:
     branches: [main]
 
+# gitleaks lists PR commits via the GitHub API; the default GITHUB_TOKEN often lacks
+# pull-requests:read unless declared (otherwise 403 Resource not accessible by integration).
+permissions:
+  contents: read
+  pull-requests: read
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -13,6 +19,8 @@ jobs:
       API_URL: ${{ vars.API_URL }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: pnpm/action-setup@v4
 
@@ -23,11 +31,41 @@ jobs:
 
       - uses: actions/setup-go@v5
         with:
-          go-version: "1.22"
+          go-version: "1.25.9"
           cache-dependency-path: apps/api/go.sum
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Secret scan
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Lint web app
+        run: pnpm --filter @mtb-aggregator/web run lint
+
+      - name: Type check web app
+        run: pnpm --filter @mtb-aggregator/web exec tsc --noEmit
+
+      - name: Node dependency audit
+        run: pnpm audit --audit-level=high
+
+      - name: Go vet
+        working-directory: apps/api
+        run: go vet ./...
+
+      - name: Staticcheck
+        working-directory: apps/api
+        run: |
+          go install honnef.co/go/tools/cmd/staticcheck@v0.7.0
+          staticcheck ./...
+
+      - name: Go vulnerability check
+        working-directory: apps/api
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@v1.2.0
+          govulncheck ./...
 
       - name: Scraper tests
         run: pnpm --filter @mtb-aggregator/scraper run test
