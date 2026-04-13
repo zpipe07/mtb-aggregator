@@ -166,6 +166,8 @@ func groupedRepsOrderSQL(sort, search string, nextArg int, args *[]interface{}) 
 		return fmt.Sprintf("ts_rank(r.search_vector, plainto_tsquery('english', $%d)) DESC", nextArg)
 	case "discount":
 		return `(CASE WHEN r.original_price IS NOT NULL AND r.original_price > 0 AND r.current_price < r.original_price THEN (1 - r.current_price / r.original_price) * 100 ELSE 0 END) DESC NULLS LAST`
+	case "value":
+		return `(CASE WHEN r.original_price IS NOT NULL AND r.original_price > 0 AND r.current_price < r.original_price THEN r.original_price - r.current_price ELSE 0 END) DESC NULLS LAST`
 	case "price_asc":
 		return "r.current_price ASC"
 	case "price_desc":

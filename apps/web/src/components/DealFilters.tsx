@@ -6,11 +6,18 @@ import { CategoryDrillDown } from "./CategoryDrillDown";
 import { Select } from "./ui/select";
 import { Button } from "./ui/button";
 
-export type SortOption = "newest" | "discount" | "price_asc" | "price_desc" | "relevance";
+export type SortOption =
+  | "newest"
+  | "discount"
+  | "value"
+  | "price_asc"
+  | "price_desc"
+  | "relevance";
 
 const BASE_SORT_OPTIONS: { value: SortOption; label: string }[] = [
   { value: "newest", label: "Newest" },
   { value: "discount", label: "Highest discount" },
+  { value: "value", label: "Best value (savings)" },
   { value: "price_asc", label: "Price: low to high" },
   { value: "price_desc", label: "Price: high to low" },
 ];

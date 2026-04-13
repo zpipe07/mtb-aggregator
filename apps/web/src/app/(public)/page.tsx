@@ -32,7 +32,13 @@ export const metadata: Metadata = {
 export default async function Home() {
   const [categoryTree, dealsResponse] = await Promise.all([
     fetchCategoryTree(),
-    fetchDeals({ sort: "discount", limit: 8, offset: 0 }),
+    fetchDeals({
+      sort: "value",
+      min_price: 40,
+      exclude_category_slug: "accessories",
+      limit: 12,
+      offset: 0,
+    }),
   ]);
 
   const topDeals = dealsResponse.deals ?? [];

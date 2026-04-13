@@ -31,6 +31,8 @@ export interface DealsParams {
   category_slug?: string;
   canonical_category?: string;
   min_discount?: number;
+  min_price?: number;
+  exclude_category_slug?: string;
   spec_key?: string;
   spec_value?: string;
   specFilters?: Record<string, string>;
@@ -50,6 +52,8 @@ function buildDealsParams(params: DealsParams) {
     category_slug: params.category_slug || undefined,
     canonical_category: params.canonical_category || undefined,
     min_discount: params.min_discount,
+    min_price: params.min_price,
+    exclude_category_slug: params.exclude_category_slug || undefined,
     spec_key: params.spec_key || undefined,
     spec_value: params.spec_value || undefined,
     specFilters: params.specFilters,

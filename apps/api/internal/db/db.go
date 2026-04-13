@@ -387,6 +387,8 @@ func (db *DB) GetAdminListings(ctx context.Context, params GetAdminListingsParam
 		argNum++
 	case "discount":
 		query += ` ORDER BY (CASE WHEN l.original_price IS NOT NULL AND l.original_price > 0 AND l.current_price < l.original_price THEN (1 - l.current_price / l.original_price) * 100 ELSE 0 END) DESC NULLS LAST`
+	case "value":
+		query += ` ORDER BY (CASE WHEN l.original_price IS NOT NULL AND l.original_price > 0 AND l.current_price < l.original_price THEN l.original_price - l.current_price ELSE 0 END) DESC NULLS LAST`
 	case "price_asc":
 		query += " ORDER BY l.current_price ASC"
 	case "price_desc":
@@ -510,10 +512,12 @@ type GetDealsParams struct {
 	Brand             string
 	Category          string
 	CanonicalCategory string // legacy: "Bikes > Mountain" (exact path match)
-	CategorySlug      string // preferred: slug for subtree filter (e.g. "bikes" includes all bike subcategories)
-	MinDiscount       *float64
-	Search            string // full-text search query (q)
-	Sort              string // newest, discount, price_asc, price_desc, relevance
+	CategorySlug          string // preferred: slug for subtree filter (e.g. "bikes" includes all bike subcategories)
+	ExcludeCategorySlug   string // exclude listings in this category subtree (e.g. "accessories")
+	MinDiscount           *float64
+	MinPrice              *float64 // minimum current_price (inclusive)
+	Search                string // full-text search query (q)
+	Sort                  string // newest, discount, value, price_asc, price_desc, relevance
 	Limit             int
 	Offset            int
 	SpecKey           string            // legacy: single spec filter (use SpecFilters for multi)
@@ -573,6 +577,8 @@ func (db *DB) GetDeals(ctx context.Context, params GetDealsParams) (*GetDealsRes
 		argNum++
 	case "discount":
 		query += ` ORDER BY (CASE WHEN l.original_price IS NOT NULL AND l.original_price > 0 AND l.current_price < l.original_price THEN (1 - l.current_price / l.original_price) * 100 ELSE 0 END) DESC NULLS LAST`
+	case "value":
+		query += ` ORDER BY (CASE WHEN l.original_price IS NOT NULL AND l.original_price > 0 AND l.current_price < l.original_price THEN l.original_price - l.current_price ELSE 0 END) DESC NULLS LAST`
 	case "price_asc":
 		query += " ORDER BY l.current_price ASC"
 	case "price_desc":

@@ -134,7 +134,7 @@ export function HomePageContent({ categoryTree, topDeals }: Props) {
             Top deals of the day
           </h2>
           <Link
-            href="/deals?sort=discount"
+            href="/deals"
             className="text-sm font-medium text-muted-foreground hover:text-foreground"
           >
             View all deals

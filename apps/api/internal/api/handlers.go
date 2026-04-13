@@ -50,6 +50,14 @@ func (h *Handlers) GetDeals(w http.ResponseWriter, r *http.Request) {
 			params.MinDiscount = &f
 		}
 	}
+	if s := r.URL.Query().Get("min_price"); s != "" {
+		if f, err := strconv.ParseFloat(s, 64); err == nil {
+			params.MinPrice = &f
+		}
+	}
+	if s := r.URL.Query().Get("exclude_category_slug"); s != "" {
+		params.ExcludeCategorySlug = strings.TrimSpace(s)
+	}
 	if s := r.URL.Query().Get("q"); s != "" {
 		params.Search = s
 	}

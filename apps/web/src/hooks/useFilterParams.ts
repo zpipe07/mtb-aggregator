@@ -23,6 +23,8 @@ function applyToParams(
     brandFilter: string;
     categoryFilter: string;
     minDiscount: string;
+    minPrice: string;
+    excludeCategorySlug: string;
     specFilters: Record<string, string>;
     variantFilters: Record<string, string>;
     sort: SortOption;
@@ -41,6 +43,9 @@ function applyToParams(
   if (updates.brandFilter !== undefined) set("brand", updates.brandFilter);
   if (updates.categoryFilter !== undefined) set("category", updates.categoryFilter);
   if (updates.minDiscount !== undefined) set("min_discount", updates.minDiscount);
+  if (updates.minPrice !== undefined) set("min_price", updates.minPrice);
+  if (updates.excludeCategorySlug !== undefined)
+    set("exclude_category_slug", updates.excludeCategorySlug);
   if (updates.sort !== undefined) set("sort", updates.sort === "newest" ? "" : updates.sort);
   if (updates.offset !== undefined) set("offset", updates.offset === 0 ? "" : String(updates.offset));
 
@@ -89,6 +94,8 @@ export function useFilterParams(options?: {
         brandFilter: string;
         categoryFilter: string;
         minDiscount: string;
+        minPrice: string;
+        excludeCategorySlug: string;
         specFilters: Record<string, string>;
         variantFilters: Record<string, string>;
         sort: SortOption;
@@ -178,6 +185,8 @@ export function useFilterParams(options?: {
       brandFilter: "",
       categoryFilter: "",
       minDiscount: "",
+      minPrice: "",
+      excludeCategorySlug: "",
       specFilters: {},
       variantFilters: {},
       offset: 0,

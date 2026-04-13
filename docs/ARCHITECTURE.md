@@ -52,6 +52,8 @@ flowchart LR
 
 **Shopify variants:** For Shopify-based stores, each variant is a row (`store_sku` unique per store). `product_group_key` is `{store_id}:{product_handle}` for grouping; `variant_options` holds option dimensions (e.g. `Size`, `Color`) from the products JSON API. `GET /deals?group_variants=true` returns one representative deal per group with `variants[]`, `variant_count`, and optional `price_range`; `GET /facets` includes `variant_facets` for sidebar filters. `variant_<Key>=` query params filter on `variant_options` (key matched case-insensitively). Backfill `make backfill-variant-options` (API) primarily paginates each store’s **`stores.scrape_url`** collection **`/products.json`** (same as scrapers), then optionally falls back to **`/products/{handle}.json`** for handles not in that index; see [apps/api/README.md](../apps/api/README.md).
 
+**Deals list sorting:** `GET /deals` supports `sort=discount` (highest % off), `sort=value` (largest savings: `original_price - current_price`), plus `newest`, `price_asc`/`price_desc`, and `relevance` (with `q`). Filters include `min_price` and `exclude_category_slug` (subtree) for surfacing higher-ticket items on the home page without manual curation.
+
 **Brand facets:** `GET /facets` `brand_facets` are scoped to the same filters as other facets except the `brand` query param is omitted when aggregating brands (so the deals UI can list alternative brands while one is selected).
 
 **Spec and variant facets:** Each `spec_*` facet’s value list is aggregated without applying that key’s own `spec_*` filter; each variant dimension’s value list omits that dimension’s `variant_*` filter (same faceted-navigation pattern as brands).
