@@ -61,7 +61,7 @@ func SetMappings(mappings []Mapping) {
 	}
 	rules := make([]mappingRule, len(mappings))
 	for i, m := range mappings {
-		rules[i] = mappingRule{Raw: m.Raw, Canonical: m.Canonical}
+		rules[i] = mappingRule(m)
 	}
 	cfg = &config{Mappings: rules}
 }
