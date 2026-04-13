@@ -266,15 +266,9 @@ export function DealsPageContent({
             <div
               className={cn(
                 "transition-opacity duration-150",
-                resultsPending && "pointer-events-none opacity-50"
+                resultsPending && "pointer-events-none opacity-50",
               )}
             >
-              <p className="text-sm text-muted-foreground mb-4">
-                {totalCount === 0
-                  ? "No deals found"
-                  : `${totalCount} deal${totalCount === 1 ? "" : "s"} found`}
-              </p>
-
               {totalCount > 0 && (
                 <div className="border-b-2 border-border/50 mb-4">
                   <Pagination
@@ -316,7 +310,10 @@ export function DealsPageContent({
         onClose={() => setFilterDrawerOpen(false)}
       />
 
-      <DealsBrowseFooter rootCategories={categoryTree} categoryTree={categoryTree} />
+      <DealsBrowseFooter
+        rootCategories={categoryTree}
+        categoryTree={categoryTree}
+      />
     </div>
   );
 }

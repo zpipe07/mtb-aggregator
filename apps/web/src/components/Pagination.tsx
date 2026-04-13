@@ -1,3 +1,4 @@
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "./ui/button";
 
 type PaginationProps = {
@@ -8,7 +9,10 @@ type PaginationProps = {
 };
 
 /** Build a list of page numbers to show, with null for ellipsis */
-function pageNumbers(currentPage: number, totalPages: number): (number | null)[] {
+function pageNumbers(
+  currentPage: number,
+  totalPages: number,
+): (number | null)[] {
   if (totalPages <= 7) {
     return Array.from({ length: totalPages }, (_, i) => i + 1);
   }
@@ -18,10 +22,14 @@ function pageNumbers(currentPage: number, totalPages: number): (number | null)[]
   };
   add(1);
   if (currentPage > 3) pages.push(null);
-  for (let p = Math.max(1, currentPage - 2); p <= Math.min(totalPages, currentPage + 2); p++) {
+  for (
+    let p = Math.max(1, currentPage - 1);
+    p <= Math.min(totalPages, currentPage + 1);
+    p++
+  ) {
     add(p);
   }
-  if (currentPage < totalPages - 2) pages.push(null);
+  if (currentPage < totalPages - 1) pages.push(null);
   if (totalPages > 1 && !pages.includes(totalPages)) add(totalPages);
   return pages;
 }
@@ -44,55 +52,68 @@ export function Pagination({
 
   return (
     <nav
-      className="flex flex-wrap items-center justify-between gap-4 py-4 border-t-2 border-border/50"
+      className="flex flex-col gap-3 py-4 border-t-2 border-border/50 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-4"
       aria-label="Deals pagination"
     >
-      <div className="text-sm text-muted-foreground">
+      <p className="shrink-0 text-xs text-muted-foreground sm:text-sm">
         Page {currentPage} of {totalPages} ({totalCount} deals)
-      </div>
-      <div className="flex items-center gap-1">
+      </p>
+      <div className="flex min-w-0 w-full items-stretch gap-1 sm:w-auto sm:justify-end">
         <Button
           type="button"
           variant="outline"
           size="sm"
           onClick={() => onPageChange(Math.max(0, offset - limit))}
           disabled={!hasPrev}
-          className="min-w-[4.5rem]"
+          className="shrink-0 max-sm:px-2.5 sm:min-w-[4.5rem]"
           aria-label="Previous page"
         >
-          Previous
+          <ChevronLeft className="size-4 sm:hidden" aria-hidden />
+          <span className="hidden sm:inline">Previous</span>
         </Button>
-        <span className="sr-only">Page numbers:</span>
-        {pages.map((p, i) =>
-          p === null ? (
-            <span key={`ellipsis-${i}`} className="px-2 text-muted-foreground" aria-hidden>
-              …
-            </span>
-          ) : (
-            <Button
-              key={p}
-              type="button"
-              variant={p === currentPage ? "default" : "outline"}
-              size="sm"
-              onClick={() => goToPage(p)}
-              aria-label={p === currentPage ? `Page ${p} (current)` : `Page ${p}`}
-              aria-current={p === currentPage ? "page" : undefined}
-              className="min-w-[2.25rem]"
-            >
-              {p}
-            </Button>
-          )
-        )}
+        <div
+          className="flex min-w-0 flex-1 items-center justify-center gap-1 overflow-x-auto overscroll-x-contain px-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          role="group"
+          aria-label="Page numbers"
+        >
+          {pages.map((p, i) =>
+            p === null ? (
+              <span
+                key={`ellipsis-${i}`}
+                className="shrink-0 px-1 text-muted-foreground sm:px-2"
+                aria-hidden
+              >
+                …
+              </span>
+            ) : (
+              <Button
+                key={p}
+                type="button"
+                variant={p === currentPage ? "default" : "outline"}
+                size="sm"
+                onClick={() => goToPage(p)}
+                aria-label={
+                  p === currentPage ? `Page ${p} (current)` : `Page ${p}`
+                }
+                aria-current={p === currentPage ? "page" : undefined}
+                className="min-w-8 shrink-0 px-2 sm:min-w-[2.25rem] sm:px-3"
+              >
+                {p}
+              </Button>
+            ),
+          )}
+        </div>
         <Button
           type="button"
           variant="outline"
           size="sm"
           onClick={() => onPageChange(offset + limit)}
           disabled={!hasNext}
-          className="min-w-[4.5rem]"
+          className="shrink-0 max-sm:px-2.5 sm:min-w-[4.5rem]"
           aria-label="Next page"
         >
-          Next
+          <span className="hidden sm:inline">Next</span>
+          <ChevronRight className="size-4 sm:hidden" aria-hidden />
         </Button>
       </div>
     </nav>
