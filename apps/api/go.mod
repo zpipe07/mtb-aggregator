@@ -6,7 +6,7 @@ toolchain go1.25.9
 
 require (
 	github.com/getsentry/sentry-go v0.43.0
-	github.com/jackc/pgx/v5 v5.8.0
+	github.com/jackc/pgx/v5 v5.9.1
 	github.com/joho/godotenv v1.5.1
 	github.com/lib/pq v1.11.2
 	github.com/robfig/cron/v3 v3.0.1
