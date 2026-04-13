@@ -9,6 +9,11 @@ description: Discovers and invokes agent skills. Use when starting a session or 
 
 Agent Skills is a collection of engineering workflow skills organized by development phase. Each skill encodes a specific process that senior engineers follow. This meta-skill helps you discover and apply the right skill for your current task.
 
+## Location in this repo
+
+- **Workflow index:** [`README.md`](../README.md) (all playbook folders and summaries).
+- **Cursor auto-rules:** [`.cursor/rules/*.mdc`](../../../../.cursor/rules/) — only these `.mdc` files are always-on or glob-attached; workflow `SKILL.md` files are **on demand** (`@`-mention).
+
 ## Skill Discovery
 
 When a task arrives, identify the development phase and apply the corresponding skill:

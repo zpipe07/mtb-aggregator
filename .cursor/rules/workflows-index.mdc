@@ -1,0 +1,12 @@
+---
+description: Optional agent workflow playbooks (spec, TDD, debugging, shipping). Use when the user wants a structured process—not for routine edits.
+alwaysApply: false
+---
+
+# Workflow playbooks
+
+**Automatic** project rules are only the other `.mdc` files in this directory. Longer **workflow** skills live under [`.agents/skills/workflows/`](../../.agents/skills/workflows/README.md).
+
+**Meta index (which skill when):** [`.agents/skills/workflows/using-agent-skills/SKILL.md`](../../.agents/skills/workflows/using-agent-skills/SKILL.md)
+
+Invoke by `@`-mentioning a file under `.agents/skills/workflows/<name>/` instead of loading every playbook into context.
