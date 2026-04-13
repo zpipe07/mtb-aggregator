@@ -9,16 +9,9 @@ import { DealGrid } from "../components/DealGrid";
 import { CategoryCard } from "../components/CategoryCard";
 import { CategoryTreeNode, type Deal } from "../api";
 import { categoryHasDeals } from "../lib/categoryTree";
+import { CATEGORY_IMAGES } from "../lib/categoryImages";
 import { buildDealsCategoryPath } from "../lib/dealsCategoryPath";
 import { Button } from "../components/ui/button";
-
-/** Slug-to-image mapping for root category cards. Images in public/. */
-const CATEGORY_IMAGES: Record<string, string> = {
-  bikes: "/stock-bikes.jpg",
-  components: "/stock-components.jpg",
-  gear: "/stock-gear.jpg",
-  accessories: "/stock-accessories.jpg",
-};
 
 /** Curated category labels for home page CTAs when API has few/empty categories */
 const FALLBACK_CATEGORIES: { path: string; label: string }[] = [

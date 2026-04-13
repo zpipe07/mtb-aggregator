@@ -178,6 +178,8 @@ export interface AdminCategoryTreeNode {
   description?: string;
   /** Present on GET /categories/tree (subtree listing rollup). */
   deal_count?: number;
+  /** Distinct product groups per subtree (matches grouped deals list). */
+  product_count?: number;
   children: AdminCategoryTreeNode[];
 }
 

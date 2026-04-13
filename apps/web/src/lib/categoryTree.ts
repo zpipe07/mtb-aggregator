@@ -35,6 +35,7 @@ export function buildCategoryTreeFromFlat(flat: CategoryFlatRow[]): CategoryTree
         sort_order: c.sort_order,
         depth: c.depth,
         deal_count: 0,
+        product_count: 0,
         children: build(c.id),
       });
     }
