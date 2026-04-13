@@ -155,6 +155,8 @@ GitHub Actions (`.github/workflows/ci.yml`) runs on every push and PR to `main`:
 | **`go vet`**, **staticcheck** (`v0.6.0`), **govulncheck** (`v1.1.3`) | Go correctness and known-vulnerability checks on reachable code paths |
 | **Scraper tests**, **API + web build** | Existing quality gates |
 
+The CI workflow sets `permissions: contents: read` and `pull-requests: read` so `GITHUB_TOKEN` can list PR commits for **gitleaks** (without this, `pull_request` runs can fail with HTTP 403 from the GitHub API).
+
 **Dependency hygiene:** Root `package.json` defines `pnpm.overrides` to align transitive packages with patched versions where advisories affected nested dependencies; keep overrides minimal and revisit when upgrading direct deps.
 
 **Scheduled scans:** `.github/workflows/docker-security-scan.yml` builds API and scraper images weekly and runs **Trivy** on `HIGH`/`CRITICAL` CVEs. **Dependabot** (`.github/dependabot.yml`) opens weekly/monthly PRs for npm, Go modules, Docker base images, and GitHub Actions.
