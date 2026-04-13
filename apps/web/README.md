@@ -7,7 +7,7 @@ React frontend for the MTB deal aggregator. Built with Next.js 15 (App Router), 
 - **Next.js 15** — App Router, SSR/ISR
 - **React 18** — UI
 - **Tailwind v4** — styling (CSS variables, semantic tokens)
-- **shadcn/ui** — Button, Input, Select, Card primitives
+- **shadcn/ui** — Button, Input, Select, Card, **Drawer** ([Vaul](https://github.com/emilkowalski/vaul)) primitives; add `Sheet` via `pnpm dlx shadcn@latest add sheet` if you need a Radix Dialog slide-over
 - **TanStack Query** — admin dashboard data fetching
 - **Storybook 8** — component development and docs
 
@@ -87,6 +87,7 @@ Use shadcn primitives for new UI:
 - **Input** — text, search, number, password
 - **Select** — native `<select>` styled to match Input (border, focus ring, `min-h-9` so text doesn’t clip on small screens)
 - **Card** — CardHeader, CardTitle, CardDescription, CardContent, CardFooter
+- **Drawer** — bottom/side drawer with **slide + drag** ([Vaul](https://ui.shadcn.com/docs/components/radix/drawer)); used for the **mobile filter** UI on `/deals`
 
 Add more: `pnpm dlx shadcn@latest add <component>`
 
