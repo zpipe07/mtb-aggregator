@@ -83,7 +83,7 @@ Without `SENTRY_AUTH_TOKEN`, builds skip source map upload (`sourcemaps.disable`
 
 Use shadcn primitives for new UI:
 
-- **Button** — `variant`, `size`, `asChild`
+- **Button** — `variant`, `size`, `asChild`. Default size uses the same vertical rhythm as **Input** / **Select** (`min-h-9`, `py-2`, `text-base md:text-sm`), not a fixed pixel height.
 - **Input** — text, search, number, password
 - **Select** — native `<select>` styled to match Input (border, focus ring, `min-h-9` so text doesn’t clip on small screens)
 - **Card** — CardHeader, CardTitle, CardDescription, CardContent, CardFooter
