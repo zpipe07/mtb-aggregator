@@ -12,10 +12,14 @@ import {
 import { parseFilterParamsFromSearch } from "@/lib/filterParams";
 import { searchParamsRecordToDealsCategoryListPath } from "@/lib/dealsBackHref";
 import { JsonLd } from "@/components/JsonLd";
-import { categoryHasDeals, findCategoryBySlug } from "@/lib/categoryTree";
+import {
+  categoryHasDeals,
+  findCategoryBySlug,
+  findCategoryWithAncestors,
+} from "@/lib/categoryTree";
 import { buildDealsCategoryPath } from "@/lib/dealsCategoryPath";
 import { categoryMetadataForSlug, getCategorySeo } from "@/lib/categorySeo";
-import { buildItemListJsonLd } from "@/lib/jsonLd";
+import { buildBreadcrumbJsonLd, buildItemListJsonLd } from "@/lib/jsonLd";
 import { absoluteUrl } from "@/lib/siteUrl";
 import { DealsPageContent } from "@/views/DealsPageContent";
 import CategoryDealsLoading from "./loading";
@@ -150,8 +154,29 @@ export default async function CategoryDealsPage({ params, searchParams }: Props)
 
   const seo = getCategorySeo(categorySlug);
 
+  const breadcrumbItems: { name: string; path: string }[] = [
+    { name: "Home", path: "/" },
+    { name: "Deals", path: "/deals" },
+  ];
+  const foundCat = findCategoryWithAncestors(categoryTree, categorySlug);
+  if (foundCat) {
+    for (const a of foundCat.ancestors) {
+      breadcrumbItems.push({
+        name: a.name,
+        path: buildDealsCategoryPath(a.slug, categoryTree),
+      });
+    }
+    breadcrumbItems.push({
+      name: foundCat.node.name,
+      path: pathname,
+    });
+  } else {
+    breadcrumbItems.push({ name: categorySlug, path: pathname });
+  }
+
   return (
     <>
+      <JsonLd data={buildBreadcrumbJsonLd(breadcrumbItems)} />
       <JsonLd
         data={buildItemListJsonLd({
           name: seo.title,

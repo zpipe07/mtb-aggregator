@@ -29,11 +29,18 @@ export const metadata: Metadata = {
     siteName: "The Dropper",
     title: "The Dropper | MTB Deals",
     description: defaultDescription,
+    images: [
+      {
+        url: "/the-dropper-logo-horizontal.png",
+        alt: "The Dropper — mountain bike deals",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "The Dropper | MTB Deals",
     description: defaultDescription,
+    images: ["/the-dropper-logo-horizontal.png"],
   },
   robots: {
     index: true,

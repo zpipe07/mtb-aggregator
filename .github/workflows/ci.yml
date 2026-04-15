@@ -48,6 +48,9 @@ jobs:
       - name: Type check web app
         run: pnpm --filter @mtb-aggregator/web exec tsc --noEmit
 
+      - name: SEO smoke (JSON-LD builders)
+        run: pnpm --filter @mtb-aggregator/web run seo:smoke
+
       - name: Node dependency audit
         run: pnpm audit --audit-level=high
 
@@ -77,3 +80,13 @@ jobs:
       # Add API_URL in repo Settings → Secrets and variables → Actions (Secrets).
       - name: Web build
         run: pnpm --filter @mtb-aggregator/web run build
+
+      # Lighthouse SEO assertions (requires a running Next server + live API). Enable by setting
+      # API_URL in repository Variables (same value as for the web build).
+      - name: Lighthouse CI (SEO category)
+        if: ${{ vars.API_URL != '' }}
+        working-directory: apps/web
+        env:
+          API_URL: ${{ vars.API_URL }}
+          NEXT_PUBLIC_SITE_URL: http://127.0.0.1:3000
+        run: npx --yes @lhci/cli@0.14.0 autorun

@@ -15,7 +15,9 @@ React frontend for the MTB deal aggregator. Built with Next.js 15 (App Router), 
 
 - **SSR/ISR** — Home, `/categories`, deals list, and deal detail pages are server-rendered for SEO
 - **Categories hub counts** — The categories page shows **`product_count`** from `GET /categories/tree` (one per distinct `product_group_key`, matching the grouped deals list). Other UI still uses **`deal_count`** (listing rows) where noted in code, e.g. sitemap category paths and `categoryHasDeals` chips
-- **Structured data (JSON-LD)** — `WebSite` + `SearchAction` and `ItemList` on the home page; `CollectionPage` (with `hasPart` for each top-level department) on `/categories`; `Product` + `Offer` on deal detail; `ItemList` on `/deals/c/[...slug]` category pages. Implemented via [`src/components/JsonLd.tsx`](src/components/JsonLd.tsx) and [`src/lib/jsonLd.ts`](src/lib/jsonLd.ts)
+- **Structured data (JSON-LD)** — `WebSite` + `SearchAction` and `ItemList` on the home page; `BreadcrumbList` + `ItemList` on `/deals` and `/deals/c/[...slug]`; `CollectionPage` (with `hasPart` for each top-level department) on `/categories`; `BreadcrumbList` + `Product` + `Offer` on deal detail. Implemented via [`src/components/JsonLd.tsx`](src/components/JsonLd.tsx) and [`src/lib/jsonLd.ts`](src/lib/jsonLd.ts)
+- **Default social image** — Root layout sets Open Graph and Twitter images to [`public/the-dropper-logo-horizontal.png`](public/the-dropper-logo-horizontal.png); deal pages override with the listing image when available
+- **llms.txt** — [`public/llms.txt`](public/llms.txt) and [`public/llms-full.txt`](public/llms-full.txt) describe the site for AI crawlers (GEO)
 - **Sitemap & robots** — [`src/app/sitemap.ts`](src/app/sitemap.ts) (revalidated hourly): `/`, `/deals`, `/categories`, every `/deals/c/...` from `GET /categories/tree`, and deal detail URLs from `GET /deals` (paginated; caps at 48k deal URLs). [`src/app/robots.ts`](src/app/robots.ts) allows crawlers on public routes and disallows `/admin/`. Requires API at build/runtime for full URL lists; falls back to static routes if the API is unreachable
 - **Canonical category URLs** — [`src/middleware.ts`](src/middleware.ts) 308-redirects `/deals?category=<slug>` to `/deals/c/...`, preserving other query params. Home category cards link directly to `/deals/c/...` via [`src/lib/dealsCategoryPath.ts`](src/lib/dealsCategoryPath.ts). After taxonomy migrations (e.g. `022`), regenerate [`packages/shared/categories.export.json`](../../packages/shared/categories.export.json) so middleware’s static tree matches production `GET /categories/tree` (unknown slugs still fall back to legacy path parsing).
 - **GEO / category intros** — `/deals/c/[...slug]` passes optional `intro` from [`src/lib/categorySeo.ts`](src/lib/categorySeo.ts) into `DealsPageContent` above the filter chips. **Deal detail** resolves `canonical_category` to a category slug via [`src/lib/categoryTree.ts`](src/lib/categoryTree.ts) and, when it would not duplicate “Back to deals” (same pathname), shows a link to `/deals/c/...` with the path label (`Parent › Child — more deals in this category`). Hidden when `from=` already points at that category list
@@ -33,6 +35,15 @@ React frontend for the MTB deal aggregator. Built with Next.js 15 (App Router), 
 
 - **`pnpm run lint`** — `next lint` using [`eslint.config.mjs`](eslint.config.mjs): extends `next/core-web-vitals`, `next/typescript`, and [`eslint-plugin-security`](https://github.com/eslint-community/eslint-plugin-security) (`security/recommended`). CI runs this on every PR.
 - **`pnpm exec tsc --noEmit`** — TypeScript check without emit (also in CI).
+- **`pnpm run seo:smoke`** — Fast assertions on JSON-LD builders ([`scripts/seo-smoke.ts`](scripts/seo-smoke.ts)); runs in CI (shift-left SEO checks without a live server).
+
+## SEO monitoring (CI)
+
+GitHub Actions runs **Lighthouse CI** against `http://127.0.0.1:3000/` and `/deals` after a production build **when** repository **Actions → Variables** defines `API_URL` (same value the web build uses so pages can render with data). Config: [`lighthouserc.json`](lighthouserc.json). Reports are written under `apps/web/.lighthouseci/` (gitignored). Tune thresholds in `ci.assert.assertions` if the SEO score gate is too strict for your templates.
+
+**Optional MCP (local):** [`.cursor/mcp.json`](../../.cursor/mcp.json) can register `google-searchconsole-mcp` and `pagespeed-insights-mcp` for Search Console and PageSpeed Insights from the IDE. For Google Search Console, run `npx google-searchconsole-mcp`’s one-time auth (`gsc-mcp-auth`) per machine.
+
+**Bing:** Submit the same sitemap URL in [Bing Webmaster Tools](https://www.bing.com/webmasters) for Bing/Copilot coverage (manual one-time setup).
 - The **`security/detect-object-injection`** rule is noisy for safe dynamic record access in React/TS; it is left at **warn** so builds still succeed—review warnings in admin/data-heavy components when changing those patterns.
 
 ## Development

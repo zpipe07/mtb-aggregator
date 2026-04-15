@@ -122,9 +122,11 @@ High-level components (DealCard, CategoryCard, Pagination, SearchBar, FilterInpu
 
 ### SEO (metadata)
 
-The web app sets `metadataBase`, default Open Graph/Twitter fields, and `robots` in [`apps/web/src/app/layout.tsx`](apps/web/src/app/layout.tsx). [`apps/web/src/lib/siteUrl.ts`](apps/web/src/lib/siteUrl.ts) resolves the public origin from `NEXT_PUBLIC_SITE_URL`, or `VERCEL_URL` on Vercel, or `http://localhost:3000` for local dev. Home, `/deals`, and `/categories` export static `metadata`; deal detail and `/deals/c/[...slug]` use `generateMetadata` with canonical URLs and (for deals) OG images when `image_url` is present.
+The web app sets `metadataBase`, default Open Graph/Twitter fields (including a default OG image via `the-dropper-logo-horizontal.png`), and `robots` in [`apps/web/src/app/layout.tsx`](apps/web/src/app/layout.tsx). [`apps/web/src/lib/siteUrl.ts`](apps/web/src/lib/siteUrl.ts) resolves the public origin from `NEXT_PUBLIC_SITE_URL`, or `VERCEL_URL` on Vercel, or `http://localhost:3000` for local dev. Home, `/deals`, and `/categories` export static `metadata`; deal detail and `/deals/c/[...slug]` use `generateMetadata` with canonical URLs. Deal detail uses `openGraph.type: "article"` and prefers the listing `image_url` for OG/Twitter, falling back to the site wordmark when absent.
 
-**JSON-LD** — [`apps/web/src/components/JsonLd.tsx`](apps/web/src/components/JsonLd.tsx) + [`apps/web/src/lib/jsonLd.ts`](apps/web/src/lib/jsonLd.ts): home emits `WebSite` + `SearchAction` (deals search) and an `ItemList` for featured deals; `/categories` emits a `CollectionPage` hub with `hasPart` linking to each top-level department’s `/deals/c/...` URL; deal detail emits `Product` + `Offer`; category deal routes emit `ItemList` (first 12 URLs, `numberOfItems` = total matching).
+**JSON-LD** — [`apps/web/src/components/JsonLd.tsx`](apps/web/src/components/JsonLd.tsx) + [`apps/web/src/lib/jsonLd.ts`](apps/web/src/lib/jsonLd.ts): home emits `WebSite` + `SearchAction` (deals search) and an `ItemList` for featured deals; `/deals` emits `BreadcrumbList` + `ItemList` (same cap as category lists); `/categories` emits a `CollectionPage` hub with `hasPart` linking to each top-level department’s `/deals/c/...` URL; deal detail emits `BreadcrumbList`, `Product` + `Offer`; category deal routes emit `BreadcrumbList` + `ItemList` (first 12 URLs, `numberOfItems` = total matching).
+
+**GEO / AI discovery** — Static [`apps/web/public/llms.txt`](apps/web/public/llms.txt) and [`apps/web/public/llms-full.txt`](apps/web/public/llms-full.txt) summarize the site for crawlers and assistants.
 
 **Sitemap / robots** — [`apps/web/src/app/sitemap.ts`](apps/web/src/app/sitemap.ts) and [`apps/web/src/app/robots.ts`](apps/web/src/app/robots.ts). Sitemap includes static routes (including `/categories`), category paths from `GET /categories/tree` **only for nodes with `deal_count` > 0** (subtree rollup of in-stock, visible listings), and paginated deal detail URLs (capped). Empty category routes get `noindex` via metadata. **Middleware** [`apps/web/src/middleware.ts`](apps/web/src/middleware.ts): `308` from `/deals?category=` to `/deals/c/...` for canonical category URLs.
 
@@ -153,6 +155,8 @@ GitHub Actions (`.github/workflows/ci.yml`) runs on every push and PR to `main`:
 | **`pnpm audit --audit-level=high`** | npm advisory database; fails on high/critical (moderate/low do not block) |
 | **`next lint` + `tsc --noEmit`** | ESLint (including `eslint-plugin-security` rules) and TypeScript for the web app |
 | **`go vet`**, **staticcheck** (`v0.7.0`), **govulncheck** (`v1.2.0`) | Go correctness and known-vulnerability checks on reachable code paths |
+| **SEO smoke** (`pnpm --filter @mtb-aggregator/web run seo:smoke`) | Asserts JSON-LD builder output invariants (no running server) |
+| **Lighthouse CI** | Runs when repository **Variables** include `API_URL` (same as web build): starts `next start` after the web build and asserts Lighthouse **SEO** category ≥ 0.85 on `/` and `/deals` ([`apps/web/lighthouserc.json`](../apps/web/lighthouserc.json)) |
 | **Scraper tests**, **API + web build** | Existing quality gates |
 
 The CI workflow sets `permissions: contents: read` and `pull-requests: read` so `GITHUB_TOKEN` can list PR commits for **gitleaks** (without this, `pull_request` runs can fail with HTTP 403 from the GitHub API).
