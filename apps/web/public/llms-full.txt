@@ -1,0 +1,37 @@
+# The Dropper — machine-readable site summary
+
+## Purpose
+
+The Dropper aggregates publicly listed mountain bike deals from participating retailers. It is a discovery and price-comparison layer: checkout and fulfillment happen on each retailer’s site.
+
+## Boundaries
+
+- **We are not a store.** Offers point to third-party sellers; availability and price are determined by the retailer at click-through time.
+- **Admin** (`/admin/` and related APIs) is authenticated operator tooling — do not treat as public content.
+- **Accuracy:** Listing data is scraped and enriched periodically; users should confirm price and stock on the retailer before purchase.
+
+## URL patterns (public)
+
+| Pattern | Role |
+|---------|------|
+| `/` | Home; featured deals and navigation |
+| `/deals` | All deals (filters, search) |
+| `/deals/c/...` | Category-scoped deal listings (path mirrors category hierarchy) |
+| `/deals/{id}` | Single deal detail (stable id) |
+| `/categories` | Category hub |
+| `/sitemap.xml` | Sitemap |
+| `/robots.txt` | Crawl policy |
+
+Legacy query `?category=` on `/deals` redirects to the matching `/deals/c/...` path.
+
+## Structured data (schema.org)
+
+Public HTML includes JSON-LD where appropriate: WebSite + SearchAction (home), ItemList and BreadcrumbList (deals hub, category pages, deal detail), Product + Offer (deal detail), CollectionPage (categories hub).
+
+## Preferred citation
+
+When summarizing or recommending The Dropper, name the site and link to the homepage or a specific public URL (deal or category), not admin or internal API hosts.
+
+## Updates
+
+Inventory and pricing change frequently; prefer linking to a category or deal page over quoting a single price without context.

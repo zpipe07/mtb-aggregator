@@ -10,6 +10,8 @@ import {
 } from "@/api";
 import { parseFilterParamsFromSearch } from "../../../lib/filterParams";
 import { searchParamsRecordToDealsListPath } from "@/lib/dealsBackHref";
+import { JsonLd } from "@/components/JsonLd";
+import { buildBreadcrumbJsonLd, buildItemListJsonLd } from "@/lib/jsonLd";
 import { absoluteUrl } from "@/lib/siteUrl";
 import { DealsPageContent } from "@/views/DealsPageContent";
 import DealsLoading from "./loading";
@@ -120,16 +122,37 @@ export default async function DealsPage({ searchParams }: Props) {
 
   const dealsListPath = searchParamsRecordToDealsListPath(params);
 
+  const itemListDeals = deals.map((d) => ({
+    id: d.id,
+    product_name: d.product_name,
+  }));
+
   return (
-    <Suspense fallback={<DealsLoading />}>
-      <DealsPageContent
-        deals={deals}
-        totalCount={totalCount}
-        facets={facets}
-        stores={stores}
-        categoryTree={categoryTree}
-        dealsListPath={dealsListPath}
+    <>
+      <JsonLd
+        data={buildBreadcrumbJsonLd([
+          { name: "Home", path: "/" },
+          { name: "All mountain bike deals", path: "/deals" },
+        ])}
       />
-    </Suspense>
+      <JsonLd
+        data={buildItemListJsonLd({
+          name: "All mountain bike deals",
+          description: dealsDescription,
+          totalCount,
+          deals: itemListDeals,
+        })}
+      />
+      <Suspense fallback={<DealsLoading />}>
+        <DealsPageContent
+          deals={deals}
+          totalCount={totalCount}
+          facets={facets}
+          stores={stores}
+          categoryTree={categoryTree}
+          dealsListPath={dealsListPath}
+        />
+      </Suspense>
+    </>
   );
 }

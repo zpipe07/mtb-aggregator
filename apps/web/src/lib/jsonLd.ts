@@ -85,6 +85,22 @@ export function buildItemListJsonLd(opts: {
   };
 }
 
+/** Breadcrumb rich results (category + deal detail pages). */
+export function buildBreadcrumbJsonLd(
+  items: { name: string; path: string }[],
+): Record<string, unknown> {
+  return {
+    "@context": CTX,
+    "@type": "BreadcrumbList",
+    itemListElement: items.map((item, i) => ({
+      "@type": "ListItem",
+      position: i + 1,
+      name: item.name,
+      item: absoluteUrl(item.path),
+    })),
+  };
+}
+
 export type CollectionPageRootPart = {
   name: string;
   url: string;

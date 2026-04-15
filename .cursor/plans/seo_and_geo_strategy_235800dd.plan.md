@@ -303,31 +303,31 @@ export const CATEGORY_SEO: Record<
 
 ### Deal detail metadata (`apps/web/src/app/(public)/deals/[id]/page.tsx`)
 
-- Enrich `**generateMetadata` description** with **canonical category\*\* when resolvable (plan §2 suggested including category; current copy focuses on price/store/discount).
+- Enrich `**generateMetadata` description** with **canonical category when resolvable (plan §2 suggested including category; current copy focuses on price/store/discount).
 - Revisit **title** format if product SEO needs brand/category ordering tweaks.
 
 ### Structured data (`apps/web/src/lib/jsonLd.ts` and consumers)
 
-- Extend `**Product` JSON-LD\*\* (e.g. `category`, identifiers like `sku`/`mpn` if the API ever exposes them).
-- Consider `**BreadcrumbList`\*\* JSON-LD on category and/or deal pages (common for rich results; not in original plan).
-- `**ItemList` on category pages** caps at **12\*\* deals (`ITEM_LIST_MAX`) — confirm policy (raise cap, or document “sample of listing” intentionally).
+- Extend `**Product` JSON-LD (e.g. `category`, identifiers like `sku`/`mpn` if the API ever exposes them).
+- Consider `**BreadcrumbList` JSON-LD on category and/or deal pages (common for rich results; not in original plan).
+- `**ItemList` on category pages** caps at **12 deals (`ITEM_LIST_MAX`) — confirm policy (raise cap, or document “sample of listing” intentionally).
 
 ### Sitemap (`apps/web/src/app/sitemap.ts`)
 
-- `**lastModified`:** Currently effectively “build/runtime generation time,” not per-URL content change — improve if the API or DB can expose **real change signals\*\* (e.g. last listing update).
+- `**lastModified`:** Currently effectively “build/runtime generation time,” not per-URL content change — improve if the API or DB can expose **real change signals (e.g. last listing update).
 - **Scale:** At ~50k URLs or for clearer crawl hints, add a **sitemap index** and/or **split** static + deal sitemaps.
 - **Deal inclusion:** Policy is **paginated fetch with cap** (~48k deal URLs) — revisit **newest vs full inventory** as product needs change.
 
 ### Crawling, canonicals, redirects
 
-- Periodically verify **canonicals**: `/deals` static canonical for filtered `?` URLs; `**/deals/c/...`\*\* routes use route-level metadata (ensure no accidental duplicates).
+- Periodically verify **canonicals**: `/deals` static canonical for filtered `?` URLs; `**/deals/c/...` routes use route-level metadata (ensure no accidental duplicates).
 - **308 vs 301** for `?category=` → path: middleware uses **308** (permanent). Change only if you explicitly want **301** semantics everywhere.
 - If **faceted URL explosion** becomes an issue, revisit **robots / noindex** or canonical strategy for low-value filter combinations (not required at current scale).
 
 ### PostHog and analytics
 
 - **Validate funnels/dashboards** after category nav moved to `<Link>` (event order or timing may shift vs `router.replace`).
-- Update `**[posthog-setup-report.md](posthog-setup-report.md)`\*\* (if maintained) and `[apps/web/README.md](apps/web/README.md)` if event contracts or recommended dashboards change.
+- Update `**[posthog-setup-report.md](posthog-setup-report.md)` (if maintained) and `[apps/web/README.md](apps/web/README.md)` if event contracts or recommended dashboards change.
 
 ### Storybook and docs
 
@@ -342,4 +342,4 @@ export const CATEGORY_SEO: Record<
 
 ### Internationalization (future)
 
-- `**hreflang`\*\* and locale-specific metadata only if the site becomes multi-region/multi-language.
+- `**hreflang` and locale-specific metadata only if the site becomes multi-region/multi-language.
