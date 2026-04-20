@@ -93,7 +93,7 @@ Either would let us query GSC data (impressions, clicks, CTR, position, keyword 
 
 **2. PageSpeed Insights MCP** ([pagespeed-insights-mcp](https://ruslanlap.github.io/pagespeed-insights-mcp/))
 
-17 tools for performance analysis using Google's PageSpeed Insights API. Key tools: `analyze_page_speed`, `get_performance_summary`, `full_report`, `get_full_audit`, `get_visual_analysis`, `get_element_analysis`, `get_javascript_analysis`, `get_image_optimization_details`, `compare_pages`, `batch_analyze`, `crux_summary`. No API key required (uses the public PSI API). Can check CWV, SEO scores, and specific diagnostics (render-blocking resources, third-party impact, image optimization) for any live URL.
+17 tools for performance analysis using Google's PageSpeed Insights API. Key tools: `analyze_page_speed`, `get_performance_summary`, `full_report`, `get_full_audit`, `get_visual_analysis`, `get_element_analysis`, `get_javascript_analysis`, `get_image_optimization_details`, `compare_pages`, `batch_analyze`, `crux_summary`. The published npm package **`pagespeed-insights-mcp` requires `GOOGLE_API_KEY`** (PageSpeed Insights API enabled in Google Cloud; set the env var on the MCP server in Cursor—do not commit the key). Can check CWV, SEO scores, and diagnostics for any live URL.
 
 **3. SiteAudit MCP** ([siteaudit-mcp](https://pypi.org/project/siteaudit-mcp/))
 
