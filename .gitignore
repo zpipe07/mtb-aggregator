@@ -20,7 +20,6 @@ apps/api/api
 .vscode/
 *.swp
 *.swo
-.cursor/mcp.json
 
 # OS
 .DS_Store

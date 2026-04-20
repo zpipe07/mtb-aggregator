@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "google-search-console": {
+      "command": "npx",
+      "args": ["-y", "google-searchconsole-mcp"]
+    },
+    "pagespeed-insights": {
+      "command": "npx",
+      "args": ["-y", "pagespeed-insights-mcp"]
+    }
+  }
+}

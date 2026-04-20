@@ -41,22 +41,14 @@ React frontend for the MTB deal aggregator. Built with Next.js 15 (App Router), 
 
 GitHub Actions runs **Lighthouse CI** against `http://127.0.0.1:3000/` and `/deals` after a production build **when** repository **Actions → Variables** defines `API_URL` (same value the web build uses so pages can render with data). Config: [`lighthouserc.json`](lighthouserc.json). Reports are written under `apps/web/.lighthouseci/` (gitignored). Tune thresholds in `ci.assert.assertions` if the SEO score gate is too strict for your templates.
 
-**Optional MCP (local):** [`.cursor/mcp.json`](../../.cursor/mcp.json) can register `google-searchconsole-mcp` and `pagespeed-insights-mcp` for Search Console and PageSpeed Insights from the IDE. For Google Search Console, run `npx google-searchconsole-mcp`’s one-time auth (`gsc-mcp-auth`) per machine.
-
-**Bing:** Submit the same sitemap URL in [Bing Webmaster Tools](https://www.bing.com/webmasters) for Bing/Copilot coverage (manual one-time setup).
-
-- The **`security/detect-object-injection`** rule is noisy for safe dynamic record access in React/TS; it is left at **warn** so builds still succeed—review warnings in admin/data-heavy components when changing those patterns.
-
-## SEO monitoring (CI)
-
-GitHub Actions runs **Lighthouse CI** against `http://127.0.0.1:3000/` and `/deals` after a production build **when** repository **Actions → Variables** defines `API_URL` (same value the web build uses so pages can render with data). Config: [`lighthouserc.json`](lighthouserc.json). Reports are written under `apps/web/.lighthouseci/` (gitignored). Tune thresholds in `ci.assert.assertions` if the SEO score gate is too strict for your templates.
-
 **Optional MCP (local):** [`.cursor/mcp.json`](../../.cursor/mcp.json) can register `google-searchconsole-mcp` and `pagespeed-insights-mcp` for Search Console and PageSpeed Insights from the IDE.
 
 - **Google Search Console MCP** — Stop anything on port 3000, then run `npx --yes --package=google-searchconsole-mcp gsc-mcp-auth` once (tokens in `~/.gsc-mcp/tokens/`).
 - **PageSpeed Insights MCP** — The `pagespeed-insights-mcp` package requires **`GOOGLE_API_KEY`** at startup (`Environment validation failed` if unset). In [Google Cloud Console](https://console.cloud.google.com/apis/credentials), enable **PageSpeed Insights API**, create an **API key**, then in **Cursor → Settings → MCP** edit the `pagespeed-insights` server and set env **`GOOGLE_API_KEY`**. **Do not put the key in [`.cursor/mcp.json`](../../.cursor/mcp.json)** (committed config); use Cursor’s MCP env UI or a local-only override so the key never lands in git. Restrict the key to that API in Google Cloud when possible. The repo sets **`NODE_ENV=production`** for this server so it does not load the `pino-pretty` transport (which is missing under `npx` and causes `unable to determine transport target for "pino-pretty"`). If you override env in Cursor, keep **`NODE_ENV=production`** (or install `pino-pretty` globally—prefer `NODE_ENV`).
 
 **Bing:** Submit the same sitemap URL in [Bing Webmaster Tools](https://www.bing.com/webmasters) for Bing/Copilot coverage (manual one-time setup).
+
+- The **`security/detect-object-injection`** rule is noisy for safe dynamic record access in React/TS; it is left at **warn** so builds still succeed—review warnings in admin/data-heavy components when changing those patterns.
 
 ## Development
 
@@ -68,7 +60,39 @@ pnpm run build        # Production build
 
 The API must be running for data. Configure `NEXT_PUBLIC_API_URL` (client) or `API_URL` (server) or use the default proxy (`/api` → `http://localhost:8080`).
 
-**Canonical site URL (SEO):** Set `NEXT_PUBLIC_SITE_URL` to your public origin (e.g. `https://example.com`) so `metadataBase`, Open Graph `url`, and canonical links resolve correctly. On Vercel, `VERCEL_URL` is used when unset. Local dev defaults to `http://localhost:3000` (set `NEXT_PUBLIC_SITE_URL` if you use another port). See [`src/lib/siteUrl.ts`](src/lib/siteUrl.ts).
+**Canonical site URL (SEO):** Set `NEXT_PUBLIC_SITE_URL` to your public origin (e.g. `https://thedropper.shop`) so `metadataBase`, Open Graph `url`, canonical links, [`sitemap.ts`](src/app/sitemap.ts), and [`robots.ts`](src/app/robots.ts) resolve correctly.
+
+- **Vercel Production:** `NEXT_PUBLIC_SITE_URL` is **required** — the app throws if it is unset (see [`src/lib/siteUrl.ts`](src/lib/siteUrl.ts)). Do **not** rely on `VERCEL_URL` in production; it is the deployment hostname and would poison canonicals and sitemap URLs.
+- **Vercel Preview:** When unset, the origin falls back to `https://${VERCEL_URL}` so preview deployments still work.
+- **Local dev:** Defaults to `http://localhost:3000` (set `NEXT_PUBLIC_SITE_URL` if you use another port). GitHub Actions sets `NEXT_PUBLIC_SITE_URL` for CI builds — see [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml).
+
+### Production checklist (apex canonical: `https://thedropper.shop`)
+
+Do these in order after changing DNS/domains or fixing indexing issues:
+
+1. **Vercel — Environment variables**  
+   **Settings → Environment Variables:** `NEXT_PUBLIC_SITE_URL` = `https://thedropper.shop` for **Production** only (leave Preview unset so previews use `VERCEL_URL`). Redeploy production.
+
+2. **Vercel — Domains**  
+   **Settings → Domains:** `thedropper.shop` = **primary** (not “redirect to”). `www.thedropper.shop` = **Redirect** to `https://thedropper.shop` with status **308**.
+
+3. **Porkbun — DNS** (or match whatever Vercel shows under Domains → your hostname → **DNS records**)
+
+   - **Apex `@`:** **ALIAS** to `cname.vercel-dns.com` (preferred at Porkbun), or **A** to `76.76.21.21`.
+   - **`www`:** **CNAME** to `cname.vercel-dns.com`.
+   - Remove conflicting legacy **A**/**AAAA**/**CNAME** on `@` or `www` (parking, old host). Keep MX/TXT as needed.
+
+4. **Google Search Console**  
+   **Sitemaps:** remove `https://www.thedropper.shop/sitemap.xml` if present; add `https://thedropper.shop/sitemap.xml`. Use **Indexing → Pages → Validate fix** on affected buckets after the redeploy.
+
+5. **Verify** (expect 200/308 and apex in HTML — not `*.vercel.app`):
+
+   ```bash
+   curl -sI https://www.thedropper.shop/ | head -n 5
+   curl -sI https://thedropper.shop/deals | head -n 5
+   curl -s https://thedropper.shop/ | grep -E 'rel="canonical"|property="og:url"'
+   curl -s https://thedropper.shop/robots.txt
+   ```
 
 ## Custom domain (Vercel + DNS at Porkbun or any registrar)
 
