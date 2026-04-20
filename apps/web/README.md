@@ -36,6 +36,15 @@ React frontend for the MTB deal aggregator. Built with Next.js 15 (App Router), 
 - **`pnpm run lint`** — `next lint` using [`eslint.config.mjs`](eslint.config.mjs): extends `next/core-web-vitals`, `next/typescript`, and [`eslint-plugin-security`](https://github.com/eslint-community/eslint-plugin-security) (`security/recommended`). CI runs this on every PR.
 - **`pnpm exec tsc --noEmit`** — TypeScript check without emit (also in CI).
 - **`pnpm run seo:smoke`** — Fast assertions on JSON-LD builders ([`scripts/seo-smoke.ts`](scripts/seo-smoke.ts)); runs in CI (shift-left SEO checks without a live server).
+
+## SEO monitoring (CI)
+
+GitHub Actions runs **Lighthouse CI** against `http://127.0.0.1:3000/` and `/deals` after a production build **when** repository **Actions → Variables** defines `API_URL` (same value the web build uses so pages can render with data). Config: [`lighthouserc.json`](lighthouserc.json). Reports are written under `apps/web/.lighthouseci/` (gitignored). Tune thresholds in `ci.assert.assertions` if the SEO score gate is too strict for your templates.
+
+**Optional MCP (local):** [`.cursor/mcp.json`](../../.cursor/mcp.json) can register `google-searchconsole-mcp` and `pagespeed-insights-mcp` for Search Console and PageSpeed Insights from the IDE. For Google Search Console, run `npx google-searchconsole-mcp`’s one-time auth (`gsc-mcp-auth`) per machine.
+
+**Bing:** Submit the same sitemap URL in [Bing Webmaster Tools](https://www.bing.com/webmasters) for Bing/Copilot coverage (manual one-time setup).
+
 - The **`security/detect-object-injection`** rule is noisy for safe dynamic record access in React/TS; it is left at **warn** so builds still succeed—review warnings in admin/data-heavy components when changing those patterns.
 
 ## SEO monitoring (CI)
@@ -87,12 +96,12 @@ Use this when the site should load at your own domain (e.g. `https://example.com
 
 When `NEXT_PUBLIC_SENTRY_DSN` is set, the app loads Sentry on the client, server, and edge ([`@sentry/nextjs`](https://docs.sentry.io/platforms/javascript/guides/nextjs/)). Files: `src/instrumentation.ts`, `src/instrumentation-client.ts`, `src/sentry.server.config.ts`, `src/sentry.edge.config.ts`, `src/app/global-error.tsx`.
 
-| Variable | Purpose |
-|----------|---------|
-| `NEXT_PUBLIC_SENTRY_DSN` | Required to enable Sentry (same DSN in Sentry’s Next.js wizard) |
-| `SENTRY_ENVIRONMENT` | e.g. `production`; client also gets `NEXT_PUBLIC_SENTRY_ENVIRONMENT` or mapped `VERCEL_ENV` via `next.config.ts` |
-| `SENTRY_RELEASE` / `VERCEL_GIT_COMMIT_SHA` | Release grouping; client uses `NEXT_PUBLIC_SENTRY_RELEASE` populated at build from those |
-| `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT` | Optional; enable source map upload on `next build` (e.g. Vercel env or CI) |
+| Variable                                            | Purpose                                                                                                          |
+| --------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `NEXT_PUBLIC_SENTRY_DSN`                            | Required to enable Sentry (same DSN in Sentry’s Next.js wizard)                                                  |
+| `SENTRY_ENVIRONMENT`                                | e.g. `production`; client also gets `NEXT_PUBLIC_SENTRY_ENVIRONMENT` or mapped `VERCEL_ENV` via `next.config.ts` |
+| `SENTRY_RELEASE` / `VERCEL_GIT_COMMIT_SHA`          | Release grouping; client uses `NEXT_PUBLIC_SENTRY_RELEASE` populated at build from those                         |
+| `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT` | Optional; enable source map upload on `next build` (e.g. Vercel env or CI)                                       |
 
 Without `SENTRY_AUTH_TOKEN`, builds skip source map upload (`sourcemaps.disable` in `next.config.ts`); errors still report, stacks are less readable.
 
