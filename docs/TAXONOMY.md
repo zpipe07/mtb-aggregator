@@ -21,15 +21,15 @@ How MTB categories are structured and mapped from store-specific paths to a cano
 ### 3. LLM-Driven Classification
 
 - **Profiles**: `llm_prompt_profiles` define extraction schema (label, sort_order, filterable fields). Use `multi_enum` in `llm_extraction_field_defs` / profile fields when a spec should store multiple values (JSON array in `metadata.llm_specs`); filters still use a single selected value and match if it equals the scalar or appears in the array.
-- **Classifier**: `llm_category_classifier` — optional LLM-based classification when no mapping exists
+- **Classifier**: `llm_category_classifier` — optional LLM that picks a canonical path from the **structured `categories` tree** (not limited to “when no mapping exists”; it runs after enrichment and can override path-derived `canonical_category` when confidence ≥ `confidence_threshold`).
 - **Spec filters**: LLM-driven per category; legacy `spec_filter_config` is deprecated
 
 ## Data Flow
 
-1. **Enrichment**: Scraper returns `category_path` (breadcrumb array) from PDP
-2. **Mapping lookup**: Taxonomy finds `category_id` via `category_mappings`
-3. **Fallback**: If no mapping, LLM classifier can suggest a category
-4. **Listing**: `store_listings.category_id` links to canonical category
+1. **Enrichment**: Scraper returns `category_path` (breadcrumb array) from PDP.
+2. **Path-based taxonomy**: `taxonomy.Map` derives a candidate `canonical_category` and `category_id` from mappings — **unless** `metadata.llm_category` already records a confident prior classification (`confidence` ≥ threshold from `LLM_CATEGORY_PRESERVE_THRESHOLD` or the classifier row, default `0.5`), in which case only `category_path` is refreshed and LLM-owned `canonical_category` / `category_id` are preserved until the classifier runs again successfully.
+3. **LLM classifier** (if enabled): Overwrites `canonical_category` / `category_id` when output confidence ≥ threshold; otherwise stores audit metadata only.
+4. **Listing**: `store_listings.category_id` links to the canonical category row.
 
 ## Key Files
 
