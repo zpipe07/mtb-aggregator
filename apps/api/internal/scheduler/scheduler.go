@@ -50,6 +50,52 @@ func getScrapeJobTimeout() time.Duration {
 	return 20 * time.Minute
 }
 
+const maxLLMErrorSentryPerJob = 5
+
+// enrichLLMJobState tracks quota exhaustion and rate-limits Sentry noise for one enrichment job run.
+type enrichLLMJobState struct {
+	quotaHalted      bool
+	quotaErrRecorded bool
+	quotaSentrySent  bool
+	otherSentryN     int
+}
+
+func (s *Scheduler) handleLLMEnrichError(err error, state *enrichLLMJobState, errStrs *[]string, listingID int, phase string) {
+	if err == nil {
+		return
+	}
+	tags := map[string]string{
+		"component":  "scheduler",
+		"job":        "enrich",
+		"phase":      phase,
+		"listing_id": strconv.Itoa(listingID),
+	}
+	if errors.Is(err, llm.ErrQuotaExhausted) {
+		tags["llm_error"] = "quota_exhausted"
+		if state != nil {
+			state.quotaHalted = true
+			if errStrs != nil && !state.quotaErrRecorded {
+				*errStrs = append(*errStrs, "OpenAI quota exhausted; LLM classify/extract skipped for remainder of job")
+				state.quotaErrRecorded = true
+			}
+			if !state.quotaSentrySent {
+				sentryutil.CaptureError(err, tags)
+				state.quotaSentrySent = true
+			}
+		} else {
+			sentryutil.CaptureError(err, tags)
+		}
+		return
+	}
+	tags["llm_error"] = "other"
+	if state == nil || state.otherSentryN < maxLLMErrorSentryPerJob {
+		sentryutil.CaptureError(err, tags)
+		if state != nil {
+			state.otherSentryN++
+		}
+	}
+}
+
 type Scheduler struct {
 	cron    *cron.Cron
 	db      *db.DB
@@ -354,6 +400,7 @@ func (s *Scheduler) RunEnrichmentJob(force bool, triggeredBy string) {
 
 	log.Printf("[enrichment] enriching %d listings", len(listings))
 
+	var llmState enrichLLMJobState
 	processed := 0
 	for _, l := range listings {
 		if ctx.Err() != nil {
@@ -389,8 +436,8 @@ func (s *Scheduler) RunEnrichmentJob(force bool, triggeredBy string) {
 		if len(result.CategoryPath) > 0 {
 			log.Printf("[enrichment] listing %d: category_path=%v", l.ID, result.CategoryPath)
 		}
-		s.runLLMCategoryClassification(ctx, l.ID)
-		s.runLLMExtractionIfApplicable(ctx, l.ID)
+		s.runLLMCategoryClassification(ctx, l.ID, &llmState, &errStrs)
+		s.runLLMExtractionIfApplicable(ctx, l.ID, &llmState, &errStrs)
 	}
 
 	status := "completed"
@@ -403,8 +450,11 @@ func (s *Scheduler) RunEnrichmentJob(force bool, triggeredBy string) {
 
 // runLLMCategoryClassification runs LLM category classification to refine canonical_category.
 // Runs before runLLMExtractionIfApplicable so spec extraction uses the corrected category.
-func (s *Scheduler) runLLMCategoryClassification(ctx context.Context, listingID int) {
+func (s *Scheduler) runLLMCategoryClassification(ctx context.Context, listingID int, state *enrichLLMJobState, errStrs *[]string) {
 	if s.llm == nil {
+		return
+	}
+	if state != nil && state.quotaHalted {
 		return
 	}
 	cfg, err := s.db.GetCategoryClassifier(ctx)
@@ -448,6 +498,7 @@ func (s *Scheduler) runLLMCategoryClassification(ctx context.Context, listingID 
 	result, err := s.llm.Classify(ctx, config, input)
 	if err != nil {
 		log.Printf("[enrichment] listing %d: LLM classify failed: %v", listingID, err)
+		s.handleLLMEnrichError(err, state, errStrs, listingID, "classify")
 		return
 	}
 	if result == nil {
@@ -456,7 +507,7 @@ func (s *Scheduler) runLLMCategoryClassification(ctx context.Context, listingID 
 	llmCategory := map[string]interface{}{
 		"canonical_category": result.CanonicalCategory,
 		"confidence":         result.Confidence,
-		"reasoning":           result.Reasoning,
+		"reasoning":          result.Reasoning,
 	}
 	if result.Confidence >= config.ConfidenceThreshold {
 		if err := s.db.UpdateListingCanonicalCategory(ctx, listingID, result.CanonicalCategory, llmCategory); err != nil {
@@ -473,8 +524,11 @@ func (s *Scheduler) runLLMCategoryClassification(ctx context.Context, listingID 
 
 // runLLMExtractionIfApplicable runs LLM spec extraction for a listing if a matching profile exists.
 // Non-fatal: logs errors but does not fail the enrichment job.
-func (s *Scheduler) runLLMExtractionIfApplicable(ctx context.Context, listingID int) {
+func (s *Scheduler) runLLMExtractionIfApplicable(ctx context.Context, listingID int, state *enrichLLMJobState, errStrs *[]string) {
 	if s.llm == nil {
+		return
+	}
+	if state != nil && state.quotaHalted {
 		return
 	}
 	listing, err := s.db.GetListingForLLM(ctx, listingID)
@@ -516,6 +570,7 @@ func (s *Scheduler) runLLMExtractionIfApplicable(ctx context.Context, listingID 
 	result, err := s.llm.Extract(ctx, llmProfile, input)
 	if err != nil {
 		log.Printf("[enrichment] listing %d: LLM extract failed: %v", listingID, err)
+		s.handleLLMEnrichError(err, state, errStrs, listingID, "extract")
 		return
 	}
 	if result == nil {
@@ -576,6 +631,7 @@ func (s *Scheduler) RunEnrichmentJobForStore(storeType string, force bool, trigg
 	}()
 
 	batchSize := getEnrichBatchSize()
+	var llmState enrichLLMJobState
 	for {
 		if ctx.Err() != nil {
 			log.Printf("[enrichment] %s: job timeout, saving partial progress: %d processed, %d enriched", storeType, totalProcessed, totalSuccess)
@@ -635,8 +691,8 @@ func (s *Scheduler) RunEnrichmentJobForStore(storeType string, force bool, trigg
 			if len(result.CategoryPath) > 0 {
 				log.Printf("[enrichment] listing %d: category_path=%v", l.ID, result.CategoryPath)
 			}
-			s.runLLMCategoryClassification(ctx, l.ID)
-			s.runLLMExtractionIfApplicable(ctx, l.ID)
+			s.runLLMCategoryClassification(ctx, l.ID, &llmState, &errStrs)
+			s.runLLMExtractionIfApplicable(ctx, l.ID, &llmState, &errStrs)
 		}
 		totalProcessed += len(listings)
 		log.Printf("[enrichment] %s: batch done %d/%d", storeType, successCount, len(listings))

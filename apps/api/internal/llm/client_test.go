@@ -3,6 +3,7 @@ package llm
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"testing"
 )
 
@@ -43,6 +44,32 @@ func TestBuildOpenAISchema(t *testing.T) {
 	enum, ok := wheelProp["enum"].([]interface{})
 	if !ok || len(enum) != 5 {
 		t.Errorf("wheel_size enum should have 5 values (4 + null), got %v", enum)
+	}
+}
+
+func TestParseOpenAIError_insufficientQuota(t *testing.T) {
+	t.Parallel()
+	body := []byte(`{"error":{"message":"You exceeded your current quota","type":"insufficient_quota","code":"insufficient_quota"}}`)
+	err := parseOpenAIError(429, body)
+	if !errors.Is(err, ErrQuotaExhausted) {
+		t.Fatalf("expected ErrQuotaExhausted, got %v", err)
+	}
+}
+
+func TestParseOpenAIError_rateLimit429(t *testing.T) {
+	t.Parallel()
+	body := []byte(`{"error":{"message":"Rate limit","type":"rate_limit_exceeded","code":"rate_limit_exceeded"}}`)
+	err := parseOpenAIError(429, body)
+	if !errors.Is(err, ErrRateLimited) {
+		t.Fatalf("expected ErrRateLimited, got %v", err)
+	}
+}
+
+func TestParseOpenAIError_5xx(t *testing.T) {
+	t.Parallel()
+	err := parseOpenAIError(503, []byte(`{"error":{"message":"overload"}}`))
+	if err == nil || errors.Is(err, ErrQuotaExhausted) || errors.Is(err, ErrRateLimited) {
+		t.Fatalf("expected generic 503 error, got %v", err)
 	}
 }
 

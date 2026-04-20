@@ -4,16 +4,25 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
+	"math/rand/v2"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 )
 
 const defaultModel = "gpt-4o-mini"
 const openAIBaseURL = "https://api.openai.com/v1"
+
+// ErrQuotaExhausted is returned when OpenAI responds with insufficient_quota (billing), not a transient rate limit.
+var ErrQuotaExhausted = errors.New("openai quota exhausted")
+
+// ErrRateLimited is returned for HTTP 429 when the error is not insufficient_quota (retry with backoff).
+var ErrRateLimited = errors.New("openai rate limited")
 
 // Client is a lightweight OpenAI client for structured extraction.
 // When API key is not set, Extract returns (nil, nil) (graceful degradation).
@@ -46,6 +55,144 @@ func New(apiKey, model string) *Client {
 		baseURL:   baseURL,
 		httpClient: &http.Client{Timeout: 60 * time.Second},
 	}
+}
+
+func getOpenAIMaxRetries() int {
+	if s := os.Getenv("OPENAI_MAX_RETRIES"); s != "" {
+		if n, err := strconv.Atoi(s); err == nil && n > 0 {
+			return n
+		}
+	}
+	return 3
+}
+
+func getOpenAIRetryBaseMS() int {
+	if s := os.Getenv("OPENAI_RETRY_BASE_MS"); s != "" {
+		if n, err := strconv.Atoi(s); err == nil && n > 0 {
+			return n
+		}
+	}
+	return 500
+}
+
+type openAIAPIErrorBody struct {
+	Error struct {
+		Message string `json:"message"`
+		Type    string `json:"type"`
+		Code    string `json:"code"`
+	} `json:"error"`
+}
+
+// parseOpenAIError maps HTTP status and JSON body to typed errors for quota vs rate limit.
+func parseOpenAIError(statusCode int, body []byte) error {
+	var ob openAIAPIErrorBody
+	_ = json.Unmarshal(body, &ob)
+	code := ob.Error.Code
+	typ := ob.Error.Type
+	if code == "insufficient_quota" || typ == "insufficient_quota" {
+		return fmt.Errorf("%w: %s", ErrQuotaExhausted, string(body))
+	}
+	if statusCode == http.StatusTooManyRequests {
+		return fmt.Errorf("%w: %s", ErrRateLimited, string(body))
+	}
+	if statusCode >= 500 && statusCode <= 599 {
+		return fmt.Errorf("openai api %d: %s", statusCode, string(body))
+	}
+	return fmt.Errorf("openai api %d: %s", statusCode, string(body))
+}
+
+func isRetriableOpenAIError(statusCode int, err error) bool {
+	if errors.Is(err, ErrRateLimited) {
+		return true
+	}
+	return statusCode >= 500 && statusCode <= 599
+}
+
+func parseRetryAfterSeconds(s string) (time.Duration, bool) {
+	sec, err := strconv.Atoi(strings.TrimSpace(s))
+	if err != nil || sec < 0 {
+		return 0, false
+	}
+	return time.Duration(sec) * time.Second, true
+}
+
+func sleepOpenAIRetry(ctx context.Context, attempt int, baseMS int, retryAfter *time.Duration) {
+	var d time.Duration
+	if retryAfter != nil && *retryAfter > 0 {
+		d = *retryAfter
+	} else {
+		exp := baseMS * (1 << attempt)
+		if exp > 30000 {
+			exp = 30000
+		}
+		d = time.Duration(exp) * time.Millisecond
+		d += time.Duration(rand.IntN(baseMS)) * time.Millisecond
+	}
+	t := time.NewTimer(d)
+	defer t.Stop()
+	select {
+	case <-ctx.Done():
+	case <-t.C:
+	}
+}
+
+// postChatCompletions POSTs to /chat/completions with retries for transient 429/5xx. Does not retry ErrQuotaExhausted.
+func (c *Client) postChatCompletions(ctx context.Context, bodyBytes []byte) ([]byte, error) {
+	maxRetries := getOpenAIMaxRetries()
+	baseMS := getOpenAIRetryBaseMS()
+	var lastErr error
+	for attempt := 0; attempt < maxRetries; attempt++ {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+		req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+"/chat/completions", bytes.NewReader(bodyBytes))
+		if err != nil {
+			return nil, fmt.Errorf("create request: %w", err)
+		}
+		req.Header.Set("Authorization", "Bearer "+c.apiKey)
+		req.Header.Set("Content-Type", "application/json")
+
+		resp, err := c.httpClient.Do(req)
+		if err != nil {
+			lastErr = err
+			if attempt < maxRetries-1 {
+				sleepOpenAIRetry(ctx, attempt, baseMS, nil)
+				continue
+			}
+			return nil, fmt.Errorf("request: %w", err)
+		}
+
+		body, _ := io.ReadAll(resp.Body)
+		resp.Body.Close()
+
+		if resp.StatusCode == http.StatusOK {
+			return body, nil
+		}
+
+		apiErr := parseOpenAIError(resp.StatusCode, body)
+		lastErr = apiErr
+
+		if errors.Is(apiErr, ErrQuotaExhausted) {
+			return nil, apiErr
+		}
+
+		var retryAfter *time.Duration
+		if ra := resp.Header.Get("Retry-After"); ra != "" {
+			if d, ok := parseRetryAfterSeconds(ra); ok {
+				retryAfter = &d
+			}
+		}
+
+		if attempt < maxRetries-1 && isRetriableOpenAIError(resp.StatusCode, apiErr) {
+			sleepOpenAIRetry(ctx, attempt, baseMS, retryAfter)
+			continue
+		}
+		return nil, apiErr
+	}
+	if lastErr != nil {
+		return nil, lastErr
+	}
+	return nil, fmt.Errorf("openai: exhausted retries")
 }
 
 // Profile defines the extraction task: system prompt and schema for outputs.
@@ -137,26 +284,13 @@ func (c *Client) Extract(ctx context.Context, profile Profile, input ExtractInpu
 		return nil, fmt.Errorf("marshal request: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+"/chat/completions", bytes.NewReader(bodyBytes))
+	respBody, err := c.postChatCompletions(ctx, bodyBytes)
 	if err != nil {
-		return nil, fmt.Errorf("create request: %w", err)
-	}
-	req.Header.Set("Authorization", "Bearer "+c.apiKey)
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("request: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("openai api %d: %s", resp.StatusCode, string(body))
+		return nil, err
 	}
 
 	var apiResp openAIChatResponse
-	if err := json.NewDecoder(resp.Body).Decode(&apiResp); err != nil {
+	if err := json.Unmarshal(respBody, &apiResp); err != nil {
 		return nil, fmt.Errorf("decode response: %w", err)
 	}
 	if len(apiResp.Choices) == 0 {
@@ -210,26 +344,13 @@ func (c *Client) Classify(ctx context.Context, config ClassifyConfig, input Clas
 		return nil, fmt.Errorf("marshal request: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+"/chat/completions", bytes.NewReader(bodyBytes))
+	respBody, err := c.postChatCompletions(ctx, bodyBytes)
 	if err != nil {
-		return nil, fmt.Errorf("create request: %w", err)
-	}
-	req.Header.Set("Authorization", "Bearer "+c.apiKey)
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("request: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("openai api %d: %s", resp.StatusCode, string(body))
+		return nil, err
 	}
 
 	var apiResp openAIChatResponse
-	if err := json.NewDecoder(resp.Body).Decode(&apiResp); err != nil {
+	if err := json.Unmarshal(respBody, &apiResp); err != nil {
 		return nil, fmt.Errorf("decode response: %w", err)
 	}
 	if len(apiResp.Choices) == 0 {

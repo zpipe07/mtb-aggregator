@@ -5,7 +5,9 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"os"
 	"reflect"
+	"strconv"
 	"strings"
 	"time"
 
@@ -1323,6 +1325,56 @@ func (db *DB) GetListingsNeedingEnrichmentForStore(ctx context.Context, storeTyp
 	return listings, rows.Err()
 }
 
+// DefaultLLMCategoryPreserveThreshold is used when LLM_CATEGORY_PRESERVE_THRESHOLD is unset and
+// no classifier confidence_threshold is available. See UpdateListingEnrichment.
+const DefaultLLMCategoryPreserveThreshold = 0.5
+
+// llmCategoryFromMetadata reads metadata.llm_category for preservation checks (before enrichment merge).
+func llmCategoryFromMetadata(meta []byte) (canonical []string, confidence float64, ok bool) {
+	var root map[string]interface{}
+	if err := json.Unmarshal(meta, &root); err != nil {
+		return nil, 0, false
+	}
+	lm, _ := root["llm_category"].(map[string]interface{})
+	if lm == nil {
+		return nil, 0, false
+	}
+	switch c := lm["confidence"].(type) {
+	case float64:
+		confidence = c
+	case json.Number:
+		f, _ := c.Float64()
+		confidence = f
+	}
+	switch cc := lm["canonical_category"].(type) {
+	case []interface{}:
+		for _, v := range cc {
+			if s, ok2 := v.(string); ok2 && s != "" {
+				canonical = append(canonical, s)
+			}
+		}
+	case string:
+		if cc != "" {
+			canonical = []string{cc}
+		}
+	}
+	ok = len(canonical) > 0
+	return canonical, confidence, ok
+}
+
+// resolveLLMCategoryPreserveThreshold returns env override, else classifier threshold if > 0, else default.
+func resolveLLMCategoryPreserveThreshold(envOverride string, cfg *CategoryClassifierConfig) float64 {
+	if envOverride != "" {
+		if v, err := strconv.ParseFloat(envOverride, 64); err == nil && v >= 0 && v <= 1 {
+			return v
+		}
+	}
+	if cfg != nil && cfg.ConfidenceThreshold > 0 {
+		return cfg.ConfidenceThreshold
+	}
+	return DefaultLLMCategoryPreserveThreshold
+}
+
 func (db *DB) UpdateListingEnrichment(ctx context.Context, id int, categoryPath []string, rawSpecs map[string]string, unavailable bool, description *string) error {
 	if unavailable {
 		_, err := db.pool.Exec(ctx, `
@@ -1348,8 +1400,23 @@ func (db *DB) UpdateListingEnrichment(ctx context.Context, id int, categoryPath 
 		mergedMeta = metadata.MergeDescription(mergedMeta, *description)
 	}
 
-	// If we got a non-empty categoryPath, update category_path, canonical_category, and category_id; otherwise leave them unchanged.
+	classifierCfg, _ := db.GetCategoryClassifier(ctx)
+	threshold := resolveLLMCategoryPreserveThreshold(os.Getenv("LLM_CATEGORY_PRESERVE_THRESHOLD"), classifierCfg)
+	_, conf, hasLLM := llmCategoryFromMetadata(existingMeta)
+	preserveLLMCategory := hasLLM && conf >= threshold
+
+	// If we got a non-empty categoryPath, update category_path and usually canonical_category/category_id from taxonomy.Map.
+	// When metadata already has a confident LLM category, only refresh category_path + metadata so we do not overwrite
+	// LLM-defined canonical_category/category_id (e.g. when the classifier fails with 429 afterward).
 	if len(categoryPath) > 0 {
+		if preserveLLMCategory {
+			_, err := db.pool.Exec(ctx, `
+				UPDATE store_listings
+				SET category_path = $1, metadata = $2, last_enriched_at = NOW()
+				WHERE id = $3
+			`, pq.Array(categoryPath), mergedMeta, id)
+			return err
+		}
 		canonicalCat := taxonomy.Map(categoryPath)
 		var categoryID interface{}
 		if len(canonicalCat) > 0 {
