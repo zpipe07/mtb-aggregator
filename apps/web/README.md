@@ -44,7 +44,19 @@ GitHub Actions runs **Lighthouse CI** against `http://127.0.0.1:3000/` and `/dea
 **Optional MCP (local):** [`.cursor/mcp.json`](../../.cursor/mcp.json) can register `google-searchconsole-mcp` and `pagespeed-insights-mcp` for Search Console and PageSpeed Insights from the IDE. For Google Search Console, run `npx google-searchconsole-mcp`’s one-time auth (`gsc-mcp-auth`) per machine.
 
 **Bing:** Submit the same sitemap URL in [Bing Webmaster Tools](https://www.bing.com/webmasters) for Bing/Copilot coverage (manual one-time setup).
+
 - The **`security/detect-object-injection`** rule is noisy for safe dynamic record access in React/TS; it is left at **warn** so builds still succeed—review warnings in admin/data-heavy components when changing those patterns.
+
+## SEO monitoring (CI)
+
+GitHub Actions runs **Lighthouse CI** against `http://127.0.0.1:3000/` and `/deals` after a production build **when** repository **Actions → Variables** defines `API_URL` (same value the web build uses so pages can render with data). Config: [`lighthouserc.json`](lighthouserc.json). Reports are written under `apps/web/.lighthouseci/` (gitignored). Tune thresholds in `ci.assert.assertions` if the SEO score gate is too strict for your templates.
+
+**Optional MCP (local):** [`.cursor/mcp.json`](../../.cursor/mcp.json) can register `google-searchconsole-mcp` and `pagespeed-insights-mcp` for Search Console and PageSpeed Insights from the IDE.
+
+- **Google Search Console MCP** — Stop anything on port 3000, then run `npx --yes --package=google-searchconsole-mcp gsc-mcp-auth` once (tokens in `~/.gsc-mcp/tokens/`).
+- **PageSpeed Insights MCP** — The `pagespeed-insights-mcp` package requires **`GOOGLE_API_KEY`** at startup (`Environment validation failed` if unset). In [Google Cloud Console](https://console.cloud.google.com/apis/credentials), enable **PageSpeed Insights API**, create an **API key**, then in **Cursor → Settings → MCP** edit the `pagespeed-insights` server and set env **`GOOGLE_API_KEY`**. **Do not put the key in [`.cursor/mcp.json`](../../.cursor/mcp.json)** (committed config); use Cursor’s MCP env UI or a local-only override so the key never lands in git. Restrict the key to that API in Google Cloud when possible. The repo sets **`NODE_ENV=production`** for this server so it does not load the `pino-pretty` transport (which is missing under `npx` and causes `unable to determine transport target for "pino-pretty"`). If you override env in Cursor, keep **`NODE_ENV=production`** (or install `pino-pretty` globally—prefer `NODE_ENV`).
+
+**Bing:** Submit the same sitemap URL in [Bing Webmaster Tools](https://www.bing.com/webmasters) for Bing/Copilot coverage (manual one-time setup).
 
 ## Development
 
@@ -84,12 +96,12 @@ Use this when the site should load at your own domain (e.g. `https://example.com
 
 When `NEXT_PUBLIC_SENTRY_DSN` is set, the app loads Sentry on the client, server, and edge ([`@sentry/nextjs`](https://docs.sentry.io/platforms/javascript/guides/nextjs/)). Files: `src/instrumentation.ts`, `src/instrumentation-client.ts`, `src/sentry.server.config.ts`, `src/sentry.edge.config.ts`, `src/app/global-error.tsx`.
 
-| Variable | Purpose |
-|----------|---------|
-| `NEXT_PUBLIC_SENTRY_DSN` | Required to enable Sentry (same DSN in Sentry’s Next.js wizard) |
-| `SENTRY_ENVIRONMENT` | e.g. `production`; client also gets `NEXT_PUBLIC_SENTRY_ENVIRONMENT` or mapped `VERCEL_ENV` via `next.config.ts` |
-| `SENTRY_RELEASE` / `VERCEL_GIT_COMMIT_SHA` | Release grouping; client uses `NEXT_PUBLIC_SENTRY_RELEASE` populated at build from those |
-| `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT` | Optional; enable source map upload on `next build` (e.g. Vercel env or CI) |
+| Variable                                            | Purpose                                                                                                          |
+| --------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `NEXT_PUBLIC_SENTRY_DSN`                            | Required to enable Sentry (same DSN in Sentry’s Next.js wizard)                                                  |
+| `SENTRY_ENVIRONMENT`                                | e.g. `production`; client also gets `NEXT_PUBLIC_SENTRY_ENVIRONMENT` or mapped `VERCEL_ENV` via `next.config.ts` |
+| `SENTRY_RELEASE` / `VERCEL_GIT_COMMIT_SHA`          | Release grouping; client uses `NEXT_PUBLIC_SENTRY_RELEASE` populated at build from those                         |
+| `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT` | Optional; enable source map upload on `next build` (e.g. Vercel env or CI)                                       |
 
 Without `SENTRY_AUTH_TOKEN`, builds skip source map upload (`sourcemaps.disable` in `next.config.ts`); errors still report, stacks are less readable.
 
