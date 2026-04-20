@@ -1,9 +1,11 @@
 /**
  * Canonical site origin for metadata (`metadataBase`, Open Graph, canonical URLs).
  *
- * - Production: set `NEXT_PUBLIC_SITE_URL` (e.g. `https://example.com`).
- * - Vercel preview/production: falls back to `VERCEL_URL` with `https`.
- * - Local dev: `http://localhost:3000` (override with `NEXT_PUBLIC_SITE_URL` if your dev port differs).
+ * - **Production (Vercel):** `NEXT_PUBLIC_SITE_URL` must be set (e.g. `https://thedropper.shop`). We intentionally
+ *   do not fall back to `VERCEL_URL` in production — that value is the deployment hostname and poisons canonicals
+ *   and sitemap `<loc>` URLs if unset.
+ * - **Preview (Vercel):** when `NEXT_PUBLIC_SITE_URL` is unset, falls back to `https://${VERCEL_URL}`.
+ * - **Local dev:** `http://localhost:3000` when unset (override with `NEXT_PUBLIC_SITE_URL` if your port differs).
  */
 export function getSiteUrl(): URL {
   const explicit = process.env.NEXT_PUBLIC_SITE_URL?.trim();
@@ -14,6 +16,12 @@ export function getSiteUrl(): URL {
     } catch {
       // fall through
     }
+  }
+  const vercelEnv = process.env.VERCEL_ENV;
+  if (vercelEnv === "production") {
+    throw new Error(
+      "NEXT_PUBLIC_SITE_URL must be set in production (got undefined). Canonical URLs and sitemap depend on it.",
+    );
   }
   const vercel = process.env.VERCEL_URL?.trim();
   if (vercel) {
