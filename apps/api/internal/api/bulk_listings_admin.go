@@ -58,6 +58,22 @@ func bulkListingsWorkTimeout() time.Duration {
 	return 2 * time.Hour
 }
 
+// enrichJobStoreTypePtr returns store_type for enrich_jobs when the admin filter is scoped to one store by id; otherwise nil.
+func enrichJobStoreTypePtr(ctx context.Context, dbx *db.DB, storeID int) (*string, error) {
+	if storeID <= 0 {
+		return nil, nil
+	}
+	st, err := dbx.GetStoreByID(ctx, storeID)
+	if err != nil {
+		return nil, err
+	}
+	if st == nil {
+		return nil, nil
+	}
+	t := st.StoreType
+	return &t, nil
+}
+
 // PostAdminListingsBulkClassify re-runs LLM category classification for all listings matching the filter.
 func (h *Handlers) PostAdminListingsBulkClassify(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
@@ -90,7 +106,12 @@ func (h *Handlers) PostAdminListingsBulkClassify(w http.ResponseWriter, r *http.
 		return
 	}
 
-	jobID, err := h.DB.CreateEnrichJob(r.Context(), nil, "manual", false, "classify")
+	storeTypeForJob, err := enrichJobStoreTypePtr(r.Context(), h.DB, body.StoreID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	jobID, err := h.DB.CreateEnrichJob(r.Context(), storeTypeForJob, "manual", false, "classify")
 	if err != nil {
 		log.Printf("[admin] bulk classify create job: %v", err)
 		sentryutil.CaptureError(err, map[string]string{"component": "api", "handler": "bulk_classify", "phase": "create_job"})
@@ -156,7 +177,12 @@ func (h *Handlers) PostAdminListingsBulkEnrich(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	jobID, jerr := h.DB.CreateEnrichJob(r.Context(), nil, "manual", true, "enrich")
+	storeTypeForJob, err := enrichJobStoreTypePtr(r.Context(), h.DB, body.StoreID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	jobID, jerr := h.DB.CreateEnrichJob(r.Context(), storeTypeForJob, "manual", true, "enrich")
 	if jerr != nil {
 		log.Printf("[admin] bulk enrich create job: %v", jerr)
 		sentryutil.CaptureError(jerr, map[string]string{"component": "api", "handler": "bulk_enrich", "phase": "create_job"})
