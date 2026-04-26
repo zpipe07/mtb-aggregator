@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   LineChart,
   Line,
@@ -15,9 +15,17 @@ import {
   useAdminStores,
   useAdminListings,
   useAdminListing,
+  useCanonicalCategoryPaths,
+  useEnrichJob,
 } from "./hooks/queries";
-import { useEnrichListing, useSetListingHidden, useSetListingLLMOverrides } from "./hooks/mutations";
-import type { AdminListing } from "./api";
+import {
+  useEnrichListing,
+  useSetListingHidden,
+  useSetListingLLMOverrides,
+  usePostBulkListingsClassify,
+  usePostBulkListingsEnrich,
+} from "./hooks/mutations";
+import type { AdminBulkListingsFilterBody, AdminListing } from "./api";
 
 const PAGE_SIZE = 25;
 
@@ -245,8 +253,14 @@ export function DataBrowser() {
   const [offset, setOffset] = useState(0);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [llmConfidenceBelow, setLlmConfidenceBelow] = useState<number | null>(null);
+  const [canonicalPath, setCanonicalPath] = useState("");
+  const [bulkModal, setBulkModal] = useState<"classify" | "enrich" | null>(null);
+  const [bulkConfirmText, setBulkConfirmText] = useState("");
+  const [bulkJobId, setBulkJobId] = useState<number | null>(null);
+  const [bulkFlash, setBulkFlash] = useState<string | null>(null);
 
   const { data: stores = [] } = useAdminStores();
+  const { data: canonicalPaths = [] } = useCanonicalCategoryPaths();
   const { data: listingsData, isPending: loading, isError, error, refetch } = useAdminListings({
     store_id: storeId || undefined,
     brand: brand || undefined,
@@ -254,6 +268,7 @@ export function DataBrowser() {
     in_stock: inStock ?? undefined,
     hidden: visibility === "all" ? undefined : visibility === "hidden",
     category: category || undefined,
+    canonical_category: canonicalPath || undefined,
     llm_confidence_below: llmConfidenceBelow ?? undefined,
     q: q || undefined,
     sort,
@@ -267,9 +282,35 @@ export function DataBrowser() {
   const enrichMutation = useEnrichListing();
   const setHiddenMutation = useSetListingHidden();
   const setLLMOverridesMutation = useSetListingLLMOverrides();
+  const bulkClassifyMutation = usePostBulkListingsClassify();
+  const bulkEnrichMutation = usePostBulkListingsEnrich();
+  const { data: bulkJob, refetch: refetchBulkJob } = useEnrichJob(bulkJobId);
 
   const listings = listingsData?.listings ?? [];
   const totalCount = listingsData?.total_count ?? 0;
+
+  useEffect(() => {
+    if (!bulkJobId) return;
+    if (bulkJob?.status && !["running"].includes(bulkJob.status)) return;
+    const t = setInterval(() => {
+      void refetchBulkJob();
+    }, 2000);
+    return () => clearInterval(t);
+  }, [bulkJobId, bulkJob?.status, refetchBulkJob]);
+
+  function buildBulkFilterBody(): AdminBulkListingsFilterBody {
+    return {
+      store_id: storeId || undefined,
+      brand: brand || undefined,
+      has_enrichment: hasEnrichment ?? undefined,
+      in_stock: inStock ?? undefined,
+      hidden: visibility === "all" ? undefined : visibility === "hidden",
+      category: category || undefined,
+      canonical_category: canonicalPath || undefined,
+      q: q || undefined,
+      llm_confidence_below: llmConfidenceBelow ?? undefined,
+    };
+  }
 
   const chartData =
     priceHistory?.points.map((p) => ({
@@ -291,7 +332,12 @@ export function DataBrowser() {
     <div>
       <h2 className="text-xl font-semibold text-stone-800 mb-4">Data</h2>
 
-      {(isError || enrichMutation.isError || setHiddenMutation.isError || setLLMOverridesMutation.isError) && (
+      {(isError ||
+        enrichMutation.isError ||
+        setHiddenMutation.isError ||
+        setLLMOverridesMutation.isError ||
+        bulkClassifyMutation.isError ||
+        bulkEnrichMutation.isError) && (
         <div className="mb-4 rounded border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
           {enrichMutation.isError
             ? enrichMutation.error?.message ?? "Enrich failed"
@@ -299,13 +345,19 @@ export function DataBrowser() {
               ? setHiddenMutation.error?.message ?? "Update failed"
               : setLLMOverridesMutation.isError
                 ? setLLMOverridesMutation.error?.message ?? "Override failed"
-                : error?.message ?? "Failed to load"}
+                : bulkClassifyMutation.isError
+                  ? bulkClassifyMutation.error?.message ?? "Bulk classify failed"
+                  : bulkEnrichMutation.isError
+                    ? bulkEnrichMutation.error?.message ?? "Bulk enrich failed"
+                    : error?.message ?? "Failed to load"}
           <button
             type="button"
             onClick={() => {
               enrichMutation.reset();
               setHiddenMutation.reset();
               setLLMOverridesMutation.reset();
+              bulkClassifyMutation.reset();
+              bulkEnrichMutation.reset();
               if (isError) refetch();
             }}
             className="ml-2 underline"
@@ -400,6 +452,21 @@ export function DataBrowser() {
           className="rounded border border-stone-300 px-3 py-2 text-sm w-40"
         />
         <select
+          value={canonicalPath}
+          onChange={(e) => {
+            setCanonicalPath(e.target.value);
+            setOffset(0);
+          }}
+          className="rounded border border-stone-300 px-3 py-2 text-sm max-w-[12rem]"
+        >
+          <option value="">Canonical: any</option>
+          {canonicalPaths.map((p) => (
+            <option key={p} value={p}>
+              {p}
+            </option>
+          ))}
+        </select>
+        <select
           value={llmConfidenceBelow === null ? "" : String(llmConfidenceBelow)}
           onChange={(e) => {
             const v = e.target.value;
@@ -428,6 +495,143 @@ export function DataBrowser() {
           <option value="relevance">Relevance</option>
         </select>
       </div>
+
+      {totalCount > 0 && (
+        <div className="mb-4 flex flex-wrap items-center gap-2 rounded border border-amber-200 bg-amber-50/80 px-3 py-2 text-sm text-stone-800">
+          <span className="font-medium">Bulk (current filters):</span>
+          <button
+            type="button"
+            onClick={() => {
+              setBulkConfirmText("");
+              setBulkModal("classify");
+            }}
+            className="rounded bg-stone-800 px-3 py-1.5 text-white hover:bg-stone-700"
+          >
+            Re-classify all ({totalCount.toLocaleString()})
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setBulkConfirmText("");
+              setBulkModal("enrich");
+            }}
+            className="rounded border border-amber-800 bg-white px-3 py-1.5 text-amber-950 hover:bg-amber-100"
+          >
+            Re-enrich all ({totalCount.toLocaleString()})
+          </button>
+          {bulkJobId && bulkJob && (
+            <span className="text-stone-600">
+              Job #{bulkJobId}{" "}
+              {bulkJob.status === "running" || bulkJob.status === "completed" ? `— ${bulkJob.status}` : bulkJob.status}
+              {typeof bulkJob.listings_processed === "number" && bulkJob.status === "completed" && (
+                <span> ({bulkJob.listings_processed} processed)</span>
+              )}
+            </span>
+          )}
+        </div>
+      )}
+      {bulkFlash && (
+        <p className="mb-2 text-sm text-green-800 bg-green-50 border border-green-200 rounded px-3 py-2 max-w-3xl">
+          {bulkFlash}
+          <button
+            type="button"
+            className="ml-2 underline text-stone-600"
+            onClick={() => setBulkFlash(null)}
+          >
+            Dismiss
+          </button>
+        </p>
+      )}
+
+      {bulkModal && (
+        <div
+          className="fixed inset-0 z-20 flex items-center justify-center bg-stone-900/50 p-4"
+          role="dialog"
+          aria-modal
+        >
+          <div className="w-full max-w-md rounded-lg bg-white p-4 shadow-lg space-y-3">
+            <h3 className="font-medium text-stone-900">
+              {bulkModal === "classify" ? "Re-classify all matching" : "Re-enrich all matching"}
+            </h3>
+            <p className="text-sm text-stone-600">
+              This will affect up to {totalCount.toLocaleString()} listing
+              {totalCount === 1 ? "" : "s"} (same filters as the table).{" "}
+              {bulkModal === "enrich" ? "Re-enrich scrapes each PDP; it is slower and heavier than re-classify." : ""}
+            </p>
+            {totalCount > 1000 && (
+              <div>
+                <label className="block text-sm text-stone-700 mb-1">
+                  Type <strong className="font-mono">{bulkModal === "classify" ? "reclassify" : "re-enrich"}</strong> to
+                  confirm
+                </label>
+                <input
+                  type="text"
+                  className="w-full rounded border border-stone-300 px-2 py-1.5"
+                  value={bulkConfirmText}
+                  onChange={(e) => setBulkConfirmText(e.target.value)}
+                  autoFocus
+                />
+              </div>
+            )}
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                type="button"
+                className="rounded border border-stone-300 px-3 py-1.5 text-sm"
+                onClick={() => setBulkModal(null)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="rounded bg-stone-800 px-3 py-1.5 text-sm text-white disabled:opacity-50"
+                disabled={
+                  bulkClassifyMutation.isPending ||
+                  bulkEnrichMutation.isPending ||
+                  (totalCount > 1000 &&
+                    bulkConfirmText.trim() !==
+                      (bulkModal === "classify" ? "reclassify" : "re-enrich"))
+                }
+                onClick={async () => {
+                  const body = buildBulkFilterBody();
+                  try {
+                    if (bulkModal === "classify") {
+                      const r = await bulkClassifyMutation.mutateAsync(body);
+                      setBulkJobId(r.job_id);
+                      if (r.async) {
+                        setBulkFlash(
+                          r.message ??
+                            `Job #${r.job_id} is running in the background (avoids a ~30s dev proxy timeout on long runs).`
+                        );
+                      } else {
+                        setBulkFlash(null);
+                      }
+                    } else {
+                      const r = await bulkEnrichMutation.mutateAsync(body);
+                      setBulkJobId(r.job_id);
+                      if (r.async) {
+                        setBulkFlash(
+                          r.message ??
+                            `Job #${r.job_id} is running in the background (avoids a ~30s dev proxy timeout on long runs).`
+                        );
+                      } else {
+                        setBulkFlash(null);
+                      }
+                    }
+                    setBulkModal(null);
+                    void refetch();
+                  } catch {
+                    /* mutation surfaces error */
+                  }
+                }}
+              >
+                {bulkClassifyMutation.isPending || bulkEnrichMutation.isPending
+                  ? "Running…"
+                  : "Confirm"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {loading ? (
         <p className="text-stone-600">Loading…</p>

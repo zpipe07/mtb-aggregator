@@ -22,6 +22,7 @@ import {
   fetchLLMExtractionFieldDefs,
   fetchCategoryClassifier,
   fetchAdminCategoryTree,
+  fetchCanonicalCategoryPaths,
 } from "../api";
 import {
   adminDashboardKeys,
@@ -187,6 +188,16 @@ export function useSpecKeys() {
     queryKey: adminSpecFilterKeys.specKeys(),
     queryFn: fetchSpecKeys,
     staleTime: 60 * 1000,
+  });
+}
+
+export const adminCanonicalCategoryPathsKey = ["admin", "canonical-category-paths"] as const;
+
+export function useCanonicalCategoryPaths() {
+  return useQuery({
+    queryKey: adminCanonicalCategoryPathsKey,
+    queryFn: fetchCanonicalCategoryPaths,
+    staleTime: 5 * 60 * 1000,
   });
 }
 

@@ -127,26 +127,71 @@ func (db *DB) UpdateListingLLMCategoryMetadata(ctx context.Context, id int, llmC
 	return err
 }
 
+// CategoryClassifierRunParams filters listings for batch or preview re-classification.
+type CategoryClassifierRunParams struct {
+	Store                 string
+	CanonicalCategory     []string
+	IDs                   []int
+	HasEnrichment         *bool // true = last_enriched_at set; false = not enriched
+	MinMetadataConfidence *float64
+	MaxMetadataConfidence *float64
+	// LlmConfidenceBelow matches GetAdminListings: (metadata->>'llm_confidence')::float < v
+	LlmConfidenceBelow *float64
+	Limit                int
+}
+
+// classifierListingFromWhere returns the FROM...WHERE portion shared by list/count/preview queries.
+func classifierListingFromWhere(p CategoryClassifierRunParams, argNum int) (string, []interface{}, int) {
+	query := ` FROM store_listings l JOIN stores s ON s.id = l.store_id WHERE l.product_url IS NOT NULL AND l.product_url != ''`
+	args := []interface{}{}
+	if len(p.IDs) > 0 {
+		query += fmt.Sprintf(" AND l.id = ANY($%d)", argNum)
+		args = append(args, pq.Array(p.IDs))
+		argNum++
+	}
+	if p.Store != "" {
+		query += fmt.Sprintf(" AND s.store_type = $%d", argNum)
+		args = append(args, p.Store)
+		argNum++
+	}
+	if len(p.CanonicalCategory) > 0 {
+		query += fmt.Sprintf(" AND l.canonical_category = $%d", argNum)
+		args = append(args, pq.Array(p.CanonicalCategory))
+		argNum++
+	}
+	if p.HasEnrichment != nil {
+		if *p.HasEnrichment {
+			query += " AND l.last_enriched_at IS NOT NULL"
+		} else {
+			query += " AND l.last_enriched_at IS NULL"
+		}
+	}
+	if p.MinMetadataConfidence != nil {
+		query += fmt.Sprintf(" AND (l.metadata->>'llm_confidence') IS NOT NULL AND (l.metadata->>'llm_confidence')::float >= $%d", argNum)
+		args = append(args, *p.MinMetadataConfidence)
+		argNum++
+	}
+	if p.MaxMetadataConfidence != nil {
+		query += fmt.Sprintf(" AND (l.metadata->>'llm_confidence') IS NOT NULL AND (l.metadata->>'llm_confidence')::float <= $%d", argNum)
+		args = append(args, *p.MaxMetadataConfidence)
+		argNum++
+	}
+	if p.LlmConfidenceBelow != nil {
+		query += fmt.Sprintf(" AND (l.metadata->>'llm_confidence')::float < $%d", argNum)
+		args = append(args, *p.LlmConfidenceBelow)
+		argNum++
+	}
+	return query, args, argNum
+}
+
 // ListListingIDsForCategoryClassifierRun returns listing IDs for batch re-classification.
-// store: optional filter by store_type; canonical_category: optional filter; limit: max IDs to return.
-func (db *DB) ListListingIDsForCategoryClassifierRun(ctx context.Context, store string, canonicalCategory []string, limit int) ([]int, error) {
+func (db *DB) ListListingIDsForCategoryClassifierRun(ctx context.Context, p CategoryClassifierRunParams) ([]int, error) {
+	limit := p.Limit
 	if limit <= 0 {
 		limit = 500
 	}
-	query := `SELECT l.id FROM store_listings l JOIN stores s ON s.id = l.store_id WHERE l.product_url IS NOT NULL AND l.product_url != ''`
-	args := []interface{}{}
-	argNum := 1
-	if store != "" {
-		query += fmt.Sprintf(" AND s.store_type = $%d", argNum)
-		args = append(args, store)
-		argNum++
-	}
-	if len(canonicalCategory) > 0 {
-		query += fmt.Sprintf(" AND l.canonical_category = $%d", argNum)
-		args = append(args, pq.Array(canonicalCategory))
-		argNum++
-	}
-	query += fmt.Sprintf(" ORDER BY l.id LIMIT $%d", argNum)
+	fromWhere, args, argNum := classifierListingFromWhere(p, 1)
+	query := "SELECT l.id" + fromWhere + fmt.Sprintf(" ORDER BY l.id LIMIT $%d", argNum)
 	args = append(args, limit)
 
 	rows, err := db.pool.Query(ctx, query, args...)
@@ -163,4 +208,44 @@ func (db *DB) ListListingIDsForCategoryClassifierRun(ctx context.Context, store 
 		ids = append(ids, id)
 	}
 	return ids, rows.Err()
+}
+
+// CountListingsForCategoryClassifierRun returns how many listings match the classifier filters.
+func (db *DB) CountListingsForCategoryClassifierRun(ctx context.Context, p CategoryClassifierRunParams) (int, error) {
+	fromWhere, args, _ := classifierListingFromWhere(p, 1)
+	countQuery := "SELECT COUNT(*)" + fromWhere
+	var n int
+	err := db.pool.QueryRow(ctx, countQuery, args...).Scan(&n)
+	return n, err
+}
+
+// ClassifierRunPreviewSample is a small preview row for admin dry-run.
+type ClassifierRunPreviewSample struct {
+	ID          int    `json:"id"`
+	ProductName string `json:"product_name"`
+}
+
+// ListSampleForCategoryClassifierRun returns up to n sample rows (id, product_name) for preview.
+func (db *DB) ListSampleForCategoryClassifierRun(ctx context.Context, p CategoryClassifierRunParams, sampleLimit int) ([]ClassifierRunPreviewSample, error) {
+	if sampleLimit <= 0 {
+		sampleLimit = 10
+	}
+	fromWhere, args, argNum := classifierListingFromWhere(p, 1)
+	query := "SELECT l.id, COALESCE(l.product_name, '')" + fromWhere + fmt.Sprintf(" ORDER BY l.id LIMIT $%d", argNum)
+	args = append(args, sampleLimit)
+
+	rows, err := db.pool.Query(ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []ClassifierRunPreviewSample
+	for rows.Next() {
+		var s ClassifierRunPreviewSample
+		if err := rows.Scan(&s.ID, &s.ProductName); err != nil {
+			return nil, err
+		}
+		out = append(out, s)
+	}
+	return out, rows.Err()
 }

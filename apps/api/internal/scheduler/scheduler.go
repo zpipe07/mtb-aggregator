@@ -359,7 +359,7 @@ func (s *Scheduler) RunEnrichmentJob(force bool, triggeredBy string) {
 	ctx, cancel := context.WithTimeout(context.Background(), getEnrichJobTimeout())
 	defer cancel()
 
-	jobID, err := s.db.CreateEnrichJob(ctx, nil, triggeredBy, force)
+	jobID, err := s.db.CreateEnrichJob(ctx, nil, triggeredBy, force, "enrich")
 	if err != nil {
 		log.Printf("[enrichment] failed to create enrich job: %v", err)
 		sentryutil.CaptureError(err, map[string]string{"component": "scheduler", "job": "enrich", "phase": "create_job"})
@@ -593,7 +593,6 @@ func (s *Scheduler) RunEnrichmentJobForStore(storeType string, force bool, trigg
 	if triggeredBy == "" {
 		triggeredBy = "manual"
 	}
-
 	hasEnricher := false
 	for _, t := range db.StoreTypesWithEnrichers {
 		if strings.EqualFold(t, storeType) {
@@ -605,15 +604,50 @@ func (s *Scheduler) RunEnrichmentJobForStore(storeType string, force bool, trigg
 		log.Printf("[enrichment] no enricher for store_type=%q; skipping", storeType)
 		return
 	}
+	s.runEnrichmentLoop(db.EnrichmentFilter{StoreType: storeType}, force, triggeredBy)
+}
+
+// RunEnrichmentWithFilter runs batched PDP enrichment for listings matching the filter (category and/or low confidence and/or a single store).
+// StoreType in filter empty means all allowed enricher stores. triggeredBy is "manual" or "cron" for job history.
+func (s *Scheduler) RunEnrichmentWithFilter(f db.EnrichmentFilter, force bool, triggeredBy string) {
+	if triggeredBy == "" {
+		triggeredBy = "manual"
+	}
+	if f.StoreType != "" {
+		hasEnricher := false
+		for _, t := range db.StoreTypesWithEnrichers {
+			if strings.EqualFold(t, f.StoreType) {
+				hasEnricher = true
+				break
+			}
+		}
+		if !hasEnricher {
+			log.Printf("[enrichment] no enricher for store_type=%q; skipping", f.StoreType)
+			return
+		}
+	}
+	s.runEnrichmentLoop(f, force, triggeredBy)
+}
+
+// runEnrichmentLoop drains all batches of listings for the given filter.
+func (s *Scheduler) runEnrichmentLoop(f db.EnrichmentFilter, force bool, triggeredBy string) {
+	scope := f.StoreType
+	if scope == "" {
+		scope = "all-enricher-stores"
+	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), getEnrichJobTimeout())
 	defer cancel()
 
-	st := storeType
-	jobID, err := s.db.CreateEnrichJob(ctx, &st, triggeredBy, force)
+	var stPtr *string
+	if f.StoreType != "" {
+		st := f.StoreType
+		stPtr = &st
+	}
+	jobID, err := s.db.CreateEnrichJob(ctx, stPtr, triggeredBy, force, "enrich")
 	if err != nil {
 		log.Printf("[enrichment] failed to create enrich job: %v", err)
-		sentryutil.CaptureError(err, map[string]string{"component": "scheduler", "job": "enrich", "phase": "create_job", "store_type": storeType})
+		sentryutil.CaptureError(err, map[string]string{"component": "scheduler", "job": "enrich", "phase": "create_job", "store_type": scope})
 	}
 
 	totalSuccess := 0
@@ -622,7 +656,7 @@ func (s *Scheduler) RunEnrichmentJobForStore(storeType string, force bool, trigg
 	defer func() {
 		if r := recover(); r != nil {
 			log.Printf("[enrichment] panic: %v", r)
-			sentryutil.CapturePanicValue(r, map[string]string{"component": "scheduler", "job": "enrich", "store_type": storeType})
+			sentryutil.CapturePanicValue(r, map[string]string{"component": "scheduler", "job": "enrich", "store_type": scope})
 			if jobID != 0 {
 				panicErrs := append(errStrs, fmt.Sprintf("panic: %v", r))
 				_ = s.db.UpdateEnrichJob(ctx, jobID, "failed", &totalProcessed, &totalSuccess, panicErrs)
@@ -634,10 +668,10 @@ func (s *Scheduler) RunEnrichmentJobForStore(storeType string, force bool, trigg
 	var llmState enrichLLMJobState
 	for {
 		if ctx.Err() != nil {
-			log.Printf("[enrichment] %s: job timeout, saving partial progress: %d processed, %d enriched", storeType, totalProcessed, totalSuccess)
+			log.Printf("[enrichment] %s: job timeout, saving partial progress: %d processed, %d enriched", scope, totalProcessed, totalSuccess)
 			sentryutil.CaptureError(
-				fmt.Errorf("enrichment job timed out for store_type=%s (%d processed, %d enriched)", storeType, totalProcessed, totalSuccess),
-				map[string]string{"component": "scheduler", "job": "enrich", "store_type": storeType},
+				fmt.Errorf("enrichment job timed out for scope=%s (%d processed, %d enriched)", scope, totalProcessed, totalSuccess),
+				map[string]string{"component": "scheduler", "job": "enrich", "store_type": scope},
 			)
 			if jobID != 0 {
 				errStrs = append(errStrs, "job timed out")
@@ -645,10 +679,10 @@ func (s *Scheduler) RunEnrichmentJobForStore(storeType string, force bool, trigg
 			}
 			return
 		}
-		listings, err := s.db.GetListingsNeedingEnrichmentForStore(ctx, storeType, batchSize, force)
+		listings, err := s.db.GetListingsNeedingEnrichmentForFilter(ctx, f, batchSize, force)
 		if err != nil {
-			log.Printf("[enrichment] failed to get listings for %s: %v", storeType, err)
-			sentryutil.CaptureError(err, map[string]string{"component": "scheduler", "job": "enrich", "phase": "list_listings", "store_type": storeType})
+			log.Printf("[enrichment] failed to get listings for %s: %v", scope, err)
+			sentryutil.CaptureError(err, map[string]string{"component": "scheduler", "job": "enrich", "phase": "list_listings", "store_type": scope})
 			if jobID != 0 {
 				_ = s.db.UpdateEnrichJob(ctx, jobID, "failed", nil, nil, []string{err.Error()})
 			}
@@ -657,14 +691,14 @@ func (s *Scheduler) RunEnrichmentJobForStore(storeType string, force bool, trigg
 		if len(listings) == 0 {
 			break
 		}
-		log.Printf("[enrichment] %s: enriching batch of %d listings", storeType, len(listings))
+		log.Printf("[enrichment] %s: enriching batch of %d listings", scope, len(listings))
 		successCount := 0
 		for _, l := range listings {
 			if ctx.Err() != nil {
-				log.Printf("[enrichment] %s: job timeout, saving partial progress: %d processed, %d enriched", storeType, totalProcessed, totalSuccess)
+				log.Printf("[enrichment] %s: job timeout, saving partial progress: %d processed, %d enriched", scope, totalProcessed, totalSuccess)
 				sentryutil.CaptureError(
-					fmt.Errorf("enrichment job timed out for store_type=%s (%d processed, %d enriched)", storeType, totalProcessed, totalSuccess),
-					map[string]string{"component": "scheduler", "job": "enrich", "store_type": storeType},
+					fmt.Errorf("enrichment job timed out for scope=%s (%d processed, %d enriched)", scope, totalProcessed, totalSuccess),
+					map[string]string{"component": "scheduler", "job": "enrich", "store_type": scope},
 				)
 				if jobID != 0 {
 					errStrs = append(errStrs, "job timed out")
@@ -695,7 +729,7 @@ func (s *Scheduler) RunEnrichmentJobForStore(storeType string, force bool, trigg
 			s.runLLMExtractionIfApplicable(ctx, l.ID, &llmState, &errStrs)
 		}
 		totalProcessed += len(listings)
-		log.Printf("[enrichment] %s: batch done %d/%d", storeType, successCount, len(listings))
+		log.Printf("[enrichment] %s: batch done %d/%d", scope, successCount, len(listings))
 		if len(listings) < batchSize {
 			break
 		}
@@ -704,9 +738,9 @@ func (s *Scheduler) RunEnrichmentJobForStore(storeType string, force bool, trigg
 		_ = s.db.UpdateEnrichJob(ctx, jobID, "completed", &totalProcessed, &totalSuccess, errStrs)
 	}
 	if totalProcessed > 0 {
-		log.Printf("[enrichment] %s: enriched %d/%d listings total", storeType, totalSuccess, totalProcessed)
+		log.Printf("[enrichment] %s: enriched %d/%d listings total", scope, totalSuccess, totalProcessed)
 	} else {
-		log.Printf("[enrichment] %s: no listings need enrichment", storeType)
+		log.Printf("[enrichment] %s: no listings need enrichment", scope)
 	}
 }
 

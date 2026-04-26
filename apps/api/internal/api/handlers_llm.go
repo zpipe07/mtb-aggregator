@@ -3,11 +3,15 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
+	"os"
+	"strconv"
 	"strings"
 
 	"github.com/mtb-aggregator/api/internal/db"
 	"github.com/mtb-aggregator/api/internal/llm"
+	"github.com/mtb-aggregator/api/internal/sentryutil"
 )
 
 // GetLLMProfiles returns all LLM prompt profiles (admin).
@@ -455,37 +459,137 @@ func (h *Handlers) PostCategoryClassifierTest(w http.ResponseWriter, r *http.Req
 	})
 }
 
-// PostCategoryClassifierRun re-runs category classification on listings. Body: {"store": "worldwidecyclery", "canonical_category": ["Bikes", "Mountain"], "limit": 100}.
+// adminBulkMaxListings caps bulk classify / bulk enrich listing counts (env ADMIN_BULK_MAX_LISTINGS, default 5000).
+func adminBulkMaxListings() int {
+	if s := os.Getenv("ADMIN_BULK_MAX_LISTINGS"); s != "" {
+		if n, err := strconv.Atoi(s); err == nil && n > 0 {
+			return n
+		}
+	}
+	return 5000
+}
+
+// categoryClassifierRunBody is the JSON body for /admin/category-classifier/run and preview.
+type categoryClassifierRunBody struct {
+	Store                 string   `json:"store"`
+	CanonicalCategory     []string `json:"canonical_category"`
+	IDs                   []int    `json:"ids"`
+	HasEnrichment         *bool    `json:"has_enrichment"`
+	MinConfidence         *float64 `json:"min_confidence"`
+	MaxConfidence         *float64 `json:"max_confidence"`
+	LlmConfidenceBelow    *float64 `json:"llm_confidence_below"`
+	Limit                 int      `json:"limit"`
+	DryRun                bool     `json:"dry_run"`
+}
+
+func (b categoryClassifierRunBody) toParams() db.CategoryClassifierRunParams {
+	p := db.CategoryClassifierRunParams{
+		Store:                 strings.TrimSpace(b.Store),
+		CanonicalCategory:     b.CanonicalCategory,
+		IDs:                   b.IDs,
+		HasEnrichment:         b.HasEnrichment,
+		MinMetadataConfidence: b.MinConfidence,
+		MaxMetadataConfidence: b.MaxConfidence,
+		LlmConfidenceBelow:    b.LlmConfidenceBelow,
+		Limit:                 b.Limit,
+	}
+	return p
+}
+
+// PostCategoryClassifierRun re-runs category classification on listings matching filters. Supports dry_run for preview.
 func (h *Handlers) PostCategoryClassifierRun(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	var body struct {
-		Store             string   `json:"store"`
-		CanonicalCategory []string `json:"canonical_category"`
-		Limit             int      `json:"limit"`
-	}
+	var body categoryClassifierRunBody
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		http.Error(w, "invalid json", http.StatusBadRequest)
 		return
 	}
-	limit := body.Limit
-	if limit <= 0 {
-		limit = 500
+	if body.DryRun {
+		h.postCategoryClassifierPreview(w, r, body)
+		return
 	}
-	ids, err := h.DB.ListListingIDsForCategoryClassifierRun(r.Context(), body.Store, body.CanonicalCategory, limit)
+	p := body.toParams()
+	maxN := adminBulkMaxListings()
+
+	count, err := h.DB.CountListingsForCategoryClassifierRun(r.Context(), p)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	if count > maxN {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"error": fmt.Sprintf("filter matches %d listings (max per run is %d); narrow filters", count, maxN),
+		})
+		return
+	}
+	// How many to process: optional limit from body, else all matches (capped to maxN already)
+	if p.Limit > 0 {
+		if p.Limit > count {
+			p.Limit = count
+		}
+	} else {
+		p.Limit = count
+	}
+	if p.Limit > maxN {
+		p.Limit = maxN
+	}
+	ids, err := h.DB.ListListingIDsForCategoryClassifierRun(r.Context(), p)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	ctx := r.Context()
+	jobID, err := h.DB.CreateEnrichJob(ctx, nil, "manual", false, "classify")
+	if err != nil {
+		log.Printf("[admin] create classify job: %v", err)
+		sentryutil.CaptureError(err, map[string]string{"component": "api", "handler": "category_classifier_run", "phase": "create_job"})
+	}
 	processed := 0
+	var errStrs []string
 	for _, id := range ids {
-		h.runLLMCategoryClassification(r.Context(), id)
+		if w := h.runLLMCategoryClassification(ctx, id); w != "" {
+			errStrs = append(errStrs, w)
+		}
 		processed++
 	}
+	if jobID != 0 {
+		_ = h.DB.UpdateEnrichJob(ctx, jobID, "completed", &processed, &processed, errStrs)
+	}
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{"ok": true, "processed": processed})
+	json.NewEncoder(w).Encode(map[string]interface{}{"ok": true, "processed": processed, "job_id": jobID})
+}
+
+func (h *Handlers) postCategoryClassifierPreview(w http.ResponseWriter, r *http.Request, body categoryClassifierRunBody) {
+	ctx := r.Context()
+	p := body.toParams()
+	n, err := h.DB.CountListingsForCategoryClassifierRun(ctx, p)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	maxN := adminBulkMaxListings()
+	sample, err := h.DB.ListSampleForCategoryClassifierRun(ctx, p, 10)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if sample == nil {
+		sample = []db.ClassifierRunPreviewSample{}
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"ok":            true,
+		"total":         n,
+		"max_per_run":   maxN,
+		"exceeds_max":   n > maxN,
+		"sample":        sample,
+	})
 }
 
 // PostAdminLLMRun re-runs LLM extraction for all listings in a canonical category. Body: {"canonical_category": ["Bikes", "Mountain"]}.

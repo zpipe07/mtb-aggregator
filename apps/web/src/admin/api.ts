@@ -71,11 +71,20 @@ export async function triggerScrape(store?: string): Promise<void> {
   if (!res.ok) throw new Error("Scrape request failed");
 }
 
-/** Trigger enrichment; pass force=true to re-enrich all, or store=store_type to enrich one store. */
-export async function triggerEnrich(force?: boolean, store?: string): Promise<void> {
+/** Trigger enrichment; optional store, canonical_category path, llm_confidence_below, force. */
+export async function triggerEnrich(opts?: {
+  force?: boolean;
+  store?: string;
+  canonical_category?: string;
+  llm_confidence_below?: number;
+}): Promise<void> {
   const params = new URLSearchParams();
-  if (force) params.set("force", "1");
-  if (store) params.set("store", store);
+  if (opts?.force) params.set("force", "1");
+  if (opts?.store) params.set("store", opts.store);
+  if (opts?.canonical_category) params.set("canonical_category", opts.canonical_category);
+  if (opts?.llm_confidence_below != null) {
+    params.set("llm_confidence_below", String(opts.llm_confidence_below));
+  }
   const qs = params.toString();
   const url = qs ? `${getApiBase()}/enrich-now?${qs}` : `${getApiBase()}/enrich-now`;
   const res = await fetch(url, { method: "POST", headers: adminHeaders() });
@@ -310,6 +319,7 @@ export async function cancelScrapeJob(id: number): Promise<{ ok: boolean; status
 export interface EnrichJob {
   id: number;
   store_type?: string | null;
+  job_type?: string;
   status: string;
   started_at: string;
   completed_at?: string | null;
@@ -1157,8 +1167,23 @@ export async function testCategoryClassifier(listingId: number): Promise<{
 export async function runCategoryClassifier(params?: {
   store?: string;
   canonical_category?: string[];
+  ids?: number[];
+  has_enrichment?: boolean;
+  min_confidence?: number;
+  max_confidence?: number;
+  llm_confidence_below?: number;
   limit?: number;
-}): Promise<{ ok: boolean; processed: number }> {
+  dry_run?: boolean;
+}): Promise<
+  | { ok: boolean; processed: number; job_id?: number }
+  | {
+      ok: boolean;
+      total: number;
+      max_per_run: number;
+      exceeds_max: boolean;
+      sample: { id: number; product_name: string }[];
+    }
+> {
   const res = await fetch(`${getApiBase()}/admin/category-classifier/run`, {
     method: "POST",
     headers: adminHeaders(),
@@ -1170,4 +1195,67 @@ export async function runCategoryClassifier(params?: {
     throw new Error(msg);
   }
   return data;
+}
+
+/** Distinct canonical category paths (public API) for filter dropdowns. */
+export async function fetchCanonicalCategoryPaths(): Promise<string[]> {
+  const res = await fetch(`${getApiBase()}/canonical-categories`);
+  if (!res.ok) throw new Error("Failed to load canonical categories");
+  const data = await res.json();
+  return Array.isArray(data) ? data : [];
+}
+
+export interface AdminBulkListingsFilterBody {
+  store_id?: number;
+  brand?: string;
+  has_canonical_category?: boolean;
+  has_enrichment?: boolean;
+  in_stock?: boolean;
+  hidden?: boolean;
+  category?: string;
+  canonical_category?: string;
+  q?: string;
+  llm_confidence_below?: number;
+}
+
+export type BulkListingsResult =
+  | { ok: true; async: false; processed: number; total: number; job_id: number; enriched?: number }
+  | {
+      ok: true;
+      async: true;
+      job_id: number;
+      total: number;
+      message?: string;
+    };
+
+export async function postAdminListingsBulkClassify(
+  body: AdminBulkListingsFilterBody
+): Promise<BulkListingsResult> {
+  const res = await fetch(`${getApiBase()}/admin/listings/bulk-classify`, {
+    method: "POST",
+    headers: adminHeaders(),
+    body: JSON.stringify(body),
+  });
+  const data = (await res.json().catch(() => ({}))) as BulkListingsResult & { error?: string };
+  if (!res.ok) {
+    const msg = typeof data?.error === "string" ? data.error : "Bulk classify failed";
+    throw new Error(msg);
+  }
+  return data as BulkListingsResult;
+}
+
+export async function postAdminListingsBulkEnrich(
+  body: AdminBulkListingsFilterBody
+): Promise<BulkListingsResult> {
+  const res = await fetch(`${getApiBase()}/admin/listings/bulk-enrich`, {
+    method: "POST",
+    headers: adminHeaders(),
+    body: JSON.stringify(body),
+  });
+  const data = (await res.json().catch(() => ({}))) as BulkListingsResult & { error?: string };
+  if (!res.ok) {
+    const msg = typeof data?.error === "string" ? data.error : "Bulk enrich failed";
+    throw new Error(msg);
+  }
+  return data as BulkListingsResult;
 }
