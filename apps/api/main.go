@@ -396,12 +396,34 @@ func main() {
 		}
 		force := r.URL.Query().Get("force") == "1"
 		store := strings.TrimSpace(r.URL.Query().Get("store"))
+		var canonPath []string
+		if c := strings.TrimSpace(r.URL.Query().Get("canonical_category")); c != "" {
+			for _, p := range strings.Split(c, " > ") {
+				if t := strings.TrimSpace(p); t != "" {
+					canonPath = append(canonPath, t)
+				}
+			}
+		}
+		var confBelow *float64
+		if s := strings.TrimSpace(r.URL.Query().Get("llm_confidence_below")); s != "" {
+			if v, err := strconv.ParseFloat(s, 64); err == nil && v >= 0 && v <= 1 {
+				confBelow = &v
+			}
+		}
 		storeLog := "all stores"
 		if store != "" {
 			storeLog = store
 		}
-		log.Printf("[enrich-now] triggered manually for %s (force=%v)", storeLog, force)
-		sched.RunEnrichmentJobForStore(store, force, "manual")
+		log.Printf("[enrich-now] triggered manually for %s (force=%v, canonical=%v, llm_below=%v)", storeLog, force, canonPath, confBelow)
+		if len(canonPath) > 0 || confBelow != nil {
+			sched.RunEnrichmentWithFilter(db.EnrichmentFilter{
+				StoreType:            store,
+				CanonicalCategory:   canonPath,
+				LlmConfidenceBelow: confBelow,
+			}, force, "manual")
+		} else {
+			sched.RunEnrichmentJobForStore(store, force, "manual")
+		}
 		w.Header().Set("Content-Type", "application/json")
 		w.Write([]byte(`{"status":"ok"}`))
 	})
@@ -527,6 +549,22 @@ func main() {
 			return
 		}
 		handlers.GetAdminEnrichJobByID(w, r, id)
+	}))
+
+	// Admin: POST /admin/listings/bulk-classify, bulk-enrich
+	http.HandleFunc("/admin/listings/bulk-classify", api.AdminRequired(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/admin/listings/bulk-classify" {
+			http.NotFound(w, r)
+			return
+		}
+		handlers.PostAdminListingsBulkClassify(w, r)
+	}))
+	http.HandleFunc("/admin/listings/bulk-enrich", api.AdminRequired(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/admin/listings/bulk-enrich" {
+			http.NotFound(w, r)
+			return
+		}
+		handlers.PostAdminListingsBulkEnrich(w, r)
 	}))
 
 	// Admin: GET /admin/listings — data browser (query: store_id, brand, has_canonical_category, has_enrichment, category, canonical_category, q, sort, limit, offset)

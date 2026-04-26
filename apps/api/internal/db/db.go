@@ -445,6 +445,140 @@ func (db *DB) GetAdminListings(ctx context.Context, params GetAdminListingsParam
 	return listings, totalCount, rows.Err()
 }
 
+// buildAdminListingsFilter appends the same conditions as GetAdminListings (excluding sort/limit) to a query starting with "... WHERE 1=1".
+// productURLNonEmpty, when true, adds l.product_url IS NOT NULL.
+func buildAdminListingsFilter(query string, params GetAdminListingsParams, argNum int) (string, []interface{}, int) {
+	args := []interface{}{}
+	if params.StoreID > 0 {
+		query += fmt.Sprintf(" AND l.store_id = $%d", argNum)
+		args = append(args, params.StoreID)
+		argNum++
+	}
+	if params.Brand != "" {
+		query += fmt.Sprintf(" AND l.brand ILIKE $%d", argNum)
+		args = append(args, params.Brand)
+		argNum++
+	}
+	if params.HasCanonicalCategory != nil {
+		if *params.HasCanonicalCategory {
+			query += " AND l.canonical_category IS NOT NULL AND array_length(l.canonical_category, 1) > 0"
+		} else {
+			query += " AND (l.canonical_category IS NULL OR array_length(l.canonical_category, 1) IS NULL)"
+		}
+	}
+	if params.HasEnrichment != nil {
+		if *params.HasEnrichment {
+			query += " AND l.last_enriched_at IS NOT NULL"
+		} else {
+			query += " AND l.last_enriched_at IS NULL"
+		}
+	}
+	if params.InStock != nil {
+		if *params.InStock {
+			query += " AND l.is_in_stock = true"
+		} else {
+			query += " AND l.is_in_stock = false"
+		}
+	}
+	if params.Hidden != nil {
+		query += fmt.Sprintf(" AND l.hidden = $%d", argNum)
+		args = append(args, *params.Hidden)
+		argNum++
+	}
+	if params.Category != "" {
+		query += fmt.Sprintf(` AND (
+			EXISTS (SELECT 1 FROM unnest(COALESCE(l.category_path, '{}')) AS c WHERE strpos(lower(c), lower($%d)) > 0)
+			OR EXISTS (SELECT 1 FROM unnest(COALESCE(l.canonical_category, '{}')) AS cc WHERE strpos(lower(cc), lower($%d)) > 0)
+		)`, argNum, argNum)
+		args = append(args, params.Category)
+		argNum++
+	}
+	if params.CanonicalCategory != "" {
+		path := strings.Split(params.CanonicalCategory, " > ")
+		trimmed := make([]string, 0, len(path))
+		for _, p := range path {
+			if t := strings.TrimSpace(p); t != "" {
+				trimmed = append(trimmed, t)
+			}
+		}
+		if len(trimmed) > 0 {
+			query += fmt.Sprintf(" AND l.canonical_category = $%d", argNum)
+			args = append(args, pq.Array(trimmed))
+			argNum++
+		}
+	}
+	if params.Search != "" {
+		query += fmt.Sprintf(" AND l.search_vector @@ plainto_tsquery('english', $%d)", argNum)
+		args = append(args, params.Search)
+		argNum++
+	}
+	if params.LLMConfidenceBelow != nil {
+		query += fmt.Sprintf(" AND (l.metadata->>'llm_confidence')::float < $%d", argNum)
+		args = append(args, *params.LLMConfidenceBelow)
+		argNum++
+	}
+	return query, args, argNum
+}
+
+// CountAdminListingsByFilter returns the number of rows matching the admin data browser filters.
+func (db *DB) CountAdminListingsByFilter(ctx context.Context, params GetAdminListingsParams) (int, error) {
+	base := ` FROM store_listings l JOIN stores s ON s.id = l.store_id WHERE 1=1`
+	q, args, _ := buildAdminListingsFilter(base, params, 1)
+	countQ := "SELECT COUNT(*)" + q
+	var n int
+	err := db.pool.QueryRow(ctx, countQ, args...).Scan(&n)
+	return n, err
+}
+
+// ListAdminListingIDsByFilter returns listing ids matching the filter, capped at maxIDs, plus total count before capping.
+// onlyEnricherStores restricts to store_type in StoreTypesWithEnrichers (for PDP re-enrich).
+// requireProductURL when true adds a non-empty product_url constraint.
+func (db *DB) ListAdminListingIDsByFilter(ctx context.Context, params GetAdminListingsParams, onlyEnricherStores, requireProductURL bool, maxIDs int) (ids []int, total int, err error) {
+	if maxIDs <= 0 {
+		maxIDs = 5000
+	}
+	base := ` FROM store_listings l JOIN stores s ON s.id = l.store_id WHERE 1=1`
+	if requireProductURL {
+		base += " AND l.product_url IS NOT NULL AND l.product_url != ''"
+	}
+	args := []interface{}{}
+	argNum := 1
+	if onlyEnricherStores {
+		base += fmt.Sprintf(" AND s.store_type = ANY($%d)", argNum)
+		args = append(args, pq.Array(StoreTypesWithEnrichers))
+		argNum++
+	}
+	rest, restArgs, nextArg := buildAdminListingsFilter(base, params, argNum)
+	args = append(args, restArgs...)
+
+	var totalCount int
+	countQ := "SELECT COUNT(*)" + rest
+	if err := db.pool.QueryRow(ctx, countQ, args...).Scan(&totalCount); err != nil {
+		return nil, 0, err
+	}
+	if totalCount == 0 {
+		return []int{}, 0, nil
+	}
+	listQ := "SELECT l.id" + rest + fmt.Sprintf(" ORDER BY l.last_scraped DESC LIMIT $%d", nextArg)
+	listArgs := append(append([]interface{}{}, args...), maxIDs)
+	rows, err := db.pool.Query(ctx, listQ, listArgs...)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var id int
+		if err := rows.Scan(&id); err != nil {
+			return nil, 0, err
+		}
+		ids = append(ids, id)
+	}
+	if ids == nil {
+		ids = []int{}
+	}
+	return ids, totalCount, rows.Err()
+}
+
 // GetAdminListingByID returns one listing by id for admin detail view, or nil if not found.
 func (db *DB) GetAdminListingByID(ctx context.Context, id int) (*AdminListing, error) {
 	var a AdminListing
@@ -1000,11 +1134,12 @@ func (db *DB) GetScrapeJobByID(ctx context.Context, id int) (*ScrapeJob, error) 
 	return &j, nil
 }
 
-// EnrichJob represents a single enrichment run (optionally scoped by store_type).
+// EnrichJob represents a single enrichment or classify job (optionally scoped by store_type).
 type EnrichJob struct {
 	ID                int      `json:"id"`
 	StoreType         *string  `json:"store_type,omitempty"`
-	Status            string   `json:"status"` // running, completed, failed
+	JobType           string   `json:"job_type"` // enrich, classify, ...
+	Status            string   `json:"status"`   // running, completed, failed
 	StartedAt         string   `json:"started_at"`
 	CompletedAt       *string  `json:"completed_at,omitempty"`
 	ListingsProcessed *int     `json:"listings_processed,omitempty"`
@@ -1014,14 +1149,18 @@ type EnrichJob struct {
 	ForceMode         bool     `json:"force_mode"`
 }
 
-// CreateEnrichJob inserts a new enrich job (status=running) and returns its id.
-func (db *DB) CreateEnrichJob(ctx context.Context, storeType *string, triggeredBy string, forceMode bool) (int, error) {
+// CreateEnrichJob inserts a new enrich or classify job (status=running) and returns its id.
+// jobType is "enrich", "classify", etc.; empty defaults to "enrich".
+func (db *DB) CreateEnrichJob(ctx context.Context, storeType *string, triggeredBy string, forceMode bool, jobType string) (int, error) {
+	if jobType == "" {
+		jobType = "enrich"
+	}
 	var id int
 	err := db.pool.QueryRow(ctx, `
-		INSERT INTO enrich_jobs (store_type, status, triggered_by, force_mode)
-		VALUES ($1, 'running', $2, $3)
+		INSERT INTO enrich_jobs (store_type, status, triggered_by, force_mode, job_type)
+		VALUES ($1, 'running', $2, $3, $4)
 		RETURNING id
-	`, storeType, triggeredBy, forceMode).Scan(&id)
+	`, storeType, triggeredBy, forceMode, jobType).Scan(&id)
 	return id, err
 }
 
@@ -1082,7 +1221,7 @@ func (db *DB) CancelEnrichJob(ctx context.Context, id int) (bool, error) {
 // GetEnrichJobs returns recent enrich jobs (newest first), paginated.
 func (db *DB) GetEnrichJobs(ctx context.Context, limit, offset int) ([]EnrichJob, error) {
 	rows, err := db.pool.Query(ctx, `
-		SELECT id, store_type, status, started_at::text, completed_at::text,
+		SELECT id, store_type, COALESCE(job_type, 'enrich'), status, started_at::text, completed_at::text,
 			listings_processed, listings_enriched, COALESCE(errors, '{}'), triggered_by, force_mode
 		FROM enrich_jobs
 		ORDER BY started_at DESC LIMIT $1 OFFSET $2
@@ -1097,7 +1236,7 @@ func (db *DB) GetEnrichJobs(ctx context.Context, limit, offset int) ([]EnrichJob
 		var j EnrichJob
 		var completedAt *string
 		var errArr pgtype.FlatArray[string]
-		if err := rows.Scan(&j.ID, &j.StoreType, &j.Status, &j.StartedAt, &completedAt, &j.ListingsProcessed, &j.ListingsEnriched, &errArr, &j.TriggeredBy, &j.ForceMode); err != nil {
+		if err := rows.Scan(&j.ID, &j.StoreType, &j.JobType, &j.Status, &j.StartedAt, &completedAt, &j.ListingsProcessed, &j.ListingsEnriched, &errArr, &j.TriggeredBy, &j.ForceMode); err != nil {
 			return nil, err
 		}
 		j.CompletedAt = completedAt
@@ -1113,10 +1252,10 @@ func (db *DB) GetEnrichJobByID(ctx context.Context, id int) (*EnrichJob, error) 
 	var completedAt *string
 	var errArr pgtype.FlatArray[string]
 	err := db.pool.QueryRow(ctx, `
-		SELECT id, store_type, status, started_at::text, completed_at::text,
+		SELECT id, store_type, COALESCE(job_type, 'enrich'), status, started_at::text, completed_at::text,
 			listings_processed, listings_enriched, COALESCE(errors, '{}'), triggered_by, force_mode
 		FROM enrich_jobs WHERE id = $1
-	`, id).Scan(&j.ID, &j.StoreType, &j.Status, &j.StartedAt, &completedAt, &j.ListingsProcessed, &j.ListingsEnriched, &errArr, &j.TriggeredBy, &j.ForceMode)
+	`, id).Scan(&j.ID, &j.StoreType, &j.JobType, &j.Status, &j.StartedAt, &completedAt, &j.ListingsProcessed, &j.ListingsEnriched, &errArr, &j.TriggeredBy, &j.ForceMode)
 	if err != nil {
 		if err.Error() == "no rows in result set" {
 			return nil, nil
@@ -1309,6 +1448,74 @@ func (db *DB) GetListingsNeedingEnrichmentForStore(ctx context.Context, storeTyp
 		LIMIT $1
 	`
 	rows, err := db.pool.Query(ctx, query, limit, storeType)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var listings []ListingForEnrichment
+	for rows.Next() {
+		var l ListingForEnrichment
+		if err := rows.Scan(&l.ID, &l.StoreID, &l.StoreType, &l.ProductURL); err != nil {
+			return nil, err
+		}
+		listings = append(listings, l)
+	}
+	return listings, rows.Err()
+}
+
+// EnrichmentFilter scopes PDP enrichment for targeted re-enrich (store, category, and/or low confidence).
+// StoreType empty means all store types in StoreTypesWithEnrichers.
+// CanonicalCategory empty means no path filter. LlmConfidenceBelow if set: only listings with stored llm confidence below that value.
+type EnrichmentFilter struct {
+	StoreType            string
+	CanonicalCategory   []string
+	LlmConfidenceBelow *float64
+}
+
+// GetListingsNeedingEnrichmentForFilter returns listings matching the filter, allowlisted to scraper/enricher stores.
+func (db *DB) GetListingsNeedingEnrichmentForFilter(ctx context.Context, f EnrichmentFilter, limit int, force bool) ([]ListingForEnrichment, error) {
+	if limit <= 0 {
+		limit = 50
+	}
+	if len(StoreTypesWithEnrichers) == 0 {
+		return nil, nil
+	}
+	var query string
+	args := []interface{}{}
+	argNum := 1
+
+	query = `
+		SELECT l.id, l.store_id, COALESCE(s.store_type, 'jensonusa'), l.product_url
+		FROM store_listings l
+		JOIN stores s ON s.id = l.store_id
+		WHERE l.product_url IS NOT NULL AND l.product_url != ''`
+	if f.StoreType != "" {
+		query += fmt.Sprintf(" AND s.store_type = $%d", argNum)
+		args = append(args, f.StoreType)
+		argNum++
+	} else {
+		query += fmt.Sprintf(" AND s.store_type = ANY($%d)", argNum)
+		args = append(args, pq.Array(StoreTypesWithEnrichers))
+		argNum++
+	}
+	if len(f.CanonicalCategory) > 0 {
+		query += fmt.Sprintf(" AND l.canonical_category = $%d", argNum)
+		args = append(args, pq.Array(f.CanonicalCategory))
+		argNum++
+	}
+	if f.LlmConfidenceBelow != nil {
+		query += fmt.Sprintf(" AND (l.metadata->>'llm_confidence')::float < $%d", argNum)
+		args = append(args, *f.LlmConfidenceBelow)
+		argNum++
+	}
+	if !force {
+		query += ` AND (l.last_enriched_at IS NULL OR l.last_enriched_at < NOW() - INTERVAL '7 days')`
+	}
+	query += fmt.Sprintf(" ORDER BY l.last_enriched_at NULLS FIRST, l.last_scraped DESC LIMIT $%d", argNum)
+	args = append(args, limit)
+
+	rows, err := db.pool.Query(ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}

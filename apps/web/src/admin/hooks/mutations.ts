@@ -40,6 +40,8 @@ import {
   updateCategoryClassifier,
   testCategoryClassifier,
   runCategoryClassifier,
+  postAdminListingsBulkClassify,
+  postAdminListingsBulkEnrich,
   createAdminCategory,
   updateAdminCategory,
   deleteAdminCategory,
@@ -77,8 +79,12 @@ export function useTriggerScrape() {
 export function useTriggerEnrich() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (opts?: { force?: boolean; store?: string }) =>
-      triggerEnrich(opts?.force, opts?.store),
+    mutationFn: (opts?: {
+      force?: boolean;
+      store?: string;
+      canonical_category?: string;
+      llm_confidence_below?: number;
+    }) => triggerEnrich(opts),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: adminEnrichJobKeys.all });
       queryClient.invalidateQueries({ queryKey: adminDashboardKeys.all });
@@ -547,11 +553,33 @@ export function useTestCategoryClassifier() {
 export function useRunCategoryClassifier() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (params?: { store?: string; canonical_category?: string[]; limit?: number }) =>
-      runCategoryClassifier(params),
+    mutationFn: (params?: Parameters<typeof runCategoryClassifier>[0]) => runCategoryClassifier(params),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: adminListingKeys.all });
       queryClient.invalidateQueries({ queryKey: adminCategoryClassifierKeys.all });
+      queryClient.invalidateQueries({ queryKey: adminEnrichJobKeys.all });
+    },
+  });
+}
+
+export function usePostBulkListingsClassify() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: postAdminListingsBulkClassify,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminListingKeys.all });
+      queryClient.invalidateQueries({ queryKey: adminEnrichJobKeys.all });
+    },
+  });
+}
+
+export function usePostBulkListingsEnrich() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: postAdminListingsBulkEnrich,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminListingKeys.all });
+      queryClient.invalidateQueries({ queryKey: adminEnrichJobKeys.all });
     },
   });
 }

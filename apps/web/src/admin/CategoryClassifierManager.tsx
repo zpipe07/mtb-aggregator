@@ -1,15 +1,17 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useCategoryClassifier } from "./hooks/queries";
+import { useCategoryClassifier, useCanonicalCategoryPaths } from "./hooks/queries";
 import {
   useUpdateCategoryClassifier,
   useTestCategoryClassifier,
   useRunCategoryClassifier,
 } from "./hooks/mutations";
+import { runCategoryClassifier } from "./api";
 
 export function CategoryClassifierManager() {
   const { data: config, isLoading } = useCategoryClassifier();
+  const { data: canonicalPaths = [] } = useCanonicalCategoryPaths();
   const updateMutation = useUpdateCategoryClassifier();
   const testMutation = useTestCategoryClassifier();
   const runMutation = useRunCategoryClassifier();
@@ -27,6 +29,16 @@ export function CategoryClassifierManager() {
   } | null>(null);
   const [runStore, setRunStore] = useState("");
   const [runLimit, setRunLimit] = useState(100);
+  const [runCanonical, setRunCanonical] = useState(""); // "Parent > Child" or ""
+  const [runLlmBelow, setRunLlmBelow] = useState("");
+  const [runEnrichment, setRunEnrichment] = useState<"any" | "yes" | "no">("any");
+  const [preview, setPreview] = useState<{
+    total: number;
+    max_per_run: number;
+    exceeds_max: boolean;
+    sample: { id: number; product_name: string }[];
+  } | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
 
   // Sync form when config loads
   useEffect(() => {
@@ -55,12 +67,53 @@ export function CategoryClassifierManager() {
     setTestResult(res.result ?? null);
   }
 
+  function buildRunParams() {
+    const path =
+      runCanonical.trim() === ""
+        ? undefined
+        : runCanonical.split(" > ").map((s) => s.trim()).filter(Boolean);
+    let llmBelow: number | undefined;
+    if (runLlmBelow.trim() !== "") {
+      const n = parseFloat(runLlmBelow);
+      if (!Number.isNaN(n) && n >= 0 && n <= 1) llmBelow = n;
+    }
+    let hasEnrichment: boolean | undefined;
+    if (runEnrichment === "yes") hasEnrichment = true;
+    else if (runEnrichment === "no") hasEnrichment = false;
+    return {
+      store: runStore.trim() || undefined,
+      canonical_category: path,
+      limit: runLimit,
+      llm_confidence_below: llmBelow,
+      has_enrichment: hasEnrichment,
+    };
+  }
+
+  async function handlePreview(e: React.FormEvent) {
+    e.preventDefault();
+    setPreview(null);
+    setPreviewLoading(true);
+    try {
+      const res = await runCategoryClassifier({ ...buildRunParams(), dry_run: true });
+      if ("total" in res) {
+        setPreview({
+          total: res.total,
+          max_per_run: res.max_per_run,
+          exceeds_max: res.exceeds_max,
+          sample: res.sample,
+        });
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setPreviewLoading(false);
+    }
+  }
+
   async function handleRun(e: React.FormEvent) {
     e.preventDefault();
-    await runMutation.mutateAsync({
-      store: runStore.trim() || undefined,
-      limit: runLimit,
-    });
+    setPreview(null);
+    await runMutation.mutateAsync({ ...buildRunParams(), dry_run: false });
   }
 
   if (isLoading) {
@@ -207,55 +260,153 @@ export function CategoryClassifierManager() {
 
       <div className="border-t border-stone-200 pt-6 space-y-4">
         <h3 className="font-medium text-stone-700">Batch run</h3>
-        <p className="text-sm text-stone-600">
-          Re-classify listings. Optionally filter by store. Uses stored description
-          and specs.
+        <p className="text-sm text-stone-600 max-w-2xl">
+          Re-classify listings (LLM only; no PDP re-scrape). Filter by store, exact canonical
+          path, enrichment status, and stored confidence. Preview shows count and a sample. Uses
+          stored description, specs, and category_path.
         </p>
-        <form onSubmit={handleRun} className="flex gap-4 items-end flex-wrap">
-          <div>
-            <label
-              htmlFor="run-store"
-              className="block text-sm font-medium text-stone-600 mb-1"
-            >
-              Store (optional)
-            </label>
-            <input
-              id="run-store"
-              type="text"
-              value={runStore}
-              onChange={(e) => setRunStore(e.target.value)}
-              placeholder="worldwidecyclery"
-              className="w-40 rounded border border-stone-300 px-3 py-2 text-stone-900"
-            />
+        <form className="space-y-3 flex flex-col gap-3">
+          <div className="flex flex-wrap gap-4 items-end">
+            <div>
+              <label
+                htmlFor="run-store"
+                className="block text-sm font-medium text-stone-600 mb-1"
+              >
+                Store type (optional)
+              </label>
+              <input
+                id="run-store"
+                type="text"
+                value={runStore}
+                onChange={(e) => setRunStore(e.target.value)}
+                placeholder="worldwidecyclery"
+                className="w-40 rounded border border-stone-300 px-3 py-2 text-stone-900"
+              />
+            </div>
+            <div>
+              <label
+                htmlFor="run-canonical"
+                className="block text-sm font-medium text-stone-600 mb-1"
+              >
+                Canonical path (optional)
+              </label>
+              <select
+                id="run-canonical"
+                value={runCanonical}
+                onChange={(e) => setRunCanonical(e.target.value)}
+                className="w-64 max-w-full rounded border border-stone-300 px-3 py-2 text-sm text-stone-900"
+              >
+                <option value="">Any</option>
+                {canonicalPaths.map((p) => (
+                  <option key={p} value={p}>
+                    {p}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label
+                htmlFor="run-llm-below"
+                className="block text-sm font-medium text-stone-600 mb-1"
+              >
+                LLM confidence &lt; (optional)
+              </label>
+              <input
+                id="run-llm-below"
+                type="number"
+                min={0}
+                max={1}
+                step={0.05}
+                value={runLlmBelow}
+                onChange={(e) => setRunLlmBelow(e.target.value)}
+                placeholder="e.g. 0.7"
+                className="w-24 rounded border border-stone-300 px-3 py-2 text-stone-900"
+              />
+            </div>
+            <div>
+              <label
+                htmlFor="run-enrichment"
+                className="block text-sm font-medium text-stone-600 mb-1"
+              >
+                PDP enriched
+              </label>
+              <select
+                id="run-enrichment"
+                value={runEnrichment}
+                onChange={(e) => setRunEnrichment(e.target.value as "any" | "yes" | "no")}
+                className="rounded border border-stone-300 px-3 py-2 text-sm"
+              >
+                <option value="any">Any</option>
+                <option value="yes">Yes (has last_enriched)</option>
+                <option value="no">Not yet</option>
+              </select>
+            </div>
+            <div>
+              <label
+                htmlFor="run-limit"
+                className="block text-sm font-medium text-stone-600 mb-1"
+              >
+                Max to process
+              </label>
+              <input
+                id="run-limit"
+                type="number"
+                min={1}
+                max={5000}
+                value={runLimit}
+                onChange={(e) => setRunLimit(parseInt(e.target.value, 10) || 100)}
+                className="w-24 rounded border border-stone-300 px-3 py-2 text-stone-900"
+              />
+            </div>
           </div>
-          <div>
-            <label
-              htmlFor="run-limit"
-              className="block text-sm font-medium text-stone-600 mb-1"
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={handlePreview}
+              disabled={previewLoading}
+              className="rounded border border-stone-400 px-4 py-2 text-stone-800 text-sm hover:bg-stone-50 disabled:opacity-50"
             >
-              Limit
-            </label>
-            <input
-              id="run-limit"
-              type="number"
-              min={1}
-              max={2000}
-              value={runLimit}
-              onChange={(e) => setRunLimit(parseInt(e.target.value, 10) || 100)}
-              className="w-24 rounded border border-stone-300 px-3 py-2 text-stone-900"
-            />
+              {previewLoading ? "Preview…" : "Preview"}
+            </button>
+            <button
+              type="button"
+              onClick={handleRun}
+              disabled={runMutation.isPending}
+              className="rounded bg-stone-700 px-4 py-2 text-white text-sm hover:bg-stone-600 disabled:opacity-50"
+            >
+              {runMutation.isPending ? "Running…" : "Run re-classify"}
+            </button>
           </div>
-          <button
-            type="submit"
-            disabled={runMutation.isPending}
-            className="rounded bg-stone-700 px-4 py-2 text-white text-sm hover:bg-stone-600 disabled:opacity-50"
-          >
-            {runMutation.isPending ? "Running…" : "Run"}
-          </button>
         </form>
-        {runMutation.isSuccess && runMutation.data && (
+        {preview && (
+          <div className="rounded border border-stone-200 bg-stone-50 p-3 text-sm space-y-2 max-w-2xl">
+            <p>
+              <span className="font-medium">Matching listings:</span> {preview.total}
+              {preview.exceeds_max && (
+                <span className="text-amber-700">
+                  {" "}
+                  (exceeds per-run cap {preview.max_per_run} — narrow filters to run)
+                </span>
+              )}
+            </p>
+            {preview.sample.length > 0 && (
+              <ul className="list-disc pl-5 text-stone-700">
+                {preview.sample.map((s) => (
+                  <li key={s.id}>
+                    #{s.id} — {s.product_name || "(no name)"}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
+        {runMutation.isSuccess && runMutation.data && "processed" in runMutation.data && (
           <p className="text-sm text-green-600">
-            {runMutation.data.processed} listings processed.
+            {runMutation.data.processed} listings processed
+            {runMutation.data.job_id != null && runMutation.data.job_id > 0
+              ? ` (job #${runMutation.data.job_id})`
+              : ""}
+            .
           </p>
         )}
         {runMutation.error && (
