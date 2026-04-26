@@ -1175,9 +1175,10 @@ export async function runCategoryClassifier(params?: {
   limit?: number;
   dry_run?: boolean;
 }): Promise<
-  | { ok: boolean; processed: number; job_id?: number }
+  | { ok: true; async: true; job_id: number; total: number; message?: string }
+  | { ok: true; async: false; processed: number; job_id: number; total: number }
   | {
-      ok: boolean;
+      ok: true;
       total: number;
       max_per_run: number;
       exceeds_max: boolean;

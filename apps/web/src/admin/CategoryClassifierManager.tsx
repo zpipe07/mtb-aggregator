@@ -95,7 +95,7 @@ export function CategoryClassifierManager() {
     setPreviewLoading(true);
     try {
       const res = await runCategoryClassifier({ ...buildRunParams(), dry_run: true });
-      if ("total" in res) {
+      if ("sample" in res && "max_per_run" in res) {
         setPreview({
           total: res.total,
           max_per_run: res.max_per_run,
@@ -400,13 +400,17 @@ export function CategoryClassifierManager() {
             )}
           </div>
         )}
-        {runMutation.isSuccess && runMutation.data && "processed" in runMutation.data && (
+        {runMutation.isSuccess && runMutation.data && "async" in runMutation.data && runMutation.data.async && (
+          <p className="text-sm text-green-600">
+            Job #{runMutation.data.job_id} started — re-classify runs in the background. See Operations →
+            Enrichment job history for status.
+            {runMutation.data.message ? ` ${runMutation.data.message}` : ""}
+          </p>
+        )}
+        {runMutation.isSuccess && runMutation.data && "async" in runMutation.data && !runMutation.data.async && "processed" in runMutation.data && (
           <p className="text-sm text-green-600">
             {runMutation.data.processed} listings processed
-            {runMutation.data.job_id != null && runMutation.data.job_id > 0
-              ? ` (job #${runMutation.data.job_id})`
-              : ""}
-            .
+            {runMutation.data.job_id > 0 ? ` (job #${runMutation.data.job_id})` : ""}.
           </p>
         )}
         {runMutation.error && (

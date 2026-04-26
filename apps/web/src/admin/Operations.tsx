@@ -307,6 +307,15 @@ export function Operations() {
             >
               {enrichMutation.isPending || classifyRunMutation.isPending ? "Running…" : "Run"}
             </button>
+            {classifyRunMutation.isSuccess &&
+              classifyRunMutation.data &&
+              "async" in classifyRunMutation.data &&
+              classifyRunMutation.data.async && (
+                <p className="text-xs text-green-700 mt-2 max-w-md">
+                  Re-classify job #{classifyRunMutation.data.job_id} started in the background. Status
+                  appears in Enrichment job history below.
+                </p>
+              )}
           </div>
         </div>
       </div>

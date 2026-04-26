@@ -543,26 +543,40 @@ func (h *Handlers) PostCategoryClassifierRun(w http.ResponseWriter, r *http.Requ
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	if len(ids) == 0 {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{"ok": true, "async": false, "processed": 0, "job_id": 0, "total": 0})
+		return
+	}
 
-	ctx := r.Context()
-	jobID, err := h.DB.CreateEnrichJob(ctx, nil, "manual", false, "classify")
+	var storeTypeForJob *string
+	if s := p.Store; s != "" {
+		st := s
+		storeTypeForJob = &st
+	}
+	jobID, err := h.DB.CreateEnrichJob(r.Context(), storeTypeForJob, "manual", false, "classify")
 	if err != nil {
 		log.Printf("[admin] create classify job: %v", err)
 		sentryutil.CaptureError(err, map[string]string{"component": "api", "handler": "category_classifier_run", "phase": "create_job"})
+		http.Error(w, "could not create job: "+err.Error(), http.StatusInternalServerError)
+		return
 	}
-	processed := 0
-	var errStrs []string
-	for _, id := range ids {
-		if w := h.runLLMCategoryClassification(ctx, id); w != "" {
-			errStrs = append(errStrs, w)
-		}
-		processed++
+	if jobID == 0 {
+		http.Error(w, "could not create job", http.StatusInternalServerError)
+		return
 	}
-	if jobID != 0 {
-		_ = h.DB.UpdateEnrichJob(ctx, jobID, "completed", &processed, &processed, errStrs)
-	}
+	idsCopy := append([]int(nil), ids...)
+	go runBulkClassifyInBackground(h, jobID, idsCopy, count)
+
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{"ok": true, "processed": processed, "job_id": jobID})
+	w.WriteHeader(http.StatusAccepted)
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"ok":      true,
+		"async":   true,
+		"job_id":  jobID,
+		"total":   count,
+		"message": "Job started. Re-classify runs in the background (avoids dev proxy time limits on long runs).",
+	})
 }
 
 func (h *Handlers) postCategoryClassifierPreview(w http.ResponseWriter, r *http.Request, body categoryClassifierRunBody) {
