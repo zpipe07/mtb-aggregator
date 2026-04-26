@@ -1,7 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useCategoryClassifier, useCanonicalCategoryPaths } from "./hooks/queries";
+import {
+  useCategoryClassifier,
+  useCanonicalCategoryPaths,
+} from "./hooks/queries";
 import {
   useUpdateCategoryClassifier,
   useTestCategoryClassifier,
@@ -18,7 +21,7 @@ export function CategoryClassifierManager() {
 
   const [systemPrompt, setSystemPrompt] = useState(config?.system_prompt ?? "");
   const [confidenceThreshold, setConfidenceThreshold] = useState(
-    config?.confidence_threshold ?? 0.8
+    config?.confidence_threshold ?? 0.8,
   );
   const [enabled, setEnabled] = useState(config?.enabled ?? true);
   const [testListingId, setTestListingId] = useState("");
@@ -31,7 +34,9 @@ export function CategoryClassifierManager() {
   const [runLimit, setRunLimit] = useState(100);
   const [runCanonical, setRunCanonical] = useState(""); // "Parent > Child" or ""
   const [runLlmBelow, setRunLlmBelow] = useState("");
-  const [runEnrichment, setRunEnrichment] = useState<"any" | "yes" | "no">("any");
+  const [runEnrichment, setRunEnrichment] = useState<"any" | "yes" | "no">(
+    "any",
+  );
   const [preview, setPreview] = useState<{
     total: number;
     max_per_run: number;
@@ -71,7 +76,10 @@ export function CategoryClassifierManager() {
     const path =
       runCanonical.trim() === ""
         ? undefined
-        : runCanonical.split(" > ").map((s) => s.trim()).filter(Boolean);
+        : runCanonical
+            .split(" > ")
+            .map((s) => s.trim())
+            .filter(Boolean);
     let llmBelow: number | undefined;
     if (runLlmBelow.trim() !== "") {
       const n = parseFloat(runLlmBelow);
@@ -94,7 +102,10 @@ export function CategoryClassifierManager() {
     setPreview(null);
     setPreviewLoading(true);
     try {
-      const res = await runCategoryClassifier({ ...buildRunParams(), dry_run: true });
+      const res = await runCategoryClassifier({
+        ...buildRunParams(),
+        dry_run: true,
+      });
       if ("sample" in res && "max_per_run" in res) {
         setPreview({
           total: res.total,
@@ -140,10 +151,11 @@ export function CategoryClassifierManager() {
         LLM Category Classifier
       </h2>
       <p className="text-sm text-stone-600 max-w-2xl">
-        Uses an LLM to refine product categories when taxonomy.Map() is ambiguous.
-        Runs after enrichment; when confidence is above the threshold, canonical_category
-        is updated. The classifier uses the current Category Tree automatically — categories
-        you add or edit in the tree are immediately eligible for classification. Configure
+        Uses an LLM to refine product categories when taxonomy.Map() is
+        ambiguous. Runs after enrichment; when confidence is above the
+        threshold, canonical_category is updated. The classifier uses the
+        current Category Tree automatically — categories you add or edit in the
+        tree are immediately eligible for classification. Configure
         OPENAI_API_KEY to enable.
       </p>
 
@@ -153,7 +165,9 @@ export function CategoryClassifierManager() {
           <p
             className={`text-sm ${updateMutation.isSuccess ? "text-green-600" : "text-red-600"}`}
           >
-            {updateMutation.isSuccess ? "Saved." : updateMutation.error?.message}
+            {updateMutation.isSuccess
+              ? "Saved."
+              : updateMutation.error?.message}
           </p>
         )}
         <div>
@@ -200,7 +214,10 @@ export function CategoryClassifierManager() {
               onChange={(e) => setEnabled(e.target.checked)}
               className="rounded border-stone-300"
             />
-            <label htmlFor="enabled" className="text-sm font-medium text-stone-700">
+            <label
+              htmlFor="enabled"
+              className="text-sm font-medium text-stone-700"
+            >
               Enabled
             </label>
           </div>
@@ -252,7 +269,8 @@ export function CategoryClassifierManager() {
               {Math.round(testResult.confidence * 100)}%
             </p>
             <p>
-              <span className="font-medium">Reasoning:</span> {testResult.reasoning}
+              <span className="font-medium">Reasoning:</span>{" "}
+              {testResult.reasoning}
             </p>
           </div>
         )}
@@ -261,9 +279,10 @@ export function CategoryClassifierManager() {
       <div className="border-t border-stone-200 pt-6 space-y-4">
         <h3 className="font-medium text-stone-700">Batch run</h3>
         <p className="text-sm text-stone-600 max-w-2xl">
-          Re-classify listings (LLM only; no PDP re-scrape). Filter by store, exact canonical
-          path, enrichment status, and stored confidence. Preview shows count and a sample. Uses
-          stored description, specs, and category_path.
+          Re-classify listings (LLM only; no PDP re-scrape). Filter by store,
+          exact canonical path, enrichment status, and stored confidence.
+          Preview shows count and a sample. Uses stored description, specs, and
+          category_path.
         </p>
         <form className="space-y-3 flex flex-col gap-3">
           <div className="flex flex-wrap gap-4 items-end">
@@ -333,7 +352,9 @@ export function CategoryClassifierManager() {
               <select
                 id="run-enrichment"
                 value={runEnrichment}
-                onChange={(e) => setRunEnrichment(e.target.value as "any" | "yes" | "no")}
+                onChange={(e) =>
+                  setRunEnrichment(e.target.value as "any" | "yes" | "no")
+                }
                 className="rounded border border-stone-300 px-3 py-2 text-sm"
               >
                 <option value="any">Any</option>
@@ -354,7 +375,9 @@ export function CategoryClassifierManager() {
                 min={1}
                 max={5000}
                 value={runLimit}
-                onChange={(e) => setRunLimit(parseInt(e.target.value, 10) || 100)}
+                onChange={(e) =>
+                  setRunLimit(parseInt(e.target.value, 10) || 100)
+                }
                 className="w-24 rounded border border-stone-300 px-3 py-2 text-stone-900"
               />
             </div>
@@ -381,11 +404,13 @@ export function CategoryClassifierManager() {
         {preview && (
           <div className="rounded border border-stone-200 bg-stone-50 p-3 text-sm space-y-2 max-w-2xl">
             <p>
-              <span className="font-medium">Matching listings:</span> {preview.total}
+              <span className="font-medium">Matching listings:</span>{" "}
+              {preview.total}
               {preview.exceeds_max && (
                 <span className="text-amber-700">
                   {" "}
-                  (exceeds per-run cap {preview.max_per_run} — narrow filters to run)
+                  (exceeds per-run cap {preview.max_per_run} — narrow filters to
+                  run)
                 </span>
               )}
             </p>
@@ -400,19 +425,29 @@ export function CategoryClassifierManager() {
             )}
           </div>
         )}
-        {runMutation.isSuccess && runMutation.data && "async" in runMutation.data && runMutation.data.async && (
-          <p className="text-sm text-green-600">
-            Job #{runMutation.data.job_id} started — re-classify runs in the background. See Operations →
-            Enrichment job history for status.
-            {runMutation.data.message ? ` ${runMutation.data.message}` : ""}
-          </p>
-        )}
-        {runMutation.isSuccess && runMutation.data && "async" in runMutation.data && !runMutation.data.async && "processed" in runMutation.data && (
-          <p className="text-sm text-green-600">
-            {runMutation.data.processed} listings processed
-            {runMutation.data.job_id > 0 ? ` (job #${runMutation.data.job_id})` : ""}.
-          </p>
-        )}
+        {runMutation.isSuccess &&
+          runMutation.data &&
+          "async" in runMutation.data &&
+          runMutation.data.async && (
+            <p className="text-sm text-green-600">
+              Job #{runMutation.data.job_id} started — re-classify runs in the
+              background. See Operations → Enrichment job history for status.
+              {runMutation.data.message ? ` ${runMutation.data.message}` : ""}
+            </p>
+          )}
+        {runMutation.isSuccess &&
+          runMutation.data &&
+          "async" in runMutation.data &&
+          !runMutation.data.async &&
+          "processed" in runMutation.data && (
+            <p className="text-sm text-green-600">
+              {runMutation.data.processed} listings processed
+              {runMutation.data.job_id > 0
+                ? ` (job #${runMutation.data.job_id})`
+                : ""}
+              .
+            </p>
+          )}
         {runMutation.error && (
           <p className="text-sm text-red-600">{runMutation.error.message}</p>
         )}

@@ -596,6 +596,9 @@ func (h *Handlers) postCategoryClassifierPreview(w http.ResponseWriter, r *http.
 	if sample == nil {
 		sample = []db.ClassifierRunPreviewSample{}
 	}
+	if jobID != 0 {
+		_ = h.DB.UpdateEnrichJob(ctx, jobID, "completed", &processed, &processed, errStrs)
+	}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"ok":            true,
