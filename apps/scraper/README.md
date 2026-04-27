@@ -36,7 +36,7 @@ Parsers live in `src/parsers/` — one file per store:
 
 - `jensonusa.ts` — JensonUSA sale + enrichment
 - `worldwidecyclery.ts` — Worldwide Cyclery
-- `revelbikes.ts` — Revel Bikes (scrape only)
+- `revelbikes.ts` — Revel Bikes (Shopify collection JSON + PDP enrich via `/products/{handle}.json`; specs from `body_html` `<strong>KEY:</strong><br>value` paragraphs)
 - `backcountry.ts` — Backcountry
 - `ridebicycles.ts` — Ride Bicycles (Shopify JSON API; in-stock + ≥10% off compare-at)
 

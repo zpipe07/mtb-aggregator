@@ -37,7 +37,7 @@ Go HTTP server that orchestrates scraping, enrichment, and serves the REST API. 
 ### Trigger (cron or manual)
 
 - `POST /scrape-now` — Trigger scrape job; optional `?store=<store_type>`
-- `POST /enrich-now` — Trigger enrichment job; optional `?force=1`, `?store=`
+- `POST /enrich-now` — Trigger enrichment job; optional `?force=1`, `?store=`. Store types that run PDP enrichment are listed in `StoreTypesWithEnrichers` in `internal/db/db.go` (includes `jensonusa`, `worldwidecyclery`, `revelbikes`, `backcountry`, `ridebicycles`).
 
 **Auth:** Valid `CRON_SECRET` via `X-Cron-Secret` (or `?secret=` — avoid in production logs), or `Authorization: Bearer <ADMIN_PASSWORD>`. In production (`APP_ENV=production` or `RENDER=true`), if `CRON_SECRET` is unset, unauthenticated triggers are rejected unless `ALLOW_OPEN_CRON=1` (not recommended). Local dev allows unauthenticated triggers when `CRON_SECRET` is unset.
 
