@@ -7,12 +7,15 @@ import {
   parseProductDtoVariants,
   type JensonProductDto,
 } from "./jensonusa-dto.js";
+import { parsePdpVariantsFromHtml, type PdpEnrichVariant } from "./jensonusa-pdp.js";
 
 export interface EnrichResult {
   category_path: string[] | null;
   raw_specs: Record<string, string> | null;
   unavailable?: boolean;
-  description?: string | null;
+  description?: string;
+  /** PDP per-variant rows (JensonUSA only); API fans out to sibling listings. */
+  variants?: PdpEnrichVariant[];
 }
 
 const BASE_URL = "https://www.jensonusa.com";
@@ -423,12 +426,16 @@ export async function enrichJensonUSA(
         description: string | null;
       };
 
+      const html = await page.content();
+      const variants = parsePdpVariantsFromHtml(html);
+
       await new Promise((r) => setTimeout(r, ENRICH_DELAY_MS));
 
       return {
         category_path: result.categoryPath,
         raw_specs: result.rawSpecs,
         description: result.description ?? undefined,
+        ...(variants.length > 0 ? { variants } : {}),
       };
     } catch (err) {
       try {

@@ -45,7 +45,7 @@ When `SCRAPER_SERVICE_SECRET` is set (recommended in production), `POST /scrape`
 }
 ```
 
-**JensonUSA:** Each clearance product card’s `data-product-result-dto` includes a `variants` array (in addition to `selectedVariant`). The parser emits one result per variant so each sale price and SKU is stored; `product_group_key` is the parent `code`, and `variant_options` collects facet fields (`color`, structured `size`, etc.). After the first deploy with this behavior, apply migration `025_jenson_hide_superseded_parent_listings.sql` so legacy parent-`store_sku` rows are hidden when longer variant SKUs exist on the same `product_url`.
+**JensonUSA:** Each clearance product card’s `data-product-result-dto` includes a `variants` array (in addition to `selectedVariant`). The parser emits one result per variant so each sale price and SKU is stored; `product_group_key` is the parent `code`, and listing-side `variant_options` reflect whatever facets exist on the card (often **Color** only). **Full variant labels (e.g. Size) and per-variant stock** come from the PDP: the scraper’s `POST /enrich` for JensonUSA returns `variants[]` parsed from `serverSideViewModel.variants`, and the API updates all sibling rows for that `product_group_key`. After the first deploy with per-variant scrape rows, apply migration `025_jenson_hide_superseded_parent_listings.sql` so legacy parent-`store_sku` rows are hidden when longer variant SKUs exist on the same `product_url`.
 
 ## Testing
 

@@ -87,7 +87,7 @@ export function dimensionKeyToLabel(raw: string): string {
     .join(" ");
 }
 
-function extractDimensionString(v: unknown): string | null {
+export function extractDimensionString(v: unknown): string | null {
   if (v == null) return null;
   if (typeof v === "string") {
     const t = v.trim();

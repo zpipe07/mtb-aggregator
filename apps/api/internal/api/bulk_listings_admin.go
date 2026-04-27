@@ -236,13 +236,14 @@ func runBulkEnrichInBackground(h *Handlers, jobID int, ids []int, total int) {
 	enrichedN := 0
 	var errStrs []string
 	processedN := 0
+	jensonSeen := make(map[string]bool)
 	for _, id := range ids {
 		if workCtx.Err() != nil {
 			errStrs = append(errStrs, "job timed out: "+workCtx.Err().Error())
 			_ = h.DB.UpdateEnrichJob(workCtx, jobID, "timed_out", &processedN, &enrichedN, errStrs)
 			return
 		}
-		if err := h.adminEnrichOneListing(workCtx, id, &errStrs); err != nil {
+		if err := h.adminEnrichOneListing(workCtx, id, &errStrs, jensonSeen); err != nil {
 			errStrs = append(errStrs, err.Error())
 		} else {
 			enrichedN++
@@ -254,8 +255,9 @@ func runBulkEnrichInBackground(h *Handlers, jobID int, ids []int, total int) {
 }
 
 // adminEnrichOneListing runs PDP enrich + LLM for one listing. errStrs collects non-fatal LLM warnings; returns fatal error.
-func (h *Handlers) adminEnrichOneListing(ctx context.Context, id int, errStrs *[]string) error {
-	productURL, storeType, err := h.DB.GetListingEnrichmentInfo(ctx, id)
+// jensonSeen dedupes JensonUSA PDP variant fan-out across listings in the same product_group_key (optional).
+func (h *Handlers) adminEnrichOneListing(ctx context.Context, id int, errStrs *[]string, jensonSeen map[string]bool) error {
+	storeID, productURL, storeType, storeSKU, err := h.DB.GetListingEnrichmentInfo(ctx, id)
 	if err != nil {
 		return err
 	}
@@ -278,6 +280,9 @@ func (h *Handlers) adminEnrichOneListing(ctx context.Context, id int, errStrs *[
 	}
 	if err := h.DB.UpdateListingEnrichment(ctx, id, result.CategoryPath, result.RawSpecs, result.Unavailable, result.Description); err != nil {
 		return fmt.Errorf("listing %d update: %w", id, err)
+	}
+	if err := applyJensonPDPAfterEnrich(ctx, h.DB, storeID, storeType, storeSKU, result.Variants, jensonSeen); err != nil {
+		log.Printf("[admin] bulk enrich jenson variant fan-out listing %d: %v", id, err)
 	}
 	if w := h.runLLMCategoryClassification(ctx, id); w != "" && errStrs != nil {
 		*errStrs = append(*errStrs, w)

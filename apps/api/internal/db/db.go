@@ -1384,6 +1384,7 @@ type ListingForEnrichment struct {
 	StoreID    int
 	StoreType  string
 	ProductURL string
+	StoreSKU   string
 }
 
 func (db *DB) GetListingsNeedingEnrichment(ctx context.Context, limit int, force bool) ([]ListingForEnrichment, error) {
@@ -1394,7 +1395,7 @@ func (db *DB) GetListingsNeedingEnrichment(ctx context.Context, limit int, force
 		return nil, nil
 	}
 	query := `
-		SELECT l.id, l.store_id, COALESCE(s.store_type, 'jensonusa'), l.product_url
+		SELECT l.id, l.store_id, COALESCE(s.store_type, 'jensonusa'), l.product_url, COALESCE(l.store_sku, '')
 		FROM store_listings l
 		JOIN stores s ON s.id = l.store_id
 		WHERE l.product_url IS NOT NULL AND l.product_url != ''
@@ -1416,7 +1417,7 @@ func (db *DB) GetListingsNeedingEnrichment(ctx context.Context, limit int, force
 	var listings []ListingForEnrichment
 	for rows.Next() {
 		var l ListingForEnrichment
-		if err := rows.Scan(&l.ID, &l.StoreID, &l.StoreType, &l.ProductURL); err != nil {
+		if err := rows.Scan(&l.ID, &l.StoreID, &l.StoreType, &l.ProductURL, &l.StoreSKU); err != nil {
 			return nil, err
 		}
 		listings = append(listings, l)
@@ -1434,7 +1435,7 @@ func (db *DB) GetListingsNeedingEnrichmentForStore(ctx context.Context, storeTyp
 		return nil, nil
 	}
 	query := `
-		SELECT l.id, l.store_id, COALESCE(s.store_type, 'jensonusa'), l.product_url
+		SELECT l.id, l.store_id, COALESCE(s.store_type, 'jensonusa'), l.product_url, COALESCE(l.store_sku, '')
 		FROM store_listings l
 		JOIN stores s ON s.id = l.store_id
 		WHERE l.product_url IS NOT NULL AND l.product_url != ''
@@ -1456,7 +1457,7 @@ func (db *DB) GetListingsNeedingEnrichmentForStore(ctx context.Context, storeTyp
 	var listings []ListingForEnrichment
 	for rows.Next() {
 		var l ListingForEnrichment
-		if err := rows.Scan(&l.ID, &l.StoreID, &l.StoreType, &l.ProductURL); err != nil {
+		if err := rows.Scan(&l.ID, &l.StoreID, &l.StoreType, &l.ProductURL, &l.StoreSKU); err != nil {
 			return nil, err
 		}
 		listings = append(listings, l)
@@ -1486,7 +1487,7 @@ func (db *DB) GetListingsNeedingEnrichmentForFilter(ctx context.Context, f Enric
 	argNum := 1
 
 	query = `
-		SELECT l.id, l.store_id, COALESCE(s.store_type, 'jensonusa'), l.product_url
+		SELECT l.id, l.store_id, COALESCE(s.store_type, 'jensonusa'), l.product_url, COALESCE(l.store_sku, '')
 		FROM store_listings l
 		JOIN stores s ON s.id = l.store_id
 		WHERE l.product_url IS NOT NULL AND l.product_url != ''`
@@ -1524,7 +1525,7 @@ func (db *DB) GetListingsNeedingEnrichmentForFilter(ctx context.Context, f Enric
 	var listings []ListingForEnrichment
 	for rows.Next() {
 		var l ListingForEnrichment
-		if err := rows.Scan(&l.ID, &l.StoreID, &l.StoreType, &l.ProductURL); err != nil {
+		if err := rows.Scan(&l.ID, &l.StoreID, &l.StoreType, &l.ProductURL, &l.StoreSKU); err != nil {
 			return nil, err
 		}
 		listings = append(listings, l)
@@ -1661,21 +1662,21 @@ func (db *DB) UpdateListingEnrichment(ctx context.Context, id int, categoryPath 
 	return err
 }
 
-// GetListingEnrichmentInfo returns product_url and store_type for a listing by id. Used for single-listing enrichment.
-func (db *DB) GetListingEnrichmentInfo(ctx context.Context, id int) (productURL, storeType string, err error) {
+// GetListingEnrichmentInfo returns store id, product_url, store_type, and store_sku for a listing by id. Used for single-listing enrichment.
+func (db *DB) GetListingEnrichmentInfo(ctx context.Context, id int) (storeID int, productURL, storeType, storeSKU string, err error) {
 	err = db.pool.QueryRow(ctx, `
-		SELECT l.product_url, COALESCE(s.store_type, 'jensonusa')
+		SELECT l.store_id, l.product_url, COALESCE(s.store_type, 'jensonusa'), COALESCE(l.store_sku, '')
 		FROM store_listings l
 		JOIN stores s ON s.id = l.store_id
 		WHERE l.id = $1
-	`, id).Scan(&productURL, &storeType)
+	`, id).Scan(&storeID, &productURL, &storeType, &storeSKU)
 	if err != nil {
 		if err.Error() == "no rows in result set" {
-			return "", "", nil
+			return 0, "", "", "", nil
 		}
-		return "", "", err
+		return 0, "", "", "", err
 	}
-	return productURL, storeType, nil
+	return storeID, productURL, storeType, storeSKU, nil
 }
 
 // ListingForLLM holds data needed to run LLM extraction (product name, metadata, canonical category).

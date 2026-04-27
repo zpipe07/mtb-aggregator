@@ -923,7 +923,7 @@ func (h *Handlers) PostAdminEnrichListing(w http.ResponseWriter, r *http.Request
 		http.Error(w, "scraper not configured", http.StatusServiceUnavailable)
 		return
 	}
-	productURL, storeType, err := h.DB.GetListingEnrichmentInfo(r.Context(), id)
+	storeID, productURL, storeType, storeSKU, err := h.DB.GetListingEnrichmentInfo(r.Context(), id)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -960,6 +960,9 @@ func (h *Handlers) PostAdminEnrichListing(w http.ResponseWriter, r *http.Request
 	if err := h.DB.UpdateListingEnrichment(r.Context(), id, result.CategoryPath, result.RawSpecs, result.Unavailable, result.Description); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
+	}
+	if err := applyJensonPDPAfterEnrich(r.Context(), h.DB, storeID, storeType, storeSKU, result.Variants, nil); err != nil {
+		log.Printf("[admin] jenson variant fan-out listing %d: %v", id, err)
 	}
 	var llmWarnings []string
 	if w := h.runLLMCategoryClassification(r.Context(), id); w != "" {
