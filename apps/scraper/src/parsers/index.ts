@@ -2,7 +2,7 @@ import type { ScrapeResult } from "../types.js";
 import type { EnrichResult } from "./jensonusa.js";
 import { scrapeJensonUSA, enrichJensonUSA } from "./jensonusa.js";
 import { scrapeWorldwideCyclery, enrichWorldwideCyclery } from "./worldwidecyclery.js";
-import { scrapeRevelBikes } from "./revelbikes.js";
+import { scrapeRevelBikes, enrichRevelBikes } from "./revelbikes.js";
 import { scrapeBackcountry, enrichBackcountry } from "./backcountry.js";
 import { scrapeRideBicycles, enrichRideBicycles } from "./ridebicycles.js";
 
@@ -20,6 +20,7 @@ export const PARSERS: Record<string, ParserFn> = {
 export const ENRICHERS: Record<string, EnrichFn> = {
   jensonusa: enrichJensonUSA,
   worldwidecyclery: enrichWorldwideCyclery,
+  revelbikes: enrichRevelBikes,
   backcountry: enrichBackcountry,
   ridebicycles: enrichRideBicycles,
 };

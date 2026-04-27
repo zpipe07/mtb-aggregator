@@ -71,3 +71,4 @@ curl -X POST http://localhost:3000/scrape \
 - **Testing**: Set `SCRAPER_MAX_PRODUCTS=10` (or similar) to limit products per scrape; 0 = no limit
 - **Store types**: Must match keys in `PARSERS` and `ENRICHERS`
 - **Ride Bicycles**: Uses Shopify products.json API; parser keeps in-stock variants with compare-at price and **≥10%** off compare-at (rb_stock_status, rb_discount_relative are not honored by the API)
+- **Revel Bikes**: Same Shopify collection `products.json` scrape as other stores. **PDP enrichment** (`enrichRevelBikes`): `GET /products/{handle}.json`, then parse `body_html` for spec paragraphs `<p><strong>KEY:</strong><br>value</p>` into `raw_specs`, with remaining prose as `description`. `category_path` uses `product_type` when Shopify sets it (often empty on sale SKUs). Canonical categories still come from the **API’s generic LLM classifier**, not the enricher.

@@ -5,7 +5,7 @@ import express from "express";
 import { mkdir, writeFile } from "fs/promises";
 import { join } from "path";
 import { runWithBrowser } from "./browser.js";
-import { getParser, getEnricher } from "./parsers/index.js";
+import { getParser, getEnricher, PARSERS, ENRICHERS } from "./parsers/index.js";
 import { captureRouteError } from "./sentry-helpers.js";
 import { ScrapeRequestSchema, ScrapeResultSchema, EnrichRequestSchema } from "./types.js";
 
@@ -117,7 +117,7 @@ app.post("/enrich", scraperServiceAuth, async (req, res) => {
 
   if (!enricher) {
     return res.status(400).json({
-      error: `Unknown store: ${store}. Supported: jensonusa, worldwidecyclery, revelbikes`,
+      error: `Unknown store: ${store}. Supported enrichers: ${Object.keys(ENRICHERS).sort().join(", ")}`,
     });
   }
 

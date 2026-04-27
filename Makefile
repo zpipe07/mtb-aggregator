@@ -1,4 +1,4 @@
-.PHONY: dev db-up db-down db-migrate db-migrate-docker db-seed db-up-local db-migrate-local db-migrate-remote db-seed-remote backfill-brands backfill-canonical-categories backfill-llm-specs backfill-field-library backfill-variant-options backfill-jenson-variants scrape scrape-now scrape-now-wwc scrape-now-revel scrape-now-ridebicycles build-all install
+.PHONY: dev db-up db-down db-migrate db-migrate-docker db-seed db-up-local db-migrate-local db-migrate-remote db-seed-remote backfill-brands backfill-canonical-categories backfill-llm-specs backfill-field-library backfill-variant-options backfill-jenson-variants scrape scrape-now scrape-now-wwc scrape-now-revel scrape-now-ridebicycles enrich-now enrich-now-revel build-all install
 
 # Ensure Make can find docker (Docker Desktop CLI locations)
 export PATH := /Applications/Docker.app/Contents/Resources/bin:/usr/local/bin:/opt/homebrew/bin:$(PATH)
@@ -117,6 +117,10 @@ scrape-now-ridebicycles:
 # Add force=1 to re-enrich all listings: make enrich-now FORCE=1
 enrich-now:
 	@curl -s -X POST "http://localhost:8080/enrich-now$(if $(FORCE),?force=1,)"
+
+# Enrich only Revel Bikes (requires API and scraper running). Optional: FORCE=1
+enrich-now-revel:
+	@curl -s -X POST "http://localhost:8080/enrich-now?store=revelbikes$(if $(FORCE),&force=1,)"
 
 # Build all apps
 build-all:
