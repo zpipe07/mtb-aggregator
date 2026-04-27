@@ -1,4 +1,4 @@
-.PHONY: dev db-up db-down db-migrate db-migrate-docker db-seed db-up-local db-migrate-local db-migrate-remote db-seed-remote backfill-brands backfill-canonical-categories backfill-llm-specs backfill-field-library backfill-variant-options scrape scrape-now scrape-now-wwc scrape-now-revel scrape-now-ridebicycles build-all install
+.PHONY: dev db-up db-down db-migrate db-migrate-docker db-seed db-up-local db-migrate-local db-migrate-remote db-seed-remote backfill-brands backfill-canonical-categories backfill-llm-specs backfill-field-library backfill-variant-options backfill-jenson-variants scrape scrape-now scrape-now-wwc scrape-now-revel scrape-now-ridebicycles build-all install
 
 # Ensure Make can find docker (Docker Desktop CLI locations)
 export PATH := /Applications/Docker.app/Contents/Resources/bin:/usr/local/bin:/opt/homebrew/bin:$(PATH)
@@ -88,6 +88,10 @@ backfill-field-library:
 # Populate variant_options from Shopify product JSON for listings missing it (run once after migration 021)
 backfill-variant-options:
 	cd apps/api && go run ./cmd/backfill-variant-options
+
+# JensonUSA: PDP enrich once per product_group_key, fan out variant_options + is_in_stock (requires scraper service)
+backfill-jenson-variants:
+	cd apps/api && go run ./cmd/backfill-jenson-variants
 
 # Run scraper manually (for testing)
 scrape:

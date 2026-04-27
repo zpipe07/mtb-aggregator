@@ -401,6 +401,7 @@ func (s *Scheduler) RunEnrichmentJob(force bool, triggeredBy string) {
 	log.Printf("[enrichment] enriching %d listings", len(listings))
 
 	var llmState enrichLLMJobState
+	seenJensonGroups := make(map[string]bool)
 	processed := 0
 	for _, l := range listings {
 		if ctx.Err() != nil {
@@ -429,6 +430,10 @@ func (s *Scheduler) RunEnrichmentJob(force bool, triggeredBy string) {
 			continue
 		}
 
+		if err := s.db.ApplyJensonPDPVariantFanout(ctx, l.StoreID, l.StoreType, l.StoreSKU, enrichVariantsToJenson(result.Variants), seenJensonGroups); err != nil {
+			log.Printf("[enrichment] jenson variant fan-out failed for listing %d: %v", l.ID, err)
+		}
+
 		successCount++
 		if result.Unavailable {
 			log.Printf("[enrichment] listing %d: marked unavailable (out of stock)", l.ID)
@@ -446,6 +451,21 @@ func (s *Scheduler) RunEnrichmentJob(force bool, triggeredBy string) {
 		_ = s.db.UpdateEnrichJob(ctx, jobID, status, &p, &successCount, errStrs)
 	}
 	log.Printf("[enrichment] enriched %d/%d listings", successCount, len(listings))
+}
+
+func enrichVariantsToJenson(v []scraper.EnrichVariant) []db.JensonPDPVariant {
+	if len(v) == 0 {
+		return nil
+	}
+	out := make([]db.JensonPDPVariant, len(v))
+	for i := range v {
+		out[i] = db.JensonPDPVariant{
+			Code:        v[i].Code,
+			Dimensions:  v[i].Dimensions,
+			IsOrderable: v[i].IsOrderable,
+		}
+	}
+	return out
 }
 
 // runLLMCategoryClassification runs LLM category classification to refine canonical_category.
@@ -692,6 +712,7 @@ func (s *Scheduler) runEnrichmentLoop(f db.EnrichmentFilter, force bool, trigger
 			break
 		}
 		log.Printf("[enrichment] %s: enriching batch of %d listings", scope, len(listings))
+		seenJensonGroups := make(map[string]bool)
 		successCount := 0
 		for _, l := range listings {
 			if ctx.Err() != nil {
@@ -716,6 +737,9 @@ func (s *Scheduler) runEnrichmentLoop(f db.EnrichmentFilter, force bool, trigger
 				log.Printf("[enrichment] failed to update listing %d: %v", l.ID, err)
 				errStrs = append(errStrs, fmt.Sprintf("listing %d update: %v", l.ID, err))
 				continue
+			}
+			if err := s.db.ApplyJensonPDPVariantFanout(ctx, l.StoreID, l.StoreType, l.StoreSKU, enrichVariantsToJenson(result.Variants), seenJensonGroups); err != nil {
+				log.Printf("[enrichment] jenson variant fan-out failed for listing %d: %v", l.ID, err)
 			}
 			successCount++
 			totalSuccess++

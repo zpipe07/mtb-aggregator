@@ -3,13 +3,19 @@ import { join } from "path";
 import type { ScrapeResult } from "../types.js";
 import { runWithBrowser } from "../browser.js";
 import { USER_AGENT, SCRAPE_DELAY_MS, ENRICH_DELAY_MS } from "../config.js";
-import { parseProductDto, type JensonProductDto } from "./jensonusa-dto.js";
+import {
+  parseProductDtoVariants,
+  type JensonProductDto,
+} from "./jensonusa-dto.js";
+import { parsePdpVariantsFromHtml, type PdpEnrichVariant } from "./jensonusa-pdp.js";
 
 export interface EnrichResult {
   category_path: string[] | null;
   raw_specs: Record<string, string> | null;
   unavailable?: boolean;
-  description?: string | null;
+  description?: string;
+  /** PDP per-variant rows (JensonUSA only); API fans out to sibling listings. */
+  variants?: PdpEnrichVariant[];
 }
 
 const BASE_URL = "https://www.jensonusa.com";
@@ -88,8 +94,8 @@ export async function scrapeJensonUSA(url: string): Promise<ScrapeResult[]> {
         // Polite delay before scraping
         await new Promise((r) => setTimeout(r, SCRAPE_DELAY_MS));
 
-        // Extract raw DTO + container text from each card. Parsing happens in Node via parseProductDto
-        // so we can unit-test the DTO structure (listPrice, msrpPrice) and catch field changes.
+        // Extract raw DTO + container text from each card. Parsing happens in Node via parseProductDtoVariants
+        // (one row per variants[] entry when present) so we can unit-test DTO shape changes.
         const extractScript = `
       const parsePriceFromText = (text) => {
         const m = (text || '').replace(/,/g, '').match(/\\$?([\\d.]+)/);
@@ -152,8 +158,12 @@ export async function scrapeJensonUSA(url: string): Promise<ScrapeResult[]> {
 
         const results: ScrapeResult[] = [];
         for (const { dto, containerText, imageUrlFromDom } of extracted.raw) {
-          const parsed = parseProductDto(dto, containerText, imageUrlFromDom);
-          if (parsed) {
+          const rows = parseProductDtoVariants(
+            dto,
+            containerText,
+            imageUrlFromDom,
+          );
+          for (const parsed of rows) {
             results.push({
               store_sku: parsed.sku,
               product_name: parsed.name,
@@ -164,6 +174,12 @@ export async function scrapeJensonUSA(url: string): Promise<ScrapeResult[]> {
               brand: parsed.brand,
               category_path: parsed.category_path,
               is_in_stock: true,
+              ...(parsed.productGroupKey
+                ? { product_group_key: parsed.productGroupKey }
+                : {}),
+              ...(parsed.variantOptions
+                ? { variant_options: parsed.variantOptions }
+                : {}),
             });
           }
         }
@@ -410,12 +426,16 @@ export async function enrichJensonUSA(
         description: string | null;
       };
 
+      const html = await page.content();
+      const variants = parsePdpVariantsFromHtml(html);
+
       await new Promise((r) => setTimeout(r, ENRICH_DELAY_MS));
 
       return {
         category_path: result.categoryPath,
         raw_specs: result.rawSpecs,
         description: result.description ?? undefined,
+        ...(variants.length > 0 ? { variants } : {}),
       };
     } catch (err) {
       try {

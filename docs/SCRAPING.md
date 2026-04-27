@@ -40,8 +40,12 @@ When `SCRAPER_SERVICE_SECRET` is set (recommended in production), `POST /scrape`
   brand: string | null;
   category_path: string[] | null;
   is_in_stock: boolean;
+  product_group_key?: string | null; // optional: Shopify handle or Jenson parent product code
+  variant_options?: Record<string, string> | null; // e.g. { Color: "Black", Size: "8.5" }
 }
 ```
+
+**JensonUSA:** Each clearance product card’s `data-product-result-dto` includes a `variants` array (in addition to `selectedVariant`). The parser emits one result per variant so each sale price and SKU is stored; `product_group_key` is the parent `code`, and listing-side `variant_options` reflect whatever facets exist on the card (often **Color** only). **Full variant labels (e.g. Size) and per-variant stock** come from the PDP: the scraper’s `POST /enrich` for JensonUSA returns `variants[]` parsed from `serverSideViewModel.variants`, and the API updates all sibling rows for that `product_group_key`. After the first deploy with per-variant scrape rows, apply migration `025_jenson_hide_superseded_parent_listings.sql` so legacy parent-`store_sku` rows are hidden when longer variant SKUs exist on the same `product_url`.
 
 ## Testing
 
