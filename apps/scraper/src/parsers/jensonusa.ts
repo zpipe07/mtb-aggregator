@@ -3,7 +3,10 @@ import { join } from "path";
 import type { ScrapeResult } from "../types.js";
 import { runWithBrowser } from "../browser.js";
 import { USER_AGENT, SCRAPE_DELAY_MS, ENRICH_DELAY_MS } from "../config.js";
-import { parseProductDto, type JensonProductDto } from "./jensonusa-dto.js";
+import {
+  parseProductDtoVariants,
+  type JensonProductDto,
+} from "./jensonusa-dto.js";
 
 export interface EnrichResult {
   category_path: string[] | null;
@@ -88,8 +91,8 @@ export async function scrapeJensonUSA(url: string): Promise<ScrapeResult[]> {
         // Polite delay before scraping
         await new Promise((r) => setTimeout(r, SCRAPE_DELAY_MS));
 
-        // Extract raw DTO + container text from each card. Parsing happens in Node via parseProductDto
-        // so we can unit-test the DTO structure (listPrice, msrpPrice) and catch field changes.
+        // Extract raw DTO + container text from each card. Parsing happens in Node via parseProductDtoVariants
+        // (one row per variants[] entry when present) so we can unit-test DTO shape changes.
         const extractScript = `
       const parsePriceFromText = (text) => {
         const m = (text || '').replace(/,/g, '').match(/\\$?([\\d.]+)/);
@@ -152,8 +155,12 @@ export async function scrapeJensonUSA(url: string): Promise<ScrapeResult[]> {
 
         const results: ScrapeResult[] = [];
         for (const { dto, containerText, imageUrlFromDom } of extracted.raw) {
-          const parsed = parseProductDto(dto, containerText, imageUrlFromDom);
-          if (parsed) {
+          const rows = parseProductDtoVariants(
+            dto,
+            containerText,
+            imageUrlFromDom,
+          );
+          for (const parsed of rows) {
             results.push({
               store_sku: parsed.sku,
               product_name: parsed.name,
@@ -164,6 +171,12 @@ export async function scrapeJensonUSA(url: string): Promise<ScrapeResult[]> {
               brand: parsed.brand,
               category_path: parsed.category_path,
               is_in_stock: true,
+              ...(parsed.productGroupKey
+                ? { product_group_key: parsed.productGroupKey }
+                : {}),
+              ...(parsed.variantOptions
+                ? { variant_options: parsed.variantOptions }
+                : {}),
             });
           }
         }

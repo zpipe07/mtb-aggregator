@@ -28,11 +28,7 @@ If `with_confidence` is a small fraction of `total`, confidence-band targeting w
 
 Next.js dev rewrites (`/api` → `http://localhost:8080`) effectively act as a proxy. If the Go handler holds the connection open longer than that limit, the proxy can close the socket; the API’s `r.Context()` is then cancelled, which surfaces as `context canceled` on the next downstream call (e.g. LLM) and “socket hang up” on the client.
 
-<<<<<<< HEAD
 **Bulk classify, bulk re-enrich, and** `POST /admin/category-classifier/run` **(Category Classifier manager + Operations “Re-classify only”)** return **202 Accepted** when there is work to do, with `{ "async": true, "job_id": N }`, and run the classify loop in a background goroutine using a **detached** context (`context.Background()` + `BULK_LISTINGS_WORK_TIMEOUT`). The sync path (same handler) is only used when zero listings match. Poll `GET /admin/enrich-jobs/:id` or use the Data browser / Operations job UI for progress.
-=======
-**Bulk classify and bulk re-enrich** return **202 Accepted** immediately with `{ "async": true, "job_id": N }` and run work in a background goroutine using a **detached** context (`context.Background()` + `BULK_LISTINGS_WORK_TIMEOUT`). Poll `GET /admin/enrich-jobs/:id` or use the Data browser / Operations job UI for progress.
->>>>>>> @{-1}
 
 Background work timeout: `BULK_LISTINGS_WORK_TIMEOUT` (Go duration, default `2h`).
 

@@ -69,6 +69,8 @@ Parsers live in `src/parsers/` — one file per store:
 }
 ```
 
+**JensonUSA** (`jensonusa.ts`): clearance cards expose `variants[]` inside `data-product-result-dto` (after page hydration). The parser emits **one row per variant** with `store_sku` = `variant.code`, `product_group_key` = parent `dto.code`, and `variant_options` built from facet fields on each variant (e.g. `color` string, `size: { value, sortOrder }`, or any other non-price field). Parsing logic and tests: `jensonusa-dto.ts`, `jensonusa-dto.test.ts`, `jensonusa-dto-variants.test.ts`.
+
 Shopify parsers (`ridebicycles`, `worldwidecyclery`, `revelbikes`) emit one row per variant; the API stores `product_group_key` as `{store_id}:{handle}` and `variant_options` as JSON for deduplication and filters. Shared helpers: `parsers/shopify-helpers.ts`.
 
 ## Running

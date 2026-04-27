@@ -106,6 +106,7 @@ pnpm --filter @mtb-aggregator/web run build-storybook  # static build to storybo
 - Parsers live in `apps/scraper/src/parsers/` — one file per store
 - `PARSERS` and `ENRICHERS` maps registered in `parsers/index.ts`
 - Adding a new store: create parser in `parsers/`, add to maps in `parsers/index.ts`, add store enum value to `ScrapeRequestSchema`/`EnrichRequestSchema` in `types.ts`, insert store record in DB
+- **JensonUSA clearance:** `data-product-result-dto` includes `variants[]`; `jensonusa-dto.ts` emits one `ScrapeResult` per variant (`product_group_key` = parent `code`, `variant_options` from facet fields). Migration `025` hides superseded parent-SKU rows after per-variant scrapes land.
 
 ### API (`apps/api/`)
 

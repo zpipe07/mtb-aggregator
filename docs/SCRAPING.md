@@ -40,8 +40,12 @@ When `SCRAPER_SERVICE_SECRET` is set (recommended in production), `POST /scrape`
   brand: string | null;
   category_path: string[] | null;
   is_in_stock: boolean;
+  product_group_key?: string | null; // optional: Shopify handle or Jenson parent product code
+  variant_options?: Record<string, string> | null; // e.g. { Color: "Black", Size: "8.5" }
 }
 ```
+
+**JensonUSA:** Each clearance product card’s `data-product-result-dto` includes a `variants` array (in addition to `selectedVariant`). The parser emits one result per variant so each sale price and SKU is stored; `product_group_key` is the parent `code`, and `variant_options` collects facet fields (`color`, structured `size`, etc.). After the first deploy with this behavior, apply migration `025_jenson_hide_superseded_parent_listings.sql` so legacy parent-`store_sku` rows are hidden when longer variant SKUs exist on the same `product_url`.
 
 ## Testing
 
