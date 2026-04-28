@@ -1,46 +1,45 @@
-import { useId, useMemo } from "react";
-import type {
-  BrandFacet,
-  SpecFacet,
-  Store,
-  VariantFacet,
-  VariantFacetValue,
-} from "../api";
+import { useMemo } from "react";
+import type { BrandFacet, SpecFacet, Store, VariantFacet } from "../api";
 import { buildMinDiscountSelectOptions } from "../lib/minDiscountFilterOptions";
-import { sanitizeForHtmlId } from "../lib/htmlId";
 import { FilterSelect } from "./FilterSelect";
-import { Select } from "./ui/select";
 import { Button } from "./ui/button";
+import { FacetCheckboxGroup } from "./ui/facet-checkbox-group";
 
-/** If the URL has a selected value not present in facet values (stale bookmark), show it so the user can clear or change. */
-function mergeSelectedFacetValue<T extends { value: string; count: number }>(
+/** If the URL has selected values not present in facet values (stale bookmark), show them so the user can clear or change. */
+function mergeSelectedFacetValues<T extends { value: string; count: number }>(
   values: T[],
-  selected: string | undefined,
+  selected: string[] | undefined,
 ): T[] {
-  if (!selected) return values;
+  if (!selected?.length) return values;
   const seen = new Set(values.map((v) => v.value));
-  if (seen.has(selected)) return values;
-  return [{ value: selected, count: 0 } as T, ...values];
+  const prefix: T[] = [];
+  for (const s of selected) {
+    if (!seen.has(s)) {
+      prefix.push({ value: s, count: 0 } as T);
+      seen.add(s);
+    }
+  }
+  return prefix.length ? [...prefix, ...values] : values;
 }
 
 export type FilterSidebarProps = {
   stores: Store[];
   brandFacets: BrandFacet[];
   storeFilter: string;
-  brandFilter: string;
+  brandFilters: string[];
   /** Category filter (slug) — used to scope spec/variant facets; category UI lives above the deals grid. */
   categoryFilter: string;
   minDiscount: string;
-  specFilters: Record<string, string>;
-  variantFilters: Record<string, string>;
+  specFilters: Record<string, string[]>;
+  variantFilters: Record<string, string[]>;
   specFacets: SpecFacet[];
   variantFacets?: VariantFacet[];
   onStoreChange: (value: string) => void;
-  onBrandChange: (value: string) => void;
+  onToggleBrand: (value: string) => void;
   onMinDiscountChange: (value: string) => void;
-  onSpecFilterChange: (key: string, value: string) => void;
+  onToggleSpecFilter: (key: string, value: string) => void;
   onClearSpecFilter: (key: string) => void;
-  onVariantFilterChange: (key: string, value: string) => void;
+  onToggleVariantFilter: (key: string, value: string) => void;
   onClearVariantFilter: (key: string) => void;
 };
 
@@ -48,7 +47,7 @@ export function FilterSidebar({
   stores,
   brandFacets,
   storeFilter,
-  brandFilter,
+  brandFilters,
   categoryFilter,
   minDiscount,
   specFilters,
@@ -56,16 +55,13 @@ export function FilterSidebar({
   specFacets,
   variantFacets = [],
   onStoreChange,
-  onBrandChange,
+  onToggleBrand,
   onMinDiscountChange,
-  onSpecFilterChange,
+  onToggleSpecFilter,
   onClearSpecFilter,
-  onVariantFilterChange,
+  onToggleVariantFilter,
   onClearVariantFilter,
 }: FilterSidebarProps) {
-  const specFacetIdPrefix = useId();
-  const variantFacetIdPrefix = useId();
-
   const storeOptions = [
     { value: "", label: "All stores" },
     ...(stores ?? []).map((s) => ({
@@ -74,29 +70,19 @@ export function FilterSidebar({
     })),
   ];
 
-  const brandOptions = useMemo(() => {
+  const brandCheckboxOptions = useMemo(() => {
     const facetList = brandFacets ?? [];
-    const seen = new Set(facetList.map((b) => b.value));
-    const rows: BrandFacet[] =
-      brandFilter && !seen.has(brandFilter)
-        ? [{ value: brandFilter, count: 0 }, ...facetList]
-        : facetList;
-    return [
-      { value: "", label: "All brands" },
-      ...rows.map((b) => ({
-        value: b.value,
-        label: `${b.value} (${b.count})`,
-      })),
-    ];
-  }, [brandFacets, brandFilter]);
+    return mergeSelectedFacetValues(facetList, brandFilters);
+  }, [brandFacets, brandFilters]);
 
   return (
     <div className="space-y-6">
-      <FilterSelect
-        label="Brand"
-        value={brandFilter}
-        onChange={onBrandChange}
-        options={brandOptions}
+      <FacetCheckboxGroup
+        name="facet-brand"
+        legend="Brand"
+        selected={brandFilters}
+        options={brandCheckboxOptions}
+        onToggle={onToggleBrand}
       />
 
       <FilterSelect
@@ -116,43 +102,32 @@ export function FilterSidebar({
       {categoryFilter && specFacets.length > 0 && (
         <div className="space-y-4 border-t-2 border-border/50 pt-4">
           {specFacets.map((facet) => {
-            const specValueOptions = mergeSelectedFacetValue(
+            const specValueOptions = mergeSelectedFacetValues(
               facet.values,
               specFilters[facet.key],
             );
+            const nSel = specFilters[facet.key]?.length ?? 0;
             return (
-            <div key={facet.key}>
-              <label
-                htmlFor={`${specFacetIdPrefix}-${sanitizeForHtmlId(facet.key)}`}
-                className="block text-sm font-medium text-muted-foreground mb-1.5"
-              >
-                {facet.label}
-              </label>
-              <Select
-                id={`${specFacetIdPrefix}-${sanitizeForHtmlId(facet.key)}`}
-                value={specFilters[facet.key] ?? ""}
-                onChange={(e) => onSpecFilterChange(facet.key, e.target.value)}
-                className="w-full"
-              >
-                <option value="">Any {facet.label.toLowerCase()}</option>
-                {specValueOptions.map((v) => (
-                  <option key={v.value} value={v.value}>
-                    {v.value} ({v.count})
-                  </option>
-                ))}
-              </Select>
-              {specFilters[facet.key] && (
-                <Button
-                  type="button"
-                  variant="link"
-                  size="sm"
-                  onClick={() => onClearSpecFilter(facet.key)}
-                  className="mt-1 h-auto p-0 text-sm text-muted-foreground"
-                >
-                  Clear
-                </Button>
-              )}
-            </div>
+              <div key={facet.key}>
+                <FacetCheckboxGroup
+                  name={`facet-spec-${facet.key}`}
+                  legend={facet.label}
+                  selected={specFilters[facet.key] ?? []}
+                  options={specValueOptions}
+                  onToggle={(v) => onToggleSpecFilter(facet.key, v)}
+                />
+                {nSel > 0 && (
+                  <Button
+                    type="button"
+                    variant="link"
+                    size="sm"
+                    onClick={() => onClearSpecFilter(facet.key)}
+                    className="mt-1 h-auto p-0 text-sm text-muted-foreground"
+                  >
+                    Clear {facet.label}
+                  </Button>
+                )}
+              </div>
             );
           })}
         </div>
@@ -164,45 +139,32 @@ export function FilterSidebar({
             Variants
           </p>
           {variantFacets.map((facet) => {
-            const variantValueOptions = mergeSelectedFacetValue(
+            const variantValueOptions = mergeSelectedFacetValues(
               facet.values,
               variantFilters[facet.key],
             );
+            const nSel = variantFilters[facet.key]?.length ?? 0;
             return (
-            <div key={facet.key}>
-              <label
-                htmlFor={`${variantFacetIdPrefix}-${sanitizeForHtmlId(facet.key)}`}
-                className="block text-sm font-medium text-muted-foreground mb-1.5"
-              >
-                {facet.key}
-              </label>
-              <Select
-                id={`${variantFacetIdPrefix}-${sanitizeForHtmlId(facet.key)}`}
-                value={variantFilters[facet.key] ?? ""}
-                onChange={(e) =>
-                  onVariantFilterChange(facet.key, e.target.value)
-                }
-                className="w-full"
-              >
-                <option value="">Any {facet.key.toLowerCase()}</option>
-                {variantValueOptions.map((v: VariantFacetValue) => (
-                  <option key={v.value} value={v.value}>
-                    {v.value} ({v.count})
-                  </option>
-                ))}
-              </Select>
-              {variantFilters[facet.key] && (
-                <Button
-                  type="button"
-                  variant="link"
-                  size="sm"
-                  onClick={() => onClearVariantFilter(facet.key)}
-                  className="mt-1 h-auto p-0 text-sm text-muted-foreground"
-                >
-                  Clear
-                </Button>
-              )}
-            </div>
+              <div key={facet.key}>
+                <FacetCheckboxGroup
+                  name={`facet-variant-${facet.key}`}
+                  legend={facet.key}
+                  selected={variantFilters[facet.key] ?? []}
+                  options={variantValueOptions}
+                  onToggle={(v) => onToggleVariantFilter(facet.key, v)}
+                />
+                {nSel > 0 && (
+                  <Button
+                    type="button"
+                    variant="link"
+                    size="sm"
+                    onClick={() => onClearVariantFilter(facet.key)}
+                    className="mt-1 h-auto p-0 text-sm text-muted-foreground"
+                  >
+                    Clear {facet.key}
+                  </Button>
+                )}
+              </div>
             );
           })}
         </div>

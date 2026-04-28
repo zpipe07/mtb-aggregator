@@ -56,7 +56,7 @@ export function DealsPageContent({
     isPending: isFilterPending,
     searchQuery,
     storeFilter,
-    brandFilter,
+    brandFilters,
     categoryFilter,
     minDiscount,
     specFilters,
@@ -65,11 +65,11 @@ export function DealsPageContent({
     offset,
     setSearchQuery,
     setStoreFilter,
-    setBrandFilter,
+    toggleBrandFilter,
     setMinDiscount,
-    setSpecFilter,
+    toggleSpecFilter,
     clearSpecFilter,
-    setVariantFilter,
+    toggleVariantFilter,
     clearVariantFilter,
     setSort,
     setOffset,
@@ -79,9 +79,10 @@ export function DealsPageContent({
   const resultsPending = isFilterPending;
 
   const activeFilterCount =
-    [storeFilter, brandFilter, minDiscount].filter(Boolean).length +
-    Object.values(specFilters).filter(Boolean).length +
-    Object.values(variantFilters).filter(Boolean).length;
+    [storeFilter, minDiscount].filter(Boolean).length +
+    brandFilters.length +
+    Object.values(specFilters).reduce((n, a) => n + a.length, 0) +
+    Object.values(variantFilters).reduce((n, a) => n + a.length, 0);
 
   const activeFilters = useMemo(() => {
     const chips: { key: string; label: string; onRemove: () => void }[] = [];
@@ -92,13 +93,13 @@ export function DealsPageContent({
         onRemove: () => setStoreFilter(""),
       });
     }
-    if (brandFilter) {
+    brandFilters.forEach((b) => {
       chips.push({
-        key: "brand",
-        label: `Brand: ${brandFilter}`,
-        onRemove: () => setBrandFilter(""),
+        key: `brand:${b}`,
+        label: `Brand: ${b}`,
+        onRemove: () => toggleBrandFilter(b),
       });
-    }
+    });
     if (minDiscount) {
       chips.push({
         key: "min_discount",
@@ -106,39 +107,39 @@ export function DealsPageContent({
         onRemove: () => setMinDiscount(""),
       });
     }
-    Object.entries(specFilters).forEach(([key, value]) => {
-      if (value) {
-        const facet = facets?.spec_facets?.find((f) => f.key === key);
-        const label = facet?.label ?? key;
+    Object.entries(specFilters).forEach(([key, values]) => {
+      const facet = facets?.spec_facets?.find((f) => f.key === key);
+      const label = facet?.label ?? key;
+      values.forEach((value) => {
         chips.push({
-          key: `spec_${key}`,
+          key: `spec_${key}:${value}`,
           label: `${label}: ${value}`,
-          onRemove: () => setSpecFilter(key, ""),
+          onRemove: () => toggleSpecFilter(key, value),
         });
-      }
+      });
     });
-    Object.entries(variantFilters).forEach(([key, value]) => {
-      if (value) {
+    Object.entries(variantFilters).forEach(([key, values]) => {
+      values.forEach((value) => {
         chips.push({
-          key: `variant_${key}`,
+          key: `variant_${key}:${value}`,
           label: `${key}: ${value}`,
-          onRemove: () => setVariantFilter(key, ""),
+          onRemove: () => toggleVariantFilter(key, value),
         });
-      }
+      });
     });
     return chips;
   }, [
     storeFilter,
-    brandFilter,
+    brandFilters,
     minDiscount,
     specFilters,
     variantFilters,
     facets?.spec_facets,
     setStoreFilter,
-    setBrandFilter,
+    toggleBrandFilter,
     setMinDiscount,
-    setSpecFilter,
-    setVariantFilter,
+    toggleSpecFilter,
+    toggleVariantFilter,
   ]);
 
   const handleStoreChange = (value: string) => {
@@ -146,33 +147,57 @@ export function DealsPageContent({
       posthog.capture("filter_applied", { filter_type: "store", value });
     setStoreFilter(value);
   };
-  const handleBrandChange = (value: string) => {
-    if (value)
-      posthog.capture("filter_applied", { filter_type: "brand", value });
-    setBrandFilter(value);
+  const handleToggleBrand = (value: string) => {
+    const v = value.trim();
+    if (!v) return;
+    const cur = brandFilters;
+    const idx = cur.indexOf(v);
+    const added = idx < 0;
+    const nextCount = added ? cur.length + 1 : cur.length - 1;
+    posthog.capture("filter_applied", {
+      filter_type: "brand",
+      value: v,
+      selected_count: nextCount,
+      action: added ? "add" : "remove",
+    });
+    toggleBrandFilter(v);
   };
   const handleMinDiscountChange = (value: string) => {
     if (value)
       posthog.capture("filter_applied", { filter_type: "min_discount", value });
     setMinDiscount(value);
   };
-  const handleSpecFilterChange = (key: string, value: string) => {
-    if (value)
-      posthog.capture("filter_applied", {
-        filter_type: "spec",
-        spec_key: key,
-        value,
-      });
-    setSpecFilter(key, value);
+  const handleToggleSpecFilter = (key: string, value: string) => {
+    const v = value.trim();
+    if (!v) return;
+    const cur = specFilters[key] ?? [];
+    const idx = cur.indexOf(v);
+    const added = idx < 0;
+    const nextCount = added ? cur.length + 1 : cur.length - 1;
+    posthog.capture("filter_applied", {
+      filter_type: "spec",
+      spec_key: key,
+      value: v,
+      selected_count: nextCount,
+      action: added ? "add" : "remove",
+    });
+    toggleSpecFilter(key, v);
   };
-  const handleVariantFilterChange = (key: string, value: string) => {
-    if (value)
-      posthog.capture("filter_applied", {
-        filter_type: "variant",
-        variant_key: key,
-        value,
-      });
-    setVariantFilter(key, value);
+  const handleToggleVariantFilter = (key: string, value: string) => {
+    const v = value.trim();
+    if (!v) return;
+    const cur = variantFilters[key] ?? [];
+    const idx = cur.indexOf(v);
+    const added = idx < 0;
+    const nextCount = added ? cur.length + 1 : cur.length - 1;
+    posthog.capture("filter_applied", {
+      filter_type: "variant",
+      variant_key: key,
+      value: v,
+      selected_count: nextCount,
+      action: added ? "add" : "remove",
+    });
+    toggleVariantFilter(key, v);
   };
   const handleClearAllFilters = () => {
     posthog.capture("filters_cleared", {
@@ -197,7 +222,7 @@ export function DealsPageContent({
     stores,
     brandFacets,
     storeFilter,
-    brandFilter,
+    brandFilters,
     categoryFilter,
     minDiscount,
     specFilters,
@@ -205,11 +230,11 @@ export function DealsPageContent({
     specFacets: facets?.spec_facets ?? [],
     variantFacets: facets?.variant_facets ?? [],
     onStoreChange: handleStoreChange,
-    onBrandChange: handleBrandChange,
+    onToggleBrand: handleToggleBrand,
     onMinDiscountChange: handleMinDiscountChange,
-    onSpecFilterChange: handleSpecFilterChange,
+    onToggleSpecFilter: handleToggleSpecFilter,
     onClearSpecFilter: clearSpecFilter,
-    onVariantFilterChange: handleVariantFilterChange,
+    onToggleVariantFilter: handleToggleVariantFilter,
     onClearVariantFilter: clearVariantFilter,
   };
 

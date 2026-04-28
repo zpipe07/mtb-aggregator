@@ -9,7 +9,7 @@ export { FilterDrawer } from "./FilterDrawer";
 export { FilterChips } from "./FilterChips";
 export { CategoryCard } from "./CategoryCard";
 export { DealFilters } from "./DealFilters";
-export type { SortOption } from "./DealFilters";
+export type { SortOption } from "../lib/filterParams";
 export { DealGrid } from "./DealGrid";
 export { Pagination } from "./Pagination";
 export { DealCard } from "./DealCard";

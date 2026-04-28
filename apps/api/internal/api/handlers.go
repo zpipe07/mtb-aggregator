@@ -25,6 +25,27 @@ type Handlers struct {
 	LLM         *llm.Client
 }
 
+// parseNonEmptyQueryMulti returns trimmed, non-empty, de-duplicated values from repeated query params (order preserved).
+func parseNonEmptyQueryMulti(vals []string) []string {
+	if len(vals) == 0 {
+		return nil
+	}
+	seen := make(map[string]struct{})
+	var out []string
+	for _, v := range vals {
+		t := strings.TrimSpace(v)
+		if t == "" {
+			continue
+		}
+		if _, ok := seen[t]; ok {
+			continue
+		}
+		seen[t] = struct{}{}
+		out = append(out, t)
+	}
+	return out
+}
+
 func (h *Handlers) GetDeals(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
@@ -35,8 +56,8 @@ func (h *Handlers) GetDeals(w http.ResponseWriter, r *http.Request) {
 	if s := r.URL.Query().Get("store"); s != "" {
 		params.StoreName = s
 	}
-	if s := r.URL.Query().Get("brand"); s != "" {
-		params.Brand = s
+	if b := parseNonEmptyQueryMulti(r.URL.Query()["brand"]); len(b) > 0 {
+		params.Brands = b
 	}
 	if s := r.URL.Query().Get("category"); s != "" {
 		params.Category = s
@@ -76,34 +97,51 @@ func (h *Handlers) GetDeals(w http.ResponseWriter, r *http.Request) {
 			params.Offset = n
 		}
 	}
-	// Parse spec filters: spec_<key>=<value> for multiple, or legacy spec_key/spec_value
-	params.SpecFilters = make(map[string]string)
+	// Parse spec filters: repeated spec_<key>=<value> (OR within key, AND across keys).
+	params.SpecFilters = make(map[string][]string)
 	for key, vals := range r.URL.Query() {
-		if strings.HasPrefix(key, "spec_") && len(vals) > 0 && vals[0] != "" {
-			specKey := strings.TrimPrefix(key, "spec_")
-			specKey = strings.TrimSpace(specKey)
-			if specKey != "" {
-				params.SpecFilters[specKey] = strings.TrimSpace(vals[0])
+		if !strings.HasPrefix(key, "spec_") {
+			continue
+		}
+		specKey := strings.TrimSpace(strings.TrimPrefix(key, "spec_"))
+		if specKey == "" {
+			continue
+		}
+		for _, v := range vals {
+			if t := strings.TrimSpace(v); t != "" {
+				params.SpecFilters[specKey] = append(params.SpecFilters[specKey], t)
 			}
 		}
 	}
-	// Legacy: if no spec_ params, fall back to spec_key/spec_value
-	if len(params.SpecFilters) == 0 {
-		if s := r.URL.Query().Get("spec_key"); s != "" {
-			params.SpecKey = strings.TrimSpace(s)
-		}
-		if s := r.URL.Query().Get("spec_value"); s != "" {
-			params.SpecValue = strings.TrimSpace(s)
+	for k, sl := range params.SpecFilters {
+		deduped := parseNonEmptyQueryMulti(sl)
+		if len(deduped) == 0 {
+			delete(params.SpecFilters, k)
+		} else {
+			params.SpecFilters[k] = deduped
 		}
 	}
-	params.VariantFilters = make(map[string]string)
+	params.VariantFilters = make(map[string][]string)
 	for key, vals := range r.URL.Query() {
-		if strings.HasPrefix(key, "variant_") && len(vals) > 0 && vals[0] != "" {
-			vk := strings.TrimPrefix(key, "variant_")
-			vk = strings.TrimSpace(vk)
-			if vk != "" {
-				params.VariantFilters[vk] = strings.TrimSpace(vals[0])
+		if !strings.HasPrefix(key, "variant_") {
+			continue
+		}
+		vk := strings.TrimSpace(strings.TrimPrefix(key, "variant_"))
+		if vk == "" {
+			continue
+		}
+		for _, v := range vals {
+			if t := strings.TrimSpace(v); t != "" {
+				params.VariantFilters[vk] = append(params.VariantFilters[vk], t)
 			}
+		}
+	}
+	for k, sl := range params.VariantFilters {
+		deduped := parseNonEmptyQueryMulti(sl)
+		if len(deduped) == 0 {
+			delete(params.VariantFilters, k)
+		} else {
+			params.VariantFilters[k] = deduped
 		}
 	}
 	if r.URL.Query().Get("group_variants") == "1" || r.URL.Query().Get("group_variants") == "true" {
@@ -269,8 +307,8 @@ func (h *Handlers) GetFacets(w http.ResponseWriter, r *http.Request) {
 	if s := r.URL.Query().Get("store"); s != "" {
 		params.StoreName = strings.TrimSpace(s)
 	}
-	if s := r.URL.Query().Get("brand"); s != "" {
-		params.Brand = strings.TrimSpace(s)
+	if b := parseNonEmptyQueryMulti(r.URL.Query()["brand"]); len(b) > 0 {
+		params.Brands = b
 	}
 	if s := r.URL.Query().Get("category"); s != "" {
 		params.Category = strings.TrimSpace(s)
@@ -289,25 +327,50 @@ func (h *Handlers) GetFacets(w http.ResponseWriter, r *http.Request) {
 	if s := r.URL.Query().Get("q"); s != "" {
 		params.Search = strings.TrimSpace(s)
 	}
-	// Parse spec_<key>=<value> params for multiple spec filters
-	params.SpecFilters = make(map[string]string)
+	params.SpecFilters = make(map[string][]string)
 	for key, vals := range r.URL.Query() {
-		if strings.HasPrefix(key, "spec_") && len(vals) > 0 && vals[0] != "" {
-			specKey := strings.TrimPrefix(key, "spec_")
-			specKey = strings.TrimSpace(specKey)
-			if specKey != "" {
-				params.SpecFilters[specKey] = strings.TrimSpace(vals[0])
+		if !strings.HasPrefix(key, "spec_") {
+			continue
+		}
+		specKey := strings.TrimSpace(strings.TrimPrefix(key, "spec_"))
+		if specKey == "" {
+			continue
+		}
+		for _, v := range vals {
+			if t := strings.TrimSpace(v); t != "" {
+				params.SpecFilters[specKey] = append(params.SpecFilters[specKey], t)
 			}
 		}
 	}
-	params.VariantFilters = make(map[string]string)
+	for k, sl := range params.SpecFilters {
+		deduped := parseNonEmptyQueryMulti(sl)
+		if len(deduped) == 0 {
+			delete(params.SpecFilters, k)
+		} else {
+			params.SpecFilters[k] = deduped
+		}
+	}
+	params.VariantFilters = make(map[string][]string)
 	for key, vals := range r.URL.Query() {
-		if strings.HasPrefix(key, "variant_") && len(vals) > 0 && vals[0] != "" {
-			vk := strings.TrimPrefix(key, "variant_")
-			vk = strings.TrimSpace(vk)
-			if vk != "" {
-				params.VariantFilters[vk] = strings.TrimSpace(vals[0])
+		if !strings.HasPrefix(key, "variant_") {
+			continue
+		}
+		vk := strings.TrimSpace(strings.TrimPrefix(key, "variant_"))
+		if vk == "" {
+			continue
+		}
+		for _, v := range vals {
+			if t := strings.TrimSpace(v); t != "" {
+				params.VariantFilters[vk] = append(params.VariantFilters[vk], t)
 			}
+		}
+	}
+	for k, sl := range params.VariantFilters {
+		deduped := parseNonEmptyQueryMulti(sl)
+		if len(deduped) == 0 {
+			delete(params.VariantFilters, k)
+		} else {
+			params.VariantFilters[k] = deduped
 		}
 	}
 
