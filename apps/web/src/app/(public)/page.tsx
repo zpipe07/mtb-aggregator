@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Script from "next/script";
 import { fetchCategoryTree, fetchDeals } from "@/api";
 import { JsonLd } from "@/components/JsonLd";
 import { buildItemListJsonLd, buildWebSiteSearchJsonLd } from "@/lib/jsonLd";
@@ -53,7 +52,7 @@ export default async function Home() {
       {avantlinkVerifyScriptSrc ? (
         // Avantlink scans for a classic script tag; next/script only emits preload + async load.
         // eslint-disable-next-line @next/next/no-sync-scripts -- verification contract
-        <script type="text/javascript" src={avantlinkVerifyScriptSrc} />
+        <script type="text/javascript" src={avantlinkVerifyScriptSrc}></script>
       ) : null}
       <JsonLd data={buildWebSiteSearchJsonLd()} />
       <JsonLd
