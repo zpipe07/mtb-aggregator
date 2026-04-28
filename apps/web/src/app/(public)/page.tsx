@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import { fetchCategoryTree, fetchDeals } from "@/api";
 import { JsonLd } from "@/components/JsonLd";
 import { buildItemListJsonLd, buildWebSiteSearchJsonLd } from "@/lib/jsonLd";
@@ -44,8 +45,14 @@ export default async function Home() {
   const topDeals = dealsResponse.deals ?? [];
   const totalFeatured = dealsResponse.total_count ?? topDeals.length;
 
+  const avantlinkVerifyScriptSrc =
+    process.env.NEXT_PUBLIC_AVANTLINK_VERIFY_SCRIPT_SRC;
+
   return (
     <>
+      {avantlinkVerifyScriptSrc ? (
+        <Script src={avantlinkVerifyScriptSrc} strategy="afterInteractive" />
+      ) : null}
       <JsonLd data={buildWebSiteSearchJsonLd()} />
       <JsonLd
         data={buildItemListJsonLd({
