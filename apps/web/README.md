@@ -67,6 +67,8 @@ The API must be running for data. Configure `NEXT_PUBLIC_API_URL` (client) or `A
 - **Vercel Preview:** When unset, the origin falls back to `https://${VERCEL_URL}` so preview deployments still work.
 - **Local dev:** Defaults to `http://localhost:3000` (set `NEXT_PUBLIC_SITE_URL` if you use another port). GitHub Actions sets `NEXT_PUBLIC_SITE_URL` for CI builds — see [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml).
 
+**Avantlink homepage verification (optional):** Set `NEXT_PUBLIC_AVANTLINK_VERIFY_SCRIPT_SRC` in Vercel (Production only, or Preview if you verify there) to the exact script URL Avantlink gives you (`http://` or `https://...affiliate_app_confirm.php?mode=js&authResponse=...`). Do **not** paste that URL into tracked source—it trips secret scanners. Remove the variable after Avantlink confirms.
+
 ### Production checklist (apex canonical: `https://thedropper.shop`)
 
 Do these in order after changing DNS/domains or fixing indexing issues:
