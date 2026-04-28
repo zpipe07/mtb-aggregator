@@ -80,7 +80,6 @@ Do these in order after changing DNS/domains or fixing indexing issues:
    **Settings → Domains:** `thedropper.shop` = **primary** (not “redirect to”). `www.thedropper.shop` = **Redirect** to `https://thedropper.shop` with status **308**.
 
 3. **Porkbun — DNS** (or match whatever Vercel shows under Domains → your hostname → **DNS records**)
-
    - **Apex `@`:** **ALIAS** to `cname.vercel-dns.com` (preferred at Porkbun), or **A** to `76.76.21.21`.
    - **`www`:** **CNAME** to `cname.vercel-dns.com`.
    - Remove conflicting legacy **A**/**AAAA**/**CNAME** on `@` or `www` (parking, old host). Keep MX/TXT as needed.
