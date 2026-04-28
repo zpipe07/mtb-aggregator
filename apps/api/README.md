@@ -25,7 +25,7 @@ Go HTTP server that orchestrates scraping, enrichment, and serves the REST API. 
 
 ### Public
 
-- `GET /deals` — List deals; filters: `store`, `brand`, `min_discount`, `min_price` (minimum `current_price`, inclusive), `exclude_category_slug` (omit listings whose `category_id` is in that category’s subtree; uncategorized rows are kept), `limit`, `offset`, `category_slug`, `spec_<key>`, `variant_<key>` (variant option name, case-insensitive match on JSON keys), `group_variants=true` (default in web; one row per `product_group_key` for Shopify), `q`, `sort`. **Sort:** `newest` (default), `discount` (highest discount %), `value` (largest savings in currency: `original_price - current_price`), `price_asc`, `price_desc`, `relevance` (with `q`).
+- `GET /deals` — List deals; filters: `store`, `brand`, `min_discount`, `min_price` (minimum `current_price`, inclusive), `exclude_category_slug` (omit listings whose `category_id` is in that category’s subtree; uncategorized rows are kept), `limit`, `offset`, `category_slug`, `spec_<key>`, `variant_<key>` (variant option name, case-insensitive match on JSON keys), `group_variants=true` (default in web; one row per `product_group_key` for Shopify), `q`, `sort`. **Sort:** `discount` (default, highest discount %), `newest`, `value` (largest savings in currency: `original_price - current_price`), `price_asc`, `price_desc`, `relevance` (with `q`).
 - `GET /deals/:id` — Single deal by ID
 - `GET /stores` — Stores with deal counts
 - `GET /brands` — Distinct brands

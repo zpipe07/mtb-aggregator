@@ -51,7 +51,7 @@ export function parseFilterParamsFromSearch(
   const sortParam = getParam(params, "sort");
   const sort = (VALID_SORTS.includes(sortParam as SortOption)
     ? sortParam
-    : "newest") as SortOption;
+    : "discount") as SortOption;
   const offsetParam = getParam(params, "offset");
   const offset = Math.max(0, parseInt(offsetParam ?? "0", 10) || 0);
 
@@ -71,7 +71,7 @@ export function parseFilterParamsFromSearch(
   }
 
   const effectiveSort =
-    searchQuery.trim() === "" && sort === "relevance" ? ("newest" as SortOption) : sort;
+    searchQuery.trim() === "" && sort === "relevance" ? ("discount" as SortOption) : sort;
 
   return {
     searchQuery,
@@ -103,7 +103,7 @@ export function parseFilterParamsFromURL(
   const sortParam = params.get("sort");
   const sort = (VALID_SORTS.includes(sortParam as SortOption)
     ? sortParam
-    : "newest") as SortOption;
+    : "discount") as SortOption;
   const offsetParam = params.get("offset");
   const offset = Math.max(0, parseInt(offsetParam ?? "0", 10) || 0);
 
@@ -121,7 +121,7 @@ export function parseFilterParamsFromURL(
   });
 
   const effectiveSort =
-    searchQuery.trim() === "" && sort === "relevance" ? ("newest" as SortOption) : sort;
+    searchQuery.trim() === "" && sort === "relevance" ? ("discount" as SortOption) : sort;
 
   return {
     searchQuery,

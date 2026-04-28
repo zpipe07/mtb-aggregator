@@ -46,7 +46,7 @@ function applyToParams(
   if (updates.minPrice !== undefined) set("min_price", updates.minPrice);
   if (updates.excludeCategorySlug !== undefined)
     set("exclude_category_slug", updates.excludeCategorySlug);
-  if (updates.sort !== undefined) set("sort", updates.sort === "newest" ? "" : updates.sort);
+  if (updates.sort !== undefined) set("sort", updates.sort === "discount" ? "" : updates.sort);
   if (updates.offset !== undefined) set("offset", updates.offset === 0 ? "" : String(updates.offset));
 
   if (updates.specFilters !== undefined) {
@@ -193,11 +193,11 @@ export function useFilterParams(options?: {
     });
   }, [pathname, router, updateParams]);
 
-  // When search clears but URL has sort=relevance, sync URL to newest
+  // When search clears but URL has sort=relevance, sync URL to default sort
   useEffect(() => {
     const rawSort = searchParams.get("sort");
     if (base.searchQuery.trim() === "" && rawSort === "relevance") {
-      updateParams({ sort: "newest" });
+      updateParams({ sort: "discount" });
     }
   }, [base.searchQuery, searchParams, updateParams]);
 
