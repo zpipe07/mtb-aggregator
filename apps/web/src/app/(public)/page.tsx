@@ -5,6 +5,30 @@ import { buildItemListJsonLd, buildWebSiteSearchJsonLd } from "@/lib/jsonLd";
 import { absoluteUrl } from "@/lib/siteUrl";
 import { HomePageContent } from "@/views/HomePageContent";
 
+/** Rebuild markup with a literal `&` in the serialized HTML—React normally writes `&amp;` in attrs, which some affiliate verifiers reject. */
+function avantlinkVerificationScriptMarkup(raw: string): string | null {
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+
+  let u: URL;
+  try {
+    u = new URL(trimmed);
+  } catch {
+    return null;
+  }
+
+  if (u.hostname !== "classic.avantlink.com") return null;
+  if (u.pathname !== "/affiliate_app_confirm.php") return null;
+  if (u.protocol !== "http:" && u.protocol !== "https:") return null;
+
+  const mode = u.searchParams.get("mode");
+  const authResponse = u.searchParams.get("authResponse");
+  if (mode !== "js" || !authResponse?.match(/^[0-9a-f]+$/i)) return null;
+
+  const src = `${u.protocol}//${u.host}${u.pathname}?mode=js&authResponse=${authResponse}`;
+  return `<script type="text/javascript" src="${src}"><\/script>`;
+}
+
 export const revalidate = 60;
 
 const homeDescription =
@@ -44,15 +68,18 @@ export default async function Home() {
   const topDeals = dealsResponse.deals ?? [];
   const totalFeatured = dealsResponse.total_count ?? topDeals.length;
 
-  const avantlinkVerifyScriptSrc =
-    process.env.NEXT_PUBLIC_AVANTLINK_VERIFY_SCRIPT_SRC;
+  const avantlinkMarkup = avantlinkVerificationScriptMarkup(
+    process.env.NEXT_PUBLIC_AVANTLINK_VERIFY_SCRIPT_SRC ?? "",
+  );
 
   return (
     <>
-      {avantlinkVerifyScriptSrc ? (
-        // Avantlink scans for a classic script tag; next/script only emits preload + async load.
-        // eslint-disable-next-line @next/next/no-sync-scripts -- verification contract
-        <script type="text/javascript" src={avantlinkVerifyScriptSrc}></script>
+      {avantlinkMarkup ? (
+        <div
+          style={{ display: "contents" }}
+          dangerouslySetInnerHTML={{ __html: avantlinkMarkup }}
+          suppressHydrationWarning
+        />
       ) : null}
       <JsonLd data={buildWebSiteSearchJsonLd()} />
       <JsonLd
