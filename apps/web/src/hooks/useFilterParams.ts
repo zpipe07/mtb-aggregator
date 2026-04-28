@@ -175,10 +175,6 @@ export function useFilterParams(options?: {
   const setOffset = useCallback((v: number) => updateParams({ offset: v }), [updateParams]);
 
   const clearAllFilters = useCallback(() => {
-    if (pathname.startsWith("/deals/c/")) {
-      startTransition(() => router.replace("/deals"));
-      return;
-    }
     updateParams({
       searchQuery: "",
       storeFilter: "",
@@ -191,7 +187,7 @@ export function useFilterParams(options?: {
       variantFilters: {},
       offset: 0,
     });
-  }, [pathname, router, updateParams]);
+  }, [updateParams]);
 
   // When search clears but URL has sort=relevance, sync URL to newest
   useEffect(() => {
