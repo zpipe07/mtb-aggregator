@@ -6,8 +6,8 @@ import type {
   VariantFacet,
   VariantFacetValue,
 } from "../api";
+import { buildMinDiscountSelectOptions } from "../lib/minDiscountFilterOptions";
 import { FilterSelect } from "./FilterSelect";
-import { FilterInput } from "./FilterInput";
 import { Select } from "./ui/select";
 import { Button } from "./ui/button";
 
@@ -102,13 +102,11 @@ export function FilterSidebar({
         options={storeOptions}
       />
 
-      <FilterInput
-        label="Min discount %"
+      <FilterSelect
+        label="Min discount"
         value={minDiscount}
         onChange={onMinDiscountChange}
-        placeholder="e.g. 20"
-        min={0}
-        max={100}
+        options={buildMinDiscountSelectOptions(minDiscount)}
       />
 
       {categoryFilter && specFacets.length > 0 && (

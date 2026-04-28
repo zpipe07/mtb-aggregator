@@ -122,7 +122,7 @@ Add new primitives via `pnpm dlx shadcn@latest add <component>` in `apps/web`.
 
 ### Composed Components
 
-High-level components (DealCard, CategoryCard, Pagination, SearchBar, FilterInput) use the primitives. When adding or changing UI, prefer primitives over raw HTML and add Storybook stories.
+High-level components (DealCard, CategoryCard, Pagination, SearchBar, FilterSelect) use the primitives. When adding or changing UI, prefer primitives over raw HTML and add Storybook stories.
 
 ### SEO (metadata)
 

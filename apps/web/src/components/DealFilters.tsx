@@ -1,7 +1,7 @@
 import { track } from "@vercel/analytics";
 import type { SpecFacet, Store } from "../api";
+import { buildMinDiscountSelectOptions } from "../lib/minDiscountFilterOptions";
 import { FilterSelect } from "./FilterSelect";
-import { FilterInput } from "./FilterInput";
 import { CategoryDrillDown } from "./CategoryDrillDown";
 import { Select } from "./ui/select";
 import { Button } from "./ui/button";
@@ -151,13 +151,11 @@ export function DealFilters({
             className="min-w-[200px]"
           />
         )}
-        <FilterInput
-          label="Min discount %"
+        <FilterSelect
+          label="Min discount"
           value={minDiscount}
           onChange={handleMinDiscountChange}
-          placeholder="e.g. 20"
-          min={0}
-          max={100}
+          options={buildMinDiscountSelectOptions(minDiscount)}
         />
         <FilterSelect
           label="Sort by"
