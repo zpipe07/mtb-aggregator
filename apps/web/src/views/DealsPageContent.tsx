@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { usePathname } from "next/navigation";
 import posthog from "posthog-js";
 import { DEFAULT_PAGE_SIZE } from "../api";
 import type {
@@ -49,6 +50,7 @@ export function DealsPageContent({
 }: Props) {
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
 
+  const pathname = usePathname();
   const filterParams = useFilterParams({ categoryTree });
   const {
     isPending: isFilterPending,
@@ -173,7 +175,9 @@ export function DealsPageContent({
     setVariantFilter(key, value);
   };
   const handleClearAllFilters = () => {
-    posthog.capture("filters_cleared");
+    posthog.capture("filters_cleared", {
+      had_category_path: pathname.startsWith("/deals/c/"),
+    });
     clearAllFilters();
   };
   const handlePageChange = (newOffset: number) => {
