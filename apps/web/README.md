@@ -67,7 +67,7 @@ The API must be running for data. Configure `NEXT_PUBLIC_API_URL` (client) or `A
 - **Vercel Preview:** When unset, the origin falls back to `https://${VERCEL_URL}` so preview deployments still work.
 - **Local dev:** Defaults to `http://localhost:3000` (set `NEXT_PUBLIC_SITE_URL` if you use another port). GitHub Actions sets `NEXT_PUBLIC_SITE_URL` for CI builds — see [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml).
 
-**Avantlink homepage verification (optional):** Set `NEXT_PUBLIC_AVANTLINK_VERIFY_SCRIPT_SRC` in Vercel (Production only, or Preview if you verify there) to the exact script URL Avantlink gives you (`http://` or `https://...affiliate_app_confirm.php?mode=js&authResponse=...`). Do **not** paste that URL into tracked source—it trips secret scanners. The homepage outputs a normal `<script type="text/javascript" src="...">` (not `next/script`, which emits `<link rel="preload" as="script">` and can fail their checker). Remove the variable after Avantlink confirms.
+**Avantlink homepage verification (optional):** Set `NEXT_PUBLIC_AVANTLINK_VERIFY_SCRIPT_SRC` in Vercel (Production only, or Preview if you verify there) to the exact script URL Avantlink gives you (`http://` or `https://...affiliate_app_confirm.php?mode=js&authResponse=...`). Do **not** paste that URL into tracked source—it trips secret scanners. The homepage injects that tag via static HTML (not `next/script`), with a **literal** `&` between query parameters in the source—React’s normal `src={url}` escapes `&` as `&amp;`, which some verifiers mistakenly reject. Remove the variable after Avantlink confirms.
 
 ### Production checklist (apex canonical: `https://thedropper.shop`)
 
