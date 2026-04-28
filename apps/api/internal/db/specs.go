@@ -16,14 +16,14 @@ import (
 type GetFacetsParams struct {
 	StoreID           *int
 	StoreName         string
-	Brand             string
+	Brands            []string // OR within brands (ILIKE ANY)
 	Category          string
 	CanonicalCategory string // legacy: "Bikes > Mountain"
 	CategorySlug      string // preferred: slug for subtree filter
 	MinDiscount       *float64
 	Search            string
-	SpecFilters       map[string]string // key -> value, e.g. {"wheel_size": "29"}
-	VariantFilters    map[string]string // variant option key -> value (e.g. Size -> Large)
+	SpecFilters       map[string][]string // key -> values; OR within key
+	VariantFilters    map[string][]string // variant option key -> values; OR within key
 	// CategoryFilterIDs is populated by GetFacets from CategorySlug or CanonicalCategory for WHERE clause.
 	CategoryFilterIDs []int
 }
@@ -143,12 +143,7 @@ func (db *DB) GetFacets(ctx context.Context, params GetFacetsParams) (*GetFacets
 
 	var specFiltersForWhere map[string][]string
 	if profile != nil {
-		specFiltersForWhere = make(map[string][]string)
-		for k, v := range params.SpecFilters {
-			if k != "" && v != "" {
-				specFiltersForWhere[k] = []string{v}
-			}
-		}
+		specFiltersForWhere = normalizeSpecFiltersMap(params.SpecFilters)
 	}
 	if specFiltersForWhere == nil {
 		specFiltersForWhere = map[string][]string{}
@@ -268,7 +263,7 @@ func (db *DB) GetFacets(ctx context.Context, params GetFacetsParams) (*GetFacets
 
 	// Brand facets — exclude brand filter so users can see/switch alternatives (faceted search).
 	brandParams := params
-	brandParams.Brand = ""
+	brandParams.Brands = nil
 	brandWhere, brandArgs := buildFacetsWhereClause(brandParams, specFiltersForWhere, true)
 	if brandWhere == "" {
 		brandWhere = " AND l.is_in_stock = true"
@@ -309,9 +304,7 @@ func (db *DB) GetFacets(ctx context.Context, params GetFacetsParams) (*GetFacets
 	// Variant option facets (Shopify variant_options JSON). Per dimension key, omit that key's
 	// variant filter when aggregating values so users can switch options (faceted search).
 	var variantFacets []VariantFacet
-	discParams := params
-	discParams.VariantFilters = nil
-	discWhere, discArgs := buildFacetsWhereClause(discParams, specFiltersForWhere, true)
+	discWhere, discArgs := buildFacetsWhereClause(params, specFiltersForWhere, true)
 	if discWhere == "" {
 		discWhere = " AND l.is_in_stock = true"
 	} else {
@@ -347,7 +340,7 @@ ORDER BY kv.key`
 
 	for _, vk := range variantKeys {
 		vp := params
-		vp.VariantFilters = variantFiltersOmit(params.VariantFilters, vk)
+		vp.VariantFilters = variantFiltersOmitMulti(params.VariantFilters, vk)
 		vWhere, vArgs := buildFacetsWhereClause(vp, specFiltersForWhere, true)
 		if vWhere == "" {
 			vWhere = " AND l.is_in_stock = true"
@@ -416,19 +409,21 @@ func specFiltersOmit(specFilters map[string][]string, omitKey string) map[string
 	return out
 }
 
-// variantFiltersOmit returns a copy of filters without the given variant dimension (case-insensitive key match).
-func variantFiltersOmit(filters map[string]string, omitKey string) map[string]string {
+// variantFiltersOmitMulti returns a copy of filters without the given variant dimension (case-insensitive key match).
+func variantFiltersOmitMulti(filters map[string][]string, omitKey string) map[string][]string {
 	if len(filters) == 0 || omitKey == "" {
 		return filters
 	}
-	out := make(map[string]string)
+	out := make(map[string][]string)
+	omitted := false
 	for k, v := range filters {
 		if strings.EqualFold(k, omitKey) {
+			omitted = true
 			continue
 		}
 		out[k] = v
 	}
-	if len(out) == len(filters) {
+	if !omitted {
 		return filters
 	}
 	return out
@@ -493,9 +488,15 @@ func buildFacetsWhereClause(params GetFacetsParams, specFilters map[string][]str
 		args = append(args, params.StoreName)
 		argNum++
 	}
-	if params.Brand != "" {
-		sb.WriteString(fmt.Sprintf(" AND l.brand ILIKE $%d", argNum))
-		args = append(args, params.Brand)
+	var brands []string
+	for _, b := range params.Brands {
+		if t := strings.TrimSpace(b); t != "" {
+			brands = append(brands, t)
+		}
+	}
+	if len(brands) > 0 {
+		sb.WriteString(fmt.Sprintf(" AND l.brand ILIKE ANY($%d::text[])", argNum))
+		args = append(args, pq.Array(brands))
 		argNum++
 	}
 	if params.Category != "" {

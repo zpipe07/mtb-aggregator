@@ -701,7 +701,7 @@ func (db *DB) SetListingHidden(ctx context.Context, id int, hidden bool) error {
 type GetDealsParams struct {
 	StoreID           *int
 	StoreName         string
-	Brand             string
+	Brands            []string // OR within brands (ILIKE ANY)
 	Category          string
 	CanonicalCategory string // legacy: "Bikes > Mountain" (exact path match)
 	CategorySlug          string // preferred: slug for subtree filter (e.g. "bikes" includes all bike subcategories)
@@ -712,11 +712,9 @@ type GetDealsParams struct {
 	Sort                  string // newest, discount, value, price_asc, price_desc, relevance
 	Limit             int
 	Offset            int
-	SpecKey           string            // legacy: single spec filter (use SpecFilters for multi)
-	SpecValue         string            // legacy: single spec value
-	SpecFilters       map[string]string // multiple spec filters: key -> value (e.g. hub_spacing=148mm)
-	GroupVariants     bool              // one row per product group (Shopify variants collapsed)
-	VariantFilters    map[string]string // variant option key -> value (e.g. Size -> Large); keys matched case-insensitively
+	SpecFilters       map[string][]string // spec key -> values; OR within key, AND across keys
+	GroupVariants     bool                // one row per product group (Shopify variants collapsed)
+	VariantFilters    map[string][]string // variant option key -> values; OR within key
 }
 
 // GetDealsResult includes deals and total count for pagination

@@ -55,7 +55,8 @@ const DEFAULT_PAGE_SIZE = 24;
 
 export async function fetchDeals(params?: {
   store?: string;
-  brand?: string;
+  /** Repeated `brand` query params (OR). */
+  brands?: string[];
   category?: string;
   category_slug?: string;
   canonical_category?: string;
@@ -68,16 +69,19 @@ export async function fetchDeals(params?: {
   sort?: string;
   limit?: number;
   offset?: number;
-  spec_key?: string;
-  spec_value?: string;
-  specFilters?: Record<string, string>;
-  variantFilters?: Record<string, string>;
+  specFilters?: Record<string, string[]>;
+  variantFilters?: Record<string, string[]>;
   /** Default true: collapse Shopify variants into one card */
   group_variants?: boolean;
 }): Promise<DealListResponse> {
   const search = new URLSearchParams();
   if (params?.store) search.set("store", params.store);
-  if (params?.brand) search.set("brand", params.brand);
+  if (params?.brands?.length) {
+    for (const b of params.brands) {
+      const t = b.trim();
+      if (t) search.append("brand", t);
+    }
+  }
   if (params?.category) search.set("category", params.category);
   if (params?.category_slug) search.set("category_slug", params.category_slug);
   if (params?.canonical_category)
@@ -94,16 +98,21 @@ export async function fetchDeals(params?: {
   if (params?.offset != null) search.set("offset", String(params.offset));
   if (params?.group_variants !== false) search.set("group_variants", "true");
   if (params?.specFilters && Object.keys(params.specFilters).length > 0) {
-    for (const [key, value] of Object.entries(params.specFilters)) {
-      if (key && value) search.set(`spec_${key}`, value);
+    for (const [key, values] of Object.entries(params.specFilters)) {
+      if (!key) continue;
+      for (const value of values) {
+        const t = value.trim();
+        if (t) search.append(`spec_${key}`, t);
+      }
     }
-  } else {
-    if (params?.spec_key) search.set("spec_key", params.spec_key);
-    if (params?.spec_value) search.set("spec_value", params.spec_value);
   }
   if (params?.variantFilters) {
-    for (const [key, value] of Object.entries(params.variantFilters)) {
-      if (key && value) search.set(`variant_${key}`, value);
+    for (const [key, values] of Object.entries(params.variantFilters)) {
+      if (!key) continue;
+      for (const value of values) {
+        const t = value.trim();
+        if (t) search.append(`variant_${key}`, t);
+      }
     }
   }
   const qs = search.toString();
@@ -237,14 +246,14 @@ export interface FacetsResponse {
 
 export interface FacetsParams {
   store?: string;
-  brand?: string;
+  brands?: string[];
   category?: string;
   category_slug?: string;
   canonical_category?: string;
   min_discount?: number;
   q?: string;
-  specFilters?: Record<string, string>;
-  variantFilters?: Record<string, string>;
+  specFilters?: Record<string, string[]>;
+  variantFilters?: Record<string, string[]>;
 }
 
 export async function fetchFacets(
@@ -252,7 +261,12 @@ export async function fetchFacets(
 ): Promise<FacetsResponse> {
   const search = new URLSearchParams();
   if (params?.store) search.set("store", params.store);
-  if (params?.brand) search.set("brand", params.brand);
+  if (params?.brands?.length) {
+    for (const b of params.brands) {
+      const t = b.trim();
+      if (t) search.append("brand", t);
+    }
+  }
   if (params?.category) search.set("category", params.category);
   if (params?.category_slug) search.set("category_slug", params.category_slug);
   if (params?.canonical_category)
@@ -261,13 +275,21 @@ export async function fetchFacets(
     search.set("min_discount", String(params.min_discount));
   if (params?.q) search.set("q", params.q);
   if (params?.specFilters) {
-    for (const [key, value] of Object.entries(params.specFilters)) {
-      if (key && value) search.set(`spec_${key}`, value);
+    for (const [key, values] of Object.entries(params.specFilters)) {
+      if (!key) continue;
+      for (const value of values) {
+        const t = value.trim();
+        if (t) search.append(`spec_${key}`, t);
+      }
     }
   }
   if (params?.variantFilters) {
-    for (const [key, value] of Object.entries(params.variantFilters)) {
-      if (key && value) search.set(`variant_${key}`, value);
+    for (const [key, values] of Object.entries(params.variantFilters)) {
+      if (!key) continue;
+      for (const value of values) {
+        const t = value.trim();
+        if (t) search.append(`variant_${key}`, t);
+      }
     }
   }
   const qs = search.toString();

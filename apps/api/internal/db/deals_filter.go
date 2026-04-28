@@ -9,20 +9,39 @@ import (
 )
 
 // appendVariantFilters adds AND conditions for variant_options JSON (key matched case-insensitively).
-func appendVariantFilters(sb *strings.Builder, args *[]interface{}, argNum *int, filters map[string]string) {
+// Multiple values for the same key are OR'd (ILIKE ANY).
+func appendVariantFilters(sb *strings.Builder, args *[]interface{}, argNum *int, filters map[string][]string) {
 	if filters == nil {
 		return
 	}
-	for k, v := range filters {
-		if k == "" || v == "" {
+	for k, vals := range filters {
+		if k == "" || len(vals) == 0 {
+			continue
+		}
+		var patterns []string
+		for _, v := range vals {
+			if t := strings.TrimSpace(v); t != "" {
+				patterns = append(patterns, t)
+			}
+		}
+		if len(patterns) == 0 {
 			continue
 		}
 		n := *argNum
-		sb.WriteString(fmt.Sprintf(` AND EXISTS (
+		if len(patterns) == 1 {
+			sb.WriteString(fmt.Sprintf(` AND EXISTS (
   SELECT 1 FROM jsonb_each_text(COALESCE(l.variant_options, '{}'::jsonb)) kv
   WHERE lower(kv.key) = lower($%d) AND kv.value ILIKE $%d
 )`, n, n+1))
-		*args = append(*args, k, v)
+			*args = append(*args, k, patterns[0])
+			*argNum = n + 2
+			continue
+		}
+		sb.WriteString(fmt.Sprintf(` AND EXISTS (
+  SELECT 1 FROM jsonb_each_text(COALESCE(l.variant_options, '{}'::jsonb)) kv
+  WHERE lower(kv.key) = lower($%d) AND kv.value ILIKE ANY($%d::text[])
+)`, n, n+1))
+		*args = append(*args, k, pq.Array(patterns))
 		*argNum = n + 2
 	}
 }
@@ -44,9 +63,15 @@ func (db *DB) dealsFilterSQL(ctx context.Context, params GetDealsParams) (string
 		args = append(args, params.StoreName)
 		argNum++
 	}
-	if params.Brand != "" {
-		sb.WriteString(fmt.Sprintf(" AND l.brand ILIKE $%d", argNum))
-		args = append(args, params.Brand)
+	var brands []string
+	for _, b := range params.Brands {
+		if t := strings.TrimSpace(b); t != "" {
+			brands = append(brands, t)
+		}
+	}
+	if len(brands) > 0 {
+		sb.WriteString(fmt.Sprintf(" AND l.brand ILIKE ANY($%d::text[])", argNum))
+		args = append(args, pq.Array(brands))
 		argNum++
 	}
 	if params.Category != "" {
@@ -96,17 +121,8 @@ func (db *DB) dealsFilterSQL(ctx context.Context, params GetDealsParams) (string
 			}
 		}
 	}
-	specFilters := params.SpecFilters
-	if len(specFilters) == 0 && params.SpecKey != "" && params.SpecValue != "" {
-		specFilters = map[string]string{params.SpecKey: params.SpecValue}
-	}
-	expanded := make(map[string][]string)
-	for k, v := range specFilters {
-		if k != "" && v != "" {
-			expanded[k] = []string{v}
-		}
-	}
-	appendMetadataSpecFilterConditions(&sb, &args, &argNum, expanded, true)
+	specFilters := normalizeSpecFiltersMap(params.SpecFilters)
+	appendMetadataSpecFilterConditions(&sb, &args, &argNum, specFilters, true)
 	if params.MinDiscount != nil && *params.MinDiscount > 0 {
 		sb.WriteString(fmt.Sprintf(" AND l.original_price IS NOT NULL AND l.original_price > 0 AND l.current_price < l.original_price AND (1 - l.current_price / l.original_price) * 100 >= $%d", argNum))
 		args = append(args, *params.MinDiscount)
@@ -125,4 +141,29 @@ func (db *DB) dealsFilterSQL(ctx context.Context, params GetDealsParams) (string
 	appendVariantFilters(&sb, &args, &argNum, params.VariantFilters)
 
 	return sb.String(), args, argNum, nil
+}
+
+func normalizeSpecFiltersMap(m map[string][]string) map[string][]string {
+	if m == nil {
+		return nil
+	}
+	out := make(map[string][]string)
+	for k, vals := range m {
+		if k == "" {
+			continue
+		}
+		var pv []string
+		for _, v := range vals {
+			if t := strings.TrimSpace(v); t != "" {
+				pv = append(pv, t)
+			}
+		}
+		if len(pv) > 0 {
+			out[k] = pv
+		}
+	}
+	if len(out) == 0 {
+		return nil
+	}
+	return out
 }

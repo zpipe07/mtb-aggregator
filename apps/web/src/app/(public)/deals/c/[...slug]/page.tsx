@@ -79,7 +79,10 @@ export default async function CategoryDealsPage({ params, searchParams }: Props)
     limit: DEFAULT_PAGE_SIZE,
     offset: filterParams.offset,
     store: filterParams.storeFilter || undefined,
-    brand: filterParams.brandFilter || undefined,
+    brands:
+      filterParams.brandFilters.length > 0
+        ? filterParams.brandFilters
+        : undefined,
     category_slug: categorySlug,
     min_discount: filterParams.minDiscount
       ? parseFloat(filterParams.minDiscount) || undefined
@@ -103,7 +106,10 @@ export default async function CategoryDealsPage({ params, searchParams }: Props)
 
   const facetsParams = {
     store: filterParams.storeFilter || undefined,
-    brand: filterParams.brandFilter || undefined,
+    brands:
+      filterParams.brandFilters.length > 0
+        ? filterParams.brandFilters
+        : undefined,
     category_slug: categorySlug,
     min_discount: filterParams.minDiscount
       ? parseFloat(filterParams.minDiscount) || undefined
@@ -120,8 +126,8 @@ export default async function CategoryDealsPage({ params, searchParams }: Props)
   };
 
   const facetsForBrandOptionsPromise: Promise<FacetsResponse | null> =
-    filterParams.brandFilter
-      ? fetchFacets({ ...facetsParams, brand: undefined })
+    filterParams.brandFilters.length > 0
+      ? fetchFacets({ ...facetsParams, brands: undefined })
       : Promise.resolve(null);
 
   const [dealsResponse, facetsResponse, facetsForBrandOptions, stores] =

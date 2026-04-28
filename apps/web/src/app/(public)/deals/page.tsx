@@ -50,7 +50,10 @@ export default async function DealsPage({ searchParams }: Props) {
     limit: DEFAULT_PAGE_SIZE,
     offset: filterParams.offset,
     store: filterParams.storeFilter || undefined,
-    brand: filterParams.brandFilter || undefined,
+    brands:
+      filterParams.brandFilters.length > 0
+        ? filterParams.brandFilters
+        : undefined,
     category_slug: filterParams.categoryFilter || undefined,
     min_discount: filterParams.minDiscount
       ? parseFloat(filterParams.minDiscount) || undefined
@@ -74,7 +77,10 @@ export default async function DealsPage({ searchParams }: Props) {
 
   const facetsParams = {
     store: filterParams.storeFilter || undefined,
-    brand: filterParams.brandFilter || undefined,
+    brands:
+      filterParams.brandFilters.length > 0
+        ? filterParams.brandFilters
+        : undefined,
     category_slug: filterParams.categoryFilter || undefined,
     min_discount: filterParams.minDiscount
       ? parseFloat(filterParams.minDiscount) || undefined
@@ -92,8 +98,8 @@ export default async function DealsPage({ searchParams }: Props) {
 
   /** When a brand is selected, fetch facets again without `brand` so `brand_facets` lists all brands for the rest of the filters (matches faceted UX; avoids relying on a single response when cache/proxy differs). */
   const facetsForBrandOptionsPromise: Promise<FacetsResponse | null> =
-    filterParams.brandFilter
-      ? fetchFacets({ ...facetsParams, brand: undefined })
+    filterParams.brandFilters.length > 0
+      ? fetchFacets({ ...facetsParams, brands: undefined })
       : Promise.resolve(null);
 
   const [dealsResponse, facetsResponse, facetsForBrandOptions, stores, categoryTree] =
