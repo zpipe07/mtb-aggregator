@@ -123,7 +123,7 @@ export function parseRevelProductBodyHtml(bodyHtml: string): {
   try {
     const $ = cheerio.load(trimmed);
     const specs: Record<string, string> = {};
-    const specParagraphEls: cheerio.Element[] = [];
+    const specParagraphs: cheerio.Cheerio<any>[] = [];
 
     $("p").each((_, el) => {
       const p = $(el);
@@ -144,11 +144,11 @@ export function parseRevelProductBodyHtml(bodyHtml: string): {
         .trim();
       if (!value || value.length > 400) return;
       specs[key] = value;
-      specParagraphEls.push(el);
+      specParagraphs.push(p);
     });
 
-    for (const el of specParagraphEls) {
-      $(el).remove();
+    for (const p of specParagraphs) {
+      p.remove();
     }
 
     const text = $.root().text().replace(/\s+/g, " ").trim();
