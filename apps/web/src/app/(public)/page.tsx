@@ -51,7 +51,9 @@ export default async function Home() {
   return (
     <>
       {avantlinkVerifyScriptSrc ? (
-        <Script src={avantlinkVerifyScriptSrc} strategy="afterInteractive" />
+        // Avantlink scans for a classic script tag; next/script only emits preload + async load.
+        // eslint-disable-next-line @next/next/no-sync-scripts -- verification contract
+        <script type="text/javascript" src={avantlinkVerifyScriptSrc} />
       ) : null}
       <JsonLd data={buildWebSiteSearchJsonLd()} />
       <JsonLd
