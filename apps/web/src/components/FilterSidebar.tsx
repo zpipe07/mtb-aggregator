@@ -3,7 +3,7 @@ import type { BrandFacet, SpecFacet, Store, VariantFacet } from "../api";
 import { buildMinDiscountSelectOptions } from "../lib/minDiscountFilterOptions";
 import { FilterSelect } from "./FilterSelect";
 import { Button } from "./ui/button";
-import { FacetCheckboxGroup } from "./ui/facet-checkbox-group";
+import { CheckboxGroup } from "./ui/checkbox-group";
 
 /** If the URL has selected values not present in facet values (stale bookmark), show them so the user can clear or change. */
 function mergeSelectedFacetValues<T extends { value: string; count: number }>(
@@ -77,7 +77,7 @@ export function FilterSidebar({
 
   return (
     <div className="space-y-6">
-      <FacetCheckboxGroup
+      <CheckboxGroup
         name="facet-brand"
         legend="Brand"
         selected={brandFilters}
@@ -109,7 +109,7 @@ export function FilterSidebar({
             const nSel = specFilters[facet.key]?.length ?? 0;
             return (
               <div key={facet.key}>
-                <FacetCheckboxGroup
+                <CheckboxGroup
                   name={`facet-spec-${facet.key}`}
                   legend={facet.label}
                   selected={specFilters[facet.key] ?? []}
@@ -146,7 +146,7 @@ export function FilterSidebar({
             const nSel = variantFilters[facet.key]?.length ?? 0;
             return (
               <div key={facet.key}>
-                <FacetCheckboxGroup
+                <CheckboxGroup
                   name={`facet-variant-${facet.key}`}
                   legend={facet.key}
                   selected={variantFilters[facet.key] ?? []}

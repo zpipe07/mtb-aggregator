@@ -1,15 +1,15 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { useState } from "react";
-import { FacetCheckboxGroup } from "./facet-checkbox-group";
+import { CheckboxGroup } from "./checkbox-group";
 
 const meta = {
-  title: "Components/UI/FacetCheckboxGroup",
-  component: FacetCheckboxGroup,
+  title: "Components/UI/CheckboxGroup",
+  component: CheckboxGroup,
   parameters: {
     layout: "padded",
   },
   tags: ["autodocs"],
-} satisfies Meta<typeof FacetCheckboxGroup>;
+} satisfies Meta<typeof CheckboxGroup>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
@@ -32,7 +32,7 @@ export const Default: Story = {
     const [selected, setSelected] = useState<string[]>(args.selected);
     return (
       <div className="max-w-xs">
-        <FacetCheckboxGroup
+        <CheckboxGroup
           {...args}
           selected={selected}
           onToggle={(v) => {
@@ -63,7 +63,7 @@ export const ManyOptions: Story = {
     const [selected, setSelected] = useState<string[]>(args.selected);
     return (
       <div className="max-w-xs">
-        <FacetCheckboxGroup
+        <CheckboxGroup
           {...args}
           selected={selected}
           onToggle={(v) => {
@@ -97,7 +97,7 @@ export const StaleSelectionNotInList: Story = {
     const [selected, setSelected] = useState<string[]>(args.selected);
     return (
       <div className="max-w-xs">
-        <FacetCheckboxGroup
+        <CheckboxGroup
           {...args}
           selected={selected}
           options={args.options}
@@ -110,6 +110,32 @@ export const StaleSelectionNotInList: Story = {
         <p className="mt-2 text-xs text-muted-foreground">
           Stale bookmark value merged into options (count 0), as in FilterSidebar.
         </p>
+      </div>
+    );
+  },
+};
+
+export const WithoutCounts: Story = {
+  args: {
+    name: "story-plain",
+    legend: "Features",
+    selected: [],
+    options: [{ value: "Tubeless ready" }, { value: "Boost" }],
+    onToggle: () => {},
+  },
+  render: function Render(args) {
+    const [selected, setSelected] = useState<string[]>(args.selected ?? []);
+    return (
+      <div className="max-w-xs">
+        <CheckboxGroup
+          {...args}
+          selected={selected}
+          onToggle={(v) => {
+            setSelected((prev) =>
+              prev.includes(v) ? prev.filter((x) => x !== v) : [...prev, v],
+            );
+          }}
+        />
       </div>
     );
   },

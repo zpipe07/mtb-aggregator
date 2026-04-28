@@ -153,7 +153,7 @@ Add more: `pnpm dlx shadcn@latest add <component>`
 
 DealCard, CategoryCard, DealsCategoryNav, DealsBrowseFooter, Pagination, SearchBar, FilterSelect (with `minDiscountFilterOptions` for stepped min discount), etc. — built from primitives. CategoryCard supports optional `imageSrc` for home page category imagery (`stock-bikes.jpg`, `stock-components.jpg`, etc. in `public/`).
 
-**Forms — labels:** Every interactive filter/control should have a programmatic name. `FilterSelect` pairs `label htmlFor` with `Select id` (`useId()`, optional `controlId`). Brand/spec/variant facets use [`FacetCheckboxGroup`](src/components/ui/facet-checkbox-group.tsx) (`fieldset`/`legend`, checkbox `id` from `sanitizeForHtmlId`). `CategoryDrillDown` wraps the tree in `fieldset`/`legend` instead of a loose `<label>`. Admin toolbars that look label-free use `sr-only` labels (see Data browser filters).
+**Forms — labels:** Every interactive filter/control should have a programmatic name. `FilterSelect` pairs `label htmlFor` with `Select id` (`useId()`, optional `controlId`). Brand/spec/variant facets use [`CheckboxGroup`](src/components/ui/checkbox-group.tsx) (shadcn `Checkbox` + `Label`, `fieldset`/`legend`, ids from `sanitizeForHtmlId`). `CategoryDrillDown` wraps the tree in `fieldset`/`legend` instead of a loose `<label>`. Admin toolbars that look label-free use `sr-only` labels (see Data browser filters).
 
 ### Storybook
 

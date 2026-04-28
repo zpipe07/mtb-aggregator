@@ -7,7 +7,7 @@ import { buildMinDiscountSelectOptions } from "../lib/minDiscountFilterOptions";
 import { FilterSelect } from "./FilterSelect";
 import { CategoryDrillDown } from "./CategoryDrillDown";
 import { Button } from "./ui/button";
-import { FacetCheckboxGroup } from "./ui/facet-checkbox-group";
+import { CheckboxGroup } from "./ui/checkbox-group";
 
 export type { SortOption };
 
@@ -151,7 +151,7 @@ export function DealFilters({
           options={storeOptions}
         />
         <div className="min-w-[200px] max-w-sm flex-1">
-          <FacetCheckboxGroup
+          <CheckboxGroup
             name="deal-filters-brand"
             legend="Brand"
             selected={brandFilters}
@@ -192,7 +192,7 @@ export function DealFilters({
             const nSel = specFilters[facet.key]?.length ?? 0;
             return (
               <div key={facet.key} className="min-w-[12rem] max-w-sm">
-                <FacetCheckboxGroup
+                <CheckboxGroup
                   name={`${specFacetIdPrefix}-${sanitizeForHtmlId(facet.key)}`}
                   legend={facet.label}
                   selected={specFilters[facet.key] ?? []}
