@@ -276,11 +276,42 @@ type GetAdminListingsParams struct {
 	Hidden                *bool   // true = hidden only; false = visible only; nil = any
 	Category              string
 	CanonicalCategory     string
-	Search                string
-	Sort                  string  // newest, discount, price_asc, price_desc, relevance
-	LLMConfidenceBelow    *float64 // filter: (metadata->>'llm_confidence')::float < value (e.g. 0.7 for low confidence)
-	Limit                 int
-	Offset                int
+	// CategorySlug matches categories.slug; filter is l.category_id = ANY(subtree IDs), same as GET /deals?category_slug=.
+	// When non-empty, CanonicalCategory is ignored (see resolveAdminListingsCategoryFilter).
+	CategorySlug string
+	// categoryFilterIDs is set by resolveAdminListingsCategoryFilter when CategorySlug is non-empty.
+	// nil = no slug-based subtree filter; non-nil empty slice = unknown slug → no rows.
+	categoryFilterIDs *[]int
+	Search             string
+	Sort               string // newest, discount, price_asc, price_desc, relevance
+	LLMConfidenceBelow *float64 // filter: (metadata->>'llm_confidence')::float < value (e.g. 0.7 for low confidence)
+	Limit              int
+	Offset             int
+}
+
+// resolveAdminListingsCategoryFilter resolves CategorySlug into categoryFilterIDs for subtree matching (same semantics as GET /deals).
+// When CategorySlug is non-empty, CanonicalCategory is cleared so slug takes precedence over canonical_category.
+func (db *DB) resolveAdminListingsCategoryFilter(ctx context.Context, p GetAdminListingsParams) (GetAdminListingsParams, error) {
+	slug := strings.TrimSpace(p.CategorySlug)
+	if slug == "" {
+		return p, nil
+	}
+	p.CanonicalCategory = ""
+	cat, err := db.GetCategoryBySlug(ctx, slug)
+	if err != nil {
+		return p, err
+	}
+	var ids []int
+	if cat == nil {
+		ids = []int{}
+	} else {
+		ids, err = db.GetCategorySubtreeIDs(ctx, cat.ID)
+		if err != nil {
+			return p, err
+		}
+	}
+	p.categoryFilterIDs = &ids
+	return p, nil
 }
 
 // GetAdminListings returns listings for the admin data browser with full detail.
@@ -297,6 +328,12 @@ func (db *DB) GetAdminListings(ctx context.Context, params GetAdminListingsParam
 	}
 	if params.Search == "" && sort == "relevance" {
 		sort = "newest"
+	}
+
+	var err error
+	params, err = db.resolveAdminListingsCategoryFilter(ctx, params)
+	if err != nil {
+		return nil, 0, err
 	}
 
 	query := `
@@ -345,6 +382,11 @@ func (db *DB) GetAdminListings(ctx context.Context, params GetAdminListingsParam
 	if params.Hidden != nil {
 		query += fmt.Sprintf(" AND l.hidden = $%d", argNum)
 		args = append(args, *params.Hidden)
+		argNum++
+	}
+	if params.categoryFilterIDs != nil {
+		query += fmt.Sprintf(" AND l.category_id = ANY($%d)", argNum)
+		args = append(args, pq.Array(*params.categoryFilterIDs))
 		argNum++
 	}
 	if params.Category != "" {
@@ -485,6 +527,11 @@ func buildAdminListingsFilter(query string, params GetAdminListingsParams, argNu
 		args = append(args, *params.Hidden)
 		argNum++
 	}
+	if params.categoryFilterIDs != nil {
+		query += fmt.Sprintf(" AND l.category_id = ANY($%d)", argNum)
+		args = append(args, pq.Array(*params.categoryFilterIDs))
+		argNum++
+	}
 	if params.Category != "" {
 		query += fmt.Sprintf(` AND (
 			EXISTS (SELECT 1 FROM unnest(COALESCE(l.category_path, '{}')) AS c WHERE strpos(lower(c), lower($%d)) > 0)
@@ -522,11 +569,16 @@ func buildAdminListingsFilter(query string, params GetAdminListingsParams, argNu
 
 // CountAdminListingsByFilter returns the number of rows matching the admin data browser filters.
 func (db *DB) CountAdminListingsByFilter(ctx context.Context, params GetAdminListingsParams) (int, error) {
+	var err error
+	params, err = db.resolveAdminListingsCategoryFilter(ctx, params)
+	if err != nil {
+		return 0, err
+	}
 	base := ` FROM store_listings l JOIN stores s ON s.id = l.store_id WHERE 1=1`
 	q, args, _ := buildAdminListingsFilter(base, params, 1)
 	countQ := "SELECT COUNT(*)" + q
 	var n int
-	err := db.pool.QueryRow(ctx, countQ, args...).Scan(&n)
+	err = db.pool.QueryRow(ctx, countQ, args...).Scan(&n)
 	return n, err
 }
 
@@ -534,6 +586,10 @@ func (db *DB) CountAdminListingsByFilter(ctx context.Context, params GetAdminLis
 // onlyEnricherStores restricts to store_type in StoreTypesWithEnrichers (for PDP re-enrich).
 // requireProductURL when true adds a non-empty product_url constraint.
 func (db *DB) ListAdminListingIDsByFilter(ctx context.Context, params GetAdminListingsParams, onlyEnricherStores, requireProductURL bool, maxIDs int) (ids []int, total int, err error) {
+	params, err = db.resolveAdminListingsCategoryFilter(ctx, params)
+	if err != nil {
+		return nil, 0, err
+	}
 	if maxIDs <= 0 {
 		maxIDs = 5000
 	}
