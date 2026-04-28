@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import type { LLMPromptProfile, LLMExtractionFieldDef } from "./api";
 import { CategoryPicker } from "./CategoryPicker";
 import type { CompositionRow } from "./compositionUtils";
@@ -151,6 +151,9 @@ export function CompositionProfileForm({
 
   const preview = JSON.stringify(detail.extraction_schema, null, 2);
 
+  const compControlIds = useId();
+  const cc = (s: string) => `${compControlIds}-${s}`;
+
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {error && (
@@ -230,8 +233,11 @@ export function CompositionProfileForm({
 
         <div className="mt-3 flex flex-wrap items-end gap-2">
           <div>
-            <label className="block text-xs text-stone-600">Add from library</label>
+            <label htmlFor={cc("add-library")} className="block text-xs text-stone-600">
+              Add from library
+            </label>
             <select
+              id={cc("add-library")}
               value={addDefId}
               onChange={(e) => setAddDefId(e.target.value)}
               className="rounded border border-stone-300 px-2 py-1.5 font-mono text-xs"
@@ -310,7 +316,11 @@ export function CompositionProfileForm({
             <p className="mb-2 text-xs text-stone-600">
               Shallow merge over the library def: label, description, values, filterable, type.
             </p>
+            <label htmlFor={cc("overrides-json")} className="sr-only">
+              Overrides JSON object
+            </label>
             <textarea
+              id={cc("overrides-json")}
               value={overridesStr}
               onChange={(e) => setOverridesStr(e.target.value)}
               rows={8}
@@ -340,7 +350,11 @@ export function CompositionProfileForm({
         >
           <div className="w-full max-w-lg rounded bg-white p-4 shadow-lg">
             <h4 className="mb-2 font-medium text-stone-900">Custom field (full SchemaField JSON)</h4>
+            <label htmlFor={cc("custom-field-json")} className="sr-only">
+              Custom field JSON
+            </label>
             <textarea
+              id={cc("custom-field-json")}
               value={customStr}
               onChange={(e) => setCustomStr(e.target.value)}
               rows={12}

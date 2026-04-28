@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import {
   LineChart,
   Line,
@@ -32,6 +32,7 @@ import type {
   AdminListing,
 } from "./api";
 import { CategoryPicker } from "./CategoryPicker";
+import { sanitizeForHtmlId } from "../lib/htmlId";
 
 const PAGE_SIZE = 25;
 
@@ -185,6 +186,7 @@ function ListingSpecOverrides({
   metadata: AdminListing["metadata"];
   mutation: ReturnType<typeof useSetListingLLMOverrides>;
 }) {
+  const specTermPrefix = useId();
   const [edits, setEdits] = useState<Record<string, string>>({});
   const keys = getAllSpecKeys(metadata);
   if (keys.length === 0) return null;
@@ -217,9 +219,10 @@ function ListingSpecOverrides({
           const displayed = getDisplayedSpec(metadata, key) ?? "";
           const value = key in edits ? edits[key] : displayed;
           const isOverridden = hasOverride(metadata, key);
+          const termId = `${specTermPrefix}-${sanitizeForHtmlId(key)}`;
           return (
             <span key={key} className="contents">
-              <dt className="text-stone-500 flex items-center gap-1">
+              <dt id={termId} className="text-stone-500 flex items-center gap-1">
                 {key.replace(/_/g, " ")}
                 {isOverridden && (
                   <span className="text-xs bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded">override</span>
@@ -230,6 +233,7 @@ function ListingSpecOverrides({
                   type="text"
                   value={value}
                   onChange={(e) => setEdits((prev) => ({ ...prev, [key]: e.target.value }))}
+                  aria-labelledby={termId}
                   className={`w-full max-w-xs rounded border px-2 py-1 text-sm ${
                     isOverridden ? "border-blue-300 bg-blue-50" : "border-stone-300"
                   }`}
@@ -270,6 +274,8 @@ function ListingSpecOverrides({
 }
 
 export function DataBrowser() {
+  const listingsFilterPrefix = useId();
+  const filterId = (suffix: string) => `${listingsFilterPrefix}-${suffix}`;
   const [storeId, setStoreId] = useState<number>(0);
   const [brand, setBrand] = useState("");
   const [hasEnrichment, setHasEnrichment] = useState<boolean | null>(null);
@@ -413,7 +419,11 @@ export function DataBrowser() {
       )}
 
       <div className="mb-4 flex flex-wrap items-center gap-3">
+        <label htmlFor={filterId("search")} className="sr-only">
+          Search listings
+        </label>
         <input
+          id={filterId("search")}
           type="search"
           placeholder="Search…"
           value={q}
@@ -423,7 +433,11 @@ export function DataBrowser() {
           }}
           className="rounded border border-stone-300 px-3 py-2 text-sm w-48"
         />
+        <label htmlFor={filterId("store")} className="sr-only">
+          Store
+        </label>
         <select
+          id={filterId("store")}
           value={storeId}
           onChange={(e) => {
             setStoreId(Number(e.target.value));
@@ -438,7 +452,11 @@ export function DataBrowser() {
             </option>
           ))}
         </select>
+        <label htmlFor={filterId("brand")} className="sr-only">
+          Brand
+        </label>
         <input
+          id={filterId("brand")}
           type="text"
           placeholder="Brand"
           value={brand}
@@ -448,7 +466,11 @@ export function DataBrowser() {
           }}
           className="rounded border border-stone-300 px-3 py-2 text-sm w-32"
         />
+        <label htmlFor={filterId("enrichment")} className="sr-only">
+          Enrichment
+        </label>
         <select
+          id={filterId("enrichment")}
           value={hasEnrichment === null ? "" : hasEnrichment ? "yes" : "no"}
           onChange={(e) => {
             const v = e.target.value;
@@ -461,7 +483,11 @@ export function DataBrowser() {
           <option value="yes">Enriched</option>
           <option value="no">Not enriched</option>
         </select>
+        <label htmlFor={filterId("stock")} className="sr-only">
+          Stock
+        </label>
         <select
+          id={filterId("stock")}
           value={inStock === null ? "" : inStock ? "yes" : "no"}
           onChange={(e) => {
             const v = e.target.value;
@@ -474,7 +500,11 @@ export function DataBrowser() {
           <option value="yes">In stock</option>
           <option value="no">Out of stock</option>
         </select>
+        <label htmlFor={filterId("visibility")} className="sr-only">
+          Visibility
+        </label>
         <select
+          id={filterId("visibility")}
           value={visibility}
           onChange={(e) => {
             setVisibility(e.target.value as "all" | "visible" | "hidden");
@@ -486,7 +516,11 @@ export function DataBrowser() {
           <option value="visible">Visible only</option>
           <option value="hidden">Hidden only</option>
         </select>
+        <label htmlFor={filterId("category-contains")} className="sr-only">
+          Category contains
+        </label>
         <input
+          id={filterId("category-contains")}
           type="text"
           placeholder="Category contains"
           value={category}
@@ -512,7 +546,11 @@ export function DataBrowser() {
             exact canonical path below when set.
           </p>
         </div>
+        <label htmlFor={filterId("canonical-path")} className="sr-only">
+          Canonical path exact match
+        </label>
         <select
+          id={filterId("canonical-path")}
           value={canonicalPath}
           onChange={(e) => {
             setCanonicalPath(e.target.value);
@@ -527,7 +565,11 @@ export function DataBrowser() {
             </option>
           ))}
         </select>
+        <label htmlFor={filterId("llm-confidence")} className="sr-only">
+          LLM confidence threshold
+        </label>
         <select
+          id={filterId("llm-confidence")}
           value={llmConfidenceBelow === null ? "" : String(llmConfidenceBelow)}
           onChange={(e) => {
             const v = e.target.value;
@@ -541,7 +583,11 @@ export function DataBrowser() {
           <option value="0.7">&lt; 0.7</option>
           <option value="0.5">&lt; 0.5</option>
         </select>
+        <label htmlFor={filterId("sort")} className="sr-only">
+          Sort listings
+        </label>
         <select
+          id={filterId("sort")}
           value={sort}
           onChange={(e) => {
             setSort(e.target.value);
@@ -621,11 +667,12 @@ export function DataBrowser() {
             </p>
             {totalCount > 1000 && (
               <div>
-                <label className="block text-sm text-stone-700 mb-1">
+                <label htmlFor={filterId("bulk-confirm")} className="block text-sm text-stone-700 mb-1">
                   Type <strong className="font-mono">{bulkModal === "classify" ? "reclassify" : "re-enrich"}</strong> to
                   confirm
                 </label>
                 <input
+                  id={filterId("bulk-confirm")}
                   type="text"
                   className="w-full rounded border border-stone-300 px-2 py-1.5"
                   value={bulkConfirmText}
