@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   LineChart,
   Line,
@@ -16,6 +16,7 @@ import {
   useAdminListings,
   useAdminListing,
   useCanonicalCategoryPaths,
+  useAdminCategoryTree,
   useEnrichJob,
 } from "./hooks/queries";
 import {
@@ -25,9 +26,36 @@ import {
   usePostBulkListingsClassify,
   usePostBulkListingsEnrich,
 } from "./hooks/mutations";
-import type { AdminBulkListingsFilterBody, AdminListing } from "./api";
+import type {
+  AdminBulkListingsFilterBody,
+  AdminCategoryTreeNode,
+  AdminListing,
+} from "./api";
+import { CategoryPicker } from "./CategoryPicker";
 
 const PAGE_SIZE = 25;
+
+/** Resolves admin tree path (root → leaf names) to the node's slug for GET /admin/listings?category_slug=. */
+function adminCategorySlugForPath(
+  nodes: AdminCategoryTreeNode[],
+  path: string[],
+  prefix: string[] = [],
+): string | null {
+  for (const n of nodes) {
+    const full = [...prefix, n.name];
+    if (
+      full.length === path.length &&
+      full.every((segment, i) => segment === path[i])
+    ) {
+      return n.slug;
+    }
+    if (n.children?.length) {
+      const found = adminCategorySlugForPath(n.children, path, full);
+      if (found) return found;
+    }
+  }
+  return null;
+}
 
 function formatDate(iso: string): string {
   if (!iso) return "—";
@@ -254,6 +282,8 @@ export function DataBrowser() {
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [llmConfidenceBelow, setLlmConfidenceBelow] = useState<number | null>(null);
   const [canonicalPath, setCanonicalPath] = useState("");
+  /** Path from CategoryPicker — maps to category_slug (subtree / same as public /deals). */
+  const [pickedCategoryPath, setPickedCategoryPath] = useState<string[]>([]);
   const [bulkModal, setBulkModal] = useState<"classify" | "enrich" | null>(null);
   const [bulkConfirmText, setBulkConfirmText] = useState("");
   const [bulkJobId, setBulkJobId] = useState<number | null>(null);
@@ -261,6 +291,15 @@ export function DataBrowser() {
 
   const { data: stores = [] } = useAdminStores();
   const { data: canonicalPaths = [] } = useCanonicalCategoryPaths();
+  const { data: categoryTree = [] } = useAdminCategoryTree();
+
+  const categorySlugFromPicker = useMemo(() => {
+    if (pickedCategoryPath.length === 0) return undefined;
+    return (
+      adminCategorySlugForPath(categoryTree, pickedCategoryPath) ?? undefined
+    );
+  }, [categoryTree, pickedCategoryPath]);
+
   const { data: listingsData, isPending: loading, isError, error, refetch } = useAdminListings({
     store_id: storeId || undefined,
     brand: brand || undefined,
@@ -268,7 +307,10 @@ export function DataBrowser() {
     in_stock: inStock ?? undefined,
     hidden: visibility === "all" ? undefined : visibility === "hidden",
     category: category || undefined,
-    canonical_category: canonicalPath || undefined,
+    category_slug: categorySlugFromPicker,
+    canonical_category: categorySlugFromPicker
+      ? undefined
+      : canonicalPath || undefined,
     llm_confidence_below: llmConfidenceBelow ?? undefined,
     q: q || undefined,
     sort,
@@ -306,7 +348,10 @@ export function DataBrowser() {
       in_stock: inStock ?? undefined,
       hidden: visibility === "all" ? undefined : visibility === "hidden",
       category: category || undefined,
-      canonical_category: canonicalPath || undefined,
+      category_slug: categorySlugFromPicker,
+      canonical_category: categorySlugFromPicker
+        ? undefined
+        : canonicalPath || undefined,
       q: q || undefined,
       llm_confidence_below: llmConfidenceBelow ?? undefined,
     };
@@ -451,6 +496,22 @@ export function DataBrowser() {
           }}
           className="rounded border border-stone-300 px-3 py-2 text-sm w-40"
         />
+        <div className="flex flex-col gap-1 max-w-[14rem]">
+          <CategoryPicker
+            id="data-browser-category-tree"
+            label="Category (public)"
+            placeholder="Subtree — matches site…"
+            value={pickedCategoryPath}
+            onChange={(path) => {
+              setPickedCategoryPath(path);
+              setOffset(0);
+            }}
+          />
+          <p className="text-xs text-muted-foreground leading-snug">
+            Subtree on category_id — same as the public deals page. Overrides the
+            exact canonical path below when set.
+          </p>
+        </div>
         <select
           value={canonicalPath}
           onChange={(e) => {
@@ -459,7 +520,7 @@ export function DataBrowser() {
           }}
           className="rounded border border-stone-300 px-3 py-2 text-sm max-w-[12rem]"
         >
-          <option value="">Canonical: any</option>
+          <option value="">Canonical path (exact): any</option>
           {canonicalPaths.map((p) => (
             <option key={p} value={p}>
               {p}

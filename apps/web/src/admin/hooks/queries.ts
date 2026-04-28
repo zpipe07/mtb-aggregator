@@ -131,6 +131,7 @@ export interface AdminListingsParams {
   in_stock?: boolean;
   hidden?: boolean;
   category?: string;
+  category_slug?: string;
   canonical_category?: string;
   llm_confidence_below?: number;
   q?: string;

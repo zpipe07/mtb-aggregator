@@ -46,6 +46,8 @@ Go HTTP server that orchestrates scraping, enrichment, and serves the REST API. 
 - `POST /admin/auth` — Validate password (`{"password":"..."}`); use same value as `Authorization: Bearer` on other `/admin/*` routes
 - `GET/POST/PUT/PATCH/DELETE /admin/*` — Dashboard, stores, taxonomy, profiles, etc.
 
+**Admin Data Browser (`GET /admin/listings`):** Supports `category_slug` (matches `categories.slug`; filters `store_listings.category_id` by that node’s subtree — **same semantics as** `GET /deals?category_slug=`). When `category_slug` is present, `canonical_category` is ignored (slug wins). Also supports `canonical_category` as an exact path match on the `canonical_category` text array (useful for spotting drift vs `category_id`). Bulk classify/enrich bodies (`POST /admin/listings/bulk-classify`, `bulk-enrich`) accept the same filter fields including `category_slug`.
+
 **LLM extraction field library** (migrations `019`, `020`):
 
 - `GET /admin/llm-extraction-field-defs` — List global field defs; optional `?q=` (search `field_key` / `label`)

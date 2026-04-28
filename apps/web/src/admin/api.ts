@@ -461,6 +461,8 @@ export async function fetchAdminListings(params?: {
   in_stock?: boolean;
   hidden?: boolean;
   category?: string;
+  /** Subtree filter on category_id — same semantics as GET /deals?category_slug= */
+  category_slug?: string;
   canonical_category?: string;
   q?: string;
   sort?: string;
@@ -483,6 +485,8 @@ export async function fetchAdminListings(params?: {
   if (params?.hidden != null)
     search.set("hidden", params.hidden ? "true" : "false");
   if (params?.category) search.set("category", params.category);
+  if (params?.category_slug)
+    search.set("category_slug", params.category_slug);
   if (params?.canonical_category)
     search.set("canonical_category", params.canonical_category);
   if (params?.llm_confidence_below != null)
@@ -1401,6 +1405,7 @@ export interface AdminBulkListingsFilterBody {
   in_stock?: boolean;
   hidden?: boolean;
   category?: string;
+  category_slug?: string;
   canonical_category?: string;
   q?: string;
   llm_confidence_below?: number;

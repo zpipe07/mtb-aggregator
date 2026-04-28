@@ -24,6 +24,7 @@ type bulkListingsFilterBody struct {
 	InStock              *bool    `json:"in_stock"`
 	Hidden               *bool    `json:"hidden"`
 	Category             string   `json:"category"`
+	CategorySlug         string   `json:"category_slug"`
 	CanonicalCategory    string   `json:"canonical_category"`
 	Q                    string   `json:"q"`
 	LLMConfidenceBelow   *float64 `json:"llm_confidence_below"`
@@ -38,6 +39,7 @@ func (b bulkListingsFilterBody) toGetAdminListingsParams() db.GetAdminListingsPa
 		InStock:              b.InStock,
 		Hidden:               b.Hidden,
 		Category:             b.Category,
+		CategorySlug:         strings.TrimSpace(b.CategorySlug),
 		CanonicalCategory:    b.CanonicalCategory,
 		Search:               b.Q,
 		LLMConfidenceBelow:   b.LLMConfidenceBelow,
