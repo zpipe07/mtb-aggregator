@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useId, useMemo } from "react";
 import type {
   BrandFacet,
   SpecFacet,
@@ -7,6 +7,7 @@ import type {
   VariantFacetValue,
 } from "../api";
 import { buildMinDiscountSelectOptions } from "../lib/minDiscountFilterOptions";
+import { sanitizeForHtmlId } from "../lib/htmlId";
 import { FilterSelect } from "./FilterSelect";
 import { Select } from "./ui/select";
 import { Button } from "./ui/button";
@@ -62,6 +63,9 @@ export function FilterSidebar({
   onVariantFilterChange,
   onClearVariantFilter,
 }: FilterSidebarProps) {
+  const specFacetIdPrefix = useId();
+  const variantFacetIdPrefix = useId();
+
   const storeOptions = [
     { value: "", label: "All stores" },
     ...(stores ?? []).map((s) => ({
@@ -118,10 +122,14 @@ export function FilterSidebar({
             );
             return (
             <div key={facet.key}>
-              <label className="block text-sm font-medium text-muted-foreground mb-1.5">
+              <label
+                htmlFor={`${specFacetIdPrefix}-${sanitizeForHtmlId(facet.key)}`}
+                className="block text-sm font-medium text-muted-foreground mb-1.5"
+              >
                 {facet.label}
               </label>
               <Select
+                id={`${specFacetIdPrefix}-${sanitizeForHtmlId(facet.key)}`}
                 value={specFilters[facet.key] ?? ""}
                 onChange={(e) => onSpecFilterChange(facet.key, e.target.value)}
                 className="w-full"
@@ -162,10 +170,14 @@ export function FilterSidebar({
             );
             return (
             <div key={facet.key}>
-              <label className="block text-sm font-medium text-muted-foreground mb-1.5">
+              <label
+                htmlFor={`${variantFacetIdPrefix}-${sanitizeForHtmlId(facet.key)}`}
+                className="block text-sm font-medium text-muted-foreground mb-1.5"
+              >
                 {facet.key}
               </label>
               <Select
+                id={`${variantFacetIdPrefix}-${sanitizeForHtmlId(facet.key)}`}
                 value={variantFilters[facet.key] ?? ""}
                 onChange={(e) =>
                   onVariantFilterChange(facet.key, e.target.value)

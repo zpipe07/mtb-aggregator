@@ -60,7 +60,6 @@ export function SearchBar({
         value={local}
         onChange={(e) => setLocal(e.target.value)}
         placeholder={placeholder}
-        aria-label="Search deals"
         className="pl-9"
       />
     </div>

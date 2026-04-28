@@ -1,5 +1,7 @@
+import { useId } from "react";
 import { track } from "@vercel/analytics";
 import type { SpecFacet, Store } from "../api";
+import { sanitizeForHtmlId } from "../lib/htmlId";
 import { buildMinDiscountSelectOptions } from "../lib/minDiscountFilterOptions";
 import { FilterSelect } from "./FilterSelect";
 import { CategoryDrillDown } from "./CategoryDrillDown";
@@ -75,6 +77,7 @@ export function DealFilters({
   activeFilterCount,
   onClearAll,
 }: DealFiltersProps) {
+  const specFacetIdPrefix = useId();
   const sortOptions = getSortOptions(searchQuery.trim() !== "");
 
   const handleStoreChange = (value: string) => {
@@ -169,10 +172,14 @@ export function DealFilters({
         <div className="flex flex-wrap gap-6 border-t-2 border-border/50 pt-4">
           {specFacets.map((facet) => (
             <div key={facet.key}>
-              <label className="block text-sm font-medium text-muted-foreground mb-1.5">
+              <label
+                htmlFor={`${specFacetIdPrefix}-${sanitizeForHtmlId(facet.key)}`}
+                className="block text-sm font-medium text-muted-foreground mb-1.5"
+              >
                 {facet.label}
               </label>
               <Select
+                id={`${specFacetIdPrefix}-${sanitizeForHtmlId(facet.key)}`}
                 value={specFilters[facet.key] ?? ""}
                 onChange={(e) => handleSpecFilterChange(facet.key, e.target.value)}
                 className="w-full min-w-[12rem]"

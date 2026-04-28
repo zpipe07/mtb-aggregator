@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import {
   useAdminStores,
   useAdminDashboard,
@@ -61,6 +61,8 @@ function statusColor(status: string): string {
 }
 
 export function Operations() {
+  const enrichControlsId = useId();
+  const ec = (s: string) => `${enrichControlsId}-${s}`;
   const [scrapeStoreType, setScrapeStoreType] = useState<string>("");
   const [enrichForce, setEnrichForce] = useState(false);
   const [enrichMode, setEnrichMode] = useState<"enrich" | "classify">("enrich");
@@ -215,8 +217,11 @@ export function Operations() {
             </div>
             <div className="flex flex-wrap items-end gap-2">
               <div>
-                <span className="block text-xs text-stone-500 mb-0.5">Store (optional)</span>
+                <label htmlFor={ec("enrich-store")} className="block text-xs text-stone-500 mb-0.5">
+                  Store (optional)
+                </label>
                 <select
+                  id={ec("enrich-store")}
                   value={enrichStore}
                   onChange={(e) => setEnrichStore(e.target.value)}
                   className="rounded border border-stone-300 px-2 py-1.5 text-stone-900 min-w-[10rem]"
@@ -230,8 +235,11 @@ export function Operations() {
                 </select>
               </div>
               <div>
-                <span className="block text-xs text-stone-500 mb-0.5">Canonical path (optional)</span>
+                <label htmlFor={ec("enrich-canonical")} className="block text-xs text-stone-500 mb-0.5">
+                  Canonical path (optional)
+                </label>
                 <select
+                  id={ec("enrich-canonical")}
                   value={enrichCanonical}
                   onChange={(e) => setEnrichCanonical(e.target.value)}
                   className="rounded border border-stone-300 px-2 py-1.5 text-stone-900 max-w-xs"
@@ -245,8 +253,11 @@ export function Operations() {
                 </select>
               </div>
               <div>
-                <span className="block text-xs text-stone-500 mb-0.5">LLM conf. &lt;</span>
+                <label htmlFor={ec("enrich-llm")} className="block text-xs text-stone-500 mb-0.5">
+                  LLM conf. &lt;
+                </label>
                 <input
+                  id={ec("enrich-llm")}
                   type="number"
                   min={0}
                   max={1}

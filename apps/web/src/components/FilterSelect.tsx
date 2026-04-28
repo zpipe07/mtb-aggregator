@@ -1,3 +1,4 @@
+import * as React from "react";
 import { Select } from "./ui/select";
 
 type FilterSelectProps<T extends string> = {
@@ -5,6 +6,8 @@ type FilterSelectProps<T extends string> = {
   value: T;
   onChange: (value: T) => void;
   options: { value: T; label: string }[];
+  /** Optional stable id for the select (e.g. tests); defaults to React `useId()`. */
+  controlId?: string;
 };
 
 export function FilterSelect<T extends string>({
@@ -12,13 +15,18 @@ export function FilterSelect<T extends string>({
   value,
   onChange,
   options,
+  controlId,
 }: FilterSelectProps<T>) {
+  const generatedId = React.useId();
+  const selectId = controlId ?? generatedId;
+
   return (
     <div>
-      <label className="block text-sm font-medium text-muted-foreground mb-1">
+      <label htmlFor={selectId} className="block text-sm font-medium text-muted-foreground mb-1">
         {label}
       </label>
       <Select
+        id={selectId}
         value={value}
         onChange={(e) => onChange(e.target.value as T)}
         className="w-full"

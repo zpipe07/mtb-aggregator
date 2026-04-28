@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import { useLLMProfiles, useLLMProfile, useLLMExtractionFieldDefs } from "./hooks/queries";
 import {
   useCreateLLMProfile,
@@ -185,6 +185,7 @@ function profileCategoryLabel(p: { canonical_category: unknown }): string {
 }
 
 export function PromptProfileManager() {
+  const testListingInputId = useId();
   const [tab, setTab] = useState<Tab>("profiles");
   const { data: profiles, isLoading } = useLLMProfiles();
   const createMutation = useCreateLLMProfile();
@@ -587,14 +588,20 @@ export function PromptProfileManager() {
             <p className="mb-2 text-sm text-stone-600">
               Enter a listing ID from the Data browser to preview LLM extraction.
             </p>
-            <div className="mb-4 flex gap-2">
-              <input
-                type="number"
-                value={testListingId}
-                onChange={(e) => setTestListingId(e.target.value)}
-                placeholder="Listing ID"
-                className="flex-1 rounded border border-stone-300 px-3 py-2 text-stone-900"
-              />
+            <div className="mb-4 flex flex-col gap-1 sm:flex-row sm:gap-2 sm:items-end">
+              <div className="flex-1 min-w-0">
+                <label htmlFor={testListingInputId} className="mb-1 block text-xs font-medium text-stone-600">
+                  Listing ID
+                </label>
+                <input
+                  id={testListingInputId}
+                  type="number"
+                  value={testListingId}
+                  onChange={(e) => setTestListingId(e.target.value)}
+                  placeholder="Listing ID"
+                  className="w-full rounded border border-stone-300 px-3 py-2 text-stone-900"
+                />
+              </div>
               <button
                 type="button"
                 onClick={handleTest}
