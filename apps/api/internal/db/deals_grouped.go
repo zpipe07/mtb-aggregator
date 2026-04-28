@@ -16,10 +16,10 @@ func (db *DB) getDealsGrouped(ctx context.Context, params GetDealsParams) (*GetD
 	}
 	sort := params.Sort
 	if sort == "" {
-		sort = "newest"
+		sort = "discount"
 	}
 	if params.Search == "" && sort == "relevance" {
-		sort = "newest"
+		sort = "discount"
 	}
 
 	frag, fragArgs, nextArg, err := db.dealsFilterSQL(ctx, params)

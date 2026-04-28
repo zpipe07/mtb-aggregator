@@ -732,13 +732,13 @@ func (db *DB) GetDeals(ctx context.Context, params GetDealsParams) (*GetDealsRes
 	if params.GroupVariants {
 		return db.getDealsGrouped(ctx, params)
 	}
-	// Normalize sort: default newest; relevance only valid when Search is set
+	// Normalize sort: default discount; relevance only valid when Search is set
 	sort := params.Sort
 	if sort == "" {
-		sort = "newest"
+		sort = "discount"
 	}
 	if params.Search == "" && sort == "relevance" {
-		sort = "newest"
+		sort = "discount"
 	}
 
 	query := `

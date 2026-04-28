@@ -60,7 +60,7 @@ function buildDealsParams(params: DealsParams) {
     variantFilters: params.variantFilters,
     group_variants: params.group_variants ?? true,
     q: params.q?.trim() || undefined,
-    sort: params.sort ?? "newest",
+    sort: params.sort ?? "discount",
   };
 }
 
