@@ -177,6 +177,7 @@ func (s *Scheduler) scrapeStore(ctx context.Context, store db.Store, triggeredBy
 
 	log.Printf("[scheduler] scraping %s (%s)", store.Name, store.ScrapeURL)
 
+	scrapeStartedAt := time.Now()
 	results, err = s.scraper.Scrape(ctx, store.ScrapeURL, storeType)
 	if err != nil {
 		log.Printf("[scheduler] scrape failed for %s: %v", store.Name, err)
@@ -347,6 +348,23 @@ func (s *Scheduler) scrapeStore(ctx context.Context, store db.Store, triggeredBy
 	}
 
 	log.Printf("[scheduler] %s: saved %d listings", store.Name, validCount)
+
+	// After a successful full scrape, hide any listings that were not re-confirmed
+	// (last_scraped before this run started). This catches products that are no
+	// longer on sale or have been removed from the store's collection — they would
+	// otherwise stay in the DB indefinitely with stale prices.
+	// Guard: only run when we got a meaningful result count to avoid hiding
+	// everything if the scrape silently returned too little.
+	const minResultsForStaleCleanup = 10
+	if validCount >= minResultsForStaleCleanup && ctx.Err() == nil {
+		hidden, err := s.db.HideStaleListings(ctx, store.ID, scrapeStartedAt)
+		if err != nil {
+			log.Printf("[scheduler] %s: stale listing cleanup failed: %v", store.Name, err)
+			sentryutil.CaptureError(err, map[string]string{"component": "scheduler", "job": "scrape", "phase": "stale_cleanup", "store": store.Name})
+		} else if hidden > 0 {
+			log.Printf("[scheduler] %s: hid %d stale listings (no longer on sale)", store.Name, hidden)
+		}
+	}
 }
 
 // RunEnrichmentJob runs enrichment for listings needing it (all stores, one batch).
