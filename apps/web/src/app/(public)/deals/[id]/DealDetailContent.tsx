@@ -171,7 +171,7 @@ export function DealDetailContent({
                     })
                   }
                 >
-                  Snag the Deal
+                  <span className="relative z-[1]">Snag the Deal</span>
                 </a>
               </Button>
               {deal.price_range != null &&

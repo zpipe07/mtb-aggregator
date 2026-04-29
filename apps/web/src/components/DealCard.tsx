@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { track } from "@vercel/analytics";
 import type { Deal } from "../api";
-import { Card, CardContent } from "./ui/card";
 import { Button } from "./ui/button";
 import { cn } from "@/lib/utils";
 
@@ -9,25 +8,34 @@ function formatMoney(n: number) {
   return n.toFixed(2);
 }
 
+const monoMicro =
+  "font-mono text-[10px] font-semibold uppercase tracking-[0.14em]";
+
 type DealCardProps = {
   deal: Deal;
   /** When set, the image and product summary navigate to this internal URL (SEO + prefetch). */
   href?: string;
 };
 
-/** Corner “CAD crop” ticks — 8px L-marks */
 function CardCropMarks() {
   return (
-    <div
-      className="pointer-events-none absolute inset-3 z-20"
-      aria-hidden
-    >
-      <span className="absolute left-0 top-0 h-2 w-2 border-l-2 border-t-2 border-foreground/35" />
-      <span className="absolute right-0 top-0 h-2 w-2 border-r-2 border-t-2 border-foreground/35" />
-      <span className="absolute bottom-0 left-0 h-2 w-2 border-b-2 border-l-2 border-foreground/35" />
-      <span className="absolute bottom-0 right-0 h-2 w-2 border-b-2 border-r-2 border-foreground/35" />
-    </div>
+    <>
+      <span
+        aria-hidden
+        className="pointer-events-none absolute left-1.5 top-1.5 z-20 size-3 border-l border-t border-foreground"
+      />
+      <span
+        aria-hidden
+        className="pointer-events-none absolute bottom-1.5 right-1.5 z-20 size-3 border-b border-r border-foreground"
+      />
+    </>
   );
+}
+
+function skuForTab(deal: Deal) {
+  const raw = deal.store_sku?.trim();
+  if (!raw) return `#${deal.id}`;
+  return raw.length <= 14 ? raw : `${raw.slice(0, 12)}…`;
 }
 
 export function DealCard({ deal, href }: DealCardProps) {
@@ -44,64 +52,109 @@ export function DealCard({ deal, href }: DealCardProps) {
   const savings =
     deal.original_price != null &&
     deal.original_price > deal.current_price &&
-    !(deal.price_range?.length === 2 && deal.price_range[0] !== deal.price_range[1])
+    !(
+      deal.price_range?.length === 2 &&
+      deal.price_range[0] !== deal.price_range[1]
+    )
       ? deal.original_price - deal.current_price
       : null;
 
-  const summary = (
-    <>
-      {deal.brand && (
-        <span className="font-mono text-[9px] font-semibold uppercase tracking-widest text-muted-foreground">
-          {"// "}
-          {deal.brand}
-        </span>
+  const priceRow = (
+    <div
+      className={cn(
+        "flex items-end gap-3 border-t border-border pt-3",
+        savings != null && savings > 0 ? "justify-between" : "justify-end",
       )}
-      <h2 className="line-clamp-2 font-medium text-foreground">
-        {deal.product_name}
-      </h2>
-      {deal.category_path && deal.category_path.length > 0 && (
-        <p className="mt-1 text-xs text-muted-foreground">
-          {deal.category_path[deal.category_path.length - 1]}
-        </p>
-      )}
-      <div className="mt-2 flex flex-col gap-1">
-        {savings != null && savings > 0 && (
-          <span className="text-lg font-bold tracking-tight text-foreground">
-            SAVE ${formatMoney(savings)}
+    >
+      {savings != null && savings > 0 ? (
+        <div className="min-w-0 space-y-0.5">
+          <span className={cn(monoMicro, "text-muted-foreground block")}>
+            save
           </span>
-        )}
-        <div className="flex flex-wrap items-baseline gap-2">
-          {deal.price_range != null &&
-          deal.price_range.length === 2 &&
-          deal.price_range[0] !== deal.price_range[1] ? (
-            <span className="text-base font-bold text-foreground">
-              ${formatMoney(deal.price_range[0])} – $
-              {formatMoney(deal.price_range[1])}
-            </span>
-          ) : (
-            <span className="text-base font-bold text-foreground">
-              ${formatMoney(deal.current_price)}
+          <span className="font-mono text-2xl font-semibold leading-none tabular-nums text-foreground">
+            ${formatMoney(savings)}
+          </span>
+        </div>
+      ) : null}
+      <div className="space-y-0.5 text-right">
+        {deal.original_price != null &&
+          deal.original_price > deal.current_price &&
+          !(deal.price_range && deal.price_range.length === 2) && (
+            <span
+              className={cn(
+                monoMicro,
+                "text-muted-foreground block tabular-nums line-through",
+              )}
+            >
+              was ${formatMoney(deal.original_price)}
             </span>
           )}
-          {deal.original_price != null &&
-            deal.original_price > deal.current_price &&
-            !(deal.price_range && deal.price_range.length === 2) && (
-              <span className="text-sm text-muted-foreground line-through">
-                ${formatMoney(deal.original_price)}
-              </span>
-            )}
-        </div>
+        {deal.price_range != null &&
+        deal.price_range.length === 2 &&
+        deal.price_range[0] !== deal.price_range[1] ? (
+          <span className="font-mono text-sm font-medium tabular-nums text-foreground">
+            ${formatMoney(deal.price_range[0])} – $
+            {formatMoney(deal.price_range[1])}
+          </span>
+        ) : (
+          <span className="font-mono text-sm font-medium tabular-nums text-foreground">
+            ${formatMoney(deal.current_price)}
+          </span>
+        )}
       </div>
-    </>
+    </div>
+  );
+
+  const body = (
+    <div className="space-y-3 p-4 pb-0">
+      <div className="space-y-1.5">
+        {deal.brand && (
+          <div className={cn(monoMicro, "text-muted-foreground")}>
+            {"// "}
+            {deal.brand}
+          </div>
+        )}
+        <h2 className="line-clamp-2 text-base font-medium leading-snug tracking-tight text-foreground">
+          {deal.product_name}
+        </h2>
+      </div>
+      {priceRow}
+    </div>
+  );
+
+  const footer = (
+    <div className="flex items-center justify-between gap-2 px-4 pb-4 pt-3">
+      <span className={cn(monoMicro, "min-w-0 truncate text-muted-foreground")}>
+        {"// "}
+        {deal.store_name.toUpperCase()}
+      </span>
+      <Button asChild size="xs" className="shrink-0">
+        <a
+          href={viewUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={(e) => {
+            e.stopPropagation();
+            track("view_deal", {
+              deal_id: deal.id,
+              store: deal.store_name,
+              brand: deal.brand || "",
+            });
+          }}
+        >
+          <span className="relative z-[1]">Snag</span>
+        </a>
+      </Button>
+    </div>
   );
 
   const imageBlock = (
-    <div className="group/image relative aspect-square overflow-hidden bg-muted">
+    <div className="group/image relative aspect-square overflow-hidden border-b border-foreground bg-muted">
       {deal.image_url ? (
         <img
           src={deal.image_url}
           alt={deal.product_name}
-          className="h-full w-full object-cover transition-transform duration-300 ease-out group-hover/card:scale-[1.02]"
+          className="h-full w-full object-cover transition-transform duration-300 group-hover/card:scale-[1.03]"
         />
       ) : (
         <div className="flex h-full w-full items-center justify-center text-sm text-muted-foreground">
@@ -109,82 +162,84 @@ export function DealCard({ deal, href }: DealCardProps) {
         </div>
       )}
       {discountPct != null && discountPct > 0 && (
-        <span
-          className={cn(
-            "absolute left-2 top-2 -rotate-2 rounded px-2 py-1 font-mono text-xs font-bold uppercase",
-            "bg-primary text-primary-foreground shadow-[2px_2px_0_var(--foreground)]",
-          )}
-        >
-          <span className="tabular-nums">{discountPct}</span>
-          <span className="font-sans">% off</span>
-        </span>
+        <div className="absolute left-3 top-3">
+          <span
+            className={cn(
+              "inline-block rounded-sm bg-primary px-2 py-1 font-mono text-sm font-semibold tabular-nums text-foreground",
+              "shadow-[2px_2px_0_var(--foreground)]",
+            )}
+            style={{ transform: "rotate(-2deg)" }}
+          >
+            −{discountPct}%
+          </span>
+        </div>
       )}
-      <span className="absolute right-2 top-2 rounded bg-trail/92 px-2 py-1 text-xs font-medium text-trail-foreground">
-        {deal.store_name}
-      </span>
       {deal.variant_count != null && deal.variant_count > 1 && (
-        <span className="absolute bottom-2 left-2 rounded bg-secondary px-2 py-1 text-xs font-medium text-secondary-foreground">
-          {deal.variant_count} variants
-        </span>
+        <div className="absolute bottom-3 right-3">
+          <span
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-sm border border-foreground/40 bg-card/90 px-2 py-0.5 backdrop-blur-sm",
+              monoMicro,
+            )}
+          >
+            <span className="tabular-nums">{deal.variant_count}</span>
+            <span className="text-muted-foreground">variants</span>
+          </span>
+        </div>
       )}
     </div>
   );
 
-  const snagButton = (
-    <Button asChild className="mt-4 w-full">
-      <a
-        href={viewUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        onClick={() =>
-          track("view_deal", {
-            deal_id: deal.id,
-            store: deal.store_name,
-            brand: deal.brand || "",
-          })
-        }
-      >
-        Snag the Deal
-      </a>
-    </Button>
-  );
-
   return (
-    <Card
-      className={cn(
-        "group/card relative gap-0 overflow-hidden rounded-[var(--radius)] border border-border bg-card p-0 shadow-sm ring-0 transition-all duration-200",
-        "hover:-translate-y-0.5 hover:border-foreground hover:shadow-md",
-        href ? "" : "cursor-default",
-      )}
-    >
-      <CardCropMarks />
-      {href ? (
-        <>
-          <Link
-            href={href}
-            className="block rounded-t-[var(--radius)] text-left outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-            onClick={() =>
-              track("deal_card_click", {
-                deal_id: deal.id,
-                store: deal.store_name,
-                brand: deal.brand || "",
-              })
-            }
-          >
+    <div className="relative pt-3">
+      <span
+        className={cn(
+          "absolute right-4 top-0 z-10 max-w-[8.5rem] truncate rounded-t-sm border border-foreground border-b-0 bg-primary px-2 py-0.5",
+          monoMicro,
+          "tabular-nums text-foreground",
+        )}
+        title={deal.store_sku || undefined}
+      >
+        {"// "}
+        {skuForTab(deal)}
+      </span>
+
+      <article
+        className={cn(
+          "group/card relative overflow-hidden rounded-sm border border-foreground bg-card transition-transform duration-200",
+          "hover:-translate-y-0.5",
+          href ? "" : "cursor-default",
+        )}
+      >
+        <CardCropMarks />
+        {href ? (
+          <>
+            <Link
+              href={href}
+              className="block text-left outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              onClick={() =>
+                track("deal_card_click", {
+                  deal_id: deal.id,
+                  store: deal.store_name,
+                  brand: deal.brand || "",
+                })
+              }
+            >
+              {imageBlock}
+              {body}
+            </Link>
+            {footer}
+          </>
+        ) : (
+          <>
             {imageBlock}
-            <CardContent className="py-4 pb-0">{summary}</CardContent>
-          </Link>
-          <CardContent className="pt-0 pb-4">{snagButton}</CardContent>
-        </>
-      ) : (
-        <>
-          {imageBlock}
-          <CardContent className="py-4">
-            {summary}
-            {snagButton}
-          </CardContent>
-        </>
-      )}
-    </Card>
+            <div className="space-y-0">
+              {body}
+              {footer}
+            </div>
+          </>
+        )}
+      </article>
+    </div>
   );
 }

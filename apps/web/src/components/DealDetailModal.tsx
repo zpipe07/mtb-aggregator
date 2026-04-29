@@ -148,7 +148,7 @@ export function DealDetailModal({ dealId, onClose }: DealDetailModalProps) {
                         })
                       }
                     >
-                      Snag the Deal
+                      <span className="relative z-[1]">Snag the Deal</span>
                     </a>
                   </Button>
                 </div>

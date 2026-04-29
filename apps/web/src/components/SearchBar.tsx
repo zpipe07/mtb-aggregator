@@ -1,6 +1,5 @@
 import { track } from "@vercel/analytics";
 import { useEffect, useRef, useState } from "react";
-import { Input } from "./ui/input";
 import { cn } from "@/lib/utils";
 
 type SearchBarProps = {
@@ -46,34 +45,45 @@ export function SearchBar({
 
   return (
     <div className="relative w-full min-w-0 max-w-xl">
-      <label htmlFor="deal-search" className="sr-only">
-        Search deals
-      </label>
-      <div
+      <label
+        htmlFor="deal-search"
         className={cn(
-          "flex h-11 w-full items-center gap-2 border-t border-b-2 border-foreground bg-background transition-colors",
-          "focus-within:border-b-primary",
+          "group flex w-full cursor-text items-center gap-3 bg-card",
+          "border-y border-foreground px-3 py-3",
+          "transition-[border-bottom-width] duration-200",
+          "focus-within:border-b-2 focus-within:border-b-primary",
         )}
       >
+        <span className="sr-only">Search deals</span>
         <span
-          className="pl-1 font-mono text-base text-muted-foreground sm:pl-2"
           aria-hidden
+          className="translate-y-px text-base text-foreground"
         >
           ⌕
         </span>
-        <Input
+        <input
           ref={inputRef}
           id="deal-search"
           type="search"
           value={local}
           onChange={(e) => setLocal(e.target.value)}
           placeholder={placeholder}
-          className="min-h-10 flex-1 rounded-none border-0 bg-transparent px-0 py-2 shadow-none focus-visible:ring-0 md:text-sm"
+          className={cn(
+            "min-h-0 flex-1 border-0 bg-transparent p-0 font-mono text-sm text-foreground outline-none",
+            "placeholder:text-muted-foreground",
+          )}
         />
-        <kbd className="mr-2 hidden shrink-0 rounded border border-border bg-muted/80 px-1.5 py-0.5 font-mono text-[10px] font-semibold text-muted-foreground sm:inline">
+        <span
+          className={cn(
+            "shrink-0 rounded-sm border border-border bg-secondary",
+            "px-1.5 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground",
+            "hidden sm:inline",
+          )}
+          aria-hidden
+        >
           ⌘ K
-        </kbd>
-      </div>
+        </span>
+      </label>
     </div>
   );
 }

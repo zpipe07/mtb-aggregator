@@ -85,16 +85,25 @@ export function HomePageContent({ categoryTree, topDeals }: Props) {
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:py-12">
       {/* Hero */}
       <section className="mb-12 text-center lg:mb-16">
-        <p className="mb-3 font-mono text-[9px] font-medium uppercase tracking-[0.15em] text-muted-foreground">
+        <p className="mb-3 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
           {"// "}
           {new Date().toLocaleDateString("en-CA")} · LIVE
         </p>
-        <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl lg:text-5xl">
-          <span className="block">Stop searching.</span>
-          <span className="block">Start shredding.</span>
-        </h1>
-        <p className="mx-auto mt-4 max-w-2xl text-lg text-muted-foreground sm:text-xl">
-          We scanned 50+ shops so you didn&apos;t have to.
+        <div className="inline-block text-left">
+          <h1 className="text-5xl font-semibold leading-[0.95] tracking-[-0.025em] text-foreground md:text-6xl">
+            <span className="block">Stop searching.</span>
+            <span className="relative inline-block">
+              <span className="relative z-10">Start shredding.</span>
+              <span
+                aria-hidden
+                className="absolute inset-x-0 bottom-1 -z-0 h-3 bg-primary opacity-70"
+              />
+            </span>
+          </h1>
+        </div>
+        <p className="mx-auto mt-4 max-w-md text-base text-muted-foreground">
+          Live deals across 50+ mountain bike shops, scanned on a tight loop. One
+          screen. No spreadsheets.
         </p>
         <form
           onSubmit={handleSearchSubmit}
@@ -120,14 +129,14 @@ export function HomePageContent({ categoryTree, topDeals }: Props) {
 
       {/* Quick-access category cards */}
       <section className="mb-12 lg:mb-16">
-        <div className="mb-6 flex flex-wrap items-end gap-3">
-          <span className="font-mono text-[10px] font-semibold tracking-[0.2em] text-muted-foreground">
-            {"// 01"}
+        <div className="mb-6 flex flex-wrap items-end gap-4">
+          <span className="pb-0.5 font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+            § 01
           </span>
-          <h2 className="text-xl font-semibold text-foreground">
+          <h2 className="text-2xl font-semibold tracking-[-0.02em] text-foreground">
             Shop by category
           </h2>
-          <hr className="min-w-8 flex-1 border-border" />
+          <span className="mb-0.5 h-px min-w-8 flex-1 bg-border" />
         </div>
         <div className="grid grid-cols-2 gap-2 sm:gap-4 lg:grid-cols-4">
           {categoryCards.map(({ path, label, imageSrc, dealCount }) => (
@@ -144,15 +153,15 @@ export function HomePageContent({ categoryTree, topDeals }: Props) {
 
       {/* Top deals */}
       <section>
-        <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
-          <div className="flex flex-wrap items-end gap-3">
-            <span className="font-mono text-[10px] font-semibold tracking-[0.2em] text-muted-foreground">
-              {"// 02"}
+        <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+          <div className="flex flex-wrap items-end gap-4">
+            <span className="pb-0.5 font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+              § 02
             </span>
-            <h2 className="text-xl font-semibold text-foreground">
+            <h2 className="text-2xl font-semibold tracking-[-0.02em] text-foreground">
               Top deals of the day
             </h2>
-            <hr className="hidden min-w-8 flex-1 border-border sm:block sm:max-w-xs" />
+            <span className="mb-0.5 hidden h-px min-w-8 max-w-xs flex-1 bg-border sm:block" />
           </div>
           <Link
             href="/deals"

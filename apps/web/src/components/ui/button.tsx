@@ -5,20 +5,20 @@ import { Slot } from "radix-ui";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "group/button relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded border border-transparent bg-clip-padding font-mono text-[0.6875rem] font-semibold uppercase tracking-[0.12em] whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  "group/button relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-sm border border-transparent bg-clip-padding font-mono text-[0.6875rem] font-semibold uppercase tracking-[0.12em] whitespace-nowrap transition-all outline-none select-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2 active:translate-y-px disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:outline-destructive/30 dark:aria-invalid:border-destructive/50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
     variants: {
       variant: {
         default:
-          "bg-[linear-gradient(90deg,var(--foreground)_0,var(--foreground)_4px,var(--primary)_4px,var(--primary)_100%)] text-primary-foreground transition-[background,color] duration-300 ease-out hover:bg-[linear-gradient(90deg,var(--foreground)_0%,var(--foreground)_100%)] hover:text-primary",
+          "bg-foreground text-background before:absolute before:inset-y-0 before:left-0 before:z-0 before:w-1 before:bg-primary before:transition-[width] before:duration-300 before:ease-out hover:text-foreground hover:before:w-full",
         outline:
-          "border-foreground bg-transparent text-foreground hover:bg-foreground hover:text-background aria-expanded:bg-muted aria-expanded:text-foreground dark:border-input dark:bg-input/30 dark:hover:bg-input/50",
+          "border-foreground bg-card text-foreground transition-colors hover:bg-foreground hover:text-background aria-expanded:bg-muted aria-expanded:text-foreground dark:border-input dark:bg-input/30 dark:hover:bg-input/50",
         secondary:
           "bg-secondary text-secondary-foreground hover:bg-secondary/80 aria-expanded:bg-secondary aria-expanded:text-secondary-foreground",
         ghost:
           "hover:bg-muted hover:underline hover:underline-offset-4 aria-expanded:bg-muted aria-expanded:text-foreground dark:hover:bg-muted/50",
         destructive:
-          "border border-destructive bg-transparent text-destructive hover:bg-destructive/10 focus-visible:border-destructive/40 focus-visible:ring-destructive/20 dark:bg-destructive/20 dark:hover:bg-destructive/30 dark:focus-visible:ring-destructive/40",
+          "border border-destructive bg-card text-destructive transition-colors hover:bg-destructive hover:text-background dark:bg-destructive/20 dark:hover:bg-destructive dark:hover:text-background",
         link: "text-primary underline-offset-4 hover:underline",
       },
       size: {
@@ -48,12 +48,22 @@ function Button({
   variant = "default",
   size = "default",
   asChild = false,
+  children,
   ...props
 }: React.ComponentProps<"button"> &
   VariantProps<typeof buttonVariants> & {
     asChild?: boolean;
   }) {
   const Comp = asChild ? Slot.Root : "button";
+
+  const content =
+    !asChild && variant === "default" ? (
+      <span className="relative z-[1] inline-flex items-center gap-1.5">
+        {children}
+      </span>
+    ) : (
+      children
+    );
 
   return (
     <Comp
@@ -62,7 +72,9 @@ function Button({
       data-size={size}
       className={cn(buttonVariants({ variant, size, className }))}
       {...props}
-    />
+    >
+      {content}
+    </Comp>
   );
 }
 

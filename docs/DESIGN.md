@@ -12,7 +12,7 @@ Visual identity and language guidelines for the MTB Deal Aggregator. Use this wh
 
 | Element | Direction |
 | :--- | :--- |
-| **Color Palette** | **Concrete & lime** — cool stone canvas (`--background`), near-black ink (`--foreground`), paper cards (`--card`), **electric lime** (`--primary`) for CTAs and focus, warm grey rules (`--border`). Store/retailer chips use a deep sienna **`--trail`** (distinct from the old teal trail). |
+| **Color Palette** | **Concrete & lime** — cool stone canvas (`--background`), near-black ink (`--foreground`), paper cards (`--card`), **electric lime** (`--primary`) for CTAs and focus, warm grey rules (`--border`). **`--trail`** / **`--accent`** use a cool graphite for secondary emphasis (Workshop Modern story parity; retailer callouts in cards use mono `//` labels, not a colored pill). |
 | **Typography** | **Geist Variable** for UI and display (h1–h3 use the display stack in `globals.css`). **Geist Mono Variable** for labels, chips, and “workshop” mono touches (`--font-mono` in `@theme`). |
 | **Imagery** | High-contrast, "action" photography. Avoid stock photos of smiling people on bikes. Use close-ups of gritty components: a muddy derailleur, a clean carbon weave, or a tire biting into loam. |
 | **The Vibe** | **"Dialed-in."** The site shouldn't feel like a mall; it should feel like a specialized tool. |
