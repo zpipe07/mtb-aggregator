@@ -243,8 +243,8 @@ export function DealsPageContent({
       <div className="flex gap-8">
         <aside className="hidden lg:block w-60 flex-shrink-0">
           <div className="sticky top-6 max-h-[calc(100vh-3rem)] flex flex-col min-h-[500px]">
-            <h2 className="text-sm font-semibold text-foreground mb-4 flex-shrink-0">
-              Filters
+            <h2 className="mb-4 flex-shrink-0 font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
+              {"// Filters"}
             </h2>
             <div className="overflow-y-auto pr-1 -mr-1 grow">
               <FilterSidebar {...filterSidebarProps} />

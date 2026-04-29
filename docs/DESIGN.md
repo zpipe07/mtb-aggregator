@@ -2,7 +2,7 @@
 
 Visual identity and language guidelines for the MTB Deal Aggregator. Use this when building UI, writing copy, or iterating on the design system.
 
-> **Redesign in flight.** A redesign proposal lives in [DESIGN_REDESIGN.md](DESIGN_REDESIGN.md) (Trail Atlas vs Workshop Modern). This file describes the **current production** identity until a direction is picked and rolled out.
+> **Workshop Modern (Direction C)** is **rolled out in production** for the public app (light theme). Spec: [DESIGN_REDESIGN.md](DESIGN_REDESIGN.md). Storybook prototype: `WorkshopModernPreview`. Pencil reference: [`designs/mtb-public-ui-v3.pen`](../designs/mtb-public-ui-v3.pen). Legacy “Trail + hazard orange” notes below are kept as history where useful.
 
 ---
 
@@ -12,8 +12,8 @@ Visual identity and language guidelines for the MTB Deal Aggregator. Use this wh
 
 | Element | Direction |
 | :--- | :--- |
-| **Color Palette** | Carbon Grey (#2D2D2D), Mud/Deep Forest (#1B3022), and a high-vis **Hazard Orange** (#FF5E00) for Call-to-Action (CTA) buttons. |
-| **Typography** | **Bricolage Grotesque** for display (h1–h3)—personality and energy. **Plus Jakarta Sans** for body/UI—friendly and very readable. |
+| **Color Palette** | **Concrete & lime** — cool stone canvas (`--background`), near-black ink (`--foreground`), paper cards (`--card`), **electric lime** (`--primary`) for CTAs and focus, warm grey rules (`--border`). Store/retailer chips use a deep sienna **`--trail`** (distinct from the old teal trail). |
+| **Typography** | **Geist Variable** for UI and display (h1–h3 use the display stack in `globals.css`). **Geist Mono Variable** for labels, chips, and “workshop” mono touches (`--font-mono` in `@theme`). |
 | **Imagery** | High-contrast, "action" photography. Avoid stock photos of smiling people on bikes. Use close-ups of gritty components: a muddy derailleur, a clean carbon weave, or a tire biting into loam. |
 | **The Vibe** | **"Dialed-in."** The site shouldn't feel like a mall; it should feel like a specialized tool. |
 
@@ -49,10 +49,8 @@ Since it's an aggregator, be honest:
 
 ## Implementation Notes
 
-- **Colors**: Mapped in `apps/web/src/app/globals.css` (`:root`, `.dark`):
-- **Light mode**: **Soft warm-grey canvas** (low chroma) vs **near-white cards**; neutral-ish **`--foreground`**; **`--secondary`** / **`--muted`** / **`--border`** read as grey with only a hint of hue; **`--accent`** is a cool blue-grey wash; **`--trail`** stays a muted teal for accents; orange **`--primary`** unchanged. **`--input`** is tuned darker than the page background so form controls (inputs, native selects, outline buttons) have visible borders on both canvas and cards.
-- **Dark mode**: **Neutral-warm grey** base (~oklch 0.34 L, very low chroma) and **lighter cards**; **`--secondary`**, **`--muted`**, **`--accent`**, **`--trail`** are toned down so the UI isn’t forest-green; primary orange unchanged.
-- **Typography**: `--app-font-display` (Bricolage Grotesque Variable) for h1–h3; `--app-font-sans` (Plus Jakarta Sans Variable) for body. Wired in `apps/web/src/app/globals.css` via `@fontsource-variable/*`.
-- **Components**: CTA buttons should use the Hazard Orange accent. See [docs/ARCHITECTURE.md](ARCHITECTURE.md#component-library) for the component system.
+- **Colors**: Mapped in `apps/web/src/app/globals.css` (`:root`, `.dark`). **Light (production):** Workshop Modern OKLCH tokens on `:root`. **`html` does not use the `dark` class** (see `layout.tsx` + `ThemeProvider`); you should always see stone canvas + lime CTAs. The `.dark` block keeps lime-aligned primary/ring as a fallback if `.dark` is ever present.
+- **Typography**: `--app-font-sans` / `--app-font-display` (**Geist Variable**), `--app-font-mono` (**Geist Mono Variable**). Loaded via `@fontsource-variable/geist` and `@fontsource-variable/geist-mono` in `globals.css`.
+- **Components**: Primary actions use **lime** (`--primary`) with workshop patterns (open-frame search, stamp checkboxes, etc.) per [DESIGN_REDESIGN.md](DESIGN_REDESIGN.md). See [docs/ARCHITECTURE.md](ARCHITECTURE.md#component-library) for the component system.
 - **Storybook**: Run `pnpm --filter @mtb-aggregator/web run storybook` and open **Design / Design Tokens** to view the palette and typography.
 - **Pencil (layout reference)**: High-fidelity frames for Home, Deals, and Deal detail (light + dark) live in the Pencil editor document; semantic colors are mirrored as file variables from `apps/web/src/app/globals.css`. See [designs/README.md](../designs/README.md) for the variable map and exported PNG previews.

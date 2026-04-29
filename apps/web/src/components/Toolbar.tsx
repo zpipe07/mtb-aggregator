@@ -5,6 +5,7 @@ import type { SortOption } from "../hooks/useFilterParams";
 import { SearchBar } from "./SearchBar";
 import { Select } from "./ui/select";
 import { Button } from "./ui/button";
+import { cn } from "@/lib/utils";
 
 const BASE_SORT_OPTIONS: { value: SortOption; label: string }[] = [
   { value: "newest", label: "Newest" },
@@ -54,7 +55,11 @@ export function Toolbar({
             variant="outline"
             size="default"
             onClick={onFilterClick}
-            className="lg:hidden gap-2 px-4"
+            className={cn(
+              "gap-2 px-4 lg:hidden",
+              activeFilterCount > 0 &&
+                "border-foreground bg-foreground text-background hover:bg-foreground/90 hover:text-background",
+            )}
           >
             <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden>
               <path
@@ -64,12 +69,12 @@ export function Toolbar({
                 d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
               />
             </svg>
-            Filters
-            {activeFilterCount > 0 && (
-              <span className="bg-primary text-primary-foreground text-xs font-medium px-1.5 py-0.5 rounded-full">
-                {activeFilterCount}
-              </span>
-            )}
+            <span className="font-mono text-[9px] font-bold tracking-[0.08em] normal-case">
+              Filters
+              {activeFilterCount > 0 && (
+                <span className="text-primary"> · {activeFilterCount}</span>
+              )}
+            </span>
           </Button>
         )}
         <div>
@@ -84,7 +89,7 @@ export function Toolbar({
               posthog.capture("sort_changed", { sort: value });
               onSortChange(value);
             }}
-            className="min-w-[10rem]"
+            className="min-w-[10rem] rounded-[var(--radius)] border-foreground font-mono text-[9px] font-semibold uppercase tracking-[0.06em] md:text-[10px]"
           >
             {sortOptions.map((opt) => (
               <option key={opt.value} value={opt.value}>

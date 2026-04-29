@@ -76,7 +76,7 @@ export function FilterSidebar({
   }, [brandFacets, brandFilters]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 rounded-[var(--radius)] border border-border bg-card p-4 shadow-sm">
       <CheckboxGroup
         name="facet-brand"
         legend="Brand"

@@ -22,14 +22,18 @@ export function FilterSelect<T extends string>({
 
   return (
     <div>
-      <label htmlFor={selectId} className="block text-sm font-medium text-muted-foreground mb-1">
+      <label
+        htmlFor={selectId}
+        className="mb-1 block font-mono text-[9px] font-semibold uppercase tracking-[0.15em] text-muted-foreground"
+      >
+        {"// "}
         {label}
       </label>
       <Select
         id={selectId}
         value={value}
         onChange={(e) => onChange(e.target.value as T)}
-        className="w-full"
+        className="w-full rounded-[var(--radius)] border-foreground font-mono text-xs uppercase tracking-wide"
       >
         {options.map((opt) => (
           <option key={opt.value} value={opt.value}>

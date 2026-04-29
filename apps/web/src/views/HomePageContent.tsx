@@ -25,7 +25,12 @@ const FALLBACK_CATEGORIES: { path: string; label: string }[] = [
   { path: "components-drivetrain-pedals", label: "Pedals" },
 ];
 
-function buildCategoryCards(categoryTree: CategoryTreeNode[]) {
+function buildCategoryCards(categoryTree: CategoryTreeNode[]): {
+  path: string;
+  label: string;
+  imageSrc?: string;
+  dealCount?: number;
+}[] {
   if (categoryTree.length === 0) {
     return FALLBACK_CATEGORIES.map(({ path, label }) => ({
       path,
@@ -45,6 +50,7 @@ function buildCategoryCards(categoryTree: CategoryTreeNode[]) {
     path: category.slug,
     label: category.name,
     imageSrc: CATEGORY_IMAGES[category.slug] ?? undefined,
+    dealCount: category.deal_count,
   }));
 }
 
@@ -76,27 +82,36 @@ export function HomePageContent({ categoryTree, topDeals }: Props) {
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 lg:py-12">
+    <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:py-12">
       {/* Hero */}
-      <section className="text-center mb-12 lg:mb-16">
-        <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground tracking-tight">
-          Dialed-in deals.
+      <section className="mb-12 text-center lg:mb-16">
+        <p className="mb-3 font-mono text-[9px] font-medium uppercase tracking-[0.15em] text-muted-foreground">
+          {"// "}
+          {new Date().toLocaleDateString("en-CA")} · LIVE
+        </p>
+        <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl lg:text-5xl">
+          <span className="block">Stop searching.</span>
+          <span className="block">Start shredding.</span>
         </h1>
-        <p className="mt-4 text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto">
+        <p className="mx-auto mt-4 max-w-2xl text-lg text-muted-foreground sm:text-xl">
           We scanned 50+ shops so you didn&apos;t have to.
         </p>
-        <form onSubmit={handleSearchSubmit} className="mt-8 max-w-xl mx-auto">
-          <div className="flex flex-col sm:flex-row gap-2">
+        <form
+          onSubmit={handleSearchSubmit}
+          className="mx-auto mt-8 flex max-w-2xl flex-col gap-3 sm:flex-row sm:items-stretch"
+        >
+          <div className="min-w-0 flex-1">
             <SearchBar
               value={searchValue}
               onChange={setSearchValue}
               placeholder="Search deals…"
             />
-            <Button type="submit" disabled={isPending}>
+          </div>
+          <div className="flex shrink-0 flex-col gap-2 sm:flex-row sm:items-stretch">
+            <Button type="submit" disabled={isPending} className="sm:min-w-[8rem]">
               {isPending ? "Searching…" : "Search"}
             </Button>
-
-            <Button variant="outline" className="" asChild>
+            <Button variant="outline" asChild className="sm:min-w-[8rem]">
               <Link href="/deals">View all deals</Link>
             </Button>
           </div>
@@ -105,16 +120,23 @@ export function HomePageContent({ categoryTree, topDeals }: Props) {
 
       {/* Quick-access category cards */}
       <section className="mb-12 lg:mb-16">
-        <h2 className="text-xl font-semibold text-foreground mb-6">
-          Shop by category
-        </h2>
-        <div className="grid grid-cols-1 grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
-          {categoryCards.map(({ path, label, imageSrc }) => (
+        <div className="mb-6 flex flex-wrap items-end gap-3">
+          <span className="font-mono text-[10px] font-semibold tracking-[0.2em] text-muted-foreground">
+            {"// 01"}
+          </span>
+          <h2 className="text-xl font-semibold text-foreground">
+            Shop by category
+          </h2>
+          <hr className="min-w-8 flex-1 border-border" />
+        </div>
+        <div className="grid grid-cols-2 gap-2 sm:gap-4 lg:grid-cols-4">
+          {categoryCards.map(({ path, label, imageSrc, dealCount }) => (
             <CategoryCard
               key={path}
               label={label}
               to={buildDealsCategoryPath(path, categoryTree)}
               imageSrc={imageSrc}
+              dealCount={dealCount}
             />
           ))}
         </div>
@@ -122,15 +144,21 @@ export function HomePageContent({ categoryTree, topDeals }: Props) {
 
       {/* Top deals */}
       <section>
-        <div className="flex flex-wrap items-center justify-between gap-2 mb-6">
-          <h2 className="text-xl font-semibold text-foreground">
-            Top deals of the day
-          </h2>
+        <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
+          <div className="flex flex-wrap items-end gap-3">
+            <span className="font-mono text-[10px] font-semibold tracking-[0.2em] text-muted-foreground">
+              {"// 02"}
+            </span>
+            <h2 className="text-xl font-semibold text-foreground">
+              Top deals of the day
+            </h2>
+            <hr className="hidden min-w-8 flex-1 border-border sm:block sm:max-w-xs" />
+          </div>
           <Link
             href="/deals"
-            className="text-sm font-medium text-muted-foreground hover:text-foreground"
+            className="font-mono text-xs font-semibold tracking-wide text-muted-foreground hover:text-foreground"
           >
-            View all deals
+            View all deals →
           </Link>
         </div>
         {topDeals.length > 0 ? (

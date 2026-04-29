@@ -1,6 +1,7 @@
 import { track } from "@vercel/analytics";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Input } from "./ui/input";
+import { cn } from "@/lib/utils";
 
 type SearchBarProps = {
   value: string;
@@ -16,6 +17,7 @@ export function SearchBar({
   debounceMs = 300,
 }: SearchBarProps) {
   const [local, setLocal] = useState(value);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setLocal(value);
@@ -31,37 +33,47 @@ export function SearchBar({
     return () => clearTimeout(t);
   }, [local, debounceMs, onChange, value]);
 
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        inputRef.current?.focus();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
   return (
     <div className="relative w-full min-w-0 max-w-xl">
       <label htmlFor="deal-search" className="sr-only">
         Search deals
       </label>
-      <span
-        className="pointer-events-none absolute left-3 top-1/2 z-10 -translate-y-1/2 text-muted-foreground"
-        aria-hidden
+      <div
+        className={cn(
+          "flex h-11 w-full items-center gap-2 border-t border-b-2 border-foreground bg-background transition-colors",
+          "focus-within:border-b-primary",
+        )}
       >
-        <svg
-          className="size-4 shrink-0"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          strokeWidth={2}
+        <span
+          className="pl-1 font-mono text-base text-muted-foreground sm:pl-2"
+          aria-hidden
         >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"
-          />
-        </svg>
-      </span>
-      <Input
-        id="deal-search"
-        type="search"
-        value={local}
-        onChange={(e) => setLocal(e.target.value)}
-        placeholder={placeholder}
-        className="pl-9"
-      />
+          ⌕
+        </span>
+        <Input
+          ref={inputRef}
+          id="deal-search"
+          type="search"
+          value={local}
+          onChange={(e) => setLocal(e.target.value)}
+          placeholder={placeholder}
+          className="min-h-10 flex-1 rounded-none border-0 bg-transparent px-0 py-2 shadow-none focus-visible:ring-0 md:text-sm"
+        />
+        <kbd className="mr-2 hidden shrink-0 rounded border border-border bg-muted/80 px-1.5 py-0.5 font-mono text-[10px] font-semibold text-muted-foreground sm:inline">
+          ⌘ K
+        </kbd>
+      </div>
     </div>
   );
 }

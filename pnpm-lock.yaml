@@ -76,18 +76,12 @@ importers:
       '@dnd-kit/utilities':
         specifier: ^3.2.2
         version: 3.2.2(react@18.3.1)
-      '@fontsource-variable/bricolage-grotesque':
-        specifier: ^5.2.10
-        version: 5.2.10
       '@fontsource-variable/geist':
         specifier: ^5.2.8
         version: 5.2.8
       '@fontsource-variable/geist-mono':
         specifier: ^5.2.7
         version: 5.2.7
-      '@fontsource-variable/plus-jakarta-sans':
-        specifier: ^5.2.8
-        version: 5.2.8
       '@sentry/nextjs':
         specifier: ^10.45.0
         version: 10.45.0(@opentelemetry/context-async-hooks@2.6.0(@opentelemetry/api@1.9.0))(@opentelemetry/core@2.6.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@2.6.0(@opentelemetry/api@1.9.0))(next@15.5.15(@babel/core@7.29.0)(@opentelemetry/api@1.9.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)(webpack@5.105.4(esbuild@0.25.12))
@@ -750,17 +744,11 @@ packages:
   '@floating-ui/utils@0.2.11':
     resolution: {integrity: sha512-RiB/yIh78pcIxl6lLMG0CgBXAZ2Y0eVHqMPYugu+9U0AeT6YBeiJpf7lbdJNIugFP5SIjwNRgo4DhR1Qxi26Gg==}
 
-  '@fontsource-variable/bricolage-grotesque@5.2.10':
-    resolution: {integrity: sha512-5EDsCqgGpKVcJWE4sg9ydli+t5WM97mISYw5lla/Ev4z71FwXh1oN0YUU8xjkRW9+wBCGD9R+ntAvI8G4bUFJg==}
-
   '@fontsource-variable/geist-mono@5.2.7':
     resolution: {integrity: sha512-ZKlZ5sjtalb2TwXKs400mAGDlt/+2ENLNySPx0wTz3bP3mWARCsUW+rpxzZc7e05d2qGch70pItt3K4qttbIYA==}
 
   '@fontsource-variable/geist@5.2.8':
     resolution: {integrity: sha512-cJ6m9e+8MQ5dCYJsLylfZrgBh6KkG4bOLckB35Tr9J/EqdkEM6QllH5PxqP1dhTvFup+HtMRPuz9xOjxXJggxw==}
-
-  '@fontsource-variable/plus-jakarta-sans@5.2.8':
-    resolution: {integrity: sha512-iQecBizIdZxezODNHzOn4SvvRMrZL/S8k4MEXGDynCmUrImVW0VmX+tIAMqnADwH4haXlHSXqMgU6+kcfBQJdw==}
 
   '@hono/node-server@1.19.11':
     resolution: {integrity: sha512-dr8/3zEaB+p0D2n/IUrlPF1HZm586qgJNXK1a9fhg/PzdtkK7Ksd5l312tJX2yBuALqDYBlG20QEbayqPyxn+g==}
@@ -6659,13 +6647,9 @@ snapshots:
 
   '@floating-ui/utils@0.2.11': {}
 
-  '@fontsource-variable/bricolage-grotesque@5.2.10': {}
-
   '@fontsource-variable/geist-mono@5.2.7': {}
 
   '@fontsource-variable/geist@5.2.8': {}
-
-  '@fontsource-variable/plus-jakarta-sans@5.2.8': {}
 
   '@hono/node-server@1.19.11(hono@4.12.8)':
     dependencies:

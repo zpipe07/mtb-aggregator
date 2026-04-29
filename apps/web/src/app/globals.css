@@ -1,7 +1,7 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
-@import "@fontsource-variable/plus-jakarta-sans";
-@import "@fontsource-variable/bricolage-grotesque";
+@import "@fontsource-variable/geist";
+@import "@fontsource-variable/geist-mono";
 @import "tailwindcss";
 
 @custom-variant dark (&:is(.dark *));
@@ -43,6 +43,7 @@
   /* Use --app-font-sans here to avoid circular reference with :root --font-sans */
   --font-sans: var(--app-font-sans), ui-sans-serif, system-ui, sans-serif;
   --font-display: var(--app-font-display), var(--app-font-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--app-font-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
 @layer base {
@@ -57,66 +58,71 @@
 
 @layer base {
   :root {
-    --app-font-sans: "Plus Jakarta Sans Variable", ui-sans-serif, system-ui, sans-serif;
-    --app-font-display: "Bricolage Grotesque Variable", ui-sans-serif, system-ui, sans-serif;
-    /* Light: soft grey canvas vs bright cards; low chroma (less green), teal accents stay usable */
-    --background: oklch(0.935 0.014 95);
-    --foreground: oklch(0.11 0.008 270);
-    --card: oklch(0.995 0.002 90);
-    --card-foreground: oklch(0.11 0.008 270);
-    --popover: oklch(0.995 0.002 90);
-    --popover-foreground: oklch(0.11 0.008 270);
-    --primary: oklch(0.58 0.24 37);
-    --primary-foreground: oklch(0.99 0 0);
-    --secondary: oklch(0.76 0.032 145);
-    --secondary-foreground: oklch(0.16 0.018 260);
-    --muted: oklch(0.86 0.016 100);
-    --muted-foreground: oklch(0.32 0.012 260);
-    --accent: oklch(0.78 0.072 220);
-    --accent-foreground: oklch(0.12 0.028 240);
-    --trail: oklch(0.38 0.105 215);
-    --trail-foreground: oklch(0.99 0.005 220);
-    --destructive: oklch(0.577 0.245 27.325);
-    --border: oklch(0.62 0.028 100);
-    --input: oklch(0.74 0.022 95);
-    --ring: oklch(0.58 0.24 37);
+    --app-font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
+    --app-font-display: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
+    --app-font-mono: "Geist Mono Variable", ui-monospace, SFMono-Regular, Menlo, monospace;
+    /* Workshop Modern · Concrete & Lime (light) — see docs/DESIGN_REDESIGN.md */
+    --background: oklch(0.96 0.004 240);
+    --foreground: oklch(0.18 0.005 240);
+    --card: oklch(0.995 0.002 240);
+    --card-foreground: oklch(0.18 0.005 240);
+    --popover: oklch(0.995 0.002 240);
+    --popover-foreground: oklch(0.18 0.005 240);
+    --primary: oklch(0.85 0.18 130);
+    --primary-foreground: oklch(0.18 0.005 240);
+    --secondary: oklch(0.93 0.005 240);
+    --secondary-foreground: oklch(0.18 0.005 240);
+    --muted: oklch(0.92 0.005 240);
+    --muted-foreground: oklch(0.45 0.005 240);
+    --accent: oklch(0.55 0.04 240);
+    --accent-foreground: oklch(0.99 0 0);
+    /* Store / retailer chip: deep sienna (distinct from trail-teal legacy) */
+    --trail: oklch(0.42 0.18 22);
+    --trail-foreground: oklch(0.98 0.01 95);
+    --destructive: oklch(0.58 0.22 25);
+    --border: oklch(0.85 0.005 240);
+    --input: oklch(0.88 0.005 240);
+    --ring: oklch(0.85 0.18 130);
     --chart-1: oklch(0.809 0.105 251.813);
     --chart-2: oklch(0.623 0.214 259.815);
     --chart-3: oklch(0.546 0.245 262.881);
     --chart-4: oklch(0.488 0.243 264.376);
     --chart-5: oklch(0.424 0.199 265.638);
-    --radius: 0.625rem;
-    --sidebar: oklch(0.93 0.016 95);
-    --sidebar-foreground: oklch(0.11 0.008 270);
-    --sidebar-primary: oklch(0.58 0.24 37);
-    --sidebar-primary-foreground: oklch(0.99 0 0);
-    --sidebar-accent: oklch(0.78 0.072 220);
-    --sidebar-accent-foreground: oklch(0.12 0.028 240);
-    --sidebar-border: oklch(0.62 0.028 100);
-    --sidebar-ring: oklch(0.58 0.24 37);
+    --radius: 0.25rem;
+    --sidebar: oklch(0.995 0.002 240);
+    --sidebar-foreground: oklch(0.18 0.005 240);
+    --sidebar-primary: oklch(0.85 0.18 130);
+    --sidebar-primary-foreground: oklch(0.18 0.005 240);
+    --sidebar-accent: oklch(0.93 0.005 240);
+    --sidebar-accent-foreground: oklch(0.18 0.005 240);
+    --sidebar-border: oklch(0.85 0.005 240);
+    --sidebar-ring: oklch(0.85 0.18 130);
   }
+  /*
+   * `.dark` is not applied in the app (Workshop Modern = single light theme).
+   * If `html.dark` ever appears (extensions, stale HTML), keep CTAs/focus lime — not legacy orange.
+   */
   .dark {
-    /* Dark: lifted neutral-warm grey (hint of green), not forest green */
     --background: oklch(0.34 0.018 155);
     --foreground: oklch(0.97 0.006 95);
     --card: oklch(0.46 0.022 155);
     --card-foreground: oklch(0.97 0.006 95);
     --popover: oklch(0.46 0.022 155);
     --popover-foreground: oklch(0.97 0.006 95);
-    --primary: oklch(0.62 0.23 38);
-    --primary-foreground: oklch(0.99 0 0);
+    --primary: oklch(0.85 0.18 130);
+    --primary-foreground: oklch(0.18 0.005 240);
     --secondary: oklch(0.52 0.038 165);
     --secondary-foreground: oklch(0.97 0.008 95);
     --muted: oklch(0.42 0.022 155);
     --muted-foreground: oklch(0.78 0.018 155);
     --accent: oklch(0.52 0.058 215);
     --accent-foreground: oklch(0.97 0.012 220);
-    --trail: oklch(0.74 0.088 210);
-    --trail-foreground: oklch(0.14 0.025 220);
+    --trail: oklch(0.55 0.16 35);
+    --trail-foreground: oklch(0.98 0.01 95);
     --destructive: oklch(0.704 0.191 22.216);
     --border: oklch(0.56 0.038 155 / 72%);
     --input: oklch(0.58 0.028 155);
-    --ring: oklch(0.62 0.23 38);
+    --ring: oklch(0.85 0.18 130);
     --chart-1: oklch(0.809 0.105 251.813);
     --chart-2: oklch(0.623 0.214 259.815);
     --chart-3: oklch(0.546 0.245 262.881);
@@ -124,12 +130,12 @@
     --chart-5: oklch(0.424 0.199 265.638);
     --sidebar: oklch(0.38 0.022 155);
     --sidebar-foreground: oklch(0.97 0.006 95);
-    --sidebar-primary: oklch(0.62 0.23 38);
-    --sidebar-primary-foreground: oklch(0.99 0 0);
+    --sidebar-primary: oklch(0.85 0.18 130);
+    --sidebar-primary-foreground: oklch(0.18 0.005 240);
     --sidebar-accent: oklch(0.52 0.058 215);
     --sidebar-accent-foreground: oklch(0.97 0.012 220);
     --sidebar-border: oklch(0.56 0.038 155 / 72%);
-    --sidebar-ring: oklch(0.62 0.23 38);
+    --sidebar-ring: oklch(0.85 0.18 130);
   }
   * {
     @apply border-border;
