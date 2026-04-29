@@ -685,6 +685,25 @@ func (db *DB) GetAdminListingByID(ctx context.Context, id int) (*AdminListing, e
 	return &a, nil
 }
 
+// HideStaleListings hides all non-hidden listings for a store whose last_scraped
+// timestamp predates scrapeStartedAt. This catches products that were not
+// returned by the most recent full scrape — meaning they are no longer on sale
+// or have been removed from the store's collection.
+// Returns the number of listings hidden.
+func (db *DB) HideStaleListings(ctx context.Context, storeID int, scrapeStartedAt time.Time) (int, error) {
+	cmd, err := db.pool.Exec(ctx, `
+		UPDATE store_listings
+		SET hidden = true
+		WHERE store_id = $1
+		  AND hidden = false
+		  AND last_scraped < $2
+	`, storeID, scrapeStartedAt)
+	if err != nil {
+		return 0, err
+	}
+	return int(cmd.RowsAffected()), nil
+}
+
 // SetListingHidden sets the hidden flag for a listing by id. Returns error if not found.
 func (db *DB) SetListingHidden(ctx context.Context, id int, hidden bool) error {
 	cmd, err := db.pool.Exec(ctx, `UPDATE store_listings SET hidden = $1 WHERE id = $2`, hidden, id)

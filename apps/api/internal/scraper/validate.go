@@ -51,6 +51,11 @@ func ValidateResult(r ScrapeResult, index int) []ValidationError {
 	if r.OriginalPrice != nil {
 		if *r.OriginalPrice <= 0 {
 			add("original_price", "when present, must be positive")
+		} else if r.CurrentPrice > 0 {
+			discountFraction := (*r.OriginalPrice - r.CurrentPrice) / *r.OriginalPrice
+			if discountFraction > 0.80 {
+				add("original_price", fmt.Sprintf("implausible discount: %.0f%% off ($%.2f → $%.2f); compare_at_price may represent bulk/case pricing rather than a 'was' price", discountFraction*100, *r.OriginalPrice, r.CurrentPrice))
+			}
 		}
 	}
 	if r.ImageURL != nil && *r.ImageURL != "" {
