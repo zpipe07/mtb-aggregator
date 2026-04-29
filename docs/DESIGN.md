@@ -2,6 +2,8 @@
 
 Visual identity and language guidelines for the MTB Deal Aggregator. Use this when building UI, writing copy, or iterating on the design system.
 
+> **Redesign in flight.** A redesign proposal lives in [DESIGN_REDESIGN.md](DESIGN_REDESIGN.md) (Trail Atlas vs Workshop Modern). This file describes the **current production** identity until a direction is picked and rolled out.
+
 ---
 
 ## 2. Visual Identity & "The Vibe"

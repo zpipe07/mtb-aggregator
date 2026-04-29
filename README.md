@@ -152,6 +152,8 @@ Develop and document UI components in isolation. See [docs/ARCHITECTURE.md](docs
 - **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** — System overview, data flow, component library
 - **[docs/SCRAPING.md](docs/SCRAPING.md)** — Scraper deep dive, parser structure, adding stores
 - **[docs/TAXONOMY.md](docs/TAXONOMY.md)** — Category taxonomy and mappings
+- **[docs/DESIGN.md](docs/DESIGN.md)** — Visual identity, copy, design tokens (current production)
+- **[docs/DESIGN_REDESIGN.md](docs/DESIGN_REDESIGN.md)** — In-progress redesign proposal: Trail Atlas vs Workshop Modern
 - **[CLAUDE.md](CLAUDE.md)** — AI agent context (for Cursor/Claude)
 - Domain READMEs: [apps/api/README.md](apps/api/README.md), [apps/scraper/README.md](apps/scraper/README.md), [apps/web/README.md](apps/web/README.md), [packages/shared/README.md](packages/shared/README.md)
 

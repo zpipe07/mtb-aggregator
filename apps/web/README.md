@@ -160,5 +160,6 @@ DealCard, CategoryCard, DealsCategoryNav, DealsBrowseFooter, Pagination, SearchB
 - Run `pnpm run storybook` to develop components in isolation
 - Add `*.stories.tsx` for new components (CSF3 format)
 - Theme toolbar for light/dark palette iteration
+- **Design / Workshop Modern Preview** ([`src/components/WorkshopModernPreview.stories.tsx`](src/components/WorkshopModernPreview.stories.tsx)) is the live preview for the Direction C redesign proposal in [`docs/DESIGN_REDESIGN.md`](../../docs/DESIGN_REDESIGN.md). It overrides theme tokens **inside the story root only** so the new "Concrete & Lime" palette + Geist Sans × Geist Mono pairing are visible without affecting the rest of the app. Once primitives are approved there, they migrate into `src/components/ui/` and `globals.css` gets the matching token swap.
 
-See [docs/ARCHITECTURE.md](../../docs/ARCHITECTURE.md#component-library) for details. Visual identity and copy: [docs/DESIGN.md](../../docs/DESIGN.md).
+See [docs/ARCHITECTURE.md](../../docs/ARCHITECTURE.md#component-library) for details. Visual identity and copy: [docs/DESIGN.md](../../docs/DESIGN.md). Active redesign proposal: [docs/DESIGN_REDESIGN.md](../../docs/DESIGN_REDESIGN.md).
