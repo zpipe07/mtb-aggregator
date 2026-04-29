@@ -12,6 +12,14 @@ const BASE_URL = "https://ridebicycles.com";
 const PER_PAGE = 250;
 /** Minimum discount vs compare-at price (e.g. 0.1 = 10% off). */
 const MIN_DISCOUNT_FRACTION = 0.1;
+/**
+ * Maximum plausible discount fraction. Ride Bicycles uses compare_at_price on
+ * some bulk/case variants to show the case price, not a "was" price — which
+ * produces artificially extreme discounts (e.g. $1.49 spoke vs $88.79 box).
+ * Anything above this threshold is almost certainly a data artifact, not a
+ * real clearance sale.
+ */
+const MAX_DISCOUNT_FRACTION = 0.75;
 
 type ShopifyVariant = ShopifyVariantWithOptions;
 type ShopifyProduct = ShopifyProductWithOptions;
@@ -105,6 +113,10 @@ export async function scrapeRideBicycles(
         const maxPriceForMinDiscount =
           compareAtPrice * (1 - MIN_DISCOUNT_FRACTION);
         if (currentPrice > maxPriceForMinDiscount) continue;
+
+        const minPriceForMaxDiscount =
+          compareAtPrice * (1 - MAX_DISCOUNT_FRACTION);
+        if (currentPrice < minPriceForMaxDiscount) continue;
 
         const productUrl = `${origin}/products/${product.handle}`;
         const imageUrl =
