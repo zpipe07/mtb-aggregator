@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import posthog from "posthog-js";
 import { Card } from "./ui/card";
@@ -60,12 +61,14 @@ export function CategoryCard({
           hasImage ? "p-0" : "bg-card p-0",
         )}
       >
-        {hasImage ? (
+        {hasImage && imageSrc ? (
           <div className="relative aspect-[4/3] overflow-hidden bg-muted">
-            <img
+            <Image
               src={imageSrc}
               alt=""
-              className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+              fill
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+              className="object-cover transition-transform duration-300 group-hover:scale-[1.02]"
             />
             <div className="absolute inset-x-0 bottom-0 flex flex-col gap-1 bg-foreground px-3 py-2.5">
               <span className="font-mono text-[8px] font-semibold uppercase tracking-[0.2em] text-primary">
