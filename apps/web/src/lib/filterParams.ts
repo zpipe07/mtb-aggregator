@@ -125,6 +125,26 @@ export function parseFilterParamsFromSearch(
   };
 }
 
+/**
+ * Stable query string for comparing filter URLs (sorted keys and repeated values).
+ * Avoids stranded optimistic UI when `URLSearchParams` ordering differs.
+ */
+export function normalizeFilterQueryString(qs: string): string {
+  const p = new URLSearchParams(qs);
+  const keys = [...new Set(Array.from(p.keys()))].sort((a, b) =>
+    a.localeCompare(b),
+  );
+  const out = new URLSearchParams();
+  for (const k of keys) {
+    const vals = [...p.getAll(k)]
+      .map((v) => v.trim())
+      .filter(Boolean)
+      .sort((a, b) => a.localeCompare(b));
+    for (const v of vals) out.append(k, v);
+  }
+  return out.toString();
+}
+
 /** Parse from URLSearchParams (client-side) */
 export function parseFilterParamsFromURL(
   searchParams: URLSearchParams | { get: (k: string) => string | null; toString: () => string },
