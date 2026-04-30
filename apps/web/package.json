@@ -43,7 +43,7 @@
     "@eslint/eslintrc": "^3.3.5",
     "@storybook/addon-essentials": "^8.6",
     "@storybook/blocks": "^8.6",
-    "@storybook/react": "^8.6",
+    "@storybook/react": "^10.3",
     "@storybook/react-vite": "^8.6",
     "@tailwindcss/postcss": "^4.2.1",
     "@types/react": "^19.2.14",
