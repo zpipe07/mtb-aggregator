@@ -804,7 +804,7 @@ function DealCard({ deal }: { deal: DealCardData }) {
               >
                 save
               </span>
-              <span className="font-[var(--app-font-mono)] text-2xl font-semibold leading-none tabular-nums">
+              <span className="font-[var(--app-font-mono)] text-sm font-medium leading-none tabular-nums text-muted-foreground">
                 ${savings}
               </span>
             </div>
@@ -814,15 +814,35 @@ function DealCard({ deal }: { deal: DealCardData }) {
               >
                 was ${deal.original}
               </span>
-              <span className="font-[var(--app-font-mono)] text-sm font-medium tabular-nums">
+              <span className="font-[var(--app-font-mono)] text-xl font-semibold leading-none tabular-nums sm:text-2xl">
                 ${deal.price}
               </span>
             </div>
           </div>
 
-          <div className="flex items-center justify-between gap-2 pt-1">
+          <div className="space-y-3 pt-1">
             <StoreChip store={deal.store} />
-            <PrimaryCta compact>Snag</PrimaryCta>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch">
+              <a
+                href="#"
+                className={cn(
+                  "inline-flex min-h-9 w-full flex-1 items-center justify-center rounded-sm border border-transparent",
+                  "bg-foreground px-3 py-2 font-mono text-[0.6875rem] font-semibold uppercase tracking-[0.12em] text-background sm:flex-1",
+                )}
+                onClick={(e) => e.preventDefault()}
+              >
+                Snag
+              </a>
+              <a
+                href="#"
+                className={cn(
+                  "inline-flex min-h-9 w-full flex-1 items-center justify-center rounded-sm border border-foreground bg-card px-3 py-2 font-mono text-[0.6875rem] font-semibold uppercase tracking-[0.12em] text-foreground sm:flex-1",
+                )}
+                onClick={(e) => e.preventDefault()}
+              >
+                View details
+              </a>
+            </div>
           </div>
         </div>
       </article>
@@ -957,7 +977,7 @@ function CardsShowcase() {
   return (
     <div className="space-y-10">
       <div>
-        <Note>deal card · CAD crop marks · lime SKU tab · save-amount-first hierarchy</Note>
+        <Note>deal card · CAD crop marks · lime SKU tab · sale price as hero, save amount secondary</Note>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl">
           {SAMPLE_DEALS.map((d) => (
             <DealCard key={d.sku} deal={d} />

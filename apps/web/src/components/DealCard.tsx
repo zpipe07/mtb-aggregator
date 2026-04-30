@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import posthog from "posthog-js";
 import { track } from "@vercel/analytics";
 import type { Deal } from "../api";
 import { Button } from "./ui/button";
@@ -71,7 +74,7 @@ export function DealCard({ deal, href }: DealCardProps) {
           <span className={cn(monoMicro, "text-muted-foreground block")}>
             save
           </span>
-          <span className="font-mono text-2xl font-semibold leading-none tabular-nums text-foreground">
+          <span className="font-mono text-sm font-medium leading-none tabular-nums text-muted-foreground">
             ${formatMoney(savings)}
           </span>
         </div>
@@ -92,12 +95,12 @@ export function DealCard({ deal, href }: DealCardProps) {
         {deal.price_range != null &&
         deal.price_range.length === 2 &&
         deal.price_range[0] !== deal.price_range[1] ? (
-          <span className="font-mono text-sm font-medium tabular-nums text-foreground">
+          <span className="font-mono text-xl font-semibold leading-none tabular-nums text-foreground sm:text-2xl">
             ${formatMoney(deal.price_range[0])} – $
             {formatMoney(deal.price_range[1])}
           </span>
         ) : (
-          <span className="font-mono text-sm font-medium tabular-nums text-foreground">
+          <span className="font-mono text-xl font-semibold leading-none tabular-nums text-foreground sm:text-2xl">
             ${formatMoney(deal.current_price)}
           </span>
         )}
@@ -123,28 +126,85 @@ export function DealCard({ deal, href }: DealCardProps) {
   );
 
   const footer = (
-    <div className="flex items-center justify-between gap-2 px-4 pb-4 pt-3">
-      <span className={cn(monoMicro, "min-w-0 truncate text-muted-foreground")}>
+    <div className="space-y-3 px-4 pb-4 pt-3">
+      <span
+        className={cn(monoMicro, "block min-w-0 truncate text-muted-foreground")}
+      >
         {"// "}
         {deal.store_name.toUpperCase()}
       </span>
-      <Button asChild size="xs" className="shrink-0">
-        <a
-          href={viewUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          onClick={(e) => {
-            e.stopPropagation();
-            track("view_deal", {
-              deal_id: deal.id,
-              store: deal.store_name,
-              brand: deal.brand || "",
-            });
-          }}
-        >
-          <span className="relative z-[1]">Snag</span>
-        </a>
-      </Button>
+
+      {href ? (
+        <>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch">
+            <Button asChild size="default" className="w-full sm:flex-1">
+              <a
+                href={viewUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  track("view_deal", {
+                    deal_id: deal.id,
+                    store: deal.store_name,
+                    brand: deal.brand || "",
+                  });
+                }}
+              >
+                <span className="relative z-[1]">Snag</span>
+              </a>
+            </Button>
+            <Button
+              asChild
+              variant="outline"
+              size="default"
+              className="w-full sm:flex-1"
+            >
+              <Link
+                href={href}
+                className="inline-flex"
+                aria-label="View details — price history, specs, variants, and retailer link"
+                title="Price history, specs, variants — open the full listing."
+                onClick={(e) => {
+                  e.stopPropagation();
+                  track("deal_card_click", {
+                    deal_id: deal.id,
+                    store: deal.store_name,
+                    brand: deal.brand || "",
+                    cta: "view_details",
+                  });
+                  posthog.capture("deal_card_click", {
+                    cta: "view_details",
+                    deal_id: deal.id,
+                    store: deal.store_name,
+                    brand: deal.brand ?? "",
+                  });
+                }}
+              >
+                View details
+              </Link>
+            </Button>
+          </div>
+        </>
+      ) : (
+        <Button asChild size="default" className="w-full">
+          <a
+            href={viewUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => {
+              e.stopPropagation();
+              track("view_deal", {
+                deal_id: deal.id,
+                store: deal.store_name,
+                brand: deal.brand || "",
+              });
+            }}
+          >
+            <span className="relative z-[1]">Snag</span>
+          </a>
+        </Button>
+      )}
     </div>
   );
 

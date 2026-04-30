@@ -250,7 +250,7 @@ export function DealDetailContent({
                       <span className={cn(monoMicro, "text-muted-foreground block")}>
                         save
                       </span>
-                      <span className="font-mono text-2xl font-semibold tabular-nums leading-none text-foreground">
+                      <span className="font-mono text-sm font-medium leading-none tabular-nums text-muted-foreground">
                         ${formatMoney(savings)}
                       </span>
                     </div>
@@ -278,12 +278,12 @@ export function DealDetailContent({
                     {deal.price_range != null &&
                     deal.price_range.length === 2 &&
                     deal.price_range[0] !== deal.price_range[1] ? (
-                      <span className="font-mono text-xl font-semibold tabular-nums text-foreground">
+                      <span className="font-mono text-2xl font-semibold tabular-nums text-foreground sm:text-3xl">
                         ${formatMoney(deal.price_range[0])} – $
                         {formatMoney(deal.price_range[1])}
                       </span>
                     ) : (
-                      <span className="font-mono text-xl font-semibold tabular-nums text-foreground">
+                      <span className="font-mono text-2xl font-semibold tabular-nums text-foreground sm:text-3xl">
                         ${formatMoney(deal.current_price)}
                       </span>
                     )}

@@ -192,7 +192,7 @@ export function DealDetailModal({ dealId, onClose }: DealDetailModalProps) {
                         >
                           save
                         </span>
-                        <span className="font-mono text-xl font-semibold tabular-nums leading-none text-foreground">
+                        <span className="font-mono text-sm font-medium leading-none tabular-nums text-muted-foreground">
                           ${formatMoney(savings)}
                         </span>
                       </div>
@@ -216,7 +216,7 @@ export function DealDetailModal({ dealId, onClose }: DealDetailModalProps) {
                             was ${formatMoney(deal.original_price)}
                           </span>
                         )}
-                      <span className="font-mono text-xl font-semibold tabular-nums text-foreground">
+                      <span className="font-mono text-2xl font-semibold tabular-nums text-foreground">
                         ${formatMoney(deal.current_price)}
                       </span>
                     </div>

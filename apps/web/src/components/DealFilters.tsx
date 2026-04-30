@@ -183,7 +183,7 @@ export function DealFilters({
       </div>
 
       {canonicalCategoryFilter && specFacets.length > 0 && (
-        <div className="flex flex-wrap gap-6 border-t-2 border-border/50 pt-4">
+        <div className="flex flex-wrap gap-6 border-t border-foreground/15 pt-4">
           {specFacets.map((facet) => {
             const specValueOptions = mergeSelectedFacetValues(
               facet.values,
