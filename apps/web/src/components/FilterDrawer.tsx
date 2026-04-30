@@ -27,10 +27,12 @@ export function FilterDrawer(props: FilterDrawerProps) {
     >
       <DrawerContent
         showDragHandle={false}
-        className="h-[85vh] max-h-[85vh] gap-0 overflow-hidden p-0 lg:hidden"
+        className="h-[85vh] max-h-[85vh] gap-0 overflow-hidden border-foreground/20 p-0 lg:hidden"
       >
-        <DrawerHeader className="flex-shrink-0 flex flex-row items-center justify-between gap-4 border-b border-border px-4 py-3 text-left">
-          <DrawerTitle className="text-lg">Filters</DrawerTitle>
+        <DrawerHeader className="flex-shrink-0 flex flex-row items-center justify-between gap-4 border-b border-foreground/15 px-4 py-3 text-left">
+          <DrawerTitle className="font-mono text-xs font-semibold uppercase tracking-[0.12em] text-foreground">
+            {"// filters"}
+          </DrawerTitle>
           <DrawerDescription className="sr-only">
             Narrow results by brand, store, discount, and product attributes.
           </DrawerDescription>
@@ -62,7 +64,7 @@ export function FilterDrawer(props: FilterDrawerProps) {
         <div className="flex-1 overflow-y-auto px-4 py-4">
           <FilterSidebar {...sidebarProps} />
         </div>
-        <div className="flex-shrink-0 border-t border-border p-4">
+        <div className="flex-shrink-0 border-t border-foreground/15 p-4">
           <DrawerClose asChild>
             <Button type="button" className="w-full">
               Done

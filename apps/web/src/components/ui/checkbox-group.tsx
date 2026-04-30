@@ -38,7 +38,8 @@ export function CheckboxGroup({
 
   return (
     <fieldset className={cn("space-y-2", className)}>
-      <legend className="mb-1.5 block text-sm font-medium text-muted-foreground">
+      <legend className="mb-1.5 block font-mono text-[9px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+        {"// "}
         {legend}
       </legend>
       <div

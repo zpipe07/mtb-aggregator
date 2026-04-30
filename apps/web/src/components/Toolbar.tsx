@@ -2,9 +2,13 @@
 
 import posthog from "posthog-js";
 import type { SortOption } from "../hooks/useFilterParams";
-import { SearchBar } from "./SearchBar";
+import { SearchBar, SEARCH_FRAME_MIN_H } from "./SearchBar";
 import { Select } from "./ui/select";
 import { Button } from "./ui/button";
+import { cn } from "@/lib/utils";
+
+const monoMicro =
+  "font-mono text-[10px] font-semibold uppercase tracking-[0.14em]";
 
 const BASE_SORT_OPTIONS: { value: SortOption; label: string }[] = [
   { value: "newest", label: "Newest" },
@@ -43,20 +47,32 @@ export function Toolbar({
   const sortOptions = getSortOptions(searchQuery.trim() !== "");
 
   return (
-    <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 sm:items-center mb-4">
-      <div className="flex-1 min-w-0">
-        <SearchBar value={searchValue} onChange={onSearchChange} />
-      </div>
-      <div className="flex items-center gap-2 shrink-0">
-        {onFilterClick != null && (
+    <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:gap-4">
+      <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-end">
+        <div className="min-w-0 flex-1">
+          <SearchBar value={searchValue} onChange={onSearchChange} />
+        </div>
+        {onFilterClick != null ? (
           <Button
             type="button"
             variant="outline"
             size="default"
             onClick={onFilterClick}
-            className="lg:hidden gap-2 px-4"
+            className={cn(
+              SEARCH_FRAME_MIN_H,
+              "shrink-0 gap-2 px-4 lg:hidden",
+              "inline-flex items-center justify-center",
+              activeFilterCount > 0 &&
+                "border-foreground bg-foreground text-background hover:bg-foreground/90 hover:text-background",
+            )}
           >
-            <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden>
+            <svg
+              className="size-5 shrink-0"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              aria-hidden
+            >
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -64,35 +80,43 @@ export function Toolbar({
                 d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
               />
             </svg>
-            Filters
-            {activeFilterCount > 0 && (
-              <span className="bg-primary text-primary-foreground text-xs font-medium px-1.5 py-0.5 rounded-full">
-                {activeFilterCount}
-              </span>
-            )}
+            <span className="font-mono text-[9px] font-bold tracking-[0.08em] normal-case">
+              Filters
+              {activeFilterCount > 0 && (
+                <span className="text-primary"> · {activeFilterCount}</span>
+              )}
+            </span>
           </Button>
-        )}
-        <div>
-          <label htmlFor="sort-select" className="sr-only">
-            Sort by
-          </label>
-          <Select
-            id="sort-select"
-            value={sort}
-            onChange={(e) => {
-              const value = e.target.value as SortOption;
-              posthog.capture("sort_changed", { sort: value });
-              onSortChange(value);
-            }}
-            className="min-w-[10rem]"
-          >
-            {sortOptions.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </Select>
-        </div>
+        ) : null}
+      </div>
+
+      <div className="flex shrink-0 flex-col gap-1">
+        <label
+          htmlFor="sort-select"
+          className={cn(monoMicro, "text-foreground")}
+        >
+          {"// sort"}
+        </label>
+        <Select
+          id="sort-select"
+          value={sort}
+          onChange={(e) => {
+            const value = e.target.value as SortOption;
+            posthog.capture("sort_changed", { sort: value });
+            onSortChange(value);
+          }}
+          wrapperClassName={cn(
+            SEARCH_FRAME_MIN_H,
+            "w-full min-w-[10rem] shrink-0 sm:w-auto",
+          )}
+          className="normal-case"
+        >
+          {sortOptions.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </Select>
       </div>
     </div>
   );
