@@ -4,7 +4,7 @@ import { useState, FormEvent, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import posthog from "posthog-js";
 import Link from "next/link";
-import { SearchBar } from "../components/SearchBar";
+import { SearchBar, SEARCH_FRAME_MIN_H } from "../components/SearchBar";
 import { DealGrid } from "../components/DealGrid";
 import { CategoryCard } from "../components/CategoryCard";
 import { CategoryTreeNode, type Deal } from "../api";
@@ -108,7 +108,7 @@ export function HomePageContent({ categoryTree, topDeals }: Props) {
         </p>
         <form
           onSubmit={handleSearchSubmit}
-          className="mx-auto mt-8 flex max-w-2xl flex-col gap-3 sm:flex-row sm:items-stretch"
+          className="mx-auto mt-8 flex max-w-2xl flex-col gap-3 sm:flex-row sm:items-end"
         >
           <div className="min-w-0 flex-1">
             <SearchBar
@@ -118,10 +118,14 @@ export function HomePageContent({ categoryTree, topDeals }: Props) {
             />
           </div>
           <div className="flex shrink-0 flex-col gap-2 sm:flex-row sm:items-stretch">
-            <Button type="submit" disabled={isPending} className="sm:min-w-[8rem]">
+            <Button
+              type="submit"
+              disabled={isPending}
+              className={cn(SEARCH_FRAME_MIN_H, "sm:min-w-[8rem]")}
+            >
               {isPending ? "Searching…" : "Search"}
             </Button>
-            <Button variant="outline" asChild className="sm:min-w-[8rem]">
+            <Button variant="outline" asChild className={cn(SEARCH_FRAME_MIN_H, "sm:min-w-[8rem]")}>
               <Link href="/deals">View all deals</Link>
             </Button>
           </div>
