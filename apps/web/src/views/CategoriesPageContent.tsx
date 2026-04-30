@@ -9,6 +9,9 @@ import { getCategorySeo } from "../lib/categorySeo";
 import { buildDealsCategoryPath } from "../lib/dealsCategoryPath";
 import { cn, focusRing } from "@/lib/utils";
 
+const monoMicro =
+  "font-mono text-[10px] font-semibold uppercase tracking-[0.14em]";
+
 /** Grouped product count (matches deals list); falls back to listing rollup if API is old. */
 function productDealCount(node: CategoryTreeNode): number {
   return node.product_count ?? node.deal_count;
@@ -44,7 +47,7 @@ export function CategoriesPageContent({ categoryTree }: Props) {
           <Link
             href="/deals"
             className={cn(
-              "rounded-sm text-primary underline underline-offset-4",
+              "rounded-sm font-mono text-sm font-semibold text-foreground underline underline-offset-4",
               focusRing,
             )}
           >
@@ -58,19 +61,23 @@ export function CategoriesPageContent({ categoryTree }: Props) {
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 lg:py-12">
-      <header className="mb-10 lg:mb-12">
-        <h1 className="text-3xl sm:text-4xl font-bold text-foreground tracking-tight">
+      <header className="mb-10 lg:mb-14">
+        <p className={cn(monoMicro, "mb-3 text-muted-foreground")}>
+          {"// "}
+          browse · taxonomy
+        </p>
+        <h1 className="text-4xl font-semibold tracking-[-0.02em] text-foreground sm:text-5xl">
           Browse categories
         </h1>
-        <p className="mt-3 text-lg text-muted-foreground max-w-2xl">
+        <p className="mt-4 max-w-2xl text-base text-muted-foreground sm:text-lg">
           Explore every department we track—bikes, components, gear, and
           accessories—with counts that match the deals list (one row per
           product, variants grouped). Jump into a category to filter listings.
         </p>
       </header>
 
-      <div className="space-y-12 lg:space-y-14">
-        {categoryTree.map((root) => {
+      <div className="space-y-14 lg:space-y-16">
+        {categoryTree.map((root, rootIndex) => {
           const seo = getCategorySeo(root.slug);
           const rootHref = buildDealsCategoryPath(root.slug, categoryTree);
 
@@ -78,17 +85,32 @@ export function CategoriesPageContent({ categoryTree }: Props) {
             <section
               key={root.slug}
               aria-labelledby={`cat-${root.slug}`}
-              className="border-t border-border pt-10 first:border-t-0 first:pt-0"
+              className="border-t border-foreground/15 pt-12 first:border-t-0 first:pt-0"
             >
-              <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-x-4 sm:gap-y-1">
-                <div className="flex flex-wrap items-baseline gap-3">
+              <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between sm:gap-x-4 sm:gap-y-2">
+                <div className="flex min-w-0 flex-1 flex-wrap items-end gap-3 sm:gap-4">
+                  <span
+                    className={cn(
+                      monoMicro,
+                      "pb-0.5 text-muted-foreground tabular-nums",
+                    )}
+                  >
+                    {"// "}
+                    {String(rootIndex + 1).padStart(2, "0")}
+                  </span>
                   <h2
                     id={`cat-${root.slug}`}
-                    className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl"
+                    className="text-2xl font-semibold tracking-[-0.02em] text-foreground"
                   >
                     {root.name}
                   </h2>
-                  <span className="text-xs font-medium tabular-nums text-muted-foreground sm:text-sm">
+                  <span className="mb-0.5 hidden h-px min-w-8 flex-1 bg-border sm:block" />
+                  <span
+                    className={cn(
+                      monoMicro,
+                      "pb-0.5 tabular-nums text-muted-foreground sm:ml-auto sm:pb-0",
+                    )}
+                  >
                     {dealLine(productDealCount(root))}
                   </span>
                 </div>
@@ -100,12 +122,12 @@ export function CategoriesPageContent({ categoryTree }: Props) {
                       href: rootHref,
                     })
                   }
-                  className="text-sm font-medium text-primary hover:underline underline-offset-4 w-fit"
+                  className={cn(
+                    "w-fit shrink-0 rounded-sm font-mono text-xs font-semibold tracking-wide text-muted-foreground hover:text-foreground",
+                    focusRing,
+                  )}
                 >
-                  All {root.name.toLowerCase()} deals
-                  <span aria-hidden className="ml-0.5">
-                    →
-                  </span>
+                  All {root.name.toLowerCase()} deals →
                 </Link>
               </div>
               {seo.intro ? (
@@ -158,12 +180,14 @@ export function CategoriesPageContent({ categoryTree }: Props) {
                                         ),
                                       })
                                     }
-                                    className={`inline-flex items-center rounded-md border border-border bg-card px-2.5 py-1 text-sm font-medium text-foreground transition-colors hover:bg-muted ${
-                                      gcProducts === 0 ? "opacity-60" : ""
-                                    }`}
+                                    className={cn(
+                                      "inline-flex items-center rounded-sm border border-foreground/45 bg-card px-2.5 py-1 text-sm font-medium text-foreground transition-colors hover:border-foreground hover:bg-muted/70",
+                                      focusRing,
+                                      gcProducts === 0 && "opacity-60",
+                                    )}
                                   >
                                     {gc.name}
-                                    <span className="ml-1.5 text-muted-foreground tabular-nums">
+                                    <span className="ml-1.5 font-mono text-xs tabular-nums text-muted-foreground">
                                       ({gcProducts})
                                     </span>
                                   </Link>
