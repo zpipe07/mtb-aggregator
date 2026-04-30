@@ -21,10 +21,10 @@ export function FilterSelect<T extends string>({
   const selectId = controlId ?? generatedId;
 
   return (
-    <div>
+    <div className="space-y-1">
       <label
         htmlFor={selectId}
-        className="mb-1 block font-mono text-[9px] font-semibold uppercase tracking-[0.15em] text-muted-foreground"
+        className="block font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-foreground"
       >
         {"// "}
         {label}
@@ -33,7 +33,7 @@ export function FilterSelect<T extends string>({
         id={selectId}
         value={value}
         onChange={(e) => onChange(e.target.value as T)}
-        className="w-full rounded-[var(--radius)] border-foreground font-mono text-xs uppercase tracking-wide"
+        className="w-full normal-case"
       >
         {options.map((opt) => (
           <option key={opt.value} value={opt.value}>

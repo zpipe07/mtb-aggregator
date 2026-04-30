@@ -2,7 +2,7 @@ import Link from "next/link";
 import { track } from "@vercel/analytics";
 import type { Deal } from "../api";
 import { Button } from "./ui/button";
-import { cn } from "@/lib/utils";
+import { cn, focusRingWithin } from "@/lib/utils";
 
 function formatMoney(n: number) {
   return n.toFixed(2);
@@ -191,7 +191,7 @@ export function DealCard({ deal, href }: DealCardProps) {
   );
 
   return (
-    <div className="relative pt-3">
+    <div className={cn("relative pt-3 rounded-sm", focusRingWithin)}>
       <span
         className={cn(
           "absolute right-4 top-0 z-10 max-w-[8.5rem] truncate rounded-t-sm border border-foreground border-b-0 bg-primary px-2 py-0.5",
@@ -216,7 +216,7 @@ export function DealCard({ deal, href }: DealCardProps) {
           <>
             <Link
               href={href}
-              className="block text-left outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              className="block rounded-sm text-left outline-none"
               onClick={() =>
                 track("deal_card_click", {
                   deal_id: deal.id,

@@ -19,7 +19,7 @@ import "@fontsource-variable/geist-mono";
 
 import * as React from "react";
 import type { Meta, StoryObj } from "@storybook/react";
-import { cn } from "@/lib/utils";
+import { cn, focusRingWithin } from "@/lib/utils";
 
 // ───────────────────────────────────────────────────────────────────────────────
 // Theme override: scoped to the story root only.
@@ -487,11 +487,9 @@ function SearchInput({
   return (
     <label
       className={cn(
-        "group flex items-center gap-3 bg-card",
-        "border-y border-foreground",
-        "px-3 py-3",
-        "focus-within:border-b-2 focus-within:border-b-primary",
-        "transition-[border-bottom-width] duration-200"
+        "group flex w-full cursor-text items-center gap-3 rounded-sm bg-card",
+        "border-t border-b border-foreground px-3 py-3",
+        focusRingWithin,
       )}
     >
       <span aria-hidden className="text-foreground text-base translate-y-px">
@@ -545,9 +543,8 @@ function TextInput({
       </label>
       <div
         className={cn(
-          "border-y border-foreground/60 bg-card px-3 py-2",
-          "focus-within:border-b-2 focus-within:border-b-primary",
-          "transition-[border-bottom-width] duration-200"
+          "rounded-sm border-t border-b border-foreground/60 bg-card px-3 py-2",
+          focusRingWithin,
         )}
       >
         <input
@@ -622,9 +619,8 @@ function NativeSelect({
       </label>
       <div
         className={cn(
-          "relative border-y border-foreground/60 bg-card px-3 py-2 flex items-center gap-2",
-          "focus-within:border-b-2 focus-within:border-b-primary",
-          "transition-[border-bottom-width] duration-200"
+          "relative flex items-center gap-2 rounded-sm border-t border-b border-foreground/60 bg-card px-3 py-2",
+          focusRingWithin,
         )}
       >
         <select
@@ -652,7 +648,7 @@ function InputsShowcase() {
   return (
     <div className="space-y-8 max-w-md">
       <div>
-        <Note>search · open-frame top + bottom rules; lime underline on focus</Note>
+        <Note>search · 1px open frame; lime focus ring on focus-within</Note>
         <SearchInput />
       </div>
       <div>

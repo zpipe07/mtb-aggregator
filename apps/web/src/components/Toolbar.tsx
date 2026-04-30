@@ -77,9 +77,13 @@ export function Toolbar({
             </span>
           </Button>
         )}
-        <div>
-          <label htmlFor="sort-select" className="sr-only">
-            Sort by
+        <div className="space-y-1">
+          <label
+            htmlFor="sort-select"
+            className="block font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-foreground"
+          >
+            {"// "}
+            sort
           </label>
           <Select
             id="sort-select"
@@ -89,7 +93,8 @@ export function Toolbar({
               posthog.capture("sort_changed", { sort: value });
               onSortChange(value);
             }}
-            className="min-w-[10rem] rounded-[var(--radius)] border-foreground font-mono text-[9px] font-semibold uppercase tracking-[0.06em] md:text-[10px]"
+            wrapperClassName="min-w-[10rem] shrink-0"
+            className="normal-case"
           >
             {sortOptions.map((opt) => (
               <option key={opt.value} value={opt.value}>

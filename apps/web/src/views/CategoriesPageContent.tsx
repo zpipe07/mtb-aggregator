@@ -7,6 +7,7 @@ import { CategoryCard } from "../components/CategoryCard";
 import type { CategoryTreeNode } from "../api";
 import { getCategorySeo } from "../lib/categorySeo";
 import { buildDealsCategoryPath } from "../lib/dealsCategoryPath";
+import { cn, focusRing } from "@/lib/utils";
 
 /** Grouped product count (matches deals list); falls back to listing rollup if API is old. */
 function productDealCount(node: CategoryTreeNode): number {
@@ -40,7 +41,13 @@ export function CategoriesPageContent({ categoryTree }: Props) {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 lg:py-12">
         <p className="text-muted-foreground">
           Categories aren&apos;t available right now. Try{" "}
-          <Link href="/deals" className="text-primary underline underline-offset-4">
+          <Link
+            href="/deals"
+            className={cn(
+              "rounded-sm text-primary underline underline-offset-4",
+              focusRing,
+            )}
+          >
             all deals
           </Link>{" "}
           instead.

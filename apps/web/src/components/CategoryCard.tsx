@@ -3,7 +3,7 @@
 import Link from "next/link";
 import posthog from "posthog-js";
 import { Card } from "./ui/card";
-import { cn } from "@/lib/utils";
+import { cn, focusRing } from "@/lib/utils";
 
 type CategoryCardProps = {
   label: string;
@@ -24,7 +24,7 @@ export function CategoryCard({
   return (
     <Link
       href={to}
-      className="group block"
+      className={cn("group block rounded-[var(--radius)]", focusRing)}
       onClick={() =>
         posthog.capture("category_clicked", { category: label, href: to })
       }

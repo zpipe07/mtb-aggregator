@@ -1,6 +1,6 @@
 import { track } from "@vercel/analytics";
 import { useEffect, useRef, useState } from "react";
-import { cn } from "@/lib/utils";
+import { cn, focusRingWithin } from "@/lib/utils";
 
 type SearchBarProps = {
   value: string;
@@ -48,17 +48,13 @@ export function SearchBar({
       <label
         htmlFor="deal-search"
         className={cn(
-          "group flex w-full cursor-text items-center gap-3 bg-card",
-          "border-y border-foreground px-3 py-3",
-          "transition-[border-bottom-width] duration-200",
-          "focus-within:border-b-2 focus-within:border-b-primary",
+          "group flex w-full cursor-text items-center gap-3 rounded-sm bg-card",
+          "border-t border-b border-foreground px-3 py-3",
+          focusRingWithin,
         )}
       >
         <span className="sr-only">Search deals</span>
-        <span
-          aria-hidden
-          className="translate-y-px text-base text-foreground"
-        >
+        <span aria-hidden className="translate-y-px text-base text-foreground">
           ⌕
         </span>
         <input

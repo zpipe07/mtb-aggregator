@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import type { CategoryTreeNode } from "@/api";
 import { categoryHasDeals } from "@/lib/categoryTree";
 import { buildDealsBrowseHref } from "@/lib/dealsBrowseHref";
+import { cn, focusRing } from "@/lib/utils";
 
 type Props = {
   /** Top-level categories only (e.g. from `categoryTree` roots). */
@@ -36,7 +37,10 @@ export function DealsBrowseFooterInner({
           <li key={node.slug}>
             <Link
               href={buildDealsBrowseHref(node.slug, searchParams, categoryTree)}
-              className="text-muted-foreground hover:text-foreground underline-offset-4 hover:underline"
+              className={cn(
+                "rounded-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline",
+                focusRing,
+              )}
             >
               {node.name}
             </Link>

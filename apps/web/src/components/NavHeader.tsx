@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { cn, focusRing, focusRingInset } from "@/lib/utils";
 
 export function NavHeader() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -19,7 +20,10 @@ export function NavHeader() {
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
         <Link
           href="/"
-          className="flex items-center gap-3 hover:opacity-90 transition-opacity"
+          className={cn(
+            "flex items-center gap-3 rounded-sm transition-opacity hover:opacity-90",
+            focusRing,
+          )}
           aria-label="The Dropper - Home"
         >
           <img
@@ -44,11 +48,13 @@ export function NavHeader() {
               <Link
                 key={href}
                 href={href}
-                className={`border-b-2 pb-1 font-mono text-[10px] font-semibold tracking-[0.2em] transition-colors ${
+                className={cn(
+                  "rounded-sm border-b-2 pb-1 font-mono text-[10px] font-semibold tracking-[0.2em] transition-colors",
+                  focusRing,
                   isActive
                     ? "border-primary text-foreground"
-                    : "border-transparent text-muted-foreground hover:text-foreground"
-                }`}
+                    : "border-transparent text-muted-foreground hover:text-foreground",
+                )}
               >
                 {label.toUpperCase()}
               </Link>
@@ -59,7 +65,10 @@ export function NavHeader() {
         {/* Mobile menu button */}
         <button
           type="button"
-          className="-mr-2 rounded p-2 text-muted-foreground hover:bg-muted hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring lg:hidden"
+          className={cn(
+            "-mr-2 rounded-sm p-2 text-muted-foreground hover:bg-muted hover:text-foreground lg:hidden",
+            focusRing,
+          )}
           onClick={() => setMobileMenuOpen((o) => !o)}
           aria-expanded={mobileMenuOpen}
           aria-controls="mobile-nav"
@@ -109,11 +118,13 @@ export function NavHeader() {
                 key={href}
                 href={href}
                 onClick={() => setMobileMenuOpen(false)}
-                className={`block rounded px-3 py-2 font-mono text-[10px] font-semibold tracking-[0.2em] transition-colors ${
+                className={cn(
+                  "block rounded-sm px-3 py-2 font-mono text-[10px] font-semibold tracking-[0.2em] transition-colors",
+                  focusRingInset,
                   isActive
                     ? "bg-primary/15 text-foreground ring-2 ring-primary/40 ring-inset"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                }`}
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                )}
               >
                 {label.toUpperCase()}
               </Link>

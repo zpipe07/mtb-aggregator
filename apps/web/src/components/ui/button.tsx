@@ -5,12 +5,12 @@ import { Slot } from "radix-ui";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "group/button relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-sm border border-transparent bg-clip-padding font-mono text-[0.6875rem] font-semibold uppercase tracking-[0.12em] whitespace-nowrap transition-all outline-none select-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2 active:translate-y-px disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:outline-destructive/30 dark:aria-invalid:border-destructive/50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  "group/button relative inline-flex shrink-0 items-center justify-center rounded-sm border border-transparent bg-clip-padding font-mono text-[0.6875rem] font-semibold uppercase tracking-[0.12em] whitespace-nowrap transition-[color,box-shadow,transform] outline-none select-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background active:translate-y-px disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-destructive/30 dark:aria-invalid:border-destructive/50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
     variants: {
       variant: {
         default:
-          "bg-foreground text-background before:absolute before:inset-y-0 before:left-0 before:z-0 before:w-1 before:bg-primary before:transition-[width] before:duration-300 before:ease-out hover:text-foreground hover:before:w-full",
+          "overflow-hidden focus-visible:overflow-visible bg-foreground text-background before:absolute before:inset-y-0 before:left-0 before:z-0 before:w-1 before:bg-primary before:transition-[width] before:duration-300 before:ease-out hover:text-foreground hover:before:w-full",
         outline:
           "border-foreground bg-card text-foreground transition-colors hover:bg-foreground hover:text-background aria-expanded:bg-muted aria-expanded:text-foreground dark:border-input dark:bg-input/30 dark:hover:bg-input/50",
         secondary:
@@ -70,7 +70,7 @@ function Button({
       data-slot="button"
       data-variant={variant}
       data-size={size}
-      className={cn(buttonVariants({ variant, size, className }))}
+      className={cn(buttonVariants({ variant, size }), className)}
       {...props}
     >
       {content}

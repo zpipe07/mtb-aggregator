@@ -12,6 +12,7 @@ import { categoryHasDeals } from "../lib/categoryTree";
 import { CATEGORY_IMAGES } from "../lib/categoryImages";
 import { buildDealsCategoryPath } from "../lib/dealsCategoryPath";
 import { Button } from "../components/ui/button";
+import { cn, focusRing } from "@/lib/utils";
 
 /** Curated category labels for home page CTAs when API has few/empty categories */
 const FALLBACK_CATEGORIES: { path: string; label: string }[] = [
@@ -131,7 +132,7 @@ export function HomePageContent({ categoryTree, topDeals }: Props) {
       <section className="mb-12 lg:mb-16">
         <div className="mb-6 flex flex-wrap items-end gap-4">
           <span className="pb-0.5 font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-            § 01
+            {"// 01"}
           </span>
           <h2 className="text-2xl font-semibold tracking-[-0.02em] text-foreground">
             Shop by category
@@ -156,7 +157,7 @@ export function HomePageContent({ categoryTree, topDeals }: Props) {
         <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
           <div className="flex flex-wrap items-end gap-4">
             <span className="pb-0.5 font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-              § 02
+              {"// 02"}
             </span>
             <h2 className="text-2xl font-semibold tracking-[-0.02em] text-foreground">
               Top deals of the day
@@ -165,7 +166,10 @@ export function HomePageContent({ categoryTree, topDeals }: Props) {
           </div>
           <Link
             href="/deals"
-            className="font-mono text-xs font-semibold tracking-wide text-muted-foreground hover:text-foreground"
+            className={cn(
+              "rounded-sm font-mono text-xs font-semibold tracking-wide text-muted-foreground hover:text-foreground",
+              focusRing,
+            )}
           >
             View all deals →
           </Link>

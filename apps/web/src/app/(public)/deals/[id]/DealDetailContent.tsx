@@ -16,7 +16,7 @@ import posthog from "posthog-js";
 import type { Deal } from "@/api";
 import type { PriceHistoryResponse } from "@/api";
 import { isCategoryBrowseRedundantWithBack } from "@/lib/dealsBackHref";
-import { cn } from "@/lib/utils";
+import { cn, focusRing } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
 function formatDate(iso: string) {
@@ -90,7 +90,10 @@ export function DealDetailContent({
       <div className="mb-6 space-y-2">
         <Link
           href={backToDealsHref}
-          className="text-sm text-muted-foreground hover:text-foreground inline-block"
+          className={cn(
+            "inline-block rounded-sm text-sm text-muted-foreground hover:text-foreground",
+            focusRing,
+          )}
         >
           ← Back to deals
         </Link>
@@ -100,7 +103,10 @@ export function DealDetailContent({
           <p className="text-sm text-muted-foreground">
             <Link
               href={categoryBrowseHref}
-              className="font-medium text-foreground underline-offset-4 hover:underline"
+              className={cn(
+                "rounded-sm font-medium text-foreground underline-offset-4 hover:underline",
+                focusRing,
+              )}
             >
               {categoryBrowseLabel}
             </Link>
