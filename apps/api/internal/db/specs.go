@@ -107,6 +107,16 @@ func parseFilterableFields(extractionSchema json.RawMessage) []filterableField {
 	return out
 }
 
+// facetsListingGate prefixes facet WHERE clauses with the same visibility rules as public GET /deals
+// (in-stock, not hidden). whereFromBuild is the suffix from buildFacetsWhereClause (may be empty).
+func facetsListingGate(whereFromBuild string) string {
+	const gate = " AND l.is_in_stock = true AND l.hidden = false"
+	if whereFromBuild == "" {
+		return gate
+	}
+	return gate + whereFromBuild
+}
+
 // GetFacets returns facets (spec keys/values, brands, price range) for the given filter context.
 // Spec facets are LLM-driven: when a canonical category is selected, the matching LLM prompt
 // profile defines which specs appear as filters. When no category or no profile matches,
@@ -150,11 +160,7 @@ func (db *DB) GetFacets(ctx context.Context, params GetFacetsParams) (*GetFacets
 	}
 
 	where, args := buildFacetsWhereClause(params, specFiltersForWhere, true)
-	if where == "" {
-		where = " AND l.is_in_stock = true"
-	} else {
-		where = " AND l.is_in_stock = true" + where
-	}
+	where = facetsListingGate(where)
 
 	baseFrom := `
 		FROM store_listings l
@@ -194,11 +200,7 @@ func (db *DB) GetFacets(ctx context.Context, params GetFacetsParams) (*GetFacets
 				break
 			}
 			specWhere, specArgs := buildFacetsWhereClause(params, specFiltersOmit(specFiltersForWhere, f.key), true)
-			if specWhere == "" {
-				specWhere = " AND l.is_in_stock = true"
-			} else {
-				specWhere = " AND l.is_in_stock = true" + specWhere
-			}
+			specWhere = facetsListingGate(specWhere)
 			baseFromSpec := `
 		FROM store_listings l
 		JOIN stores s ON s.id = l.store_id
@@ -265,11 +267,7 @@ func (db *DB) GetFacets(ctx context.Context, params GetFacetsParams) (*GetFacets
 	brandParams := params
 	brandParams.Brands = nil
 	brandWhere, brandArgs := buildFacetsWhereClause(brandParams, specFiltersForWhere, true)
-	if brandWhere == "" {
-		brandWhere = " AND l.is_in_stock = true"
-	} else {
-		brandWhere = " AND l.is_in_stock = true" + brandWhere
-	}
+	brandWhere = facetsListingGate(brandWhere)
 	brandBaseFrom := `
 		FROM store_listings l
 		JOIN stores s ON s.id = l.store_id
@@ -305,11 +303,7 @@ func (db *DB) GetFacets(ctx context.Context, params GetFacetsParams) (*GetFacets
 	// variant filter when aggregating values so users can switch options (faceted search).
 	var variantFacets []VariantFacet
 	discWhere, discArgs := buildFacetsWhereClause(params, specFiltersForWhere, true)
-	if discWhere == "" {
-		discWhere = " AND l.is_in_stock = true"
-	} else {
-		discWhere = " AND l.is_in_stock = true" + discWhere
-	}
+	discWhere = facetsListingGate(discWhere)
 	discQuery := `
 SELECT DISTINCT kv.key
 FROM store_listings l
@@ -342,11 +336,7 @@ ORDER BY kv.key`
 		vp := params
 		vp.VariantFilters = variantFiltersOmitMulti(params.VariantFilters, vk)
 		vWhere, vArgs := buildFacetsWhereClause(vp, specFiltersForWhere, true)
-		if vWhere == "" {
-			vWhere = " AND l.is_in_stock = true"
-		} else {
-			vWhere = " AND l.is_in_stock = true" + vWhere
-		}
+		vWhere = facetsListingGate(vWhere)
 		keyArg := len(vArgs) + 1
 		variantPerKeyQuery := `
 SELECT kv.value, COUNT(DISTINCT l.id) as cnt

@@ -60,6 +60,8 @@ flowchart LR
 
 **Spec and variant facets:** Each `spec_*` facet’s value list is aggregated without applying that key’s own `spec_*` filter; each variant dimension’s value list omits that dimension’s `variant_*` filter while still applying other variant dimensions (same faceted-navigation pattern as brands). Repeated `spec_*` / `variant_*` values OR within the key.
 
+**Facet listing visibility:** `GET /facets` includes only in-stock listings with `hidden = false`, same as public `GET /deals`, so facet counts cannot reference rows that deals queries exclude.
+
 ### 2. Enrich Job (nightly, 2am)
 
 1. Scheduler triggers `POST /enrich-now`
