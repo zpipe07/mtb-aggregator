@@ -14,7 +14,7 @@ pnpm monorepo with three apps and one shared package:
 
 - `apps/scraper` — Node.js/TypeScript Express server using Playwright to scrape retailer pages
 - `apps/api` — Go HTTP server (stdlib net/http + pgx); orchestrates scraping, enrichment, and serves the REST API
-- `apps/web` — Next.js 15 (App Router) + React 18 + Tailwind v4 + TanStack Query + shadcn/ui
+- `apps/web` — Next.js 15 (App Router) + React 19 + Tailwind v4 + TanStack Query + shadcn/ui
 - `packages/shared` — SQL schema, numbered migrations, seed data, and JSON config files (brand aliases, category taxonomy)
 
 ## Development Setup

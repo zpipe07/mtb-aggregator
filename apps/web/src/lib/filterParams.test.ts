@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   parseFilterParamsFromURL,
   parseFilterParamsFromSearch,
+  normalizeFilterQueryString,
 } from "./filterParams";
 
 describe("parseFilterParamsFromURL", () => {
@@ -33,5 +34,13 @@ describe("parseFilterParamsFromSearch", () => {
     });
     expect(p.brandFilters).toEqual(["SRAM", "Shimano"]);
     expect(p.specFilters.wheel_size).toEqual(["29", "27.5"]);
+  });
+});
+
+describe("normalizeFilterQueryString", () => {
+  it("sorts keys and repeated values for stable comparison", () => {
+    const a = "brand=Z&brand=A&q=test&spec_x=2&spec_x=1";
+    const b = "q=test&spec_x=1&spec_x=2&brand=A&brand=Z";
+    expect(normalizeFilterQueryString(a)).toEqual(normalizeFilterQueryString(b));
   });
 });

@@ -1,8 +1,15 @@
-import { useEffect, useCallback, useTransition } from "react";
+import {
+  useEffect,
+  useCallback,
+  useTransition,
+  useOptimistic,
+  useMemo,
+} from "react";
 import { useSearchParams, usePathname, useRouter } from "next/navigation";
 import type { CategoryTreeNode } from "../api";
 import {
   parseFilterParamsFromURL,
+  type ParsedFilterParams,
   type SortOption,
 } from "../lib/filterParams";
 import {
@@ -14,6 +21,25 @@ export type { SortOption };
 
 const SPEC_PREFIX = "spec_";
 const VARIANT_PREFIX = "variant_";
+
+function mergeCategoryFromPath(
+  parsed: ParsedFilterParams,
+  pathname: string,
+): ParsedFilterParams {
+  const fromPath = parseCategorySlugFromDealsPath(pathname);
+  return {
+    ...parsed,
+    categoryFilter: fromPath ?? parsed.categoryFilter,
+  };
+}
+
+/** Full replace for `useOptimistic` — incoming navigation target wins. */
+function optimisticFilterReducer(
+  _current: ParsedFilterParams,
+  next: ParsedFilterParams,
+): ParsedFilterParams {
+  return next;
+}
 
 function applyToParams(
   prev: URLSearchParams,
@@ -47,13 +73,16 @@ function applyToParams(
       if (t) next.append("brand", t);
     }
   }
-  if (updates.categoryFilter !== undefined) set("category", updates.categoryFilter);
+  if (updates.categoryFilter !== undefined)
+    set("category", updates.categoryFilter);
   if (updates.minDiscount !== undefined) set("min_discount", updates.minDiscount);
   if (updates.minPrice !== undefined) set("min_price", updates.minPrice);
   if (updates.excludeCategorySlug !== undefined)
     set("exclude_category_slug", updates.excludeCategorySlug);
-  if (updates.sort !== undefined) set("sort", updates.sort === "discount" ? "" : updates.sort);
-  if (updates.offset !== undefined) set("offset", updates.offset === 0 ? "" : String(updates.offset));
+  if (updates.sort !== undefined)
+    set("sort", updates.sort === "discount" ? "" : updates.sort);
+  if (updates.offset !== undefined)
+    set("offset", updates.offset === 0 ? "" : String(updates.offset));
 
   if (updates.specFilters !== undefined) {
     Array.from(next.keys()).forEach((key) => {
@@ -90,12 +119,39 @@ export function useFilterParams(options?: {
   const pathname = usePathname();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const base = parseFilterParamsFromURL(searchParams);
-  const categoryFromPath = parseCategorySlugFromDealsPath(pathname);
-  const state = {
-    ...base,
-    categoryFilter: categoryFromPath ?? base.categoryFilter,
-  };
+
+  const searchParamsString = searchParams.toString();
+  const canonical = useMemo((): ParsedFilterParams => {
+    const base = parseFilterParamsFromURL(
+      new URLSearchParams(searchParamsString),
+    );
+    const categoryFromPath = parseCategorySlugFromDealsPath(pathname);
+    return {
+      ...base,
+      categoryFilter: categoryFromPath ?? base.categoryFilter,
+    };
+  }, [searchParamsString, pathname]);
+
+  const [display, addOptimistic] = useOptimistic(
+    canonical,
+    optimisticFilterReducer,
+  );
+
+  const beginReplace = useCallback(
+    (nextParams: URLSearchParams, targetPathname: string) => {
+      const merged = mergeCategoryFromPath(
+        parseFilterParamsFromURL(nextParams),
+        targetPathname,
+      );
+      const qs = nextParams.toString();
+      // useOptimistic setter must run inside startTransition (or an Action).
+      startTransition(() => {
+        addOptimistic(merged);
+        router.replace(qs ? `${targetPathname}?${qs}` : targetPathname);
+      });
+    },
+    [router, addOptimistic, startTransition],
+  );
 
   const updateParams = useCallback(
     (
@@ -114,15 +170,12 @@ export function useFilterParams(options?: {
       }>,
     ) => {
       const next = applyToParams(
-        new URLSearchParams(searchParams.toString()),
+        new URLSearchParams(searchParamsString),
         updates,
       );
-      const qs = next.toString();
-      startTransition(() => {
-        router.replace(qs ? `${pathname}?${qs}` : pathname);
-      });
+      beginReplace(next, pathname);
     },
-    [searchParams, pathname, router],
+    [searchParamsString, pathname, beginReplace],
   );
 
   const setSearchQuery = useCallback(
@@ -137,12 +190,12 @@ export function useFilterParams(options?: {
     (value: string) => {
       const v = value.trim();
       if (!v) return;
-      const cur = state.brandFilters;
+      const cur = display.brandFilters;
       const idx = cur.indexOf(v);
       const nextBrands = idx >= 0 ? cur.filter((x) => x !== v) : [...cur, v];
       updateParams({ brandFilters: nextBrands, offset: 0 });
     },
-    [updateParams, state.brandFilters],
+    [updateParams, display.brandFilters],
   );
   const clearBrandFilters = useCallback(
     () => updateParams({ brandFilters: [], offset: 0 }),
@@ -150,7 +203,7 @@ export function useFilterParams(options?: {
   );
   const setCategoryFilter = useCallback(
     (v: string) => {
-      const raw = new URLSearchParams(searchParams.toString());
+      const raw = new URLSearchParams(searchParamsString);
       raw.delete("category");
       const next = applyToParams(raw, {
         categoryFilter: "",
@@ -158,13 +211,10 @@ export function useFilterParams(options?: {
         variantFilters: {},
         offset: 0,
       });
-      const qs = next.toString();
-      const path = v ? buildDealsCategoryPath(v, categoryTree) : "/deals";
-      startTransition(() => {
-        router.replace(qs ? `${path}?${qs}` : path);
-      });
+      const targetPath = v ? buildDealsCategoryPath(v, categoryTree) : "/deals";
+      beginReplace(next, targetPath);
     },
-    [searchParams, router, categoryTree],
+    [searchParamsString, beginReplace, categoryTree],
   );
   const setMinDiscount = useCallback(
     (v: string) => updateParams({ minDiscount: v, offset: 0 }),
@@ -174,45 +224,45 @@ export function useFilterParams(options?: {
     (key: string, value: string) => {
       const v = value.trim();
       if (!v) return;
-      const cur = state.specFilters[key] ?? [];
+      const cur = display.specFilters[key] ?? [];
       const idx = cur.indexOf(v);
       const nextVals = idx >= 0 ? cur.filter((x) => x !== v) : [...cur, v];
-      const next = { ...state.specFilters };
+      const next = { ...display.specFilters };
       if (nextVals.length === 0) delete next[key];
       else next[key] = nextVals;
       updateParams({ specFilters: next, offset: 0 });
     },
-    [updateParams, state.specFilters],
+    [updateParams, display.specFilters],
   );
   const clearSpecFilter = useCallback(
     (key: string) => {
-      const next = { ...state.specFilters };
+      const next = { ...display.specFilters };
       delete next[key];
       updateParams({ specFilters: next, offset: 0 });
     },
-    [updateParams, state.specFilters],
+    [updateParams, display.specFilters],
   );
   const toggleVariantFilter = useCallback(
     (key: string, value: string) => {
       const v = value.trim();
       if (!v) return;
-      const cur = state.variantFilters[key] ?? [];
+      const cur = display.variantFilters[key] ?? [];
       const idx = cur.indexOf(v);
       const nextVals = idx >= 0 ? cur.filter((x) => x !== v) : [...cur, v];
-      const next = { ...state.variantFilters };
+      const next = { ...display.variantFilters };
       if (nextVals.length === 0) delete next[key];
       else next[key] = nextVals;
       updateParams({ variantFilters: next, offset: 0 });
     },
-    [updateParams, state.variantFilters],
+    [updateParams, display.variantFilters],
   );
   const clearVariantFilter = useCallback(
     (key: string) => {
-      const next = { ...state.variantFilters };
+      const next = { ...display.variantFilters };
       delete next[key];
       updateParams({ variantFilters: next, offset: 0 });
     },
-    [updateParams, state.variantFilters],
+    [updateParams, display.variantFilters],
   );
   const setSort = useCallback(
     (v: SortOption) => updateParams({ sort: v, offset: 0 }),
@@ -238,16 +288,18 @@ export function useFilterParams(options?: {
     });
   }, [updateParams]);
 
-  // When search clears but URL has sort=relevance, sync URL to default sort
+  // Canonical URL only: when search clears but `sort=relevance` remains, fix the URL.
   useEffect(() => {
-    const rawSort = searchParams.get("sort");
-    if (base.searchQuery.trim() === "" && rawSort === "relevance") {
+    const params = new URLSearchParams(searchParamsString);
+    const rawSort = params.get("sort");
+    const q = params.get("q") ?? "";
+    if (q.trim() === "" && rawSort === "relevance") {
       updateParams({ sort: "discount" });
     }
-  }, [base.searchQuery, searchParams, updateParams]);
+  }, [searchParamsString, updateParams]);
 
   return {
-    ...state,
+    ...display,
     isPending,
     setSearchQuery,
     setStoreFilter,
