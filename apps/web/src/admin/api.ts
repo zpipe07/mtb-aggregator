@@ -1065,6 +1065,8 @@ export interface LLMPromptProfile {
   system_prompt: string;
   extraction_schema: Record<string, unknown>;
   enabled: boolean;
+  /** Present on GET detail when category_id is set: merged schema (ancestors + this category). */
+  effective_extraction_schema?: Record<string, unknown>;
   /** Present on GET detail when the profile has llm_prompt_profile_fields rows. */
   profile_fields?: LLMProfileFieldRow[];
 }

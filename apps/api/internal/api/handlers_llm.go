@@ -104,6 +104,17 @@ func (h *Handlers) GetLLMProfileByID(w http.ResponseWriter, r *http.Request, id 
 		"extraction_schema":  json.RawMessage(p.ExtractionSchema),
 		"enabled":            p.Enabled,
 	}
+	if cid, err := h.DB.GetLLMPromptProfileCategoryID(r.Context(), id); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	} else if cid != nil {
+		if eff, err := h.DB.GetLLMPromptProfileForCategoryID(r.Context(), *cid); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		} else if eff != nil {
+			out["effective_extraction_schema"] = json.RawMessage(eff.ExtractionSchema)
+		}
+	}
 	if nComp > 0 {
 		pfs, err := h.DB.ListLLMPromptProfileFields(r.Context(), id)
 		if err != nil {

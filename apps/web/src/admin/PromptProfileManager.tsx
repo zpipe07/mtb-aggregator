@@ -424,6 +424,24 @@ export function PromptProfileManager() {
             <p className="text-sm text-stone-600">Loading profile…</p>
           )}
 
+          {editingId != null &&
+            editDetail &&
+            !editDetailLoading &&
+            editDetail.effective_extraction_schema != null && (
+              <details className="mb-4 rounded border border-stone-200 bg-amber-50/60 p-3 text-sm text-stone-800">
+                <summary className="cursor-pointer font-medium">
+                  Effective extraction schema (merged with ancestor categories)
+                </summary>
+                <p className="mt-2 text-stone-600">
+                  Enrichment and facets use this merged schema. Fields from enabled profiles on parent
+                  categories are included unless this category overrides the same field key.
+                </p>
+                <pre className="mt-2 max-h-64 overflow-auto rounded border border-stone-200 bg-white p-2 text-xs text-stone-900">
+                  {JSON.stringify(editDetail.effective_extraction_schema, null, 2)}
+                </pre>
+              </details>
+            )}
+
           {editingId != null && waitingForDefsForComposition && (
             <p className="text-sm text-stone-600">Loading field definitions…</p>
           )}
