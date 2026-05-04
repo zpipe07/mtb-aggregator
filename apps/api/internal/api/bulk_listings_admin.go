@@ -60,6 +60,19 @@ func bulkListingsWorkTimeout() time.Duration {
 	return 2 * time.Hour
 }
 
+func logBulkEnrichJobFinalize(handler string, jobID int, status string, err error) {
+	if err == nil {
+		return
+	}
+	log.Printf("[admin] %s job %d: failed to persist final status %q: %v", handler, jobID, status, err)
+	sentryutil.CaptureError(err, map[string]string{
+		"component": "api",
+		"handler":   handler,
+		"phase":     "finalize_job",
+		"status":    status,
+	})
+}
+
 // enrichJobStoreTypePtr returns store_type for enrich_jobs when the admin filter is scoped to one store by id; otherwise nil.
 func enrichJobStoreTypePtr(ctx context.Context, dbx *db.DB, storeID int) (*string, error) {
 	if storeID <= 0 {
@@ -219,7 +232,9 @@ func runBulkClassifyInBackground(h *Handlers, jobID int, ids []int, total int) {
 	for _, id := range ids {
 		if workCtx.Err() != nil {
 			errStrs = append(errStrs, "job timed out: "+workCtx.Err().Error())
-			_ = h.DB.UpdateEnrichJob(workCtx, jobID, "timed_out", &processed, &processed, errStrs)
+			if err := h.DB.UpdateEnrichJobDetached(jobID, "timed_out", &processed, &processed, errStrs); err != nil {
+				logBulkEnrichJobFinalize("bulk_classify", jobID, "timed_out", err)
+			}
 			return
 		}
 		if wn := h.runLLMCategoryClassification(workCtx, id); wn != "" {
@@ -227,7 +242,9 @@ func runBulkClassifyInBackground(h *Handlers, jobID int, ids []int, total int) {
 		}
 		processed++
 	}
-	_ = h.DB.UpdateEnrichJob(workCtx, jobID, "completed", &processed, &processed, errStrs)
+	if err := h.DB.UpdateEnrichJobDetached(jobID, "completed", &processed, &processed, errStrs); err != nil {
+		logBulkEnrichJobFinalize("bulk_classify", jobID, "completed", err)
+	}
 	log.Printf("[admin] bulk_classify job %d: completed, processed %d", jobID, processed)
 }
 
@@ -242,7 +259,9 @@ func runBulkEnrichInBackground(h *Handlers, jobID int, ids []int, total int) {
 	for _, id := range ids {
 		if workCtx.Err() != nil {
 			errStrs = append(errStrs, "job timed out: "+workCtx.Err().Error())
-			_ = h.DB.UpdateEnrichJob(workCtx, jobID, "timed_out", &processedN, &enrichedN, errStrs)
+			if err := h.DB.UpdateEnrichJobDetached(jobID, "timed_out", &processedN, &enrichedN, errStrs); err != nil {
+				logBulkEnrichJobFinalize("bulk_enrich", jobID, "timed_out", err)
+			}
 			return
 		}
 		if err := h.adminEnrichOneListing(workCtx, id, &errStrs, jensonSeen); err != nil {
@@ -252,7 +271,9 @@ func runBulkEnrichInBackground(h *Handlers, jobID int, ids []int, total int) {
 		}
 		processedN++
 	}
-	_ = h.DB.UpdateEnrichJob(workCtx, jobID, "completed", &processedN, &enrichedN, errStrs)
+	if err := h.DB.UpdateEnrichJobDetached(jobID, "completed", &processedN, &enrichedN, errStrs); err != nil {
+		logBulkEnrichJobFinalize("bulk_enrich", jobID, "completed", err)
+	}
 	log.Printf("[admin] bulk_enrich job %d: completed, processed %d enriched %d", jobID, processedN, enrichedN)
 }
 
