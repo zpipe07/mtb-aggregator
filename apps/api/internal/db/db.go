@@ -1928,30 +1928,6 @@ func (db *DB) BackfillCanonicalCategories(ctx context.Context, mapFn func([]stri
 // LLM-enriched before the llm_specs split. For each listing with llm_confidence but no llm_specs,
 // copies profile-defined field values from specs into llm_specs. Returns the number of rows updated.
 func (db *DB) BackfillLLMSpecs(ctx context.Context) (int, error) {
-	profiles, err := db.ListLLMPromptProfiles(ctx)
-	if err != nil {
-		return 0, fmt.Errorf("list profiles: %w", err)
-	}
-	for i := range profiles {
-		if err := db.maybeHydrateLLMProfile(ctx, &profiles[i]); err != nil {
-			return 0, fmt.Errorf("hydrate profile %d: %w", profiles[i].ID, err)
-		}
-	}
-	profileKeys := make(map[string]map[string]struct{}) // "Bikes>Mountain" -> set of keys
-	for _, p := range profiles {
-		if !p.Enabled {
-			continue
-		}
-		keys := extractSchemaKeys(p.ExtractionSchema)
-		if len(keys) > 0 {
-			catKey := strings.Join(p.CanonicalCategory, ">")
-			profileKeys[catKey] = keys
-		}
-	}
-	if len(profileKeys) == 0 {
-		return 0, nil
-	}
-
 	rows, err := db.pool.Query(ctx, `
 		SELECT l.id, l.canonical_category, l.metadata
 		FROM store_listings l
@@ -1966,6 +1942,7 @@ func (db *DB) BackfillLLMSpecs(ctx context.Context) (int, error) {
 	defer rows.Close()
 
 	updated := 0
+	keysByCatKey := make(map[string]map[string]struct{})
 	for rows.Next() {
 		var id int
 		var cat pgtype.FlatArray[string]
@@ -1973,9 +1950,23 @@ func (db *DB) BackfillLLMSpecs(ctx context.Context) (int, error) {
 		if err := rows.Scan(&id, &cat, &meta); err != nil {
 			return updated, err
 		}
-		catKey := strings.Join([]string(cat), ">")
-		allowed, ok := profileKeys[catKey]
+		path := []string(cat)
+		catKey := strings.Join(path, ">")
+		allowed, ok := keysByCatKey[catKey]
 		if !ok {
+			p, err := db.GetLLMPromptProfileForCategory(ctx, path)
+			if err != nil {
+				return updated, fmt.Errorf("profile for %q: %w", catKey, err)
+			}
+			if p == nil {
+				keysByCatKey[catKey] = nil
+				allowed = nil
+			} else {
+				allowed = extractSchemaKeys(p.ExtractionSchema)
+				keysByCatKey[catKey] = allowed
+			}
+		}
+		if len(allowed) == 0 {
 			continue
 		}
 		var base map[string]interface{}

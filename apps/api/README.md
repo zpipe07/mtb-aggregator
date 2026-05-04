@@ -7,7 +7,7 @@ Go HTTP server that orchestrates scraping, enrichment, and serves the REST API. 
 - **Port:** 8080 (default)
 - **Frameworks:** None; stdlib `net/http` only
 - **Database:** PostgreSQL via pgx; all queries in `internal/db/`
-- **LLM profiles:** When `llm_prompt_profile_fields` exists for a profile, getters hydrate `extraction_schema` from the field library + overrides (see [docs/ARCHITECTURE.md](../../docs/ARCHITECTURE.md) enrich section).
+- **LLM profiles:** When `llm_prompt_profile_fields` exists for a profile, getters hydrate `extraction_schema` from the field library + overrides. **Category hot paths** (`GetLLMPromptProfileForCategory*`) merge fields from **enabled** profiles on ancestor categories (root→leaf); duplicate `field_key` uses the **deepest** definition. `system_prompt` / profile identity come from the **nearest enabled** profile to the leaf. `GetLLMPromptProfileByID` (admin detail) hydrates that profile only; the response may include `effective_extraction_schema` when `category_id` is set (merged schema used at runtime for that category). See [docs/ARCHITECTURE.md](../../docs/ARCHITECTURE.md).
 
 ## Key Directories
 
@@ -54,7 +54,9 @@ Go HTTP server that orchestrates scraping, enrichment, and serves the REST API. 
 - `POST /admin/llm-extraction-field-defs` — Create a def (`field_key`, `field_type`, `description`, optional `label`, `values`, `filterable`). `field_type` is one of `integer`, `number`, `string`, `enum`, or `multi_enum` (array of enum strings in `metadata.llm_specs`; facets and `/deals` filters match a selected value against the scalar or any array element)
 - `GET/PUT/DELETE /admin/llm-extraction-field-defs/:id` — Read, update (`field_key` immutable), delete (409 if referenced by a profile composition row)
 
-**LLM prompt profiles:** `PUT /admin/llm-profiles/:id` may include `profile_fields` (array of `{ field_def_id, sort_order, overrides, inline_field }`) to replace all composition rows for that profile and refresh `extraction_schema` from the hydrated merge. Do not send `extraction_schema` in the same request when `profile_fields` is present, or when the profile already has composition rows unless you are only updating name/category/prompt/enabled (omit `extraction_schema` entirely in that case).
+**LLM prompt profiles:** `PUT /admin/llm-profiles/:id` may include `profile_fields` (array of `{ field_def_id, sort_order, overrides, inline_field }`) to replace all composition rows for that profile and refresh `extraction_schema` from the hydrated merge. Do not send `extraction_schema` in the same request when `profile_fields` is present, or when the profile already has composition rows unless you are only updating name/category/prompt/enabled (omit `extraction_schema` entirely in that case). `GET /admin/llm-profiles/:id` may include **`effective_extraction_schema`**: the merged extraction schema (this profile plus ancestor profiles on the category tree) used by enrichment and facets when `category_id` is set.
+
+**Operational note:** After relying on inheritance, you can remove redundant `profile_fields` rows on child profiles that only duplicated a parent’s fields; keep child-only fields on the descendant profile.
 
 ## Environment
 
