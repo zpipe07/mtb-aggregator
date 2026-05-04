@@ -1257,6 +1257,18 @@ func (db *DB) UpdateEnrichJob(ctx context.Context, id int, status string, proces
 	return err
 }
 
+// enrichJobFinalizeDBTimeout bounds DB writes for terminal enrich_jobs updates when the
+// work context may already be canceled (e.g. job deadline exceeded).
+const enrichJobFinalizeDBTimeout = 30 * time.Second
+
+// UpdateEnrichJobDetached persists terminal enrich job state using a fresh context so pgx Exec
+// is not aborted by a canceled work context (scheduler timeout, bulk job timeout, etc.).
+func (db *DB) UpdateEnrichJobDetached(id int, status string, processed, enriched *int, errors []string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), enrichJobFinalizeDBTimeout)
+	defer cancel()
+	return db.UpdateEnrichJob(ctx, id, status, processed, enriched, errors)
+}
+
 // MarkStaleJobs sets status='stale' and completed_at=NOW() for any scrape_jobs and enrich_jobs that are still 'running'.
 // Call on API startup to clean up jobs orphaned by a process crash/restart.
 func (db *DB) MarkStaleJobs(ctx context.Context) error {

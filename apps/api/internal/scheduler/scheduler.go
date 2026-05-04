@@ -50,6 +50,22 @@ func getScrapeJobTimeout() time.Duration {
 	return 20 * time.Minute
 }
 
+// finalizeEnrichJob writes terminal job status using a DB context that is not the (possibly
+// canceled) work context, so timeouts still persist as timed_out/failed/completed.
+func (s *Scheduler) finalizeEnrichJob(jobID int, status string, processed, enriched *int, errStrs []string, scope string) {
+	if jobID == 0 {
+		return
+	}
+	if err := s.db.UpdateEnrichJobDetached(jobID, status, processed, enriched, errStrs); err != nil {
+		log.Printf("[enrichment] failed to persist job %d final status %q: %v", jobID, status, err)
+		tags := map[string]string{"component": "scheduler", "job": "enrich", "phase": "finalize_job", "status": status}
+		if scope != "" {
+			tags["store_type"] = scope
+		}
+		sentryutil.CaptureError(err, tags)
+	}
+}
+
 const maxLLMErrorSentryPerJob = 5
 
 // enrichLLMJobState tracks quota exhaustion and rate-limits Sentry noise for one enrichment job run.
@@ -391,7 +407,7 @@ func (s *Scheduler) RunEnrichmentJob(force bool, triggeredBy string) {
 			sentryutil.CapturePanicValue(r, map[string]string{"component": "scheduler", "job": "enrich", "scope": "global"})
 			if jobID != 0 {
 				panicErrs := append(errStrs, fmt.Sprintf("panic: %v", r))
-				_ = s.db.UpdateEnrichJob(ctx, jobID, "failed", nil, &successCount, panicErrs)
+				s.finalizeEnrichJob(jobID, "failed", nil, &successCount, panicErrs, "")
 			}
 		}
 	}()
@@ -402,7 +418,7 @@ func (s *Scheduler) RunEnrichmentJob(force bool, triggeredBy string) {
 		log.Printf("[enrichment] failed to get listings: %v", err)
 		sentryutil.CaptureError(err, map[string]string{"component": "scheduler", "job": "enrich", "phase": "list_listings"})
 		if jobID != 0 {
-			_ = s.db.UpdateEnrichJob(ctx, jobID, "failed", nil, nil, []string{err.Error()})
+			s.finalizeEnrichJob(jobID, "failed", nil, nil, []string{err.Error()}, "")
 		}
 		return
 	}
@@ -411,7 +427,7 @@ func (s *Scheduler) RunEnrichmentJob(force bool, triggeredBy string) {
 		log.Printf("[enrichment] no listings need enrichment")
 		if jobID != 0 {
 			z := 0
-			_ = s.db.UpdateEnrichJob(ctx, jobID, "completed", &z, &z, nil)
+			s.finalizeEnrichJob(jobID, "completed", &z, &z, nil, "")
 		}
 		return
 	}
@@ -430,7 +446,7 @@ func (s *Scheduler) RunEnrichmentJob(force bool, triggeredBy string) {
 			)
 			if jobID != 0 {
 				errStrs = append(errStrs, "job timed out")
-				_ = s.db.UpdateEnrichJob(ctx, jobID, "timed_out", &processed, &successCount, errStrs)
+				s.finalizeEnrichJob(jobID, "timed_out", &processed, &successCount, errStrs, "")
 			}
 			return
 		}
@@ -466,7 +482,7 @@ func (s *Scheduler) RunEnrichmentJob(force bool, triggeredBy string) {
 	status := "completed"
 	if jobID != 0 {
 		p := len(listings)
-		_ = s.db.UpdateEnrichJob(ctx, jobID, status, &p, &successCount, errStrs)
+		s.finalizeEnrichJob(jobID, status, &p, &successCount, errStrs, "")
 	}
 	log.Printf("[enrichment] enriched %d/%d listings", successCount, len(listings))
 }
@@ -697,7 +713,7 @@ func (s *Scheduler) runEnrichmentLoop(f db.EnrichmentFilter, force bool, trigger
 			sentryutil.CapturePanicValue(r, map[string]string{"component": "scheduler", "job": "enrich", "store_type": scope})
 			if jobID != 0 {
 				panicErrs := append(errStrs, fmt.Sprintf("panic: %v", r))
-				_ = s.db.UpdateEnrichJob(ctx, jobID, "failed", &totalProcessed, &totalSuccess, panicErrs)
+				s.finalizeEnrichJob(jobID, "failed", &totalProcessed, &totalSuccess, panicErrs, scope)
 			}
 		}
 	}()
@@ -713,7 +729,7 @@ func (s *Scheduler) runEnrichmentLoop(f db.EnrichmentFilter, force bool, trigger
 			)
 			if jobID != 0 {
 				errStrs = append(errStrs, "job timed out")
-				_ = s.db.UpdateEnrichJob(ctx, jobID, "timed_out", &totalProcessed, &totalSuccess, errStrs)
+				s.finalizeEnrichJob(jobID, "timed_out", &totalProcessed, &totalSuccess, errStrs, scope)
 			}
 			return
 		}
@@ -722,7 +738,7 @@ func (s *Scheduler) runEnrichmentLoop(f db.EnrichmentFilter, force bool, trigger
 			log.Printf("[enrichment] failed to get listings for %s: %v", scope, err)
 			sentryutil.CaptureError(err, map[string]string{"component": "scheduler", "job": "enrich", "phase": "list_listings", "store_type": scope})
 			if jobID != 0 {
-				_ = s.db.UpdateEnrichJob(ctx, jobID, "failed", nil, nil, []string{err.Error()})
+				s.finalizeEnrichJob(jobID, "failed", nil, nil, []string{err.Error()}, scope)
 			}
 			return
 		}
@@ -741,7 +757,7 @@ func (s *Scheduler) runEnrichmentLoop(f db.EnrichmentFilter, force bool, trigger
 				)
 				if jobID != 0 {
 					errStrs = append(errStrs, "job timed out")
-					_ = s.db.UpdateEnrichJob(ctx, jobID, "timed_out", &totalProcessed, &totalSuccess, errStrs)
+					s.finalizeEnrichJob(jobID, "timed_out", &totalProcessed, &totalSuccess, errStrs, scope)
 				}
 				return
 			}
@@ -777,7 +793,7 @@ func (s *Scheduler) runEnrichmentLoop(f db.EnrichmentFilter, force bool, trigger
 		}
 	}
 	if jobID != 0 {
-		_ = s.db.UpdateEnrichJob(ctx, jobID, "completed", &totalProcessed, &totalSuccess, errStrs)
+		s.finalizeEnrichJob(jobID, "completed", &totalProcessed, &totalSuccess, errStrs, scope)
 	}
 	if totalProcessed > 0 {
 		log.Printf("[enrichment] %s: enriched %d/%d listings total", scope, totalSuccess, totalProcessed)
