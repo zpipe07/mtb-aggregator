@@ -1,74 +1,87 @@
 ---
 name: Enrich job stale diagnosis
-overview: "Deploy-time `stale` is expected (MarkStaleJobs). Your env (batch 400, default 30m job timeout, cron every 6h) combines with a likely code bug: on timeout the scheduler calls `UpdateEnrichJob(ctx, …)` with the already-cancelled job context, so pgx `Exec` can fail while errors are ignored—rows stay `running` until deploy or overlapping crons stack more orphan rows."
+overview: In this codebase, `enrich_jobs.status = stale` is only set when the API process starts and calls `MarkStaleJobs`, which flips **every** row still in `running` to `stale`. That strongly points to process restarts or rolling deploys interrupting in-flight jobs—not the per-job timeout (which becomes `timed_out`).
 todos:
   - id: verify-error-string
-    content: Confirm stale rows' errors include `marked stale: process restarted while job was running`
-    status: completed
-  - id: fix-timeout-db-update
-    content: "Implemented `UpdateEnrichJobDetached` + scheduler `finalizeEnrichJob` + bulk admin finalize logging"
-    status: completed
-  - id: cron-overlap
-    content: "Optional: single-flight / skip cron tick if enrich already running—reduces stacked jobs when goroutines outlive DB state"
+    content: "Confirm stale rows include 'marked stale: process restarted while job was running' in errors"
     status: pending
-  - id: tune-batch-timeout
-    content: "Ops: raise `ENRICH_JOB_TIMEOUT` or lower `ENRICH_BATCH_SIZE` until one cron run usually finishes; align interval with worst-case duration"
+  - id: correlate-restarts
+    content: Line up stale job completed_at with platform deploy/restart/OOM events
     status: pending
-  - id: cron-overlap
-    content: "Optional: single-flight / skip cron tick if enrich already running—reduces stacked jobs when goroutines outlive DB state"
+  - id: check-replicas
+    content: Confirm API instance count; if >1, treat MarkStaleJobs as cross-instance invalidation risk
     status: pending
-  - id: tune-batch-timeout
-    content: "Ops: raise `ENRICH_JOB_TIMEOUT` or lower `ENRICH_BATCH_SIZE` until one cron run usually finishes; align interval with worst-case duration"
+  - id: optional-hardening
+    content: "If needed: single-worker cron, advisory lock for enrich, or safer MarkStaleJobs semantics"
     status: pending
+isProject: false
 ---
 
-# Enrichment jobs: root cause (updated with your env)
+# Why scheduled enrichment jobs show `stale`
 
-## Your settings (recorded)
+## What the code does
 
-- **`ENRICH_JOB_TIMEOUT`:** unset → code default **30 minutes** ([`getEnrichJobTimeout`](apps/api/internal/scheduler/scheduler.go)).
-- **`ENRICH_BATCH_SIZE`:** **400** on API (each scheduled run processes up to 400 listings per [`RunEnrichmentJob`](apps/api/internal/scheduler/scheduler.go)).
-- **`ENRICH_CRON_SPEC`:** `0 */6 * * *` → **every 6 hours**.
-- Scraper **1000** (if that is a separate scraper env) does not change API job-timeout semantics for enrichment; the API batch size drives how much work one enrich job attempts.
+**`stale` is only written in one place:** [`MarkStaleJobs`](apps/api/internal/db/db.go) runs on **every API startup**, immediately after DB connect, in [`main.go`](apps/api/main.go) (before cron registration).
 
-## Deploy → `stale` (unchanged)
+```1260:1278:apps/api/internal/db/db.go
+// MarkStaleJobs sets status='stale' and completed_at=NOW() for any scrape_jobs and enrich_jobs that are still 'running'.
+// Call on API startup to clean up jobs orphaned by a process crash/restart.
+func (db *DB) MarkStaleJobs(ctx context.Context) error {
+	_, err := db.pool.Exec(ctx, `
+		UPDATE enrich_jobs
+		SET status = 'stale', completed_at = NOW(),
+			errors = array_append(COALESCE(errors, '{}'), 'marked stale: process restarted while job was running')
+		WHERE status = 'running'
+	`)
+	// ... same for scrape_jobs
+}
+```
 
-Startup [`MarkStaleJobs`](apps/api/internal/db/db.go) marks **all** `enrich_jobs` still `running`. If you deploy while rows were never finalized, they correctly show **`stale`**.
+So a job appears **`stale`** only if:
 
-## Primary bug hypothesis: `timed_out` never persists to Postgres
+1. It was inserted as `running` (normal: [`CreateEnrichJob`](apps/api/internal/db/db.go)), and
+2. The process **did not** reach a terminal [`UpdateEnrichJob`](apps/api/internal/db/db.go) (`completed`, `failed`, `timed_out`, etc.) before the process exited, and
+3. The **next** process start ran `MarkStaleJobs` and updated it.
 
-When the job deadline fires, [`RunEnrichmentJob`](apps/api/internal/scheduler/scheduler.go) does:
+**This is not** the enrichment time limit: that path sets **`timed_out`** via context deadline ([`getEnrichJobTimeout`](apps/api/internal/scheduler/scheduler.go), default **30 minutes** from `ENRICH_JOB_TIMEOUT`).
 
-1. Detect `ctx.Err() != nil` (the timeout context is **already canceled**).
-2. Call `_ = s.db.UpdateEnrichJob(ctx, jobID, "timed_out", …)` with that **same** `ctx`.
+```mermaid
+flowchart LR
+  subgraph start [API startup]
+    A[MarkStaleJobs]
+  end
+  subgraph enrich [Enrichment run]
+    B[CreateEnrichJob running]
+    C[UpdateEnrichJob completed or timed_out or failed]
+  end
+  A -->|"any running rows"| D[status stale]
+  B --> C
+  B -->|"process dies before C"| A
+```
 
-[`UpdateEnrichJob`](apps/api/internal/db/db.go) runs `db.pool.Exec(ctx, …)`. **pgx honors cancellation**: `Exec` typically returns **`context.Canceled`** when `ctx` is done. The return value is **discarded** (`_ =`), so the row **stays `running`**.
+## Most likely causes (ordered)
 
-The goroutine then **returns**, but the DB still shows **`running`**. From the outside it looks like a **zombie job** for hours or days.
+1. **Rolling deploys / restarts** while cron or catch-up enrichment is running (Render sleep/wake, autodeploy, manual restarts, OOM kill, platform health recycle). Any exit before `UpdateEnrichJob` → next boot → `stale`.
 
-With **`ENRICH_BATCH_SIZE=400`** and **30m** wall-clock, most cron runs will **hit the timeout** before finishing all listings—so this path runs **often**, not rarely.
+2. **Multiple API replicas** sharing one DB (you were unsure—worth verifying on your host). During a rolling deploy, **every new instance** runs `MarkStaleJobs` against **all** `running` enrich jobs globally. Another instance’s legitimately running job can be marked `stale` even though work is still happening elsewhere—a design mismatch if you ever scale the API horizontally.
 
-## Why duration grows to many hours and overlaps 6h cron
+3. **Churn from catch-up + long jobs:** [`LastEnrichJobAge`](apps/api/internal/db/db.go) only considers `status IN ('completed', 'running')`—not `stale`, `failed`, or `timed_out`. If recent runs never reach `completed`, catch-up may keep thinking enrichment is “overdue” (README: 24h threshold) relative to the last **`completed`** job and fire [`RunEnrichmentJob`](apps/api/internal/scheduler/scheduler.go) on startup more often than you expect. There is **no cluster-wide lock** preventing overlapping enrich runs (cron vs catch-up vs manual), so you can accumulate multiple `running` rows; **any** restart then marks **all** of them `stale`.
 
-- Zombie row stays `running` until deploy.
-- **Every 6 hours** cron starts **another** [`RunEnrichmentJob`](apps/api/internal/scheduler/scheduler.go) in a **new goroutine** ([robfig/cron](apps/api/internal/scheduler/scheduler.go) runs each entry in its own goroutine). That creates **another** `running` row even though the previous goroutine may have already exited.
-- Elapsed “duration” in the UI is essentially **time from `started_at` until `completed_at`**—for zombies, **`completed_at` is only set when deploy runs `MarkStaleJobs`**, so you see **multi-hour** spans matching wall clock to the next deploy.
+## What to verify (no code changes)
 
-Your **Completed 400/400 ~28.8 min** row is consistent with **batch 400** finishing **under** the 30m budget when the scraper + LLM path is fast enough that day; when it is not, you hit the broken timeout update and get **`running` forever**.
+- **Admin / DB:** Open recent `enrich_jobs`; confirm `errors` includes `marked stale: process restarted while job was running`. If yes, it confirms this path (not `timed_out`).
+- **Host logs:** Correlate `stale` **completed_at** (or next deploy time) with API **restart/deploy** events, OOM, or health-check failures.
+- **Replicas:** Check your platform (e.g. Render service **instance count**, rolling deploy settings). If count &gt; 1, treat multi-instance `MarkStaleJobs` as a prime suspect.
+- **Duration:** If enrich often runs longer than your deploy cadence or instance lifetime, you will see `stale` repeatedly until deploys stabilize or enrichment is shorter.
 
-## Recommended fix (implementation—when you execute the plan)
+## If you confirm the problem is operational
 
-- For **any** terminal `UpdateEnrichJob` after the job `ctx` may be canceled—especially **`timed_out`**, **`failed`** after timeout, and **panic recover**—use a **detached** context, e.g. `context.WithTimeout(context.Background(), 30*time.Second)` (or Go 1.21+ [`context.WithoutCancel`](https://pkg.go.dev/context#WithoutCancel) parent + short timeout for the write).
-- **Stop swallowing errors:** log and Sentry on `UpdateEnrichJob` failure so this class of bug is visible.
+- Prefer **one** API instance that runs in-process cron, **or** move `POST /enrich-now` to an external cron hitting a **single** worker, with `ENRICH_CRON_SPEC=disabled` on web-facing instances if you split services later.
+- Temporarily reduce deploys during the enrich window or lengthen stability window if you cannot avoid restarts.
 
-Apply the same pattern anywhere else that updates job status under a canceled ctx (scheduler + [`bulk_listings_admin.go`](apps/api/internal/api/bulk_listings_admin.go) if applicable).
+## If you confirm multi-instance or need code-level hardening (future work)
 
-## Operational mitigations (parallel to code fix)
+- **Postgres advisory lock** (or similar) so only one enrichment run is active cluster-wide, **and/or** only mark jobs stale when they are provably orphaned (e.g. `started_at` older than a grace period, or tied to a dead `instance_id`—requires design).
+- Broaden **catch-up** eligibility in [`LastEnrichJobAge`](apps/api/internal/db/db.go) / related logic so `stale`/`failed`/`timed_out` with recent `started_at` or `completed_at` does not skew “last run” semantics.
 
-- **Raise `ENRICH_JOB_TIMEOUT`** above typical worst-case for 400 listings **or** **lower `ENRICH_BATCH_SIZE`** so a single run usually **completes** and records **`completed`**—reduces timeout noise (but **fix the DB write on timeout** regardless).
-- **Single-flight enrich** (skip cron if a job is already `running`, or Postgres advisory lock): avoids piling up duplicate goroutines and `running` rows when zombies exist.
-
-## Verification
-
-- Reproduce locally: `ENRICH_BATCH_SIZE=400`, short `ENRICH_JOB_TIMEOUT=1ns` or `1m`, trigger enrich—confirm row remains `running` **before** code fix and **`timed_out` after** fix.
-- Stale rows should still show `marked stale: process restarted…` after deploy; that part remains expected.
+I can help interpret a redacted row from `enrich_jobs` (status, `triggered_by`, timestamps, first error line) or a short deploy/restart timeline if you paste them.
