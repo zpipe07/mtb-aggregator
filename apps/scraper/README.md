@@ -39,6 +39,7 @@ Parsers live in `src/parsers/` — one file per store:
 - `revelbikes.ts` — Revel Bikes (Shopify collection JSON + PDP enrich via `/products/{handle}.json`; specs from `body_html` `<strong>KEY:</strong><br>value` paragraphs)
 - `backcountry.ts` — Backcountry
 - `ridebicycles.ts` — Ride Bicycles (Shopify JSON API; in-stock + ≥10% off compare-at)
+- `thundermountainbikes.ts` — Thunder Mountain Bikes (Shopify collection JSON + PDP enrich like Worldwide Cyclery)
 
 `parsers/index.ts` registers `PARSERS` and `ENRICHERS` maps. Enrichers fetch product detail pages (PDP) for category paths and specs.
 
@@ -71,7 +72,7 @@ Parsers live in `src/parsers/` — one file per store:
 
 **JensonUSA** (`jensonusa.ts`): clearance cards expose `variants[]` inside `data-product-result-dto` (after page hydration). The parser emits **one row per variant** with `store_sku` = `variant.code`, `product_group_key` = parent `dto.code`, and `variant_options` from whatever facet fields exist on the **listing** DTO (often **Color only**; Size and other axes may be missing). **PDP enrichment** (`enrichJensonUSA`) parses `serverSideViewModel.variants` from the product page HTML and returns a `variants` array (`code`, `dimensions`, `is_orderable`); the API fans that out to every sibling row with the same `product_group_key` (one PDP fetch per parent). Parser modules: `jensonusa-dto.ts`, `jensonusa-pdp.ts`, tests `jensonusa-dto*.test.ts`, `jensonusa-pdp-variants.test.ts`.
 
-Shopify parsers (`ridebicycles`, `worldwidecyclery`, `revelbikes`) emit one row per variant; the API stores `product_group_key` as `{store_id}:{handle}` and `variant_options` as JSON for deduplication and filters. Shared helpers: `parsers/shopify-helpers.ts`.
+Shopify parsers (`ridebicycles`, `worldwidecyclery`, `revelbikes`, `thundermountainbikes`) emit one row per variant; the API stores `product_group_key` as `{store_id}:{handle}` and `variant_options` as JSON for deduplication and filters. Shared helpers: `parsers/shopify-helpers.ts`.
 
 ## Running
 

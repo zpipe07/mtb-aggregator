@@ -15,7 +15,7 @@ When `SCRAPER_SERVICE_SECRET` is set (recommended in production), `POST /scrape`
 ## Parser Structure
 
 - **Location**: `apps/scraper/src/parsers/`
-- **One file per store**: `jensonusa.ts`, `worldwidecyclery.ts`, `revelbikes.ts`, `backcountry.ts`, `ridebicycles.ts`
+- **One file per store**: `jensonusa.ts`, `worldwidecyclery.ts`, `revelbikes.ts`, `backcountry.ts`, `ridebicycles.ts`, `thundermountainbikes.ts`
 - **Registration**: `parsers/index.ts` exports `PARSERS` and `ENRICHERS` maps
 
 ### Adding a New Store
@@ -72,3 +72,4 @@ curl -X POST http://localhost:3000/scrape \
 - **Store types**: Must match keys in `PARSERS` and `ENRICHERS`
 - **Ride Bicycles**: Uses Shopify products.json API; parser keeps in-stock variants with compare-at price and **≥10%** off compare-at (rb_stock_status, rb_discount_relative are not honored by the API)
 - **Revel Bikes**: Same Shopify collection `products.json` scrape as other stores. **PDP enrichment** (`enrichRevelBikes`): `GET /products/{handle}.json`, then parse `body_html` for spec paragraphs `<p><strong>KEY:</strong><br>value</p>` into `raw_specs`, with remaining prose as `description`. `category_path` uses `product_type` when Shopify sets it (often empty on sale SKUs). Canonical categories still come from the **API’s generic LLM classifier**, not the enricher.
+- **Thunder Mountain Bikes**: Shopify collection `products.json` + **PDP enrichment** (`enrichThunderMountainBikes`) mirroring Worldwide Cyclery: product JSON + HTML for breadcrumbs; `raw_specs` from tables / definition lists in `body_html`.

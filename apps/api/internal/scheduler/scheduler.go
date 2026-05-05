@@ -167,7 +167,7 @@ func (s *Scheduler) scrapeStore(ctx context.Context, store db.Store, triggeredBy
 	if storeType == "" {
 		storeType = strings.ToLower(strings.ReplaceAll(store.Name, " ", ""))
 	}
-	if storeType != "jensonusa" && storeType != "backcountry" && storeType != "worldwidecyclery" && storeType != "revelbikes" && storeType != "ridebicycles" {
+	if storeType != "jensonusa" && storeType != "backcountry" && storeType != "worldwidecyclery" && storeType != "revelbikes" && storeType != "ridebicycles" && storeType != "thundermountainbikes" {
 		storeType = "jensonusa"
 	}
 

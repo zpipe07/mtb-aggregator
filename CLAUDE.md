@@ -69,8 +69,10 @@ pnpm --filter @mtb-aggregator/scraper run test:watch
 make scrape-now              # all stores
 make scrape-now-wwc          # worldwidecyclery only
 make scrape-now-revel        # revelbikes only
+make scrape-now-thundermountainbikes  # thundermountainbikes only
 make enrich-now              # enrich unenriched listings
 make enrich-now-revel        # revelbikes only (optional FORCE=1)
+make enrich-now-thundermountainbikes   # thundermountainbikes only (optional FORCE=1)
 make enrich-now FORCE=1      # re-enrich all
 
 # Database migrations against remote DB (set DATABASE_URL in .env)

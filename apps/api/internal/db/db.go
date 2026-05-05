@@ -1461,7 +1461,7 @@ func (db *DB) GetCanonicalCategories(ctx context.Context) ([]string, error) {
 
 // StoreTypesWithEnrichers lists store_type values that have a scraper enricher (PDP enrichment).
 // When adding an enricher for a new store, add its store_type here.
-var StoreTypesWithEnrichers = []string{"jensonusa", "worldwidecyclery", "revelbikes", "backcountry", "ridebicycles"}
+var StoreTypesWithEnrichers = []string{"jensonusa", "worldwidecyclery", "revelbikes", "backcountry", "ridebicycles", "thundermountainbikes"}
 
 // ListingForEnrichment is a listing that needs PDP enrichment
 type ListingForEnrichment struct {
