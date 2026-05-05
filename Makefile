@@ -1,4 +1,4 @@
-.PHONY: dev db-up db-down db-migrate db-migrate-docker db-seed db-up-local db-migrate-local db-migrate-remote db-seed-remote backfill-brands backfill-canonical-categories backfill-llm-specs backfill-field-library backfill-variant-options backfill-jenson-variants scrape scrape-now scrape-now-wwc scrape-now-revel scrape-now-ridebicycles enrich-now enrich-now-revel build-all install
+.PHONY: dev db-up db-down db-migrate db-migrate-docker db-seed db-up-local db-migrate-local db-migrate-remote db-seed-remote backfill-brands backfill-canonical-categories backfill-llm-specs backfill-field-library backfill-variant-options backfill-jenson-variants scrape scrape-now scrape-now-wwc scrape-now-revel scrape-now-ridebicycles scrape-now-thundermountainbikes enrich-now enrich-now-revel enrich-now-thundermountainbikes build-all install
 
 # Ensure Make can find docker (Docker Desktop CLI locations)
 export PATH := /Applications/Docker.app/Contents/Resources/bin:/usr/local/bin:/opt/homebrew/bin:$(PATH)
@@ -113,6 +113,10 @@ scrape-now-revel:
 scrape-now-ridebicycles:
 	@curl -s -X POST "http://localhost:8080/scrape-now?store=ridebicycles"
 
+# Scrape only Thunder Mountain Bikes (requires API running)
+scrape-now-thundermountainbikes:
+	@curl -s -X POST "http://localhost:8080/scrape-now?store=thundermountainbikes"
+
 # Trigger enrichment job manually (requires API and scraper running)
 # Add force=1 to re-enrich all listings: make enrich-now FORCE=1
 enrich-now:
@@ -121,6 +125,9 @@ enrich-now:
 # Enrich only Revel Bikes (requires API and scraper running). Optional: FORCE=1
 enrich-now-revel:
 	@curl -s -X POST "http://localhost:8080/enrich-now?store=revelbikes$(if $(FORCE),&force=1,)"
+
+enrich-now-thundermountainbikes:
+	@curl -s -X POST "http://localhost:8080/enrich-now?store=thundermountainbikes$(if $(FORCE),&force=1,)"
 
 # Build all apps
 build-all:
