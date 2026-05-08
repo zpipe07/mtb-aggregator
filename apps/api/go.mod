@@ -5,7 +5,7 @@ go 1.25.0
 toolchain go1.25.10
 
 require (
-	github.com/getsentry/sentry-go v0.43.0
+	github.com/getsentry/sentry-go v0.46.2
 	github.com/jackc/pgx/v5 v5.8.0
 	github.com/joho/godotenv v1.5.1
 	github.com/lib/pq v1.11.2
