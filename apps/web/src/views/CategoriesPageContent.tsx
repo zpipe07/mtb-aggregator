@@ -36,6 +36,7 @@ function MutedWrap({
 
 type Props = {
   categoryTree: CategoryTreeNode[];
+  /** Slot at page bottom (e.g. `SeoHubLinksGlobal`). */
   children?: ReactNode;
 };
 
@@ -76,8 +77,6 @@ export function CategoriesPageContent({ categoryTree, children }: Props) {
           product, variants grouped). Jump into a category to filter listings.
         </p>
       </header>
-
-      {children}
 
       <div className="space-y-14 lg:space-y-16">
         {categoryTree.map((root, rootIndex) => {
@@ -208,6 +207,12 @@ export function CategoriesPageContent({ categoryTree, children }: Props) {
           );
         })}
       </div>
+
+      {children ? (
+        <div className="mt-14 border-t border-foreground/15 pt-12">
+          {children}
+        </div>
+      ) : null}
     </div>
   );
 }

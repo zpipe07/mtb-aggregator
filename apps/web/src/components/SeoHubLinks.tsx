@@ -38,7 +38,6 @@ export async function SeoHubLinksForCategory({
 
   return (
     <section
-      className="mb-4"
       aria-labelledby={`seo-hub-links-${categorySlug}`}
     >
       <h2
@@ -77,7 +76,7 @@ export async function SeoHubLinksGlobal({
   if (eligible.length === 0) return null;
 
   return (
-    <section className="mb-8" aria-labelledby="seo-hub-links-global">
+    <section aria-labelledby="seo-hub-links-global">
       <h2
         id="seo-hub-links-global"
         className="mb-2 font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground"

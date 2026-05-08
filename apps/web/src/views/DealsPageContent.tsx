@@ -37,7 +37,7 @@ type Props = {
   dealsListPath: string;
   /** Optional GEO intro (e.g. `/deals/c/...` routes from `getCategorySeo().intro`). */
   categoryIntro?: string;
-  /** Server-rendered slots (e.g. curated SEO hub links). */
+  /** Server-rendered slots at page bottom (e.g. curated SEO hub links after grid + browse footer). */
   children?: ReactNode;
 };
 
@@ -272,8 +272,6 @@ export function DealsPageContent({
             categoryFilter={categoryFilter}
           />
 
-          {children}
-
           {categoryIntro ? (
             <p className="text-sm text-muted-foreground mb-4 max-w-3xl leading-relaxed">
               {categoryIntro}
@@ -349,6 +347,12 @@ export function DealsPageContent({
         rootCategories={categoryTree}
         categoryTree={categoryTree}
       />
+
+      {children ? (
+        <div className="mt-10 border-t border-foreground/15 pt-10">
+          {children}
+        </div>
+      ) : null}
     </div>
   );
 }
