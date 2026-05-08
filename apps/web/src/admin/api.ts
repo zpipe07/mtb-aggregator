@@ -101,6 +101,48 @@ export async function triggerEnrich(opts?: {
   if (!res.ok) throw new Error("Enrich request failed");
 }
 
+/** Trigger LLM spec determination (classify + extract) from DB only; async enrich job. Same auth as enrich-now. */
+export async function triggerLLMSpecs(opts?: {
+  store?: string;
+  canonical_category?: string;
+  llm_confidence_below?: number;
+  allow_empty_specs?: boolean;
+}): Promise<{
+  ok?: boolean;
+  async?: boolean;
+  job_id?: number;
+  total?: number;
+  message?: string;
+}> {
+  const params = new URLSearchParams();
+  if (opts?.store) params.set("store", opts.store);
+  if (opts?.canonical_category)
+    params.set("canonical_category", opts.canonical_category);
+  if (opts?.llm_confidence_below != null) {
+    params.set("llm_confidence_below", String(opts.llm_confidence_below));
+  }
+  if (opts?.allow_empty_specs) params.set("allow_empty_specs", "1");
+  const qs = params.toString();
+  const url = qs
+    ? `${getApiBase()}/llm-specs-now?${qs}`
+    : `${getApiBase()}/llm-specs-now`;
+  const res = await fetch(url, { method: "POST", headers: adminHeaders() });
+  const data = (await res.json().catch(() => ({}))) as {
+    error?: string;
+    ok?: boolean;
+    async?: boolean;
+    job_id?: number;
+    total?: number;
+    message?: string;
+  };
+  if (!res.ok) {
+    throw new Error(
+      typeof data?.error === "string" ? data.error : "LLM specs request failed",
+    );
+  }
+  return data;
+}
+
 // --- Store management (Phase C) ---
 
 export interface AdminStore {
@@ -595,6 +637,29 @@ export async function enrichListing(
     throw new Error(msg);
   }
   return data;
+}
+
+/** Re-run LLM classification + extraction for one listing (no PDP scrape). */
+export async function runListingLLMSpecs(
+  id: number,
+  opts?: { allow_empty_specs?: boolean },
+): Promise<{ ok: boolean; llm_warnings?: string[] }> {
+  const params = new URLSearchParams();
+  if (opts?.allow_empty_specs) params.set("allow_empty_specs", "1");
+  const qs = params.toString();
+  const url = qs
+    ? `${getApiBase()}/admin/listings/${id}/llm-specs?${qs}`
+    : `${getApiBase()}/admin/listings/${id}/llm-specs`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: adminHeaders(),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const msg = typeof data?.error === "string" ? data.error : "LLM specs failed";
+    throw new Error(msg);
+  }
+  return data as { ok: boolean; llm_warnings?: string[] };
 }
 
 // --- Category taxonomy (canonical mappings) ---
@@ -1411,6 +1476,8 @@ export interface AdminBulkListingsFilterBody {
   canonical_category?: string;
   q?: string;
   llm_confidence_below?: number;
+  /** When false, listings without metadata.specs match; omit to server-default for bulk LLM specs. */
+  has_non_empty_specs?: boolean;
 }
 
 export type BulkListingsResult =
@@ -1463,6 +1530,25 @@ export async function postAdminListingsBulkEnrich(
   if (!res.ok) {
     const msg =
       typeof data?.error === "string" ? data.error : "Bulk enrich failed";
+    throw new Error(msg);
+  }
+  return data as BulkListingsResult;
+}
+
+export async function postAdminListingsBulkLLMSpecs(
+  body: AdminBulkListingsFilterBody,
+): Promise<BulkListingsResult> {
+  const res = await fetch(`${getApiBase()}/admin/listings/bulk-llm-specs`, {
+    method: "POST",
+    headers: adminHeaders(),
+    body: JSON.stringify(body),
+  });
+  const data = (await res.json().catch(() => ({}))) as BulkListingsResult & {
+    error?: string;
+  };
+  if (!res.ok) {
+    const msg =
+      typeof data?.error === "string" ? data.error : "Bulk LLM specs failed";
     throw new Error(msg);
   }
   return data as BulkListingsResult;

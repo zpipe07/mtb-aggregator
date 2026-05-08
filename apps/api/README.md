@@ -20,6 +20,7 @@ Go HTTP server that orchestrates scraping, enrichment, and serves the REST API. 
 | `internal/taxonomy/` | Category mapping, in-memory cache |
 | `internal/metadata/` | Spec extraction from enriched category paths |
 | `internal/llm/` | LLM-driven spec extraction, classifier |
+| `internal/llmlisting/` | Shared LLM classify + spec extraction from `store_listings` (scheduler enrichment and admin/spec-only paths) |
 
 ## Endpoints
 
@@ -37,7 +38,8 @@ Go HTTP server that orchestrates scraping, enrichment, and serves the REST API. 
 ### Trigger (cron or manual)
 
 - `POST /scrape-now` — Trigger scrape job; optional `?store=<store_type>`
-- `POST /enrich-now` — Trigger enrichment job; optional `?force=1`, `?store=`. Store types that run PDP enrichment are listed in `StoreTypesWithEnrichers` in `internal/db/db.go` (includes `jensonusa`, `worldwidecyclery`, `revelbikes`, `backcountry`, `ridebicycles`, `thundermountainbikes`).
+- `POST /enrich-now` — Trigger PDP enrichment job; optional `?force=1`, `?store=` (store_type), optional `canonical_category=` and `llm_confidence_below=` (same filter semantics as the scheduler enrichment loop). Store types that run PDP enrichment are listed in `StoreTypesWithEnrichers` in `internal/db/db.go` (includes `jensonusa`, `worldwidecyclery`, `revelbikes`, `backcountry`, `ridebicycles`, `thundermountainbikes`).
+- `POST /llm-specs-now` — Start an **async** `enrich_jobs` row (`job_type=llm_specs`) that runs LLM category classification (if configured) plus prompt-profile spec extraction **from data already on `store_listings`** — no PDP fetch. Uses the same cron/auth as scrape/enrich triggers. Query: optional `store` (store_type), `canonical_category=` (joined path string matching the admin listings filter), `llm_confidence_below=`, and `allow_empty_specs=1` to include listings missing `metadata.specs` (default filter requires non-empty specs).
 
 **Auth:** Valid `CRON_SECRET` via `X-Cron-Secret` (or `?secret=` — avoid in production logs), or `Authorization: Bearer <ADMIN_PASSWORD>`. In production (`APP_ENV=production` or `RENDER=true`), if `CRON_SECRET` is unset, unauthenticated triggers are rejected unless `ALLOW_OPEN_CRON=1` (not recommended). Local dev allows unauthenticated triggers when `CRON_SECRET` is unset.
 
@@ -46,7 +48,7 @@ Go HTTP server that orchestrates scraping, enrichment, and serves the REST API. 
 - `POST /admin/auth` — Validate password (`{"password":"..."}`); use same value as `Authorization: Bearer` on other `/admin/*` routes
 - `GET/POST/PUT/PATCH/DELETE /admin/*` — Dashboard, stores, taxonomy, profiles, etc.
 
-**Admin Data Browser (`GET /admin/listings`):** Supports `category_slug` (matches `categories.slug`; filters `store_listings.category_id` by that node’s subtree — **same semantics as** `GET /deals?category_slug=`). When `category_slug` is present, `canonical_category` is ignored (slug wins). Also supports `canonical_category` as an exact path match on the `canonical_category` text array (useful for spotting drift vs `category_id`). Bulk classify/enrich bodies (`POST /admin/listings/bulk-classify`, `bulk-enrich`) accept the same filter fields including `category_slug`.
+**Admin Data Browser (`GET /admin/listings`):** Supports `category_slug` (matches `categories.slug`; filters `store_listings.category_id` by that node’s subtree — **same semantics as** `GET /deals?category_slug=`). When `category_slug` is present, `canonical_category` is ignored (slug wins). Also supports `canonical_category` as an exact path match on the `canonical_category` text array (useful for spotting drift vs `category_id`). Optional filter `store_type` is available on filtered ID listing paths (bulk bodies / `GET` params when added). Bulk bodies (`POST /admin/listings/bulk-classify`, `bulk-enrich`, **`bulk-llm-specs`**) accept the same filter fields including `category_slug`, plus optional **`store_type`** and **`has_non_empty_specs`** (for `bulk-llm-specs`, omit or `true` to require scraped specs; `false` includes rows with empty specs). **`POST /admin/listings/:id/llm-specs`** re-runs LLM classify + extract for one listing; query **`allow_empty_specs=1`** bypasses the non-empty scraped-specs guard.
 
 **LLM extraction field library** (migrations `019`, `020`):
 
@@ -67,7 +69,7 @@ Go HTTP server that orchestrates scraping, enrichment, and serves the REST API. 
 - `ADMIN_AUTH_MAX_ATTEMPTS_PER_WINDOW` — Failed `POST /admin/auth` attempts per IP before HTTP 429 (default `5`)
 - `ADMIN_AUTH_WINDOW_SECONDS` — Rolling window for those attempts (default `900` = 15 minutes)
 - `ADMIN_AUTH_RATE_LIMIT` — Set `off` / `false` / `0` to disable the limiter (local dev only)
-- `CRON_SECRET` — Shared secret for `POST /scrape-now` and `POST /enrich-now` (`X-Cron-Secret`); **set in production** (see Trigger section)
+- `CRON_SECRET` — Shared secret for `POST /scrape-now`, `POST /enrich-now`, and **`POST /llm-specs-now`** (`X-Cron-Secret`); **set in production** (see Trigger section)
 - `APP_ENV` — Set `production` (or `prod`) for production security defaults (with `RENDER`, used to require cron auth when `CRON_SECRET` is unset)
 - `ALLOW_OPEN_CRON` — Set to `1` only if you must allow unauthenticated cron triggers in production (unsafe; prefer `CRON_SECRET`)
 - `SCRAPE_CRON_SPEC` / `ENRICH_CRON_SPEC` — Cron schedules; set `disabled` for external cron

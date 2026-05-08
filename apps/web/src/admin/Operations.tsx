@@ -16,6 +16,7 @@ import {
   useCancelScrapeJob,
   useCancelEnrichJob,
   useRunCategoryClassifier,
+  useTriggerLLMSpecs,
 } from "./hooks/mutations";
 import type { ScrapeJob, EnrichJob } from "./api";
 
@@ -65,10 +66,13 @@ export function Operations() {
   const ec = (s: string) => `${enrichControlsId}-${s}`;
   const [scrapeStoreType, setScrapeStoreType] = useState<string>("");
   const [enrichForce, setEnrichForce] = useState(false);
-  const [enrichMode, setEnrichMode] = useState<"enrich" | "classify">("enrich");
+  const [enrichMode, setEnrichMode] = useState<
+    "enrich" | "classify" | "llm_specs"
+  >("enrich");
   const [enrichStore, setEnrichStore] = useState("");
   const [enrichCanonical, setEnrichCanonical] = useState("");
   const [enrichLlmBelow, setEnrichLlmBelow] = useState("");
+  const [llmSpecsAllowEmpty, setLLmSpecsAllowEmpty] = useState(false);
   const [jobOffset, setJobOffset] = useState(0);
   const [enrichJobOffset, setEnrichJobOffset] = useState(0);
   const [selectedJobId, setSelectedJobId] = useState<number | null>(null);
@@ -94,6 +98,7 @@ export function Operations() {
   const scrapeMutation = useTriggerScrape();
   const enrichMutation = useTriggerEnrich();
   const classifyRunMutation = useRunCategoryClassifier();
+  const llmSpecsMutation = useTriggerLLMSpecs();
   const cancelScrapeMutation = useCancelScrapeJob();
   const cancelEnrichMutation = useCancelEnrichJob();
 
@@ -130,6 +135,7 @@ export function Operations() {
 
       {(scrapeMutation.isError ||
         enrichMutation.isError ||
+        llmSpecsMutation.isError ||
         classifyRunMutation.isError ||
         cancelScrapeMutation.isError ||
         cancelEnrichMutation.isError ||
@@ -137,6 +143,7 @@ export function Operations() {
         <div className="mb-4 rounded border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
           {scrapeMutation.error?.message ??
             enrichMutation.error?.message ??
+            llmSpecsMutation.error?.message ??
             classifyRunMutation.error?.message ??
             cancelScrapeMutation.error?.message ??
             cancelEnrichMutation.error?.message ??
@@ -146,6 +153,7 @@ export function Operations() {
             onClick={() => {
               scrapeMutation.reset();
               enrichMutation.reset();
+              llmSpecsMutation.reset();
               classifyRunMutation.reset();
               cancelScrapeMutation.reset();
               cancelEnrichMutation.reset();
@@ -193,7 +201,7 @@ export function Operations() {
         </div>
 
         <div className="rounded-lg border border-stone-200 bg-white p-4 shadow-sm">
-          <h3 className="text-sm font-medium text-stone-800 mb-3">Trigger enrichment / re-classify</h3>
+          <h3 className="text-sm font-medium text-stone-800 mb-3">Trigger enrichment / re-classify / LLM specs</h3>
           <div className="flex flex-col gap-2 text-sm text-stone-700">
             <div className="flex flex-wrap gap-4">
               <label className="inline-flex items-center gap-1.5">
@@ -213,6 +221,15 @@ export function Operations() {
                   onChange={() => setEnrichMode("classify")}
                 />
                 Re-classify only (LLM)
+              </label>
+              <label className="inline-flex items-center gap-1.5">
+                <input
+                  type="radio"
+                  name="enrichMode"
+                  checked={enrichMode === "llm_specs"}
+                  onChange={() => setEnrichMode("llm_specs")}
+                />
+                LLM specs only (no PDP)
               </label>
             </div>
             <div className="flex flex-wrap items-end gap-2">
@@ -269,6 +286,17 @@ export function Operations() {
                 />
               </div>
             </div>
+            {enrichMode === "llm_specs" && (
+              <label className="inline-flex items-center gap-1.5 text-xs text-stone-600 max-w-xl">
+                <input
+                  type="checkbox"
+                  checked={llmSpecsAllowEmpty}
+                  onChange={(e) => setLLmSpecsAllowEmpty(e.target.checked)}
+                  className="rounded border-stone-300"
+                />
+                Include listings without scraped specs (queries allow_empty_specs=1 semantics)
+              </label>
+            )}
             {enrichMode === "enrich" && (
               <label className="inline-flex items-center gap-1.5">
                 <input
@@ -292,6 +320,7 @@ export function Operations() {
                   const n = parseFloat(enrichLlmBelow);
                   if (!Number.isNaN(n) && n >= 0 && n <= 1) below = n;
                 }
+                const onDone = () => setEnrichJobOffset(0);
                 if (enrichMode === "enrich") {
                   enrichMutation.mutate(
                     {
@@ -300,7 +329,17 @@ export function Operations() {
                       canonical_category: enrichCanonical || undefined,
                       llm_confidence_below: below,
                     },
-                    { onSuccess: () => setEnrichJobOffset(0) }
+                    { onSuccess: onDone },
+                  );
+                } else if (enrichMode === "llm_specs") {
+                  llmSpecsMutation.mutate(
+                    {
+                      store: enrichStore || undefined,
+                      canonical_category: enrichCanonical || undefined,
+                      llm_confidence_below: below,
+                      allow_empty_specs: llmSpecsAllowEmpty || undefined,
+                    },
+                    { onSuccess: onDone },
                   );
                 } else {
                   classifyRunMutation.mutate(
@@ -309,14 +348,22 @@ export function Operations() {
                       canonical_category: pathArr,
                       llm_confidence_below: below,
                     },
-                    { onSuccess: () => setEnrichJobOffset(0) }
+                    { onSuccess: onDone },
                   );
                 }
               }}
-              disabled={enrichMutation.isPending || classifyRunMutation.isPending}
+              disabled={
+                enrichMutation.isPending ||
+                classifyRunMutation.isPending ||
+                llmSpecsMutation.isPending
+              }
               className="self-start rounded bg-stone-800 px-3 py-2 text-sm font-medium text-white hover:bg-stone-700 disabled:opacity-50"
             >
-              {enrichMutation.isPending || classifyRunMutation.isPending ? "Running…" : "Run"}
+              {enrichMutation.isPending ||
+              classifyRunMutation.isPending ||
+              llmSpecsMutation.isPending
+                ? "Running…"
+                : "Run"}
             </button>
             {classifyRunMutation.isSuccess &&
               classifyRunMutation.data &&
@@ -325,6 +372,14 @@ export function Operations() {
                 <p className="text-xs text-green-700 mt-2 max-w-md">
                   Re-classify job #{classifyRunMutation.data.job_id} started in the background. Status
                   appears in Enrichment job history below.
+                </p>
+              )}
+            {llmSpecsMutation.isSuccess &&
+              llmSpecsMutation.data?.async &&
+              typeof llmSpecsMutation.data.job_id === "number" && (
+                <p className="text-xs text-green-700 mt-2 max-w-md">
+                  LLM specs job #{llmSpecsMutation.data.job_id} started in the background. Status appears
+                  in Enrichment job history below.
                 </p>
               )}
           </div>
