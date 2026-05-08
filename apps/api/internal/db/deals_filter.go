@@ -133,6 +133,11 @@ func (db *DB) dealsFilterSQL(ctx context.Context, params GetDealsParams) (string
 		args = append(args, *params.MinPrice)
 		argNum++
 	}
+	if params.MaxPrice != nil && *params.MaxPrice > 0 {
+		sb.WriteString(fmt.Sprintf(" AND l.current_price <= $%d", argNum))
+		args = append(args, *params.MaxPrice)
+		argNum++
+	}
 	if params.Search != "" {
 		sb.WriteString(fmt.Sprintf(" AND l.search_vector @@ plainto_tsquery('english', $%d)", argNum))
 		args = append(args, params.Search)

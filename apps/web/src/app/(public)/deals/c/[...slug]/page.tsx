@@ -22,6 +22,7 @@ import { categoryMetadataForSlug, getCategorySeo } from "@/lib/categorySeo";
 import { buildBreadcrumbJsonLd, buildItemListJsonLd } from "@/lib/jsonLd";
 import { absoluteUrl } from "@/lib/siteUrl";
 import { DealsPageContent } from "@/views/DealsPageContent";
+import { SeoHubLinksForCategory } from "@/components/SeoHubLinks";
 import CategoryDealsLoading from "./loading";
 
 export const revalidate = 60;
@@ -203,7 +204,9 @@ export default async function CategoryDealsPage({ params, searchParams }: Props)
           categoryTree={categoryTree}
           dealsListPath={dealsListPath}
           categoryIntro={seo.intro}
-        />
+        >
+          <SeoHubLinksForCategory categorySlug={categorySlug} />
+        </DealsPageContent>
       </Suspense>
     </>
   );

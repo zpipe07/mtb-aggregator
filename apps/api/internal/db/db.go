@@ -749,6 +749,7 @@ type GetDealsParams struct {
 	ExcludeCategorySlug   string // exclude listings in this category subtree (e.g. "accessories")
 	MinDiscount           *float64
 	MinPrice              *float64 // minimum current_price (inclusive)
+	MaxPrice              *float64 // maximum current_price (inclusive)
 	Search                string // full-text search query (q)
 	Sort                  string // newest, discount, value, price_asc, price_desc, relevance
 	Limit             int

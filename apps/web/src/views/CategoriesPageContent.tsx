@@ -36,9 +36,10 @@ function MutedWrap({
 
 type Props = {
   categoryTree: CategoryTreeNode[];
+  children?: ReactNode;
 };
 
-export function CategoriesPageContent({ categoryTree }: Props) {
+export function CategoriesPageContent({ categoryTree, children }: Props) {
   if (categoryTree.length === 0) {
     return (
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 lg:py-12">
@@ -75,6 +76,8 @@ export function CategoriesPageContent({ categoryTree }: Props) {
           product, variants grouped). Jump into a category to filter listings.
         </p>
       </header>
+
+      {children}
 
       <div className="space-y-14 lg:space-y-16">
         {categoryTree.map((root, rootIndex) => {

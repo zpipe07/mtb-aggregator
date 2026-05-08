@@ -16,6 +16,7 @@ import posthog from "posthog-js";
 import type { Deal } from "@/api";
 import type { PriceHistoryResponse } from "@/api";
 import { isCategoryBrowseRedundantWithBack } from "@/lib/dealsBackHref";
+import { dealsListSurfaceFromListHref } from "@/lib/dealsListSurface";
 import { cn, focusRing } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
@@ -99,6 +100,7 @@ export function DealDetailContent({
   categoryBrowseLabel,
 }: Props) {
   const viewUrl = deal.affiliate_url || deal.product_url;
+  const listSurface = dealsListSurfaceFromListHref(backToDealsHref);
   const discountPct =
     deal.discount_pct != null
       ? Math.round(deal.discount_pct)
@@ -132,6 +134,7 @@ export function DealDetailContent({
       current_price: deal.current_price,
       discount_pct: discountPct,
       price_dropped: priceHistory?.price_dropped ?? false,
+      list_surface: listSurface,
     });
   }, []);
 
@@ -295,13 +298,21 @@ export function DealDetailContent({
                     href={viewUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    onClick={() =>
+                    onClick={() => {
                       track("view_at_store", {
                         deal_id: deal.id,
                         store: deal.store_name,
                         brand: deal.brand ?? "",
-                      })
-                    }
+                        list_surface: listSurface,
+                      });
+                      posthog.capture("deal_outbound_click", {
+                        deal_id: deal.id,
+                        store: deal.store_name,
+                        brand: deal.brand ?? "",
+                        list_surface: listSurface,
+                        cta: "snag_retailer",
+                      });
+                    }}
                   >
                     <span className="relative z-[1]">Snag the Deal</span>
                   </a>

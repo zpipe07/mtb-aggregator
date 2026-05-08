@@ -6,6 +6,7 @@ import { getCategorySeo } from "@/lib/categorySeo";
 import { buildDealsCategoryPath } from "@/lib/dealsCategoryPath";
 import { absoluteUrl } from "@/lib/siteUrl";
 import { CategoriesPageContent } from "@/views/CategoriesPageContent";
+import { SeoHubLinksGlobal } from "@/components/SeoHubLinks";
 
 export const revalidate = 60;
 
@@ -49,7 +50,9 @@ export default async function CategoriesPage() {
   return (
     <>
       <JsonLd data={collectionJsonLd} />
-      <CategoriesPageContent categoryTree={categoryTree} />
+      <CategoriesPageContent categoryTree={categoryTree}>
+        <SeoHubLinksGlobal />
+      </CategoriesPageContent>
     </>
   );
 }

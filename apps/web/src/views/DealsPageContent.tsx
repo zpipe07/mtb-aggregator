@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import posthog from "posthog-js";
 import { DEFAULT_PAGE_SIZE } from "../api";
@@ -37,6 +37,8 @@ type Props = {
   dealsListPath: string;
   /** Optional GEO intro (e.g. `/deals/c/...` routes from `getCategorySeo().intro`). */
   categoryIntro?: string;
+  /** Server-rendered slots (e.g. curated SEO hub links). */
+  children?: ReactNode;
 };
 
 export function DealsPageContent({
@@ -47,6 +49,7 @@ export function DealsPageContent({
   categoryTree,
   dealsListPath,
   categoryIntro,
+  children,
 }: Props) {
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
 
@@ -202,6 +205,7 @@ export function DealsPageContent({
   const handleClearAllFilters = () => {
     posthog.capture("filters_cleared", {
       had_category_path: pathname.startsWith("/deals/c/"),
+      had_hub_path: pathname.startsWith("/deals/hub/"),
     });
     clearAllFilters();
   };
@@ -267,6 +271,8 @@ export function DealsPageContent({
             categoryTree={categoryTree}
             categoryFilter={categoryFilter}
           />
+
+          {children}
 
           {categoryIntro ? (
             <p className="text-sm text-muted-foreground mb-4 max-w-3xl leading-relaxed">
