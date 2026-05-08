@@ -3,7 +3,6 @@ package api
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -12,9 +11,9 @@ import (
 
 	"github.com/mtb-aggregator/api/internal/db"
 	"github.com/mtb-aggregator/api/internal/llm"
+	"github.com/mtb-aggregator/api/internal/llmlisting"
 	"github.com/mtb-aggregator/api/internal/normalization"
 	"github.com/mtb-aggregator/api/internal/scraper"
-	"github.com/mtb-aggregator/api/internal/sentryutil"
 	"github.com/mtb-aggregator/api/internal/taxonomy"
 )
 
@@ -1049,155 +1048,73 @@ func (h *Handlers) PostAdminEnrichListing(w http.ResponseWriter, r *http.Request
 	json.NewEncoder(w).Encode(resp)
 }
 
+// PostAdminListingLLMSpecs runs LLM category classification (when enabled) and prompt-profile extraction
+// from data already stored on the listing (no PDP scrape). Query allow_empty_specs=1 skips requiring non-empty metadata.specs.
+func (h *Handlers) PostAdminListingLLMSpecs(w http.ResponseWriter, r *http.Request, id int) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if h.LLM == nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusServiceUnavailable)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "OpenAI client not configured"})
+		return
+	}
+	ctx := r.Context()
+	listing, err := h.DB.GetListingForLLM(ctx, id)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if listing == nil {
+		http.Error(w, "not found", http.StatusNotFound)
+		return
+	}
+	if r.URL.Query().Get("allow_empty_specs") != "1" && !llmlisting.MetadataHasNonEmptySpecs(listing.Metadata) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]string{
+			"error": "listing has empty metadata.specs; enrich PDP first or pass allow_empty_specs=1",
+		})
+		return
+	}
+	var llmWarnings []string
+	if w := h.runLLMCategoryClassification(ctx, id); w != "" {
+		llmWarnings = append(llmWarnings, w)
+	}
+	if w := h.runLLMExtractionIfApplicable(ctx, id); w != "" {
+		llmWarnings = append(llmWarnings, w)
+	}
+	resp := map[string]interface{}{"ok": true}
+	if len(llmWarnings) > 0 {
+		resp["llm_warnings"] = llmWarnings
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(resp)
+}
+
 // runLLMCategoryClassification runs LLM category classification to refine canonical_category.
 // Returns a non-empty warning string on LLM failure (logged and reported to Sentry).
 func (h *Handlers) runLLMCategoryClassification(ctx context.Context, listingID int) string {
-	if h.LLM == nil {
+	err := llmlisting.ClassificationStep(ctx, h.DB, h.LLM, listingID)
+	if err == nil {
 		return ""
 	}
-	cfg, err := h.DB.GetCategoryClassifier(ctx)
-	if err != nil || cfg == nil || !cfg.Enabled {
-		return ""
-	}
-	pathRows, err := h.DB.GetAllCategoryPathsWithDescriptions(ctx)
-	if err != nil || len(pathRows) == 0 {
-		return ""
-	}
-	validPaths, categoryDesc := db.ClassifierPathsFromTreeRows(pathRows, llm.CategoryPathSeparator)
-	listing, err := h.DB.GetListingForCategoryClassification(ctx, listingID)
-	if err != nil || listing == nil {
-		return ""
-	}
-	var meta struct {
-		Description string                 `json:"description"`
-		Specs       map[string]interface{} `json:"specs"`
-	}
-	_ = json.Unmarshal(listing.Metadata, &meta)
-	specs := make(map[string]string)
-	if meta.Specs != nil {
-		for k, v := range meta.Specs {
-			if v != nil {
-				specs[k] = fmt.Sprint(v)
-			}
-		}
-	}
-	input := llm.ClassifyInput{
-		ProductName:  listing.ProductName,
-		Description:  meta.Description,
-		Specs:        specs,
-		CategoryPath: listing.CategoryPath,
-	}
-	config := llm.ClassifyConfig{
-		SystemPrompt:         cfg.SystemPrompt,
-		ValidCategories:      validPaths,
-		CategoryDescriptions: categoryDesc,
-		ConfidenceThreshold:  cfg.ConfidenceThreshold,
-	}
-	result, err := h.LLM.Classify(ctx, config, input)
-	if err != nil {
-		log.Printf("[admin] listing %d: LLM classify failed: %v", listingID, err)
-		tags := map[string]string{
-			"component":  "api",
-			"handler":    "admin_enrich",
-			"phase":      "classify",
-			"listing_id": strconv.Itoa(listingID),
-		}
-		if errors.Is(err, llm.ErrQuotaExhausted) {
-			tags["llm_error"] = "quota_exhausted"
-		} else {
-			tags["llm_error"] = "other"
-		}
-		sentryutil.CaptureError(err, tags)
-		return fmt.Sprintf("LLM classify failed: %v", err)
-	}
-	if result == nil {
-		return ""
-	}
-	llmCategory := map[string]interface{}{
-		"canonical_category": result.CanonicalCategory,
-		"confidence":         result.Confidence,
-		"reasoning":          result.Reasoning,
-	}
-	if result.Confidence >= config.ConfidenceThreshold {
-		if err := h.DB.UpdateListingCanonicalCategory(ctx, listingID, result.CanonicalCategory, llmCategory); err != nil {
-			log.Printf("[admin] listing %d: failed to update category: %v", listingID, err)
-		} else {
-			log.Printf("[admin] listing %d: LLM classified as %v (conf=%.2f)", listingID, result.CanonicalCategory, result.Confidence)
-		}
-	} else {
-		_ = h.DB.UpdateListingLLMCategoryMetadata(ctx, listingID, llmCategory)
-	}
-	return ""
+	llmlisting.HandleLLMStepError(err, nil, nil, listingID, "classify", "api", "admin_enrich")
+	return fmt.Sprintf("LLM classify failed: %v", err)
 }
 
 // runLLMExtractionIfApplicable runs LLM spec extraction for a listing if a matching profile exists.
 // Non-fatal: logs errors but does not fail the enrichment. Used by PostAdminEnrichListing.
 // Returns a non-empty warning string on LLM failure.
 func (h *Handlers) runLLMExtractionIfApplicable(ctx context.Context, listingID int) string {
-	if h.LLM == nil {
+	err := llmlisting.SpecExtractionStep(ctx, h.DB, h.LLM, listingID)
+	if err == nil {
 		return ""
 	}
-	listing, err := h.DB.GetListingForLLM(ctx, listingID)
-	if err != nil || listing == nil {
-		return ""
-	}
-	if len(listing.CanonicalCategory) == 0 {
-		return ""
-	}
-	profile, err := h.DB.GetLLMPromptProfileForCategory(ctx, listing.CanonicalCategory)
-	if err != nil || profile == nil {
-		return ""
-	}
-	var meta struct {
-		Description string                 `json:"description"`
-		Specs       map[string]interface{} `json:"specs"`
-	}
-	_ = json.Unmarshal(listing.Metadata, &meta)
-	specs := make(map[string]string)
-	if meta.Specs != nil {
-		for k, v := range meta.Specs {
-			if v != nil {
-				specs[k] = fmt.Sprint(v)
-			}
-		}
-	}
-	input := llm.ExtractInput{
-		ProductName:  listing.ProductName,
-		Description:  meta.Description,
-		Specs:        specs,
-		CategoryPath: listing.CanonicalCategory,
-	}
-	var llmProfile llm.Profile
-	if err := json.Unmarshal(profile.ExtractionSchema, &llmProfile.ExtractionSchema); err != nil {
-		log.Printf("[admin] listing %d: invalid extraction_schema: %v", listingID, err)
-		return ""
-	}
-	llmProfile.SystemPrompt = profile.SystemPrompt
-	result, err := h.LLM.Extract(ctx, llmProfile, input)
-	if err != nil {
-		log.Printf("[admin] listing %d: LLM extract failed: %v", listingID, err)
-		tags := map[string]string{
-			"component":  "api",
-			"handler":    "admin_enrich",
-			"phase":      "extract",
-			"listing_id": strconv.Itoa(listingID),
-		}
-		if errors.Is(err, llm.ErrQuotaExhausted) {
-			tags["llm_error"] = "quota_exhausted"
-		} else {
-			tags["llm_error"] = "other"
-		}
-		sentryutil.CaptureError(err, tags)
-		return fmt.Sprintf("LLM extract failed: %v", err)
-	}
-	if result == nil {
-		return ""
-	}
-	if err := h.DB.UpdateListingLLMSpecs(ctx, listingID, result); err != nil {
-		log.Printf("[admin] listing %d: failed to save LLM specs: %v", listingID, err)
-		return ""
-	}
-	return ""
+	llmlisting.HandleLLMStepError(err, nil, nil, listingID, "extract", "api", "admin_enrich")
+	return fmt.Sprintf("LLM extract failed: %v", err)
 }
 
 // reloadTaxonomyFromDB loads category_mappings from DB into the taxonomy in-memory cache.

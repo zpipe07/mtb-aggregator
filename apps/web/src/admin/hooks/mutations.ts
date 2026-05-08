@@ -2,12 +2,14 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   triggerScrape,
   triggerEnrich,
+  triggerLLMSpecs,
   cancelScrapeJob,
   cancelEnrichJob,
   createStore,
   updateStore,
   deleteStore,
   enrichListing,
+  runListingLLMSpecs,
   setListingHidden,
   setListingLLMOverrides,
   runLLMExtractionForCategory,
@@ -42,6 +44,7 @@ import {
   runCategoryClassifier,
   postAdminListingsBulkClassify,
   postAdminListingsBulkEnrich,
+  postAdminListingsBulkLLMSpecs,
   createAdminCategory,
   updateAdminCategory,
   deleteAdminCategory,
@@ -88,6 +91,22 @@ export function useTriggerEnrich() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: adminEnrichJobKeys.all });
       queryClient.invalidateQueries({ queryKey: adminDashboardKeys.all });
+      queryClient.invalidateQueries({ queryKey: adminListingKeys.all });
+    },
+  });
+}
+
+export function useTriggerLLMSpecs() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (opts?: {
+      store?: string;
+      canonical_category?: string;
+      llm_confidence_below?: number;
+      allow_empty_specs?: boolean;
+    }) => triggerLLMSpecs(opts),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminEnrichJobKeys.all });
       queryClient.invalidateQueries({ queryKey: adminListingKeys.all });
     },
   });
@@ -154,6 +173,24 @@ export function useEnrichListing() {
     onSuccess: (_, listingId) => {
       queryClient.invalidateQueries({ queryKey: adminListingKeys.all });
       queryClient.invalidateQueries({ queryKey: adminListingKeys.detail(listingId) });
+    },
+  });
+}
+
+export function useRunListingLLMSpecs() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      allow_empty_specs,
+    }: {
+      id: number;
+      allow_empty_specs?: boolean;
+    }) => runListingLLMSpecs(id, { allow_empty_specs }),
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: adminListingKeys.all });
+      queryClient.invalidateQueries({ queryKey: adminListingKeys.detail(id) });
+      queryClient.invalidateQueries({ queryKey: dealKeys.all });
     },
   });
 }
@@ -577,6 +614,17 @@ export function usePostBulkListingsEnrich() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: postAdminListingsBulkEnrich,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminListingKeys.all });
+      queryClient.invalidateQueries({ queryKey: adminEnrichJobKeys.all });
+    },
+  });
+}
+
+export function usePostBulkListingsLLMSpecs() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: postAdminListingsBulkLLMSpecs,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: adminListingKeys.all });
       queryClient.invalidateQueries({ queryKey: adminEnrichJobKeys.all });

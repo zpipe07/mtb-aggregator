@@ -641,9 +641,94 @@ func (h *Handlers) PostAdminLLMRun(w http.ResponseWriter, r *http.Request) {
 	}
 	processed := 0
 	for _, id := range ids {
-		h.runLLMExtractionIfApplicable(r.Context(), id)
+		ctx := r.Context()
+		if w := h.runLLMCategoryClassification(ctx, id); w != "" {
+			log.Printf("[admin] /admin/llm/run listing %d: %s", id, w)
+		}
+		if w := h.runLLMExtractionIfApplicable(ctx, id); w != "" {
+			log.Printf("[admin] /admin/llm/run listing %d: %s", id, w)
+		}
 		processed++
 	}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{"ok": true, "processed": processed})
+}
+
+// PostLLMSpecsNow starts an async job (job_type llm_specs) using query filters; no PDP fetch. Mirrors enrich-now scope knobs.
+func (h *Handlers) PostLLMSpecsNow(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if h.LLM == nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusServiceUnavailable)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "OpenAI client not configured"})
+		return
+	}
+	ctx := r.Context()
+	store := strings.TrimSpace(r.URL.Query().Get("store"))
+	canonJoined := strings.TrimSpace(r.URL.Query().Get("canonical_category"))
+	var confBelow *float64
+	if s := strings.TrimSpace(r.URL.Query().Get("llm_confidence_below")); s != "" {
+		if v, err := strconv.ParseFloat(s, 64); err == nil && v >= 0 && v <= 1 {
+			confBelow = &v
+		}
+	}
+	allowEmpty := r.URL.Query().Get("allow_empty_specs") == "1"
+	body := bulkListingsFilterBody{StoreType: store, CanonicalCategory: canonJoined, LLMConfidenceBelow: confBelow}
+	if !allowEmpty {
+		t := true
+		body.HasNonEmptySpecs = &t
+	}
+	params := body.toGetAdminListingsParams()
+	maxN := adminBulkMaxListings()
+	ids, total, err := h.DB.ListAdminListingIDsByFilter(ctx, params, false, false, maxN)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if total > maxN {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"error": fmt.Sprintf("filter matches %d listings (max per run is %d); narrow filters", total, maxN),
+		})
+		return
+	}
+	if len(ids) == 0 {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"ok": true, "async": false, "processed": 0, "total": 0, "job_id": 0,
+		})
+		return
+	}
+	storeTypeForJob, err := enrichJobStoreTypeFromBulkBody(ctx, h.DB, body)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	jobID, jerr := h.DB.CreateEnrichJob(ctx, storeTypeForJob, "manual", false, "llm_specs")
+	if jerr != nil {
+		log.Printf("[llm-specs-now] create job: %v", jerr)
+		sentryutil.CaptureError(jerr, map[string]string{"component": "api", "handler": "llm_specs_now", "phase": "create_job"})
+		http.Error(w, jerr.Error(), http.StatusInternalServerError)
+		return
+	}
+	if jobID == 0 {
+		http.Error(w, "could not create job", http.StatusInternalServerError)
+		return
+	}
+	idsCopy := append([]int(nil), ids...)
+	hnd := h
+	go runBulkLLMSpecsInBackground(hnd, jobID, idsCopy, total)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusAccepted)
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
+		"ok":       true,
+		"async":    true,
+		"job_id":   jobID,
+		"total":    total,
+		"message":  "Job started.",
+	})
 }
