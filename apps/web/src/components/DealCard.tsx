@@ -1,11 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import posthog from "posthog-js";
 import { track } from "@vercel/analytics";
 import type { Deal } from "../api";
 import { Button } from "./ui/button";
 import { cn, focusRingWithin } from "@/lib/utils";
+import { dealsListSurfaceFromPathname } from "@/lib/dealsListSurface";
 
 function formatMoney(n: number) {
   return n.toFixed(2);
@@ -42,6 +44,8 @@ function skuForTab(deal: Deal) {
 }
 
 export function DealCard({ deal, href }: DealCardProps) {
+  const pathname = usePathname();
+  const listSurface = dealsListSurfaceFromPathname(pathname);
   const viewUrl = deal.affiliate_url || deal.product_url;
   const discountPct =
     deal.discount_pct != null
@@ -148,6 +152,14 @@ export function DealCard({ deal, href }: DealCardProps) {
                     deal_id: deal.id,
                     store: deal.store_name,
                     brand: deal.brand || "",
+                    list_surface: listSurface,
+                  });
+                  posthog.capture("deal_outbound_click", {
+                    deal_id: deal.id,
+                    store: deal.store_name,
+                    brand: deal.brand ?? "",
+                    list_surface: listSurface,
+                    cta: "snag_retailer",
                   });
                 }}
               >
@@ -172,12 +184,14 @@ export function DealCard({ deal, href }: DealCardProps) {
                     store: deal.store_name,
                     brand: deal.brand || "",
                     cta: "view_details",
+                    list_surface: listSurface,
                   });
                   posthog.capture("deal_card_click", {
                     cta: "view_details",
                     deal_id: deal.id,
                     store: deal.store_name,
                     brand: deal.brand ?? "",
+                    list_surface: listSurface,
                   });
                 }}
               >
@@ -198,6 +212,14 @@ export function DealCard({ deal, href }: DealCardProps) {
                 deal_id: deal.id,
                 store: deal.store_name,
                 brand: deal.brand || "",
+                list_surface: listSurface,
+              });
+              posthog.capture("deal_outbound_click", {
+                deal_id: deal.id,
+                store: deal.store_name,
+                brand: deal.brand ?? "",
+                list_surface: listSurface,
+                cta: "snag_retailer",
               });
             }}
           >
@@ -282,6 +304,7 @@ export function DealCard({ deal, href }: DealCardProps) {
                   deal_id: deal.id,
                   store: deal.store_name,
                   brand: deal.brand || "",
+                  list_surface: listSurface,
                 })
               }
             >

@@ -21,6 +21,8 @@ type GetFacetsParams struct {
 	CanonicalCategory string // legacy: "Bikes > Mountain"
 	CategorySlug      string // preferred: slug for subtree filter
 	MinDiscount       *float64
+	MinPrice          *float64 // minimum current_price (inclusive)
+	MaxPrice          *float64 // maximum current_price (inclusive)
 	Search            string
 	SpecFilters       map[string][]string // key -> values; OR within key
 	VariantFilters    map[string][]string // variant option key -> values; OR within key
@@ -516,6 +518,16 @@ func buildFacetsWhereClause(params GetFacetsParams, specFilters map[string][]str
 	if params.MinDiscount != nil && *params.MinDiscount > 0 {
 		sb.WriteString(fmt.Sprintf(" AND l.original_price IS NOT NULL AND l.original_price > 0 AND l.current_price < l.original_price AND (1 - l.current_price / l.original_price) * 100 >= $%d", argNum))
 		args = append(args, *params.MinDiscount)
+		argNum++
+	}
+	if params.MinPrice != nil && *params.MinPrice > 0 {
+		sb.WriteString(fmt.Sprintf(" AND l.current_price >= $%d", argNum))
+		args = append(args, *params.MinPrice)
+		argNum++
+	}
+	if params.MaxPrice != nil && *params.MaxPrice > 0 {
+		sb.WriteString(fmt.Sprintf(" AND l.current_price <= $%d", argNum))
+		args = append(args, *params.MaxPrice)
 		argNum++
 	}
 	if params.Search != "" {

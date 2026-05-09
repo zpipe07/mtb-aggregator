@@ -36,9 +36,11 @@ function MutedWrap({
 
 type Props = {
   categoryTree: CategoryTreeNode[];
+  /** Slot at page bottom (e.g. `SeoHubLinksGlobal`). */
+  children?: ReactNode;
 };
 
-export function CategoriesPageContent({ categoryTree }: Props) {
+export function CategoriesPageContent({ categoryTree, children }: Props) {
   if (categoryTree.length === 0) {
     return (
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 lg:py-12">
@@ -205,6 +207,12 @@ export function CategoriesPageContent({ categoryTree }: Props) {
           );
         })}
       </div>
+
+      {children ? (
+        <div className="mt-14 border-t border-foreground/15 pt-12">
+          {children}
+        </div>
+      ) : null}
     </div>
   );
 }

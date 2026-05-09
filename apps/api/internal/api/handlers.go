@@ -77,6 +77,11 @@ func (h *Handlers) GetDeals(w http.ResponseWriter, r *http.Request) {
 			params.MinPrice = &f
 		}
 	}
+	if s := r.URL.Query().Get("max_price"); s != "" {
+		if f, err := strconv.ParseFloat(s, 64); err == nil {
+			params.MaxPrice = &f
+		}
+	}
 	if s := r.URL.Query().Get("exclude_category_slug"); s != "" {
 		params.ExcludeCategorySlug = strings.TrimSpace(s)
 	}
@@ -321,6 +326,16 @@ func (h *Handlers) GetFacets(w http.ResponseWriter, r *http.Request) {
 	if s := r.URL.Query().Get("min_discount"); s != "" {
 		if f, err := strconv.ParseFloat(s, 64); err == nil {
 			params.MinDiscount = &f
+		}
+	}
+	if s := r.URL.Query().Get("min_price"); s != "" {
+		if f, err := strconv.ParseFloat(s, 64); err == nil {
+			params.MinPrice = &f
+		}
+	}
+	if s := r.URL.Query().Get("max_price"); s != "" {
+		if f, err := strconv.ParseFloat(s, 64); err == nil {
+			params.MaxPrice = &f
 		}
 	}
 	if s := r.URL.Query().Get("q"); s != "" {

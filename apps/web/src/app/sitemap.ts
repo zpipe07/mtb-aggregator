@@ -3,6 +3,13 @@ import { fetchCategoryTree, fetchDeals } from "@/api";
 import { filterCategoryTreeWithDeals } from "@/lib/categoryTree";
 import { allDealsCategoryPathsFromTree } from "@/lib/dealsCategoryPath";
 import { absoluteUrl } from "@/lib/siteUrl";
+import {
+  listSeoHubs,
+  hubMeetsIndexThreshold,
+  buildFetchDealsParamsFromHubAndFilters,
+  emptyParsedFilterParams,
+  buildSeoHubPublicPath,
+} from "@/lib/seoHubs";
 
 export const revalidate = 3600;
 
@@ -46,6 +53,36 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }
   } catch {
     // API unavailable during build — keep static entries only
+  }
+
+  try {
+    const hubs = listSeoHubs();
+    const hubChecks = await Promise.all(
+      hubs.map(async (hub) => {
+        const res = await fetchDeals({
+          ...buildFetchDealsParamsFromHubAndFilters(
+            hub,
+            emptyParsedFilterParams(),
+          ),
+          limit: 1,
+          offset: 0,
+        });
+        const total = res.total_count ?? 0;
+        if (!hubMeetsIndexThreshold(total)) return null;
+        return buildSeoHubPublicPath(hub.slug);
+      }),
+    );
+    for (const path of hubChecks) {
+      if (path == null) continue;
+      entries.push({
+        url: absoluteUrl(path),
+        lastModified: new Date(),
+        changeFrequency: "daily",
+        priority: 0.75,
+      });
+    }
+  } catch {
+    // Skip hub URLs if API is down
   }
 
   try {
