@@ -48,7 +48,7 @@ app.post("/scrape", scraperServiceAuth, async (req, res) => {
 
   if (!parser) {
     return res.status(400).json({
-      error: `Unknown store: ${store}. Supported: jensonusa, worldwidecyclery, revelbikes`,
+      error: `Unknown store: ${store}. Supported parsers: ${Object.keys(PARSERS).sort().join(", ")}`,
     });
   }
 

@@ -63,6 +63,8 @@ export async function fetchDeals(params?: {
   min_discount?: number;
   /** Minimum current_price (inclusive). */
   min_price?: number;
+  /** Maximum current_price (inclusive). */
+  max_price?: number;
   /** Exclude listings in this category subtree (e.g. `accessories`). */
   exclude_category_slug?: string;
   q?: string;
@@ -90,6 +92,8 @@ export async function fetchDeals(params?: {
     search.set("min_discount", String(params.min_discount));
   if (params?.min_price != null)
     search.set("min_price", String(params.min_price));
+  if (params?.max_price != null)
+    search.set("max_price", String(params.max_price));
   if (params?.exclude_category_slug)
     search.set("exclude_category_slug", params.exclude_category_slug);
   if (params?.q) search.set("q", params.q);
@@ -251,6 +255,8 @@ export interface FacetsParams {
   category_slug?: string;
   canonical_category?: string;
   min_discount?: number;
+  min_price?: number;
+  max_price?: number;
   q?: string;
   specFilters?: Record<string, string[]>;
   variantFilters?: Record<string, string[]>;
@@ -273,6 +279,10 @@ export async function fetchFacets(
     search.set("canonical_category", params.canonical_category);
   if (params?.min_discount != null)
     search.set("min_discount", String(params.min_discount));
+  if (params?.min_price != null)
+    search.set("min_price", String(params.min_price));
+  if (params?.max_price != null)
+    search.set("max_price", String(params.max_price));
   if (params?.q) search.set("q", params.q);
   if (params?.specFilters) {
     for (const [key, values] of Object.entries(params.specFilters)) {

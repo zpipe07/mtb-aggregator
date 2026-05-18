@@ -401,7 +401,8 @@ export function PromptProfileManager() {
           </div>
 
           <p className="text-sm text-stone-600">
-            Profiles define extraction tasks per canonical category. When enrichment runs, the LLM uses
+            Profiles define extraction tasks per canonical category. After PDP enrichment—or when you use
+            Operations “LLM specs only” / Data Browser “LLM specs”—the configured LLM uses
             the matching profile to extract structured specs. After migration{" "}
             <code className="rounded bg-stone-200 px-1">019</code>, edit composed fields via the composition
             editor; manage shared templates on the <strong>Field library</strong> tab. Set{" "}

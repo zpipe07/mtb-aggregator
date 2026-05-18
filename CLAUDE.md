@@ -69,8 +69,10 @@ pnpm --filter @mtb-aggregator/scraper run test:watch
 make scrape-now              # all stores
 make scrape-now-wwc          # worldwidecyclery only
 make scrape-now-revel        # revelbikes only
+make scrape-now-thundermountainbikes  # thundermountainbikes only
 make enrich-now              # enrich unenriched listings
 make enrich-now-revel        # revelbikes only (optional FORCE=1)
+make enrich-now-thundermountainbikes   # thundermountainbikes only (optional FORCE=1)
 make enrich-now FORCE=1      # re-enrich all
 
 # Database migrations against remote DB (set DATABASE_URL in .env)
@@ -119,7 +121,7 @@ pnpm --filter @mtb-aggregator/web run build-storybook  # static build to storybo
 - `internal/metadata/` — extracts structured specs from enriched category paths and raw spec data
 - Spec filters are LLM-driven: `llm_prompt_profiles` extraction schema (label, sort_order, filterable per field) controls which specs appear as filters per category; **ancestor profiles on the category tree contribute fields** to the effective schema unless a descendant overrides the same `field_key`. The legacy SpecFilterManager (spec_filter_config) is deprecated. With migration `019`, composed fields (`llm_prompt_profile_fields`) are hydrated to JSON on profile reads used by enrichment/facets. Field types include `multi_enum` (migration `020`) for multiple values per key (e.g. `intended_use`); facets and `/deals` filters match against scalars or any element of a stored JSON array.
 - Admin endpoints under `/admin/*` require Bearer token auth (password set via `ADMIN_PASSWORD`)
-- Public API: `GET /deals` (optional `group_variants=true`; repeated `brand`, `spec_<key>`, and `variant_<OptionName>` params OR within the same key on `variant_options` / `metadata.llm_specs`; `min_price`, `exclude_category_slug`; `sort` includes `discount`, `value` (savings amount), etc.), `/stores`, `/brands`, `/categories/tree`, `/facets` (includes `variant_facets`), `/spec-values`, `/status`. Deprecated: `/canonical-categories` (use `/categories/tree`)
+- Public API: `GET /deals` (optional `group_variants=true`; repeated `brand`, `spec_<key>`, and `variant_<OptionName>` params OR within the same key on `variant_options` / `metadata.llm_specs`; `min_price`, **`max_price`**, `exclude_category_slug`; `sort` includes `discount`, `value` (savings amount), etc.), `/stores`, `/brands`, `/categories/tree`, `/facets` (includes `variant_facets`), `/spec-values`, `/status`. Deprecated: `/canonical-categories` (use `/categories/tree`)
 
 ### Error reporting (Sentry)
 

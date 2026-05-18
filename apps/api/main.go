@@ -278,7 +278,7 @@ func main() {
 	log.Printf("[startup] scraper service URL: %s", scraperURL)
 
 	if isProduction() && strings.TrimSpace(os.Getenv("CRON_SECRET")) == "" && strings.TrimSpace(os.Getenv("ALLOW_OPEN_CRON")) != "1" {
-		log.Println("[security] CRON_SECRET unset in production: POST /scrape-now and /enrich-now require admin Bearer or set CRON_SECRET for X-Cron-Secret")
+		log.Println("[security] CRON_SECRET unset in production: POST /scrape-now, /enrich-now, and /llm-specs-now require admin Bearer or set CRON_SECRET for X-Cron-Secret")
 	}
 	if isProduction() && strings.TrimSpace(os.Getenv("SCRAPER_SERVICE_SECRET")) == "" {
 		log.Println("[security] SCRAPER_SERVICE_SECRET unset in production: set the same value on API and scraper to authenticate POST /scrape and /enrich")
@@ -428,6 +428,27 @@ func main() {
 		w.Write([]byte(`{"status":"ok"}`))
 	})
 
+	// POST /llm-specs-now (?store=&canonical_category=&llm_confidence_below=&allow_empty_specs=1) — classify + extract from DB only (async enrich job).
+	http.HandleFunc("/llm-specs-now", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			log.Printf("[llm-specs-now] rejected: method %s", r.Method)
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		if !validateCronOrAdmin(r) {
+			log.Printf("[llm-specs-now] forbidden: %s", r.RemoteAddr)
+			http.Error(w, "forbidden", http.StatusForbidden)
+			return
+		}
+		store := strings.TrimSpace(r.URL.Query().Get("store"))
+		storeLog := "all stores"
+		if store != "" {
+			storeLog = store
+		}
+		log.Printf("[llm-specs-now] triggered for %s", storeLog)
+		handlers.PostLLMSpecsNow(w, r)
+	})
+
 	// REST API
 	http.HandleFunc("/deals", handlers.DealsHandler)
 	http.HandleFunc("/deals/", handlers.DealsHandler)
@@ -567,6 +588,13 @@ func main() {
 		handlers.PostAdminListingsBulkEnrich(w, r)
 	}))
 
+	http.HandleFunc("/admin/listings/bulk-llm-specs", api.AdminRequired(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/admin/listings/bulk-llm-specs" {
+			http.NotFound(w, r)
+			return
+		}
+		handlers.PostAdminListingsBulkLLMSpecs(w, r)
+	}))
 	// Admin: GET /admin/listings — data browser (query: store_id, brand, has_canonical_category, has_enrichment, category, category_slug, canonical_category, q, sort, limit, offset, llm_confidence_below)
 	http.HandleFunc("/admin/listings", api.AdminRequired(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/admin/listings" {
@@ -587,6 +615,14 @@ func main() {
 		id, err := strconv.Atoi(parts[0])
 		if err != nil {
 			http.Error(w, "invalid id", http.StatusBadRequest)
+			return
+		}
+		if len(parts) > 1 && parts[1] == "llm-specs" {
+			if r.Method != http.MethodPost {
+				http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+				return
+			}
+			handlers.PostAdminListingLLMSpecs(w, r, id)
 			return
 		}
 		if len(parts) > 1 && parts[1] == "enrich" {

@@ -285,8 +285,12 @@ type GetAdminListingsParams struct {
 	Search             string
 	Sort               string // newest, discount, price_asc, price_desc, relevance
 	LLMConfidenceBelow *float64 // filter: (metadata->>'llm_confidence')::float < value (e.g. 0.7 for low confidence)
-	Limit              int
-	Offset             int
+	// HasNonEmptySpecs when true restricts to listings with non-empty metadata.specs JSON object (for LLM-from-DB pipelines).
+	HasNonEmptySpecs *bool
+	// StoreType when non-empty restricts to listings whose store matches this store_type (lower-cased equality).
+	StoreType string
+	Limit     int
+	Offset    int
 }
 
 // resolveAdminListingsCategoryFilter resolves CategorySlug into categoryFilterIDs for subtree matching (same semantics as GET /deals).
@@ -351,6 +355,12 @@ func (db *DB) GetAdminListings(ctx context.Context, params GetAdminListingsParam
 	if params.StoreID > 0 {
 		query += fmt.Sprintf(" AND l.store_id = $%d", argNum)
 		args = append(args, params.StoreID)
+		argNum++
+	}
+	storeTypeTrim := strings.TrimSpace(params.StoreType)
+	if storeTypeTrim != "" && params.StoreID <= 0 {
+		query += fmt.Sprintf(" AND lower(s.store_type) = lower($%d)", argNum)
+		args = append(args, storeTypeTrim)
 		argNum++
 	}
 	if params.Brand != "" {
@@ -422,6 +432,9 @@ func (db *DB) GetAdminListings(ctx context.Context, params GetAdminListingsParam
 		query += fmt.Sprintf(" AND (l.metadata->>'llm_confidence')::float < $%d", argNum)
 		args = append(args, *params.LLMConfidenceBelow)
 		argNum++
+	}
+	if params.HasNonEmptySpecs != nil && *params.HasNonEmptySpecs {
+		query += ` AND l.metadata->'specs' IS NOT NULL AND jsonb_typeof(l.metadata->'specs') = 'object' AND l.metadata->'specs' <> '{}'::jsonb`
 	}
 
 	switch sort {
@@ -496,6 +509,12 @@ func buildAdminListingsFilter(query string, params GetAdminListingsParams, argNu
 		args = append(args, params.StoreID)
 		argNum++
 	}
+	storeTypeTrim := strings.TrimSpace(params.StoreType)
+	if storeTypeTrim != "" && params.StoreID <= 0 {
+		query += fmt.Sprintf(" AND lower(s.store_type) = lower($%d)", argNum)
+		args = append(args, storeTypeTrim)
+		argNum++
+	}
 	if params.Brand != "" {
 		query += fmt.Sprintf(" AND l.brand ILIKE $%d", argNum)
 		args = append(args, params.Brand)
@@ -563,6 +582,9 @@ func buildAdminListingsFilter(query string, params GetAdminListingsParams, argNu
 		query += fmt.Sprintf(" AND (l.metadata->>'llm_confidence')::float < $%d", argNum)
 		args = append(args, *params.LLMConfidenceBelow)
 		argNum++
+	}
+	if params.HasNonEmptySpecs != nil && *params.HasNonEmptySpecs {
+		query += ` AND l.metadata->'specs' IS NOT NULL AND jsonb_typeof(l.metadata->'specs') = 'object' AND l.metadata->'specs' <> '{}'::jsonb`
 	}
 	return query, args, argNum
 }
@@ -727,6 +749,7 @@ type GetDealsParams struct {
 	ExcludeCategorySlug   string // exclude listings in this category subtree (e.g. "accessories")
 	MinDiscount           *float64
 	MinPrice              *float64 // minimum current_price (inclusive)
+	MaxPrice              *float64 // maximum current_price (inclusive)
 	Search                string // full-text search query (q)
 	Sort                  string // newest, discount, value, price_asc, price_desc, relevance
 	Limit             int
@@ -1461,7 +1484,7 @@ func (db *DB) GetCanonicalCategories(ctx context.Context) ([]string, error) {
 
 // StoreTypesWithEnrichers lists store_type values that have a scraper enricher (PDP enrichment).
 // When adding an enricher for a new store, add its store_type here.
-var StoreTypesWithEnrichers = []string{"jensonusa", "worldwidecyclery", "revelbikes", "backcountry", "ridebicycles"}
+var StoreTypesWithEnrichers = []string{"jensonusa", "worldwidecyclery", "revelbikes", "backcountry", "ridebicycles", "thundermountainbikes"}
 
 // ListingForEnrichment is a listing that needs PDP enrichment
 type ListingForEnrichment struct {

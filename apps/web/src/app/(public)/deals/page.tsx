@@ -14,6 +14,7 @@ import { JsonLd } from "@/components/JsonLd";
 import { buildBreadcrumbJsonLd, buildItemListJsonLd } from "@/lib/jsonLd";
 import { absoluteUrl } from "@/lib/siteUrl";
 import { DealsPageContent } from "@/views/DealsPageContent";
+import { SeoHubLinksGlobal } from "@/components/SeoHubLinks";
 import DealsLoading from "./loading";
 
 export const revalidate = 60;
@@ -157,7 +158,9 @@ export default async function DealsPage({ searchParams }: Props) {
           stores={stores}
           categoryTree={categoryTree}
           dealsListPath={dealsListPath}
-        />
+        >
+          <SeoHubLinksGlobal title="Popular deal searches" />
+        </DealsPageContent>
       </Suspense>
     </>
   );

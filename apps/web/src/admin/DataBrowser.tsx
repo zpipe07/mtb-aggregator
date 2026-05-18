@@ -21,10 +21,12 @@ import {
 } from "./hooks/queries";
 import {
   useEnrichListing,
+  useRunListingLLMSpecs,
   useSetListingHidden,
   useSetListingLLMOverrides,
   usePostBulkListingsClassify,
   usePostBulkListingsEnrich,
+  usePostBulkListingsLLMSpecs,
 } from "./hooks/mutations";
 import type {
   AdminBulkListingsFilterBody,
@@ -290,8 +292,11 @@ export function DataBrowser() {
   const [canonicalPath, setCanonicalPath] = useState("");
   /** Path from CategoryPicker — maps to category_slug (subtree / same as public /deals). */
   const [pickedCategoryPath, setPickedCategoryPath] = useState<string[]>([]);
-  const [bulkModal, setBulkModal] = useState<"classify" | "enrich" | null>(null);
+  const [bulkModal, setBulkModal] = useState<
+    "classify" | "enrich" | "llm_specs" | null
+  >(null);
   const [bulkConfirmText, setBulkConfirmText] = useState("");
+  const [bulkAllowEmptySpecs, setBulkAllowEmptySpecs] = useState(false);
   const [bulkJobId, setBulkJobId] = useState<number | null>(null);
   const [bulkFlash, setBulkFlash] = useState<string | null>(null);
 
@@ -328,6 +333,7 @@ export function DataBrowser() {
   const { data: priceHistory } = usePriceHistory(selectedId);
 
   const enrichMutation = useEnrichListing();
+  const listingLLMMutation = useRunListingLLMSpecs();
   const setHiddenMutation = useSetListingHidden();
   const setLLMOverridesMutation = useSetListingLLMOverrides();
   const bulkClassifyMutation = usePostBulkListingsClassify();
@@ -346,8 +352,10 @@ export function DataBrowser() {
     return () => clearInterval(t);
   }, [bulkJobId, bulkJob?.status, refetchBulkJob]);
 
+  const bulkLLMSpecsMutation = usePostBulkListingsLLMSpecs();
+
   function buildBulkFilterBody(): AdminBulkListingsFilterBody {
-    return {
+    const body: AdminBulkListingsFilterBody = {
       store_id: storeId || undefined,
       brand: brand || undefined,
       has_enrichment: hasEnrichment ?? undefined,
@@ -361,6 +369,10 @@ export function DataBrowser() {
       q: q || undefined,
       llm_confidence_below: llmConfidenceBelow ?? undefined,
     };
+    if (bulkModal === "llm_specs" && bulkAllowEmptySpecs) {
+      body.has_non_empty_specs = false;
+    }
+    return body;
   }
 
   const chartData =
@@ -374,9 +386,20 @@ export function DataBrowser() {
     enrichMutation.mutate(selectedId);
   }
 
+  function handleListingLLMSpecs() {
+    if (selectedId == null) return;
+    listingLLMMutation.mutate({ id: selectedId });
+  }
+
   function handleSetHidden(hidden: boolean) {
     if (selectedId == null) return;
     setHiddenMutation.mutate({ id: selectedId, hidden });
+  }
+
+  function bulkConfirmPhrase(m: "classify" | "enrich" | "llm_specs") {
+    if (m === "classify") return "reclassify";
+    if (m === "enrich") return "re-enrich";
+    return "bulk-llm-specs";
   }
 
   return (
@@ -385,19 +408,25 @@ export function DataBrowser() {
 
       {(isError ||
         enrichMutation.isError ||
+        listingLLMMutation.isError ||
         setHiddenMutation.isError ||
         setLLMOverridesMutation.isError ||
         bulkClassifyMutation.isError ||
-        bulkEnrichMutation.isError) && (
+        bulkEnrichMutation.isError ||
+        bulkLLMSpecsMutation.isError) && (
         <div className="mb-4 rounded border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
           {enrichMutation.isError
             ? enrichMutation.error?.message ?? "Enrich failed"
-            : setHiddenMutation.isError
+            : listingLLMMutation.isError
+              ? listingLLMMutation.error?.message ?? "LLM specs failed"
+              : setHiddenMutation.isError
               ? setHiddenMutation.error?.message ?? "Update failed"
               : setLLMOverridesMutation.isError
                 ? setLLMOverridesMutation.error?.message ?? "Override failed"
                 : bulkClassifyMutation.isError
                   ? bulkClassifyMutation.error?.message ?? "Bulk classify failed"
+                  : bulkLLMSpecsMutation.isError
+                    ? bulkLLMSpecsMutation.error?.message ?? "Bulk LLM specs failed"
                   : bulkEnrichMutation.isError
                     ? bulkEnrichMutation.error?.message ?? "Bulk enrich failed"
                     : error?.message ?? "Failed to load"}
@@ -405,10 +434,12 @@ export function DataBrowser() {
             type="button"
             onClick={() => {
               enrichMutation.reset();
+              listingLLMMutation.reset();
               setHiddenMutation.reset();
               setLLMOverridesMutation.reset();
               bulkClassifyMutation.reset();
               bulkEnrichMutation.reset();
+              bulkLLMSpecsMutation.reset();
               if (isError) refetch();
             }}
             className="ml-2 underline"
@@ -610,6 +641,7 @@ export function DataBrowser() {
             type="button"
             onClick={() => {
               setBulkConfirmText("");
+              setBulkAllowEmptySpecs(false);
               setBulkModal("classify");
             }}
             className="rounded bg-stone-800 px-3 py-1.5 text-white hover:bg-stone-700"
@@ -620,11 +652,23 @@ export function DataBrowser() {
             type="button"
             onClick={() => {
               setBulkConfirmText("");
+              setBulkAllowEmptySpecs(false);
               setBulkModal("enrich");
             }}
             className="rounded border border-amber-800 bg-white px-3 py-1.5 text-amber-950 hover:bg-amber-100"
           >
             Re-enrich all ({totalCount.toLocaleString()})
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setBulkConfirmText("");
+              setBulkAllowEmptySpecs(false);
+              setBulkModal("llm_specs");
+            }}
+            className="rounded border border-stone-600 bg-white px-3 py-1.5 text-stone-800 hover:bg-stone-50"
+          >
+            LLM specs (no PDP) ({totalCount.toLocaleString()})
           </button>
           {bulkJobId && bulkJob && (
             <span className="text-stone-600">
@@ -658,18 +702,37 @@ export function DataBrowser() {
         >
           <div className="w-full max-w-md rounded-lg bg-white p-4 shadow-lg space-y-3">
             <h3 className="font-medium text-stone-900">
-              {bulkModal === "classify" ? "Re-classify all matching" : "Re-enrich all matching"}
+              {bulkModal === "classify"
+                ? "Re-classify all matching"
+                : bulkModal === "enrich"
+                  ? "Re-enrich all matching"
+                  : "LLM specs — all matching"}
             </h3>
             <p className="text-sm text-stone-600">
               This will affect up to {totalCount.toLocaleString()} listing
               {totalCount === 1 ? "" : "s"} (same filters as the table).{" "}
-              {bulkModal === "enrich" ? "Re-enrich scrapes each PDP; it is slower and heavier than re-classify." : ""}
+              {bulkModal === "enrich"
+                ? "Re-enrich scrapes each PDP; it is slower and heavier than re-classify."
+                : bulkModal === "llm_specs"
+                  ? "Runs LLM category + prompt extraction using data already stored (no PDP fetch). Defaults to listings that have scraped specs."
+                  : ""}
             </p>
+            {bulkModal === "llm_specs" && (
+              <label className="flex items-start gap-2 text-sm text-stone-700">
+                <input
+                  type="checkbox"
+                  checked={bulkAllowEmptySpecs}
+                  onChange={(e) => setBulkAllowEmptySpecs(e.target.checked)}
+                  className="mt-0.5 rounded border-stone-300"
+                />
+                Include listings without scraped specs (uses product name/description only — usually weaker)
+              </label>
+            )}
             {totalCount > 1000 && (
               <div>
                 <label htmlFor={filterId("bulk-confirm")} className="block text-sm text-stone-700 mb-1">
-                  Type <strong className="font-mono">{bulkModal === "classify" ? "reclassify" : "re-enrich"}</strong> to
-                  confirm
+                  Type{" "}
+                  <strong className="font-mono">{bulkConfirmPhrase(bulkModal)}</strong> to confirm
                 </label>
                 <input
                   id={filterId("bulk-confirm")}
@@ -695,9 +758,9 @@ export function DataBrowser() {
                 disabled={
                   bulkClassifyMutation.isPending ||
                   bulkEnrichMutation.isPending ||
+                  bulkLLMSpecsMutation.isPending ||
                   (totalCount > 1000 &&
-                    bulkConfirmText.trim() !==
-                      (bulkModal === "classify" ? "reclassify" : "re-enrich"))
+                    bulkConfirmText.trim() !== bulkConfirmPhrase(bulkModal))
                 }
                 onClick={async () => {
                   const body = buildBulkFilterBody();
@@ -708,18 +771,29 @@ export function DataBrowser() {
                       if (r.async) {
                         setBulkFlash(
                           r.message ??
-                            `Job #${r.job_id} is running in the background (avoids a ~30s dev proxy timeout on long runs).`
+                            `Job #${r.job_id} is running in the background (avoids a ~30s dev proxy timeout on long runs).`,
                         );
                       } else {
                         setBulkFlash(null);
                       }
-                    } else {
+                    } else if (bulkModal === "enrich") {
                       const r = await bulkEnrichMutation.mutateAsync(body);
                       setBulkJobId(r.job_id);
                       if (r.async) {
                         setBulkFlash(
                           r.message ??
-                            `Job #${r.job_id} is running in the background (avoids a ~30s dev proxy timeout on long runs).`
+                            `Job #${r.job_id} is running in the background (avoids a ~30s dev proxy timeout on long runs).`,
+                        );
+                      } else {
+                        setBulkFlash(null);
+                      }
+                    } else {
+                      const r = await bulkLLMSpecsMutation.mutateAsync(body);
+                      setBulkJobId(r.job_id);
+                      if (r.async) {
+                        setBulkFlash(
+                          r.message ??
+                            `Job #${r.job_id} is running in the background (avoids a ~30s dev proxy timeout on long runs).`,
                         );
                       } else {
                         setBulkFlash(null);
@@ -732,7 +806,9 @@ export function DataBrowser() {
                   }
                 }}
               >
-                {bulkClassifyMutation.isPending || bulkEnrichMutation.isPending
+                {bulkClassifyMutation.isPending ||
+                bulkEnrichMutation.isPending ||
+                bulkLLMSpecsMutation.isPending
                   ? "Running…"
                   : "Confirm"}
               </button>
@@ -909,6 +985,15 @@ export function DataBrowser() {
                   className="rounded bg-stone-700 px-3 py-1.5 text-sm text-white hover:bg-stone-600 disabled:opacity-50"
                 >
                   {enrichMutation.isPending ? "Enriching…" : "Enrich"}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleListingLLMSpecs}
+                  disabled={listingLLMMutation.isPending}
+                  title="Re-run LLM category + specs from stored data (no PDP scrape)"
+                  className="rounded border border-violet-400 bg-white px-3 py-1.5 text-sm text-violet-900 hover:bg-violet-50 disabled:opacity-50"
+                >
+                  {listingLLMMutation.isPending ? "LLM…" : "LLM specs"}
                 </button>
                 <button
                   type="button"

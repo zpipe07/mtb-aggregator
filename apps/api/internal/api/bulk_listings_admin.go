@@ -14,10 +14,11 @@ import (
 	"github.com/mtb-aggregator/api/internal/sentryutil"
 )
 
-// bulkListingsFilterBody is the JSON body for POST /admin/listings/bulk-classify and bulk-enrich.
+// bulkListingsFilterBody is the JSON body for POST /admin/listings/bulk-classify, bulk-enrich, and bulk-llm-specs.
 // Matches the admin data browser filter fields (GetAdminListings).
 type bulkListingsFilterBody struct {
 	StoreID              int      `json:"store_id"`
+	StoreType            string   `json:"store_type"`
 	Brand                string   `json:"brand"`
 	HasCanonicalCategory *bool    `json:"has_canonical_category"`
 	HasEnrichment        *bool    `json:"has_enrichment"`
@@ -28,12 +29,14 @@ type bulkListingsFilterBody struct {
 	CanonicalCategory    string   `json:"canonical_category"`
 	Q                    string   `json:"q"`
 	LLMConfidenceBelow   *float64 `json:"llm_confidence_below"`
+	HasNonEmptySpecs     *bool    `json:"has_non_empty_specs"`
 }
 
 func (b bulkListingsFilterBody) toGetAdminListingsParams() db.GetAdminListingsParams {
 	return db.GetAdminListingsParams{
 		StoreID:              b.StoreID,
 		Brand:                b.Brand,
+		StoreType:            strings.TrimSpace(b.StoreType),
 		HasCanonicalCategory: b.HasCanonicalCategory,
 		HasEnrichment:        b.HasEnrichment,
 		InStock:              b.InStock,
@@ -43,6 +46,7 @@ func (b bulkListingsFilterBody) toGetAdminListingsParams() db.GetAdminListingsPa
 		CanonicalCategory:    b.CanonicalCategory,
 		Search:               b.Q,
 		LLMConfidenceBelow:   b.LLMConfidenceBelow,
+		HasNonEmptySpecs:     b.HasNonEmptySpecs,
 		Limit:                0,
 		Offset:               0,
 	}
@@ -89,6 +93,19 @@ func enrichJobStoreTypePtr(ctx context.Context, dbx *db.DB, storeID int) (*strin
 	return &t, nil
 }
 
+// enrichJobStoreTypeFromBulkBody sets enrich_jobs.store_type when scoped by store_id or explicit store_type.
+func enrichJobStoreTypeFromBulkBody(ctx context.Context, dbx *db.DB, body bulkListingsFilterBody) (*string, error) {
+	if body.StoreID > 0 {
+		return enrichJobStoreTypePtr(ctx, dbx, body.StoreID)
+	}
+	st := strings.TrimSpace(body.StoreType)
+	if st == "" {
+		return nil, nil
+	}
+	ts := st
+	return &ts, nil
+}
+
 // PostAdminListingsBulkClassify re-runs LLM category classification for all listings matching the filter.
 func (h *Handlers) PostAdminListingsBulkClassify(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
@@ -121,7 +138,7 @@ func (h *Handlers) PostAdminListingsBulkClassify(w http.ResponseWriter, r *http.
 		return
 	}
 
-	storeTypeForJob, err := enrichJobStoreTypePtr(r.Context(), h.DB, body.StoreID)
+	storeTypeForJob, err := enrichJobStoreTypeFromBulkBody(r.Context(), h.DB, body)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -192,7 +209,7 @@ func (h *Handlers) PostAdminListingsBulkEnrich(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	storeTypeForJob, err := enrichJobStoreTypePtr(r.Context(), h.DB, body.StoreID)
+	storeTypeForJob, err := enrichJobStoreTypeFromBulkBody(r.Context(), h.DB, body)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -221,6 +238,106 @@ func (h *Handlers) PostAdminListingsBulkEnrich(w http.ResponseWriter, r *http.Re
 		"total":  total,
 		"message": "Job started. Re-enrich runs in the background; check Operations for progress.",
 	})
+}
+
+// PostAdminListingsBulkLLMSpecs runs LLM classification + spec extraction from stored listing data only (async job).
+func (h *Handlers) PostAdminListingsBulkLLMSpecs(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if h.LLM == nil {
+		http.Error(w, "OpenAI client not configured", http.StatusServiceUnavailable)
+		return
+	}
+	var body bulkListingsFilterBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		http.Error(w, "invalid json", http.StatusBadRequest)
+		return
+	}
+	params := body.toGetAdminListingsParams()
+	if params.HasNonEmptySpecs == nil {
+		t := true
+		params.HasNonEmptySpecs = &t
+	}
+	maxN := adminBulkMaxListings()
+	ids, total, err := h.DB.ListAdminListingIDsByFilter(r.Context(), params, false, false, maxN)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if total > maxN {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"error": fmt.Sprintf("filter matches %d listings (max per run is %d); narrow filters", total, maxN),
+		})
+		return
+	}
+	if len(ids) == 0 {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"ok": true, "async": false, "processed": 0, "total": 0, "job_id": 0,
+		})
+		return
+	}
+	storeTypeForJob, err := enrichJobStoreTypeFromBulkBody(r.Context(), h.DB, body)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	jobID, jerr := h.DB.CreateEnrichJob(r.Context(), storeTypeForJob, "manual", false, "llm_specs")
+	if jerr != nil {
+		log.Printf("[admin] bulk llm_specs create job: %v", jerr)
+		sentryutil.CaptureError(jerr, map[string]string{"component": "api", "handler": "bulk_llm_specs", "phase": "create_job"})
+		http.Error(w, "could not create job: "+jerr.Error(), http.StatusInternalServerError)
+		return
+	}
+	if jobID == 0 {
+		http.Error(w, "could not create job", http.StatusInternalServerError)
+		return
+	}
+	idsCopy := append([]int(nil), ids...)
+	hnd := h
+	go runBulkLLMSpecsInBackground(hnd, jobID, idsCopy, total)
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusAccepted)
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
+		"ok":     true,
+		"async":  true,
+		"job_id": jobID,
+		"total":  total,
+		"message": "Job started. LLM spec determination runs without PDP fetch; check Operations for progress.",
+	})
+}
+
+func runBulkLLMSpecsInBackground(h *Handlers, jobID int, ids []int, total int) {
+	log.Printf("[admin] bulk_llm_specs job %d: starting %d listings (filter total %d)", jobID, len(ids), total)
+	workCtx, cancel := context.WithTimeout(context.Background(), bulkListingsWorkTimeout())
+	defer cancel()
+	processed := 0
+	var errStrs []string
+	for _, id := range ids {
+		if workCtx.Err() != nil {
+			errStrs = append(errStrs, "job timed out: "+workCtx.Err().Error())
+			if err := h.DB.UpdateEnrichJobDetached(jobID, "timed_out", &processed, &processed, errStrs); err != nil {
+				logBulkEnrichJobFinalize("bulk_llm_specs", jobID, "timed_out", err)
+			}
+			return
+		}
+		if wn := h.runLLMCategoryClassification(workCtx, id); wn != "" {
+			errStrs = append(errStrs, wn)
+		}
+		if wn := h.runLLMExtractionIfApplicable(workCtx, id); wn != "" {
+			errStrs = append(errStrs, wn)
+		}
+		processed++
+	}
+	if err := h.DB.UpdateEnrichJobDetached(jobID, "completed", &processed, &processed, errStrs); err != nil {
+		logBulkEnrichJobFinalize("bulk_llm_specs", jobID, "completed", err)
+	}
+	log.Printf("[admin] bulk_llm_specs job %d: completed, processed %d", jobID, processed)
 }
 
 func runBulkClassifyInBackground(h *Handlers, jobID int, ids []int, total int) {

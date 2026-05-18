@@ -42,7 +42,7 @@ export function searchParamsRecordToDealsCategoryListPath(
   return s ? `${pathname}?${s}` : pathname;
 }
 
-/** Safe internal back target for deal detail "Back to deals" (`/deals`, `/deals?...`, or `/deals/c/...`). */
+/** Safe internal back target for deal detail "Back to deals" (`/deals`, `/deals?...`, `/deals/c/...`, or `/deals/hub/...`). */
 export function sanitizeDealsListBackHref(
   raw: string | null | undefined
 ): string {
@@ -55,7 +55,11 @@ export function sanitizeDealsListBackHref(
   }
   try {
     const u = new URL(decoded, "http://localhost");
-    if (u.pathname === "/deals" || u.pathname.startsWith("/deals/c/")) {
+    if (
+      u.pathname === "/deals" ||
+      u.pathname.startsWith("/deals/c/") ||
+      u.pathname.startsWith("/deals/hub/")
+    ) {
       return `${u.pathname}${u.search}`;
     }
     return "/deals";
