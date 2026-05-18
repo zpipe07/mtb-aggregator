@@ -18,3 +18,7 @@ WHERE NOT EXISTS (SELECT 1 FROM stores WHERE name = 'Ride Bicycles');
 INSERT INTO stores (name, base_url, scrape_url, store_type, affiliate_network)
 SELECT 'Thunder Mountain Bikes', 'https://thundermountainbikes.com', 'https://thundermountainbikes.com/collections/shop-all-deals', 'thundermountainbikes', NULL
 WHERE NOT EXISTS (SELECT 1 FROM stores WHERE name = 'Thunder Mountain Bikes');
+
+INSERT INTO stores (name, base_url, scrape_url, store_type, affiliate_network)
+SELECT 'Competitive Cyclist', 'https://www.competitivecyclist.com', 'https://www.competitivecyclist.com/rc/bikes-on-sale?rp=onsaleUS%3Atrue', 'competitivecyclist', 'impact_radius'
+WHERE NOT EXISTS (SELECT 1 FROM stores WHERE name = 'Competitive Cyclist');

@@ -1,4 +1,4 @@
-.PHONY: dev db-up db-down db-migrate db-migrate-docker db-seed db-up-local db-migrate-local db-migrate-remote db-seed-remote backfill-brands backfill-canonical-categories backfill-llm-specs backfill-field-library backfill-variant-options backfill-jenson-variants scrape scrape-now scrape-now-wwc scrape-now-revel scrape-now-ridebicycles scrape-now-thundermountainbikes enrich-now enrich-now-revel enrich-now-thundermountainbikes build-all install
+.PHONY: dev db-up db-down db-migrate db-migrate-docker db-seed db-up-local db-migrate-local db-migrate-remote db-seed-remote backfill-brands backfill-canonical-categories backfill-llm-specs backfill-field-library backfill-variant-options backfill-jenson-variants scrape scrape-now scrape-now-wwc scrape-now-revel scrape-now-competitivecyclist scrape-now-ridebicycles scrape-now-thundermountainbikes enrich-now enrich-now-revel enrich-now-thundermountainbikes build-all install impact-catalog-probe
 
 # Ensure Make can find docker (Docker Desktop CLI locations)
 export PATH := /Applications/Docker.app/Contents/Resources/bin:/usr/local/bin:/opt/homebrew/bin:$(PATH)
@@ -109,6 +109,10 @@ scrape-now-wwc:
 scrape-now-revel:
 	@curl -s -X POST "http://localhost:8080/scrape-now?store=revelbikes"
 
+# Scrape only Competitive Cyclist (requires API; ingest uses Impact Partner catalog on the API when configured)
+scrape-now-competitivecyclist:
+	@curl -s -X POST "http://localhost:8080/scrape-now?store=competitivecyclist"
+
 # Scrape only Ride Bicycles (requires API running)
 scrape-now-ridebicycles:
 	@curl -s -X POST "http://localhost:8080/scrape-now?store=ridebicycles"
@@ -128,6 +132,10 @@ enrich-now-revel:
 
 enrich-now-thundermountainbikes:
 	@curl -s -X POST "http://localhost:8080/enrich-now?store=thundermountainbikes$(if $(FORCE),&force=1,)"
+
+# Discover Impact catalogs and sample CC catalog items (requires IMPACT_ACCOUNT_SID + IMPACT_AUTH_TOKEN in .env)
+impact-catalog-probe:
+	cd apps/api && go run ./cmd/impact-catalog-probe
 
 # Build all apps
 build-all:

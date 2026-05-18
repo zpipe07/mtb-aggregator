@@ -24,6 +24,11 @@ type ScrapeResult struct {
 	IsInStock        bool            `json:"is_in_stock"`
 	ProductGroupKey  *string         `json:"product_group_key"` // Shopify handle; API stores as store_id:handle
 	VariantOptions   json.RawMessage `json:"variant_options"`
+	// FeedDescription is set by non-scraper ingest (e.g. Impact catalog) for LLM enrichment without PDP.
+	FeedDescription *string `json:"feed_description,omitempty"`
+	// ImpactCatalogOutboundURL is the raw catalog Url before PDP unwrap (Impact tracking hop).
+	// Used when IMPACT_DEEP_LINK_COMPETITIVE_CYCLIST is unset so outbound clicks stay commissionable.
+	ImpactCatalogOutboundURL *string `json:"impact_catalog_outbound_url,omitempty"`
 }
 
 // ScrapeRequest is sent to the scraper

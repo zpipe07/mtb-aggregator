@@ -17,10 +17,20 @@ Node.js Express server using Playwright to scrape retailer sale pages. Returns s
 | `SENTRY_DSN` | Optional; enables [Sentry](https://docs.sentry.io/platforms/javascript/guides/express/) (`src/bootstrap.ts`, `expressIntegration`, `setupExpressErrorHandler`). Same name as the API; use a dedicated Sentry **Node** project for the scraper. |
 | `SENTRY_ENVIRONMENT` | e.g. `production` |
 | `SENTRY_RELEASE` / `RENDER_GIT_COMMIT` | Release grouping on Render |
+| `BROWSER_USER_AGENT` | Chrome-like UA for Playwright (Backcountry). Default is desktop Chrome; **do not** use `MTBDealBot` here — it triggers AWS WAF. |
+| `SCRAPER_STORAGE_STATE` | Path to Playwright **storage state** JSON (cookies/localStorage) after you pass WAF in a real browser. Helps **Backcountry** in some environments. **Competitive Cyclist** listing ingest runs via the Impact catalog API on the Go API (see [apps/api/README.md](../api/README.md)); the scraper is not used for CC production ingest. |
+| `SCRAPER_WAF_WAIT_MS` | Max wait for WAF challenge to clear (default `120000`). |
+| `SCRAPER_HEADED` | Set `1` to run a visible Chromium window (sometimes passes WAF when headless fails). |
 
-Scrape/enrich failures call `captureRouteError` (tags: `route`, `store`) because handlers use `try`/`catch` instead of `next(err)`.
+### Backcountry (AWS WAF)
 
-**Convention:** When `SENTRY_DSN` is set (production should set it), new routes that can fail with 5xx must report via `captureRouteError` or `next(err)` + `setupExpressErrorHandler`—not only `console.error`. Policy: [docs/ARCHITECTURE.md](../../docs/ARCHITECTURE.md#error-monitoring-sentry).
+Backcountry can serve a **“Human Verification”** page to automated browsers. If scrape logs show tiny HTML / `gokuProps` and no products, the PLP never loaded.
+
+**Fix:** save Playwright storage state after passing WAF in a real session, point `SCRAPER_STORAGE_STATE` at that JSON (path can be relative to repo root or `apps/scraper/`). Alternatively try `SCRAPER_HEADED=1` or a remote browser with US egress.
+
+### Competitive Cyclist
+
+Production ingest for **Competitive Cyclist** is **not** a scraper route: the API scheduler calls the **Impact Partner Product Catalog** (`internal/impact`) when `IMPACT_ACCOUNT_SID` and `IMPACT_AUTH_TOKEN` are set. Use `make impact-catalog-probe` from the repo root to list catalogs and inspect a sample **Items** response. Outbound **`affiliate_url`** uses `IMPACT_DEEP_LINK_COMPETITIVE_CYCLIST` when set on the API; otherwise the Impact catalog **`Url`** when applicable.
 
 ## Endpoints
 
@@ -30,6 +40,10 @@ Scrape/enrich failures call `captureRouteError` (tags: `route`, `store`) because
 | `/enrich` | POST | Visit PDP URL; returns specs, category_path, etc. |
 | `/health` | GET | Health check (no auth) |
 
+### Error monitoring (Sentry)
+
+When `SENTRY_DSN` is set (production should set it), new routes that can fail with 5xx must report via `captureRouteError` or `next(err)` + `setupExpressErrorHandler`—not only `console.error`. Policy: [docs/ARCHITECTURE.md](../../docs/ARCHITECTURE.md#error-monitoring-sentry).
+
 ## Parser Structure
 
 Parsers live in `src/parsers/` — one file per store:
@@ -37,7 +51,7 @@ Parsers live in `src/parsers/` — one file per store:
 - `jensonusa.ts` — JensonUSA sale + enrichment
 - `worldwidecyclery.ts` — Worldwide Cyclery
 - `revelbikes.ts` — Revel Bikes (Shopify collection JSON + PDP enrich via `/products/{handle}.json`; specs from `body_html` `<strong>KEY:</strong><br>value` paragraphs)
-- `backcountry.ts` — Backcountry
+- `backcountry.ts` — Backcountry (Backcountry-family React PLP; shared logic in `backcountry-family-plp.ts`)
 - `ridebicycles.ts` — Ride Bicycles (Shopify JSON API; in-stock + ≥10% off compare-at)
 - `thundermountainbikes.ts` — Thunder Mountain Bikes (Shopify collection JSON + PDP enrich like Worldwide Cyclery)
 

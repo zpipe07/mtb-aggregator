@@ -36,6 +36,7 @@ type Listing struct {
 	CurrentPrice       float64
 	OriginalPrice      *float64
 	ProductURL         string
+	AffiliateURL       *string
 	ImageURL           *string
 	Brand              *string
 	CategoryPath       []string
@@ -200,13 +201,14 @@ func (db *DB) UpsertListing(ctx context.Context, listing Listing) (int, error) {
 
 	var id int
 	err := db.pool.QueryRow(ctx, `
-		INSERT INTO store_listings (store_id, store_sku, product_name, current_price, original_price, product_url, image_url, brand, category_path, canonical_category, category_id, metadata, is_in_stock, product_group_key, variant_options, last_scraped)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, NOW())
+		INSERT INTO store_listings (store_id, store_sku, product_name, current_price, original_price, product_url, affiliate_url, image_url, brand, category_path, canonical_category, category_id, metadata, is_in_stock, product_group_key, variant_options, last_scraped)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, NOW())
 		ON CONFLICT (store_id, store_sku) DO UPDATE SET
 			product_name = EXCLUDED.product_name,
 			current_price = EXCLUDED.current_price,
 			original_price = EXCLUDED.original_price,
 			product_url = EXCLUDED.product_url,
+			affiliate_url = CASE WHEN NULLIF(TRIM(EXCLUDED.affiliate_url), '') IS NOT NULL THEN EXCLUDED.affiliate_url ELSE store_listings.affiliate_url END,
 			image_url = EXCLUDED.image_url,
 			brand = EXCLUDED.brand,
 			category_path = CASE WHEN EXCLUDED.category_path IS NOT NULL AND array_length(EXCLUDED.category_path, 1) > 0 THEN EXCLUDED.category_path ELSE store_listings.category_path END,
@@ -219,7 +221,7 @@ func (db *DB) UpsertListing(ctx context.Context, listing Listing) (int, error) {
 			last_scraped = NOW()
 		RETURNING id
 	`, listing.StoreID, listing.StoreSKU, listing.ProductName, listing.CurrentPrice, listing.OriginalPrice,
-		listing.ProductURL, listing.ImageURL, listing.Brand, pq.Array(listing.CategoryPath), pq.Array(listing.CanonicalCategory), categoryID, listing.Metadata, listing.IsInStock, productGroupKey, variantOpts).Scan(&id)
+		listing.ProductURL, listing.AffiliateURL, listing.ImageURL, listing.Brand, pq.Array(listing.CategoryPath), pq.Array(listing.CanonicalCategory), categoryID, listing.Metadata, listing.IsInStock, productGroupKey, variantOpts).Scan(&id)
 	return id, err
 }
 

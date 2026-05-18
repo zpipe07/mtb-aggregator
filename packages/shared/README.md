@@ -7,7 +7,7 @@ Schema, migrations, seed data, and JSON config files shared across the mtb-aggre
 | Path | Purpose |
 |------|---------|
 | `schema.sql` | Base schema (stores, store_listings, price_history, etc.) |
-| `seed.sql` | Seed data (stores) |
+| `seed.sql` | Seed data (stores: JensonUSA, Worldwide Cyclery, Revel, Ride Bicycles, Thunder Mountain Bikes, Competitive Cyclist, etc.) |
 | `migrations/` | Numbered incremental migrations; run in sorted order |
 | `brand_aliases.json` | Brand normalization; maps variants → canonical names |
 | `category_taxonomy.json` | Legacy category tree; used for seed when `category_mappings` empty |

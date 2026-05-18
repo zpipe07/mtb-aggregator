@@ -27,6 +27,8 @@ Thumbs.db
 
 # Logs and scraper debug output
 logs/
+*.storage.json
+cc-storage.json
 *.log
 npm-debug.log*
 pnpm-debug.log*
