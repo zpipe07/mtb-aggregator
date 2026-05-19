@@ -27,7 +27,10 @@ function enrichFromHtml(
   html: string,
   productUrl: string,
   wafBlocked: boolean,
-): { result: EnrichResult; parseDebug: ReturnType<typeof debugHasVariantParse> } {
+): {
+  result: EnrichResult;
+  parseDebug: ReturnType<typeof debugHasVariantParse>;
+} {
   const parseDebug = debugHasVariantParse(html);
   const variants = parseDebug.variants;
 
@@ -57,23 +60,39 @@ function enrichFromHtml(
 }
 
 /** PDP enrich only — CC ingest runs via Impact catalog on the API, not POST /scrape. */
-export async function enrichCompetitiveCyclist(productUrl: string): Promise<EnrichResult> {
+export async function enrichCompetitiveCyclist(
+  productUrl: string,
+): Promise<EnrichResult> {
   try {
     return await runWithBrowser(async (browser) => {
-      const context = await browser.newContext(backcountryFamilyContextOptions(BRAND_LABEL));
+      const context = await browser.newContext(
+        backcountryFamilyContextOptions(BRAND_LABEL),
+      );
       const page = await context.newPage();
       try {
-        await page.goto(productUrl, { waitUntil: "domcontentloaded", timeout: 90000 });
-        const { ready, wafBlocked } = await waitForBackcountryFamilyPdpReady(page, BRAND_LABEL);
+        await page.goto(productUrl, {
+          waitUntil: "domcontentloaded",
+          timeout: 90000,
+        });
+        const { ready, wafBlocked } = await waitForBackcountryFamilyPdpReady(
+          page,
+          BRAND_LABEL,
+        );
         if (!ready && !wafBlocked) {
           console.warn(
             `[scraper] ${BRAND_LABEL}: PDP did not show JSON-LD before timeout; parsing partial HTML`,
           );
         }
-        await page.waitForLoadState("networkidle", { timeout: 30000 }).catch(() => undefined);
+        await page
+          .waitForLoadState("networkidle", { timeout: 30000 })
+          .catch(() => undefined);
         const html = await page.content();
         await new Promise((r) => setTimeout(r, ENRICH_DELAY_MS));
-        const { result, parseDebug } = enrichFromHtml(html, productUrl, wafBlocked);
+        const { result, parseDebug } = enrichFromHtml(
+          html,
+          productUrl,
+          wafBlocked,
+        );
         if (shouldPersistStorageAfterPdp(parseDebug, wafBlocked)) {
           await persistScraperStorageState(context, BRAND_LABEL);
         }
