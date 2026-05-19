@@ -92,6 +92,7 @@ make backfill-brands
 make backfill-canonical-categories   # recategorize listings after taxonomy changes
 make backfill-llm-specs              # populate llm_specs from specs (after migration 016)
 make backfill-field-library          # migration 019: field defs + profile_fields + key renames
+make backfill-cc-variants            # CC: PDP hasVariant grouping for existing Impact rows
 
 # Build all
 make build-all
@@ -109,7 +110,7 @@ pnpm --filter @mtb-aggregator/web run build-storybook  # static build to storybo
 2. **Scrape job**: for each store, either **(a)** pulls Competitive Cyclist from the **Impact catalog API** in the Go scheduler when `IMPACT_ACCOUNT_SID` / `IMPACT_AUTH_TOKEN` are set, or **(b)** calls the scraper `POST /scrape` with the store's `scrape_url` and `store_type`
 3. **Scraper service** uses Playwright parsers for non-CC stores; returns `ScrapeResult[]`
 4. **API** upserts listings into Postgres, applying brand normalization and metadata extraction. For **Competitive Cyclist**, `affiliate_url` uses `IMPACT_DEEP_LINK_COMPETITIVE_CYCLIST` when set, else the catalog **`Url`** when it’s a tracked hop; otherwise the UI uses **`product_url`**. Catalog **`Description`** may be merged into `metadata.description` for LLM enrichment (no PDP for CC).
-5. **Enrich job**: fetches PDP URLs through `POST /enrich` for stores in `StoreTypesWithEnrichers` (includes **Competitive Cyclist** — enrich-only on the scraper; ingest remains Impact catalog)
+5. **Enrich job**: fetches PDP URLs through `POST /enrich` for stores in `StoreTypesWithEnrichers` (includes **Competitive Cyclist** — enrich-only on the scraper; ingest remains Impact catalog). CC enrich parses PDP JSON-LD **`hasVariant`** and fans out **`product_group_key`** / **`variant_options`** to matching catalog SKUs (`make backfill-cc-variants` for existing rows).
 6. **Category taxonomy** maps raw store category paths to canonical MTB categories (e.g. `["Components", "Brakes"]`)
 
 ### Scraper Service (`apps/scraper/`)
@@ -119,6 +120,7 @@ pnpm --filter @mtb-aggregator/web run build-storybook  # static build to storybo
 - `PARSERS` and `ENRICHERS` maps registered in `parsers/index.ts`
 - Adding a new store: create parser in `parsers/`, add to maps in `parsers/index.ts`, add store enum value to `ScrapeRequestSchema`/`EnrichRequestSchema` in `types.ts`, insert store record in DB
 - **JensonUSA clearance:** `data-product-result-dto` includes `variants[]`; `jensonusa-dto.ts` emits one `ScrapeResult` per variant (`product_group_key` = parent `code`, listing `variant_options` often Color-only). PDP enrich (`jensonusa-pdp.ts` + `enrichJensonUSA`) returns `variants[]` from `serverSideViewModel.variants`; the API fans out full `variant_options` and `is_in_stock` to all siblings. `make backfill-jenson-variants` replays that for existing rows. Migration `025` hides superseded parent-SKU rows after per-variant scrapes land.
+- **Competitive Cyclist:** Impact catalog ingest (API) creates flat rows per SKU; PDP enrich (`cc-pdp-variants.ts` JSON-LD **`hasVariant`**) fans out **`product_group_key`** + **`variant_options`** to siblings sharing the same canonical **`product_url`**. `make backfill-cc-variants` replays grouping for existing rows.
 
 ### API (`apps/api/`)
 
