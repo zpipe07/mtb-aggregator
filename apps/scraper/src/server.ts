@@ -5,6 +5,7 @@ import express from "express";
 import { mkdir, writeFile } from "fs/promises";
 import { join } from "path";
 import { runWithBrowser } from "./browser.js";
+import { logScraperStorageStateConfig } from "./config.js";
 import { getParser, getEnricher, PARSERS, ENRICHERS } from "./parsers/index.js";
 import { captureRouteError } from "./sentry-helpers.js";
 import { ScrapeRequestSchema, ScrapeResultSchema, EnrichRequestSchema } from "./types.js";
@@ -211,6 +212,7 @@ Sentry.setupExpressErrorHandler(app);
 
 app.listen(PORT, () => {
   console.log(`Scraper listening on port ${PORT}`);
+  logScraperStorageStateConfig();
   const isProd =
     process.env.NODE_ENV === "production" || String(process.env.RENDER ?? "").toLowerCase() === "true";
   if (isProd && !String(process.env.SCRAPER_SERVICE_SECRET ?? "").trim()) {
