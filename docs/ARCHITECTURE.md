@@ -66,7 +66,7 @@ flowchart LR
 
 1. Scheduler triggers `POST /enrich-now`
 2. API fetches unenriched listings, groups by store
-3. For each store with an enricher in `StoreTypesWithEnrichers` (**Competitive Cyclist is not included** — PDP fetch is blocked by WAF; use catalog `Description` + LLM instead): Scraper visits PDP URLs
+3. For each store with an enricher in `StoreTypesWithEnrichers` (includes **Competitive Cyclist** — scraper `POST /enrich` on canonical PDP URLs; ingest remains Impact catalog): Scraper visits PDP URLs
 4. Parsers extract retailer category hints (e.g. breadcrumbs or Shopify `product_type`) and specs (tables, definition lists, or—for **Revel Bikes**—`<strong>KEY:</strong><br>value` paragraphs in `body_html` from `/products/{handle}.json`)
 5. API merges PDP specs into `metadata`, then maps `category_path` through `taxonomy.Map` to set `canonical_category` and `category_id` **unless** the listing already has a confident `metadata.llm_category` (same threshold as the classifier, overridable via `LLM_CATEGORY_PRESERVE_THRESHOLD`) — in that case only `category_path` and `metadata` refresh so a failed LLM step cannot revert a good prior classification.
 6. Optional **LLM category classifier** refines `canonical_category` / `category_id` when enabled; then optional **LLM spec extraction** runs per `llm_prompt_profiles`.

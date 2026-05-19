@@ -30,7 +30,9 @@ Backcountry can serve a **“Human Verification”** page to automated browsers.
 
 ### Competitive Cyclist
 
-Production ingest for **Competitive Cyclist** is **not** a scraper route: the API scheduler calls the **Impact Partner Product Catalog** (`internal/impact`) when `IMPACT_ACCOUNT_SID` and `IMPACT_AUTH_TOKEN` are set. Use `make impact-catalog-probe` from the repo root to list catalogs and inspect a sample **Items** response. Outbound **`affiliate_url`** uses `IMPACT_DEEP_LINK_COMPETITIVE_CYCLIST` when set on the API; otherwise the Impact catalog **`Url`** when applicable.
+Production ingest for **Competitive Cyclist** is **not** a scraper scrape route: the API scheduler calls the **Impact Partner Product Catalog** (`internal/impact`) when `IMPACT_ACCOUNT_SID` and `IMPACT_AUTH_TOKEN` are set. Use `make impact-catalog-probe` from the repo root to list catalogs and inspect a sample **Items** response. Outbound **`affiliate_url`** uses `IMPACT_DEEP_LINK_COMPETITIVE_CYCLIST` when set on the API; otherwise the Impact catalog **`Url`** when applicable.
+
+**PDP enrichment** for CC is supported via `POST /enrich` only (`competitivecyclist` enricher in `parsers/competitivecyclist.ts`, Backcountry-family Cheerio helpers). The API includes CC in `StoreTypesWithEnrichers` for nightly enrichment and admin **Enrich** actions. Monitor fetch success rates — CC may block datacenter HTTP like other Backcountry-family sites.
 
 ## Endpoints
 
@@ -52,6 +54,7 @@ Parsers live in `src/parsers/` — one file per store:
 - `worldwidecyclery.ts` — Worldwide Cyclery
 - `revelbikes.ts` — Revel Bikes (Shopify collection JSON + PDP enrich via `/products/{handle}.json`; specs from `body_html` `<strong>KEY:</strong><br>value` paragraphs)
 - `backcountry.ts` — Backcountry (Backcountry-family React PLP; shared logic in `backcountry-family-plp.ts`)
+- `competitivecyclist.ts` — Competitive Cyclist (**enrich only**; ingest is Impact catalog on the API)
 - `ridebicycles.ts` — Ride Bicycles (Shopify JSON API; in-stock + ≥10% off compare-at)
 - `thundermountainbikes.ts` — Thunder Mountain Bikes (Shopify collection JSON + PDP enrich like Worldwide Cyclery)
 
@@ -62,7 +65,7 @@ Parsers live in `src/parsers/` — one file per store:
 1. Create parser in `src/parsers/<store>.ts`
 2. Export `scrape<Store>` and optionally `enrich<Store>`
 3. Add to `PARSERS` and `ENRICHERS` in `parsers/index.ts`
-4. Add store enum value to `ScrapeRequestSchema` / `EnrichRequestSchema` in `types.ts`
+4. Add store enum value to `ScrapeRequestSchema` in `types.ts` (and `EnrichRequestSchema` / `ENRICH_STORE_TYPES` if enrich-only)
 5. Insert store record in DB (via admin or seed)
 
 ## ScrapeResult Shape

@@ -9,6 +9,7 @@ import {
   scrapeThunderMountainBikes,
   enrichThunderMountainBikes,
 } from "./thundermountainbikes.js";
+import { enrichCompetitiveCyclist } from "./competitivecyclist.js";
 
 export type ParserFn = (url: string) => Promise<ScrapeResult[]>;
 export type EnrichFn = (url: string) => Promise<EnrichResult>;
@@ -29,6 +30,7 @@ export const ENRICHERS: Record<string, EnrichFn> = {
   backcountry: enrichBackcountry,
   ridebicycles: enrichRideBicycles,
   thundermountainbikes: enrichThunderMountainBikes,
+  competitivecyclist: enrichCompetitiveCyclist,
 };
 
 export function getParser(store: string): ParserFn | null {

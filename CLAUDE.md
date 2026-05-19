@@ -76,6 +76,7 @@ make scrape-now-competitivecyclist  # CC only (Impact catalog on API; requires I
 make scrape-now-thundermountainbikes  # thundermountainbikes only
 make enrich-now              # enrich unenriched listings
 make enrich-now-revel        # revelbikes only (optional FORCE=1)
+make enrich-now-competitivecyclist   # CC only (optional FORCE=1)
 make enrich-now-thundermountainbikes   # thundermountainbikes only (optional FORCE=1)
 make enrich-now FORCE=1      # re-enrich all
 make impact-catalog-probe    # list Impact catalogs + sample catalog Items page (requires IMPACT_ACCOUNT_SID + IMPACT_AUTH_TOKEN)
@@ -105,7 +106,7 @@ pnpm --filter @mtb-aggregator/web run build-storybook  # static build to storybo
 2. **Scrape job**: for each store, either **(a)** pulls Competitive Cyclist from the **Impact catalog API** in the Go scheduler when `IMPACT_ACCOUNT_SID` / `IMPACT_AUTH_TOKEN` are set, or **(b)** calls the scraper `POST /scrape` with the store's `scrape_url` and `store_type`
 3. **Scraper service** uses Playwright parsers for non-CC stores; returns `ScrapeResult[]`
 4. **API** upserts listings into Postgres, applying brand normalization and metadata extraction. For **Competitive Cyclist**, `affiliate_url` uses `IMPACT_DEEP_LINK_COMPETITIVE_CYCLIST` when set, else the catalog **`Url`** when it’s a tracked hop; otherwise the UI uses **`product_url`**. Catalog **`Description`** may be merged into `metadata.description` for LLM enrichment (no PDP for CC).
-5. **Enrich job**: fetches PDP URLs through `POST /enrich` for stores in `StoreTypesWithEnrichers` (excludes Competitive Cyclist)
+5. **Enrich job**: fetches PDP URLs through `POST /enrich` for stores in `StoreTypesWithEnrichers` (includes **Competitive Cyclist** — enrich-only on the scraper; ingest remains Impact catalog)
 6. **Category taxonomy** maps raw store category paths to canonical MTB categories (e.g. `["Components", "Brakes"]`)
 
 ### Scraper Service (`apps/scraper/`)
