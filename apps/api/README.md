@@ -38,7 +38,7 @@ Go HTTP server that orchestrates scraping, enrichment, and serves the REST API. 
 ### Trigger (cron or manual)
 
 - `POST /scrape-now` — Trigger scrape job; optional `?store=<store_type>`
-- `POST /enrich-now` — Trigger PDP enrichment job; optional `?force=1`, `?store=` (store_type), optional `canonical_category=` and `llm_confidence_below=` (same filter semantics as the scheduler enrichment loop). Store types that run PDP enrichment are listed in `StoreTypesWithEnrichers` in `internal/db/db.go` (includes `jensonusa`, `worldwidecyclery`, `revelbikes`, `backcountry`, `ridebicycles`, `thundermountainbikes`).
+- `POST /enrich-now` — Trigger PDP enrichment job; optional `?force=1`, `?store=` (store_type), optional `canonical_category=` and `llm_confidence_below=` (same filter semantics as the scheduler enrichment loop). Store types that run PDP enrichment are listed in `StoreTypesWithEnrichers` in `internal/db/db.go` (includes `jensonusa`, `worldwidecyclery`, `revelbikes`, `backcountry`, `ridebicycles`, `thundermountainbikes`). **Competitive Cyclist** is omitted (catalog + LLM instead of PDP).
 - `POST /llm-specs-now` — Start an **async** `enrich_jobs` row (`job_type=llm_specs`) that runs LLM category classification (if configured) plus prompt-profile spec extraction **from data already on `store_listings`** — no PDP fetch. Uses the same cron/auth as scrape/enrich triggers. Query: optional `store` (store_type), `canonical_category=` (joined path string matching the admin listings filter), `llm_confidence_below=`, and `allow_empty_specs=1` to include listings missing `metadata.specs` (default filter requires non-empty specs).
 
 **Auth:** Valid `CRON_SECRET` via `X-Cron-Secret` (or `?secret=` — avoid in production logs), or `Authorization: Bearer <ADMIN_PASSWORD>`. In production (`APP_ENV=production` or `RENDER=true`), if `CRON_SECRET` is unset, unauthenticated triggers are rejected unless `ALLOW_OPEN_CRON=1` (not recommended). Local dev allows unauthenticated triggers when `CRON_SECRET` is unset.
@@ -65,6 +65,8 @@ Go HTTP server that orchestrates scraping, enrichment, and serves the REST API. 
 - `DATABASE_URL` — Postgres connection string
 - `SCRAPER_SERVICE_URL` — Scraper base URL (default `http://localhost:3000`)
 - `SCRAPER_SERVICE_SECRET` — Optional locally; **set in production** to match the scraper service. API sends `X-Scraper-Secret` on `POST /scrape` and `POST /enrich` to the scraper.
+- **`IMPACT_DEEP_LINK_COMPETITIVE_CYCLIST`** — Optional Impact Radius outbound template for **Competitive Cyclist** listings only. When set, each scrape upsert assigns `store_listings.affiliate_url` using your dashboard link format (`{{URL}}` substitution or literal `u=` prefix). When unset, ingest still fills **`affiliate_url`** from the catalog row’s **`Url`** when it’s an Impact redirect / unwrap wrapper (commissionable hop); plain www.competitivecyclist.com PDPs leave **`affiliate_url`** empty so the UI uses **`product_url`**. Catalog ingest **unwraps nested Impact `Url` redirects** so **`product_url`** is always the canonical PDP before applying this template — avoids double-wrapped links in the browser. Never commit actual program/partner IDs; set this only via deployment secrets.
+- **Impact Partner catalog (Competitive Cyclist ingest)** — Required in production for CC: **`IMPACT_ACCOUNT_SID`** (Mediapartner SID) and **`IMPACT_AUTH_TOKEN`** (API token from Impact → Settings → API). The scheduler calls `GET .../Mediapartners/{sid}/Catalogs`, then paginates **`GET .../Mediapartners/{sid}/Catalogs/{catalogId}/Items`** (Basic auth, IR v12+) instead of the Playwright scraper. **Impact limits `Page` / `PageSize` pagination to a 20,000-row window** — the client stops before requesting past that (and logs if more data exists). Optional: **`IMPACT_CC_CATALOG_ID`** (skip auto-pick), **`IMPACT_CC_ITEM_SEARCH_QUERY`** (passed as `Query` when supported; otherwise items are filtered in the API after fetch), **`IMPACT_CC_CATEGORY_CONTAINS`** (default `bike`; substring match on category + product name — set empty in env to disable), **`IMPACT_CC_PAGE_SIZE`** (larger = fewer HTTP requests within the same 20k cap), **`IMPACT_API_BASE_URL`** (default `https://api.impact.com`). If credentials are unset, **`competitivecyclist` scrape fails loudly** (no WAF/Playwright fallback). Ops: `make impact-catalog-probe` runs `go run ./cmd/impact-catalog-probe` to list catalogs and print one page of catalog items.
 - `ADMIN_PASSWORD` — Required for admin endpoints (use a long random value in production)
 - `ADMIN_AUTH_MAX_ATTEMPTS_PER_WINDOW` — Failed `POST /admin/auth` attempts per IP before HTTP 429 (default `5`)
 - `ADMIN_AUTH_WINDOW_SECONDS` — Rolling window for those attempts (default `900` = 15 minutes)
@@ -94,6 +96,8 @@ When `SENTRY_DSN` is set (deployed environments should set it), **significant er
 # From repo root
 cd apps/api && go run main.go
 ```
+
+**Impact catalog discovery (Competitive Cyclist):** with `IMPACT_ACCOUNT_SID` + `IMPACT_AUTH_TOKEN` in `.env`, run `make impact-catalog-probe`.
 
 ## Backfills
 

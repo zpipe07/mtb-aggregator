@@ -46,9 +46,9 @@ flowchart LR
 ### 1. Scrape Job (every 4h)
 
 1. Scheduler triggers `POST /scrape-now` (or per-store via `?store=xxx`)
-2. API iterates stores, calls Scraper `POST /scrape` with `url` + `store_type`
-3. Scraper loads Playwright, runs store-specific parser, returns `ScrapeResult[]`
-4. API upserts listings into `store_listings`, applies brand normalization, extracts metadata
+2. API iterates stores. **Competitive Cyclist** (`store_type=competitivecyclist`) is ingested inside the API via the **Impact Partner Product Catalog** (HTTP Basic: `IMPACT_ACCOUNT_SID` / `IMPACT_AUTH_TOKEN`) — no Playwright call. All **other** stores call the scraper `POST /scrape` with `url` + `store_type`.
+3. Scraper loads Playwright, runs store-specific parser, returns `ScrapeResult[]` (skipped for CC)
+4. API upserts listings into `store_listings`, applies brand normalization, extracts metadata, and sets **`affiliate_url`** for **Competitive Cyclist** via `IMPACT_DEEP_LINK_COMPETITIVE_CYCLIST` when configured, otherwise from the Impact catalog **`Url`** when it carries redirect attribution (plain PDP URLs omit **`affiliate_url`**). Public reads prefer **`affiliate_url`** over **`product_url`** for “View deal” CTAs when the column is populated.
 
 **Shopify variants:** For Shopify-based stores, each variant is a row (`store_sku` unique per store). `product_group_key` is `{store_id}:{product_handle}` for grouping; `variant_options` holds option dimensions (e.g. `Size`, `Color`) from the products JSON API. `GET /deals?group_variants=true` returns one representative deal per group with `variants[]`, `variant_count`, and optional `price_range`; `GET /facets` includes `variant_facets` for sidebar filters. Repeated `variant_<Key>=` query params OR-match within the same key (AND across different keys). Backfill `make backfill-variant-options` (API) primarily paginates each store’s **`stores.scrape_url`** collection **`/products.json`** (same as scrapers), then optionally falls back to **`/products/{handle}.json`** for handles not in that index; see [apps/api/README.md](../apps/api/README.md).
 
@@ -66,7 +66,7 @@ flowchart LR
 
 1. Scheduler triggers `POST /enrich-now`
 2. API fetches unenriched listings, groups by store
-3. For each store with an enricher: Scraper visits PDP (product detail page) URLs (HTTP fetch or Playwright depending on store)
+3. For each store with an enricher in `StoreTypesWithEnrichers` (**Competitive Cyclist is not included** — PDP fetch is blocked by WAF; use catalog `Description` + LLM instead): Scraper visits PDP URLs
 4. Parsers extract retailer category hints (e.g. breadcrumbs or Shopify `product_type`) and specs (tables, definition lists, or—for **Revel Bikes**—`<strong>KEY:</strong><br>value` paragraphs in `body_html` from `/products/{handle}.json`)
 5. API merges PDP specs into `metadata`, then maps `category_path` through `taxonomy.Map` to set `canonical_category` and `category_id` **unless** the listing already has a confident `metadata.llm_category` (same threshold as the classifier, overridable via `LLM_CATEGORY_PRESERVE_THRESHOLD`) — in that case only `category_path` and `metadata` refresh so a failed LLM step cannot revert a good prior classification.
 6. Optional **LLM category classifier** refines `canonical_category` / `category_id` when enabled; then optional **LLM spec extraction** runs per `llm_prompt_profiles`.

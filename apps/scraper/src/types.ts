@@ -14,6 +14,8 @@ export const ScrapeResultSchema = z.object({
   product_group_key: z.string().nullable().optional(),
   /** Per-variant options, e.g. { Size: "Large", Color: "Black" }. */
   variant_options: z.record(z.string(), z.string()).nullable().optional(),
+  /** Set by API-side ingest (not Node scraper) for LLM context. */
+  feed_description: z.string().nullable().optional(),
 });
 
 export type ScrapeResult = z.infer<typeof ScrapeResultSchema>;

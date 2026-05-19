@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<!--
+  Synthetic minimal HTML for Vitest only — not scraped from Competitive Cyclist or Backcountry.
+  Exercises JSON-LD BreadcrumbList, data-testid=product-description, and a simple spec table
+  matching patterns in backcountry-family-pdp.ts. Production PDPs differ in class names and structure.
+-->
+<html>
+  <head>
+    <script type="application/ld+json">
+      {
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          { "name": "Home", "@type": "ListItem", "position": 1 },
+          { "name": "Bikes", "@type": "ListItem", "position": 2 },
+          {
+            "name": "Mountain Bikes",
+            "@type": "ListItem",
+            "position": 3
+          }
+        ]
+      }
+    </script>
+  </head>
+  <body>
+    <main>
+      <section data-testid="product-description">
+        <p>
+          Lightweight trail chassis with predictable handling. Rated for rugged
+          enduro laps and shuttle days. Ships with tubeless-ready wheels.
+        </p>
+      </section>
+      <strong>Specs</strong>
+      <table>
+        <tr>
+          <th>Frame Material</th>
+          <td>Carbon</td>
+        </tr>
+        <tr>
+          <th>Wheels</th>
+          <td>29 in</td>
+        </tr>
+      </table>
+    </main>
+  </body>
+</html>

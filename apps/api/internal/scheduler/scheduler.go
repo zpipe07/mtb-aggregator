@@ -11,8 +11,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/mtb-aggregator/api/internal/affiliate"
 	"github.com/mtb-aggregator/api/internal/brand"
 	"github.com/mtb-aggregator/api/internal/db"
+	"github.com/mtb-aggregator/api/internal/impact"
 	"github.com/mtb-aggregator/api/internal/llm"
 	"github.com/mtb-aggregator/api/internal/llmlisting"
 	"github.com/mtb-aggregator/api/internal/metadata"
@@ -122,7 +124,7 @@ func (s *Scheduler) scrapeStore(ctx context.Context, store db.Store, triggeredBy
 	if storeType == "" {
 		storeType = strings.ToLower(strings.ReplaceAll(store.Name, " ", ""))
 	}
-	if storeType != "jensonusa" && storeType != "backcountry" && storeType != "worldwidecyclery" && storeType != "revelbikes" && storeType != "ridebicycles" && storeType != "thundermountainbikes" {
+	if storeType != "jensonusa" && storeType != "backcountry" && storeType != "competitivecyclist" && storeType != "worldwidecyclery" && storeType != "revelbikes" && storeType != "ridebicycles" && storeType != "thundermountainbikes" {
 		storeType = "jensonusa"
 	}
 
@@ -149,7 +151,25 @@ func (s *Scheduler) scrapeStore(ctx context.Context, store db.Store, triggeredBy
 	log.Printf("[scheduler] scraping %s (%s)", store.Name, store.ScrapeURL)
 
 	scrapeStartedAt := time.Now()
-	results, err = s.scraper.Scrape(ctx, store.ScrapeURL, storeType)
+	if strings.EqualFold(store.StoreType, "competitivecyclist") {
+		icfg := impact.ConfigFromEnv()
+		if !icfg.CatalogConfigured() {
+			err = fmt.Errorf("competitivecyclist requires %s and %s (Impact Partner catalog); Playwright fallback disabled", impact.EnvAccountSID, impact.EnvAuthToken)
+			log.Printf("[scheduler] scrape failed for %s: %v", store.Name, err)
+			sentryutil.CaptureError(err, map[string]string{"component": "scheduler", "job": "scrape", "store": store.Name, "source": "impact-catalog"})
+			if jobID != 0 {
+				errs := []string{err.Error()}
+				_ = s.db.UpdateScrapeJob(ctx, jobID, "failed", nil, nil, errs, nil)
+			}
+			return
+		}
+		results, err = impact.FetchCompetitiveCyclistScrapeResults(ctx, icfg)
+		if err == nil {
+			log.Printf("[scheduler] %s: impact-catalog returned %d listings", store.Name, len(results))
+		}
+	} else {
+		results, err = s.scraper.Scrape(ctx, store.ScrapeURL, storeType)
+	}
 	if err != nil {
 		log.Printf("[scheduler] scrape failed for %s: %v", store.Name, err)
 		sentryutil.CaptureError(err, map[string]string{"component": "scheduler", "job": "scrape", "store": store.Name})
@@ -267,6 +287,9 @@ func (s *Scheduler) scrapeStore(ctx context.Context, store db.Store, triggeredBy
 				listingMeta = metadata.MergeSpecs(nil, specs)
 			}
 		}
+		if r.FeedDescription != nil && strings.TrimSpace(*r.FeedDescription) != "" {
+			listingMeta = metadata.MergeDescription(listingMeta, strings.TrimSpace(*r.FeedDescription))
+		}
 		var variantOpts []byte
 		if len(r.VariantOptions) > 0 {
 			variantOpts = r.VariantOptions
@@ -286,6 +309,14 @@ func (s *Scheduler) scrapeStore(ctx context.Context, store db.Store, triggeredBy
 			IsInStock:          r.IsInStock,
 			ProductGroupHandle: r.ProductGroupKey,
 			VariantOptions:     variantOpts,
+		}
+		if strings.EqualFold(store.StoreType, "competitivecyclist") {
+			if u, ok := affiliate.CompetitiveCyclistOutboundURL(r.ProductURL); ok {
+				listing.AffiliateURL = &u
+			} else if r.ImpactCatalogOutboundURL != nil && strings.TrimSpace(*r.ImpactCatalogOutboundURL) != "" {
+				x := strings.TrimSpace(*r.ImpactCatalogOutboundURL)
+				listing.AffiliateURL = &x
+			}
 		}
 
 		id, err := s.db.UpsertListing(ctx, listing)

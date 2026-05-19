@@ -1,5 +1,6 @@
 import { chromium as chromiumPlain, type Browser } from "playwright";
 import { chromium as chromiumExtra } from "playwright-extra";
+import { SCRAPER_HEADED } from "./config.js";
 // @ts-ignore — no types shipped, plugin works at runtime
 import StealthPlugin from "puppeteer-extra-plugin-stealth";
 
@@ -50,9 +51,11 @@ export async function getBrowser(): Promise<Browser> {
       timeout: 90000,
     });
   }
-  console.log("[browser] Using local Chromium with stealth (BROWSER_WS_ENDPOINT not set)");
+  console.log(
+    `[browser] Using local Chromium with stealth (BROWSER_WS_ENDPOINT not set, headless=${!SCRAPER_HEADED})`,
+  );
   return chromiumExtra.launch({
-    headless: true,
+    headless: !SCRAPER_HEADED,
     args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"],
   });
 }
