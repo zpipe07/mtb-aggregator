@@ -18,6 +18,69 @@ function isWafPage(title: string, hasGoku: boolean): boolean {
   return /human verification/i.test(title) || hasGoku;
 }
 
+/** Playwright context options shared by Backcountry-family PLP scrape and PDP enrich. */
+export function backcountryFamilyContextOptions(brandLabel: string): Parameters<Browser["newContext"]>[0] {
+  const contextOptions: Parameters<Browser["newContext"]>[0] = {
+    userAgent: BROWSER_USER_AGENT,
+    viewport: { width: 1280, height: 900 },
+    locale: "en-US",
+    timezoneId: "America/Denver",
+    extraHTTPHeaders: { "Accept-Language": "en-US,en;q=0.9" },
+  };
+  if (SCRAPER_STORAGE_STATE) {
+    console.log(`[scraper] ${brandLabel}: loading storage state from ${SCRAPER_STORAGE_STATE}`);
+    contextOptions.storageState = SCRAPER_STORAGE_STATE;
+  }
+  return contextOptions;
+}
+
+/** Wait until AWS WAF clears and PDP JSON-LD (incl. hasVariant) is present. */
+export async function waitForBackcountryFamilyPdpReady(
+  page: Page,
+  brandLabel: string,
+): Promise<{ ready: boolean; wafBlocked: boolean }> {
+  const maxMs = SCRAPER_WAF_WAIT_MS;
+  const pollMs = 2000;
+  const deadline = Date.now() + maxMs;
+
+  while (Date.now() < deadline) {
+    const snap = await page.evaluate(() => {
+      const title = document.title || "";
+      const hasGoku = !!(window as unknown as { gokuProps?: unknown }).gokuProps;
+      const ldJson = document.querySelectorAll('script[type="application/ld+json"]').length;
+      const html = document.documentElement.innerHTML;
+      const hasHasVariant = html.includes('"hasVariant"');
+      const hasProductLd = html.includes('"@type":"Product"') || html.includes('"@type": "Product"');
+      return { title, hasGoku, ldJson, hasHasVariant, hasProductLd };
+    });
+
+    const waf = isWafPage(snap.title, snap.hasGoku);
+    if (!waf && snap.ldJson > 0 && (snap.hasHasVariant || snap.hasProductLd)) {
+      return { ready: true, wafBlocked: false };
+    }
+
+    await page.waitForTimeout(pollMs);
+  }
+
+  const finalSnap = await page.evaluate(() => ({
+    title: document.title || "",
+    hasGoku: !!(window as unknown as { gokuProps?: unknown }).gokuProps,
+  }));
+  const wafBlocked = isWafPage(finalSnap.title, finalSnap.hasGoku);
+  if (wafBlocked) {
+    console.error(
+      `[scraper] ${brandLabel}: stuck on AWS WAF "Human Verification" after ${maxMs}ms.`,
+    );
+    console.error(
+      `[scraper] ${brandLabel}: Pass WAF once in a real browser, then set SCRAPER_STORAGE_STATE to a Playwright storage JSON (see apps/scraper/README.md).`,
+    );
+    console.error(
+      `[scraper] ${brandLabel}: Also try SCRAPER_HEADED=1 or BROWSER_WS_ENDPOINT with US residential egress.`,
+    );
+  }
+  return { ready: false, wafBlocked };
+}
+
 /** Wait until AWS WAF clears and PLP content or product JSON is available. */
 export async function waitForBackcountryFamilyPlReady(
   page: Page,
@@ -451,18 +514,7 @@ export async function scrapeBackcountryFamilySalePl(browser: Browser, opts: {
 }): Promise<ScrapeResult[]> {
   const { startUrl, brandLabel, debugFilePrefix } = opts;
   const origin = new URL(startUrl).origin;
-  const contextOptions: Parameters<Browser["newContext"]>[0] = {
-    userAgent: BROWSER_USER_AGENT,
-    viewport: { width: 1280, height: 900 },
-    locale: "en-US",
-    timezoneId: "America/Denver",
-    extraHTTPHeaders: { "Accept-Language": "en-US,en;q=0.9" },
-  };
-  if (SCRAPER_STORAGE_STATE) {
-    console.log(`[scraper] ${brandLabel}: loading storage state from ${SCRAPER_STORAGE_STATE}`);
-    contextOptions.storageState = SCRAPER_STORAGE_STATE;
-  }
-  const context = await browser.newContext(contextOptions);
+  const context = await browser.newContext(backcountryFamilyContextOptions(brandLabel));
   const page = await context.newPage();
   const capturedJson: unknown[] = [];
   attachJsonResponseCapture(page, capturedJson);
