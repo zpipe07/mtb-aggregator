@@ -422,6 +422,7 @@ func (s *Scheduler) RunEnrichmentJob(force bool, triggeredBy string) {
 
 	var llmState llmlisting.QuotaJobState
 	seenJensonGroups := make(map[string]bool)
+	seenCCGroups := make(map[string]bool)
 	processed := 0
 	for _, l := range listings {
 		if ctx.Err() != nil {
@@ -452,6 +453,9 @@ func (s *Scheduler) RunEnrichmentJob(force bool, triggeredBy string) {
 
 		if err := s.db.ApplyJensonPDPVariantFanout(ctx, l.StoreID, l.StoreType, l.StoreSKU, enrichVariantsToJenson(result.Variants), seenJensonGroups); err != nil {
 			log.Printf("[enrichment] jenson variant fan-out failed for listing %d: %v", l.ID, err)
+		}
+		if err := applyCompetitiveCyclistVariantFanout(ctx, s.db, l.ID, l.StoreID, l.StoreType, l.StoreSKU, l.ProductURL, result.Variants, seenCCGroups); err != nil {
+			log.Printf("[enrichment] competitivecyclist variant fan-out failed for listing %d: %v", l.ID, err)
 		}
 
 		successCount++
@@ -597,6 +601,7 @@ func (s *Scheduler) runEnrichmentLoop(f db.EnrichmentFilter, force bool, trigger
 		}
 		log.Printf("[enrichment] %s: enriching batch of %d listings", scope, len(listings))
 		seenJensonGroups := make(map[string]bool)
+	seenCCGroups := make(map[string]bool)
 		successCount := 0
 		for _, l := range listings {
 			if ctx.Err() != nil {
@@ -624,6 +629,9 @@ func (s *Scheduler) runEnrichmentLoop(f db.EnrichmentFilter, force bool, trigger
 			}
 			if err := s.db.ApplyJensonPDPVariantFanout(ctx, l.StoreID, l.StoreType, l.StoreSKU, enrichVariantsToJenson(result.Variants), seenJensonGroups); err != nil {
 				log.Printf("[enrichment] jenson variant fan-out failed for listing %d: %v", l.ID, err)
+			}
+			if err := applyCompetitiveCyclistVariantFanout(ctx, s.db, l.ID, l.StoreID, l.StoreType, l.StoreSKU, l.ProductURL, result.Variants, seenCCGroups); err != nil {
+				log.Printf("[enrichment] competitivecyclist variant fan-out failed for listing %d: %v", l.ID, err)
 			}
 			successCount++
 			totalSuccess++
