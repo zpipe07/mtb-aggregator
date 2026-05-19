@@ -32,18 +32,6 @@ Backcountry can serve a **“Human Verification”** page to automated browsers.
 
 Production **listing ingest** is **not** a scraper scrape route: the API scheduler calls the **Impact Partner Product Catalog** (`internal/impact`) when `IMPACT_ACCOUNT_SID` and `IMPACT_AUTH_TOKEN` are set. Use `make impact-catalog-probe` from the repo root to list catalogs and inspect a sample **Items** response. Outbound **`affiliate_url`** uses `IMPACT_DEEP_LINK_COMPETITIVE_CYCLIST` when set; otherwise the Impact catalog **`Url`** when applicable.
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-**PDP enrichment** for CC is supported via `POST /enrich` only (`competitivecyclist` enricher in `parsers/competitivecyclist.ts`, Backcountry-family Cheerio helpers). Uses **Playwright** (same AWS WAF handling as Backcountry PLP — not plain `fetch`). During enrich, JSON-LD **`hasVariant`** on the PDP is parsed and the API fans out **`product_group_key`** + **`variant_options`** to existing Impact catalog rows that share the same canonical **`product_url`** and matching **`store_sku`** (see `make backfill-cc-variants`). The API includes CC in `StoreTypesWithEnrichers` for nightly enrichment and admin **Enrich** actions.
-
-If enrich logs show `waf_suspect=true` / `variants_parsed=0`, pass WAF once in a real browser and set **`SCRAPER_STORAGE_STATE`** to a Playwright storage JSON (e.g. `apps/scraper/cc-storage.json` — gitignored). After a successful PDP load, the scraper **overwrites that file** with fresh cookies so later headless enriches reuse the session. Also try **`SCRAPER_HEADED=1`** for the first solve, or a remote browser with US egress.
-
-**Bootstrap storage (one-time):** from `apps/scraper`, run `pnpm exec playwright codegen --save-storage=cc-storage.json "https://www.competitivecyclist.com/..."`, complete WAF in the opened browser, then close codegen. Or set `SCRAPER_HEADED=1`, enrich one PDP manually, and let auto-save refresh `cc-storage.json`.
-
-# **Debug logs:** scraper lines `[scraper] competitivecyclist enrich debug:` (`transport=playwright`, `html_bytes`, `waf_suspect`, `variants_parsed`, sample SKUs); API lines `[cc-variants]` (variant count from enrich, fan-out matched/skipped counts).
-
-# **PDP enrichment** for CC is supported via `POST /enrich` only (`competitivecyclist` enricher in `parsers/competitivecyclist.ts`, Backcountry-family Cheerio helpers). The API includes CC in `StoreTypesWithEnrichers` for nightly enrichment and admin **Enrich** actions. Monitor fetch success rates — CC may block datacenter HTTP like other Backcountry-family sites.
-
 **PDP enrichment** (`POST /enrich`, store `competitivecyclist`) uses **Playwright** to load product pages, parse JSON-LD **`hasVariant`**, and return per-SKU size/color. The API fans out **`product_group_key`** + **`variant_options`** to existing Impact rows that share the same canonical **`product_url`** and matching **`store_sku`** (`make backfill-cc-variants` for existing rows; nightly enrich via `StoreTypesWithEnrichers`).
 
 CC blocks unattended HTTP with **AWS WAF** (“Human Verification”). Headless Playwright from a datacenter IP will not get JSON-LD unless you reuse cookies from a real browser session. That session is stored in **`apps/scraper/cc-storage.json`** (gitignored — never commit).
@@ -135,9 +123,17 @@ Render secret files are often **read-only** — auto-save may log `failed to sav
 
 - Scraper: `[scraper] competitivecyclist enrich debug:` (`transport=playwright`, `html_bytes`, `waf_suspect`, `variants_parsed`, sample SKUs).
 - API: `[cc-variants]` (variant count from enrich, fan-out `matched` / `skipped_sku` counts).
-  > > > > > > > @{-1}
 
-> > > > > > > @{-1}
+### Canyon
+
+**Listing scrape** (`canyon` in `PARSERS`) uses **fetch + Cheerio** against the Demandware ajax grid (`Search-IncludeProductGrid` on `cgid=helper-sale-us`), paginated with `start` / `sz=24` — no Playwright. Seed `scrape_url`: `https://www.canyon.com/en-us/sale/`. Emits one row per color swatch when the PLP tile exposes `data-pdp-url`; `product_group_key` is the numeric master id from the PDP path (`…/3175.html`).
+
+**PDP enrichment** (`enrichCanyon`) fetches PDP HTML and parses JSON-LD `Product` (description, `additionalProperty`) plus breadcrumb `BreadcrumbList` when present. No affiliate URL in MVP.
+
+```bash
+make scrape-now-canyon
+make enrich-now-canyon
+```
 
 ## Endpoints
 
@@ -162,6 +158,7 @@ Parsers live in `src/parsers/` — one file per store:
 - `competitivecyclist.ts` — Competitive Cyclist (**enrich only**; ingest is Impact catalog on the API)
 - `ridebicycles.ts` — Ride Bicycles (Shopify JSON API; in-stock + ≥10% off compare-at)
 - `thundermountainbikes.ts` — Thunder Mountain Bikes (Shopify collection JSON + PDP enrich like Worldwide Cyclery)
+- `canyon.ts` / `canyon-plp.ts` / `canyon-pdp.ts` — Canyon US sale (Demandware ajax PLP + fetch PDP enrich)
 
 `parsers/index.ts` registers `PARSERS` and `ENRICHERS` maps. Enrichers fetch product detail pages (PDP) for category paths and specs.
 
