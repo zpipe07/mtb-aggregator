@@ -34,12 +34,12 @@ flowchart LR
 
 ## Services
 
-| Service | Stack | Port | Role |
-|---------|-------|------|------|
-| API | Go (net/http, pgx) | 8080 | REST API, scheduler, orchestration |
-| Scraper | Node.js + Express + Playwright | 3000 | Scrapes retailer sale pages |
-| Web | Next.js 15 + React + Tailwind v4 + TanStack Query | 3000 | Public deals UI (SSR/ISR), admin |
-| Storybook | Storybook 8 + Vite | 6006 | Component development, design system docs |
+| Service   | Stack                                             | Port | Role                                      |
+| --------- | ------------------------------------------------- | ---- | ----------------------------------------- |
+| API       | Go (net/http, pgx)                                | 8080 | REST API, scheduler, orchestration        |
+| Scraper   | Node.js + Express + Playwright                    | 3000 | Scrapes retailer sale pages               |
+| Web       | Next.js 15 + React + Tailwind v4 + TanStack Query | 3000 | Public deals UI (SSR/ISR), admin          |
+| Storybook | Storybook 8 + Vite                                | 6006 | Component development, design system docs |
 
 ## Data Flow
 
@@ -66,7 +66,7 @@ flowchart LR
 
 1. Scheduler triggers `POST /enrich-now`
 2. API fetches unenriched listings, groups by store
-3. For each store with an enricher in `StoreTypesWithEnrichers` (**Competitive Cyclist is not included** — PDP fetch is blocked by WAF; use catalog `Description` + LLM instead): Scraper visits PDP URLs
+3. For each store with an enricher in `StoreTypesWithEnrichers` (includes **Competitive Cyclist** — scraper `POST /enrich` on canonical PDP URLs; ingest remains Impact catalog): Scraper visits PDP URLs
 4. Parsers extract retailer category hints (e.g. breadcrumbs or Shopify `product_type`) and specs (tables, definition lists, or—for **Revel Bikes**—`<strong>KEY:</strong><br>value` paragraphs in `body_html` from `/products/{handle}.json`)
 5. API merges PDP specs into `metadata`, then maps `category_path` through `taxonomy.Map` to set `canonical_category` and `category_id` **unless** the listing already has a confident `metadata.llm_category` (same threshold as the classifier, overridable via `LLM_CATEGORY_PRESERVE_THRESHOLD`) — in that case only `category_path` and `metadata` refresh so a failed LLM step cannot revert a good prior classification.
 6. Optional **LLM category classifier** refines `canonical_category` / `category_id` when enabled; then optional **LLM spec extraction** runs per `llm_prompt_profiles`.
@@ -90,18 +90,18 @@ Hot paths (`GetLLMPromptProfileForCategory*`, `GetLLMPromptProfileByID`) hydrate
 
 ## Key Directories
 
-| Path | Purpose |
-|------|---------|
-| `apps/api/internal/scheduler/` | Cron jobs, scrape/enrich orchestration |
+| Path                            | Purpose                                                                        |
+| ------------------------------- | ------------------------------------------------------------------------------ |
+| `apps/api/internal/scheduler/`  | Cron jobs, scrape/enrich orchestration                                         |
 | `apps/api/internal/llmlisting/` | LLM classify + spec extraction pipeline shared by enrichment and LLM-only jobs |
-| `apps/api/internal/db/` | All pgx queries |
-| `apps/api/internal/brand/` | Brand aliases normalization |
-| `apps/api/internal/taxonomy/` | Category mapping, in-memory cache |
-| `apps/api/internal/metadata/` | Spec extraction from enriched data |
-| `apps/scraper/src/parsers/` | One parser per store |
-| `apps/web/src/components/ui/` | shadcn primitives (Button, Input, Card, Drawer/Vaul, etc.) |
-| `apps/web/src/components/` | Composed components (DealCard, CategoryCard, Pagination, etc.) |
-| `apps/web/.storybook/` | Storybook config, preview decorators |
+| `apps/api/internal/db/`         | All pgx queries                                                                |
+| `apps/api/internal/brand/`      | Brand aliases normalization                                                    |
+| `apps/api/internal/taxonomy/`   | Category mapping, in-memory cache                                              |
+| `apps/api/internal/metadata/`   | Spec extraction from enriched data                                             |
+| `apps/scraper/src/parsers/`     | One parser per store                                                           |
+| `apps/web/src/components/ui/`   | shadcn primitives (Button, Input, Card, Drawer/Vaul, etc.)                     |
+| `apps/web/src/components/`      | Composed components (DealCard, CategoryCard, Pagination, etc.)                 |
+| `apps/web/.storybook/`          | Storybook config, preview decorators                                           |
 
 ## Component Library
 
@@ -162,15 +162,15 @@ See [.cursor/plans/website_analytics_plan_f835d1a0.plan.md](../.cursor/plans/web
 
 GitHub Actions (`.github/workflows/ci.yml`) runs on every push and PR to `main`:
 
-| Step | Purpose |
-|------|---------|
-| **gitleaks** | Secret scanning on the repo history / PR diff |
-| **`pnpm audit --audit-level=high`** | npm advisory database; fails on high/critical (moderate/low do not block) |
-| **`next lint` + `tsc --noEmit`** | ESLint (including `eslint-plugin-security` rules) and TypeScript for the web app |
-| **`go vet`**, **staticcheck** (`v0.7.0`), **govulncheck** (`v1.2.0`) | Go correctness and known-vulnerability checks on reachable code paths |
-| **SEO smoke** (`pnpm --filter @mtb-aggregator/web run seo:smoke`) | Asserts JSON-LD builder output invariants (no running server) |
-| **Lighthouse CI** | Runs when repository **Variables** include `API_URL` (same as web build): starts `next start` after the web build and asserts Lighthouse **SEO** category ≥ 0.85 on `/` and `/deals` ([`apps/web/lighthouserc.json`](../apps/web/lighthouserc.json)) |
-| **Scraper tests**, **API + web build** | Existing quality gates |
+| Step                                                                 | Purpose                                                                                                                                                                                                                                              |
+| -------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **gitleaks**                                                         | Secret scanning on the repo history / PR diff                                                                                                                                                                                                        |
+| **`pnpm audit --audit-level=high`**                                  | npm advisory database; fails on high/critical (moderate/low do not block)                                                                                                                                                                            |
+| **`next lint` + `tsc --noEmit`**                                     | ESLint (including `eslint-plugin-security` rules) and TypeScript for the web app                                                                                                                                                                     |
+| **`go vet`**, **staticcheck** (`v0.7.0`), **govulncheck** (`v1.2.0`) | Go correctness and known-vulnerability checks on reachable code paths                                                                                                                                                                                |
+| **SEO smoke** (`pnpm --filter @mtb-aggregator/web run seo:smoke`)    | Asserts JSON-LD builder output invariants (no running server)                                                                                                                                                                                        |
+| **Lighthouse CI**                                                    | Runs when repository **Variables** include `API_URL` (same as web build): starts `next start` after the web build and asserts Lighthouse **SEO** category ≥ 0.85 on `/` and `/deals` ([`apps/web/lighthouserc.json`](../apps/web/lighthouserc.json)) |
+| **Scraper tests**, **API + web build**                               | Existing quality gates                                                                                                                                                                                                                               |
 
 The CI workflow sets `permissions: contents: read` and `pull-requests: read` so `GITHUB_TOKEN` can list PR commits for **gitleaks** (without this, `pull_request` runs can fail with HTTP 403 from the GitHub API).
 
@@ -203,10 +203,10 @@ See [README.md](../README.md) for setup and [.cursor/plans/mtb_aggregator_deploy
 
 **Deployed environments (Render, Vercel, etc.) should set the Sentry DSN** so failures are visible. When a DSN is set, **do not rely on logs alone** for errors that indicate a bug, outage, or broken integration—**send them to Sentry** as well.
 
-| Do report | Usually do not report |
-|-----------|------------------------|
-| 5xx, panics, timeouts, scraper/enrich job failures, strict validation abort, consecutive empty scrapes | Expected 4xx, auth failures, “not found” for valid clients |
-| Handled errors where you return 500/503 but the request didn’t panic | High-volume per-item failures unless sampled or aggregated (see scheduler note below) |
+| Do report                                                                                              | Usually do not report                                                                 |
+| ------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------- |
+| 5xx, panics, timeouts, scraper/enrich job failures, strict validation abort, consecutive empty scrapes | Expected 4xx, auth failures, “not found” for valid clients                            |
+| Handled errors where you return 500/503 but the request didn’t panic                                   | High-volume per-item failures unless sampled or aggregated (see scheduler note below) |
 
 Local development may omit DSN to avoid noise; production/staging should not.
 

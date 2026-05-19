@@ -11,15 +11,15 @@ Go HTTP server that orchestrates scraping, enrichment, and serves the REST API. 
 
 ## Key Directories
 
-| Path | Purpose |
-|------|---------|
-| `internal/api/` | HTTP handlers, route registration |
-| `internal/db/` | Database queries (listings, stores, categories, etc.) |
-| `internal/scheduler/` | Cron jobs: scrape (4h), enrich (nightly) |
-| `internal/brand/` | Brand normalization via `brand_aliases.json` |
-| `internal/taxonomy/` | Category mapping, in-memory cache |
-| `internal/metadata/` | Spec extraction from enriched category paths |
-| `internal/llm/` | LLM-driven spec extraction, classifier |
+| Path                   | Purpose                                                                                                      |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `internal/api/`        | HTTP handlers, route registration                                                                            |
+| `internal/db/`         | Database queries (listings, stores, categories, etc.)                                                        |
+| `internal/scheduler/`  | Cron jobs: scrape (4h), enrich (nightly)                                                                     |
+| `internal/brand/`      | Brand normalization via `brand_aliases.json`                                                                 |
+| `internal/taxonomy/`   | Category mapping, in-memory cache                                                                            |
+| `internal/metadata/`   | Spec extraction from enriched category paths                                                                 |
+| `internal/llm/`        | LLM-driven spec extraction, classifier                                                                       |
 | `internal/llmlisting/` | Shared LLM classify + spec extraction from `store_listings` (scheduler enrichment and admin/spec-only paths) |
 
 ## Endpoints
@@ -38,7 +38,7 @@ Go HTTP server that orchestrates scraping, enrichment, and serves the REST API. 
 ### Trigger (cron or manual)
 
 - `POST /scrape-now` — Trigger scrape job; optional `?store=<store_type>`
-- `POST /enrich-now` — Trigger PDP enrichment job; optional `?force=1`, `?store=` (store_type), optional `canonical_category=` and `llm_confidence_below=` (same filter semantics as the scheduler enrichment loop). Store types that run PDP enrichment are listed in `StoreTypesWithEnrichers` in `internal/db/db.go` (includes `jensonusa`, `worldwidecyclery`, `revelbikes`, `backcountry`, `ridebicycles`, `thundermountainbikes`). **Competitive Cyclist** is omitted (catalog + LLM instead of PDP).
+- `POST /enrich-now` — Trigger PDP enrichment job; optional `?force=1`, `?store=` (store_type), optional `canonical_category=` and `llm_confidence_below=` (same filter semantics as the scheduler enrichment loop). Store types that run PDP enrichment are listed in `StoreTypesWithEnrichers` in `internal/db/db.go` (includes `jensonusa`, `worldwidecyclery`, `revelbikes`, `backcountry`, `competitivecyclist`, `ridebicycles`, `thundermountainbikes`). **Competitive Cyclist** ingest is Impact catalog only; enrichment uses the scraper enricher on canonical PDP URLs.
 - `POST /llm-specs-now` — Start an **async** `enrich_jobs` row (`job_type=llm_specs`) that runs LLM category classification (if configured) plus prompt-profile spec extraction **from data already on `store_listings`** — no PDP fetch. Uses the same cron/auth as scrape/enrich triggers. Query: optional `store` (store_type), `canonical_category=` (joined path string matching the admin listings filter), `llm_confidence_below=`, and `allow_empty_specs=1` to include listings missing `metadata.specs` (default filter requires non-empty specs).
 
 **Auth:** Valid `CRON_SECRET` via `X-Cron-Secret` (or `?secret=` — avoid in production logs), or `Authorization: Bearer <ADMIN_PASSWORD>`. In production (`APP_ENV=production` or `RENDER=true`), if `CRON_SECRET` is unset, unauthenticated triggers are rejected unless `ALLOW_OPEN_CRON=1` (not recommended). Local dev allows unauthenticated triggers when `CRON_SECRET` is unset.
