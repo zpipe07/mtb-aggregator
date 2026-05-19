@@ -7,7 +7,9 @@ import {
   BROWSER_USER_AGENT,
   SCRAPE_DELAY_MS,
   SCRAPER_STORAGE_STATE,
+  SCRAPER_STORAGE_STATE_RAW,
   SCRAPER_WAF_WAIT_MS,
+  scraperStorageStateLoadPath,
 } from "../config.js";
 
 const LOGS_DIR = process.env.SCREENSHOT_DIR ?? join(process.cwd(), "logs");
@@ -27,9 +29,14 @@ export function backcountryFamilyContextOptions(brandLabel: string): Parameters<
     timezoneId: "America/Denver",
     extraHTTPHeaders: { "Accept-Language": "en-US,en;q=0.9" },
   };
-  if (SCRAPER_STORAGE_STATE) {
-    console.log(`[scraper] ${brandLabel}: loading storage state from ${SCRAPER_STORAGE_STATE}`);
-    contextOptions.storageState = SCRAPER_STORAGE_STATE;
+  const storagePath = scraperStorageStateLoadPath();
+  if (storagePath) {
+    console.log(`[scraper] ${brandLabel}: loading storage state from ${storagePath}`);
+    contextOptions.storageState = storagePath;
+  } else if (SCRAPER_STORAGE_STATE_RAW) {
+    console.warn(
+      `[scraper] ${brandLabel}: SCRAPER_STORAGE_STATE=${JSON.stringify(SCRAPER_STORAGE_STATE_RAW)} resolved=${SCRAPER_STORAGE_STATE} but file not found — starting without saved cookies`,
+    );
   }
   return contextOptions;
 }

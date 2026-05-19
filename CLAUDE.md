@@ -63,6 +63,7 @@ cd apps/web && pnpm run dev
 - **OpenAI (enrichment LLM):** `OPENAI_API_KEY`, optional `OPENAI_MODEL` (default `gpt-4o-mini`), `OPENAI_BASE_URL` (compatible API base). Retries: `OPENAI_MAX_RETRIES` (default `3`), `OPENAI_RETRY_BASE_MS` (default `500`). Category preservation during PDP enrichment: optional `LLM_CATEGORY_PRESERVE_THRESHOLD` (`0`–`1`; overrides classifier threshold / default `0.5` — see [apps/api/README.md](apps/api/README.md)).
 - `NEXT_PUBLIC_SENTRY_DSN` — optional; enables Sentry on the web app (see [apps/web/README.md](apps/web/README.md)); Vercel provides `VERCEL_GIT_COMMIT_SHA` / `VERCEL_ENV` for release/environment mapping in `next.config.ts`
 - Scraper: same `SENTRY_DSN` / `SENTRY_*` as API when enabled (see [apps/scraper/README.md](apps/scraper/README.md))
+- **`SCRAPER_STORAGE_STATE`** (scraper) — Playwright cookie file for **Competitive Cyclist PDP enrich** (AWS WAF). Local bootstrap: generate `apps/scraper/cc-storage.json` via `playwright codegen --save-storage` (see [apps/scraper/README.md](apps/scraper/README.md#competitive-cyclist)). Production: mount as Render secret file on the **scraper** service (e.g. `/etc/secrets/cc-storage.json`). Optional **`SCRAPER_HEADED=1`** for the first manual WAF solve locally.
 
 ## Commands
 
@@ -120,7 +121,7 @@ pnpm --filter @mtb-aggregator/web run build-storybook  # static build to storybo
 - `PARSERS` and `ENRICHERS` maps registered in `parsers/index.ts`
 - Adding a new store: create parser in `parsers/`, add to maps in `parsers/index.ts`, add store enum value to `ScrapeRequestSchema`/`EnrichRequestSchema` in `types.ts`, insert store record in DB
 - **JensonUSA clearance:** `data-product-result-dto` includes `variants[]`; `jensonusa-dto.ts` emits one `ScrapeResult` per variant (`product_group_key` = parent `code`, listing `variant_options` often Color-only). PDP enrich (`jensonusa-pdp.ts` + `enrichJensonUSA`) returns `variants[]` from `serverSideViewModel.variants`; the API fans out full `variant_options` and `is_in_stock` to all siblings. `make backfill-jenson-variants` replays that for existing rows. Migration `025` hides superseded parent-SKU rows after per-variant scrapes land.
-- **Competitive Cyclist:** Impact catalog ingest (API) creates flat rows per SKU; PDP enrich (`cc-pdp-variants.ts` JSON-LD **`hasVariant`**) fans out **`product_group_key`** + **`variant_options`** to siblings sharing the same canonical **`product_url`**. `make backfill-cc-variants` replays grouping for existing rows.
+- **Competitive Cyclist:** Impact catalog ingest (API) creates flat rows per SKU; PDP enrich (`cc-pdp-variants.ts` JSON-LD **`hasVariant`**) fans out **`product_group_key`** + **`variant_options`** to siblings sharing the same canonical **`product_url`**. `make backfill-cc-variants` replays grouping for existing rows. CC PDP fetch uses Playwright + **`SCRAPER_STORAGE_STATE`** (WAF cookies); bootstrap **`apps/scraper/cc-storage.json`** locally — [apps/scraper/README.md](apps/scraper/README.md#competitive-cyclist).
 
 ### API (`apps/api/`)
 
