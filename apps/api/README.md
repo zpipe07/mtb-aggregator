@@ -11,15 +11,15 @@ Go HTTP server that orchestrates scraping, enrichment, and serves the REST API. 
 
 ## Key Directories
 
-| Path | Purpose |
-|------|---------|
-| `internal/api/` | HTTP handlers, route registration |
-| `internal/db/` | Database queries (listings, stores, categories, etc.) |
-| `internal/scheduler/` | Cron jobs: scrape (4h), enrich (nightly) |
-| `internal/brand/` | Brand normalization via `brand_aliases.json` |
-| `internal/taxonomy/` | Category mapping, in-memory cache |
-| `internal/metadata/` | Spec extraction from enriched category paths |
-| `internal/llm/` | LLM-driven spec extraction, classifier |
+| Path                   | Purpose                                                                                                      |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `internal/api/`        | HTTP handlers, route registration                                                                            |
+| `internal/db/`         | Database queries (listings, stores, categories, etc.)                                                        |
+| `internal/scheduler/`  | Cron jobs: scrape (4h), enrich (nightly)                                                                     |
+| `internal/brand/`      | Brand normalization via `brand_aliases.json`                                                                 |
+| `internal/taxonomy/`   | Category mapping, in-memory cache                                                                            |
+| `internal/metadata/`   | Spec extraction from enriched category paths                                                                 |
+| `internal/llm/`        | LLM-driven spec extraction, classifier                                                                       |
 | `internal/llmlisting/` | Shared LLM classify + spec extraction from `store_listings` (scheduler enrichment and admin/spec-only paths) |
 
 ## Endpoints

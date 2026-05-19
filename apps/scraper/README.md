@@ -11,16 +11,16 @@ Node.js Express server using Playwright to scrape retailer sale pages. Returns s
 
 ## Environment
 
-| Variable | Purpose |
-|----------|---------|
-| `SCRAPER_SERVICE_SECRET` | Optional locally; **set in production** (same value as the API). When set, `POST /scrape`, `POST /enrich`, and `POST /scrape-debug` require `X-Scraper-Secret` or `Authorization: Bearer <secret>`. `GET /health` stays open for load balancers. |
-| `SENTRY_DSN` | Optional; enables [Sentry](https://docs.sentry.io/platforms/javascript/guides/express/) (`src/bootstrap.ts`, `expressIntegration`, `setupExpressErrorHandler`). Same name as the API; use a dedicated Sentry **Node** project for the scraper. |
-| `SENTRY_ENVIRONMENT` | e.g. `production` |
-| `SENTRY_RELEASE` / `RENDER_GIT_COMMIT` | Release grouping on Render |
-| `BROWSER_USER_AGENT` | Chrome-like UA for Playwright (Backcountry). Default is desktop Chrome; **do not** use `MTBDealBot` here — it triggers AWS WAF. |
-| `SCRAPER_STORAGE_STATE` | Path to Playwright **storage state** JSON (cookies/localStorage) after you pass WAF in a real browser. Helps **Backcountry** in some environments. **Competitive Cyclist** listing ingest runs via the Impact catalog API on the Go API (see [apps/api/README.md](../api/README.md)); the scraper is not used for CC production ingest. |
-| `SCRAPER_WAF_WAIT_MS` | Max wait for WAF challenge to clear (default `120000`). |
-| `SCRAPER_HEADED` | Set `1` to run a visible Chromium window (sometimes passes WAF when headless fails). |
+| Variable                               | Purpose                                                                                                                                                                                                                                                                                                                                 |
+| -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `SCRAPER_SERVICE_SECRET`               | Optional locally; **set in production** (same value as the API). When set, `POST /scrape`, `POST /enrich`, and `POST /scrape-debug` require `X-Scraper-Secret` or `Authorization: Bearer <secret>`. `GET /health` stays open for load balancers.                                                                                        |
+| `SENTRY_DSN`                           | Optional; enables [Sentry](https://docs.sentry.io/platforms/javascript/guides/express/) (`src/bootstrap.ts`, `expressIntegration`, `setupExpressErrorHandler`). Same name as the API; use a dedicated Sentry **Node** project for the scraper.                                                                                          |
+| `SENTRY_ENVIRONMENT`                   | e.g. `production`                                                                                                                                                                                                                                                                                                                       |
+| `SENTRY_RELEASE` / `RENDER_GIT_COMMIT` | Release grouping on Render                                                                                                                                                                                                                                                                                                              |
+| `BROWSER_USER_AGENT`                   | Chrome-like UA for Playwright (Backcountry). Default is desktop Chrome; **do not** use `MTBDealBot` here — it triggers AWS WAF.                                                                                                                                                                                                         |
+| `SCRAPER_STORAGE_STATE`                | Path to Playwright **storage state** JSON (cookies/localStorage) after you pass WAF in a real browser. Helps **Backcountry** in some environments. **Competitive Cyclist** listing ingest runs via the Impact catalog API on the Go API (see [apps/api/README.md](../api/README.md)); the scraper is not used for CC production ingest. |
+| `SCRAPER_WAF_WAIT_MS`                  | Max wait for WAF challenge to clear (default `120000`).                                                                                                                                                                                                                                                                                 |
+| `SCRAPER_HEADED`                       | Set `1` to run a visible Chromium window (sometimes passes WAF when headless fails).                                                                                                                                                                                                                                                    |
 
 ### Backcountry (AWS WAF)
 
@@ -36,11 +36,11 @@ Production ingest for **Competitive Cyclist** is **not** a scraper scrape route:
 
 ## Endpoints
 
-| Endpoint | Method | Purpose |
-|----------|--------|---------|
-| `/scrape` | POST | Scrape sale page; returns `ScrapeResult[]` |
-| `/enrich` | POST | Visit PDP URL; returns specs, category_path, etc. |
-| `/health` | GET | Health check (no auth) |
+| Endpoint  | Method | Purpose                                           |
+| --------- | ------ | ------------------------------------------------- |
+| `/scrape` | POST   | Scrape sale page; returns `ScrapeResult[]`        |
+| `/enrich` | POST   | Visit PDP URL; returns specs, category_path, etc. |
+| `/health` | GET    | Health check (no auth)                            |
 
 ### Error monitoring (Sentry)
 

@@ -4,11 +4,11 @@ The scraper is a Node.js Express server that uses Playwright to scrape MTB retai
 
 ## Endpoints
 
-| Endpoint | Method | Purpose |
-|----------|--------|---------|
-| `/scrape` | POST | Scrape sale page → returns `ScrapeResult[]` |
-| `/enrich` | POST | Visit PDP URLs → returns `EnrichResult` (category, specs) |
-| `/health` | GET | Health check (no auth) |
+| Endpoint  | Method | Purpose                                                   |
+| --------- | ------ | --------------------------------------------------------- |
+| `/scrape` | POST   | Scrape sale page → returns `ScrapeResult[]`               |
+| `/enrich` | POST   | Visit PDP URLs → returns `EnrichResult` (category, specs) |
+| `/health` | GET    | Health check (no auth)                                    |
 
 When `SCRAPER_SERVICE_SECRET` is set (recommended in production), `POST /scrape` and `POST /enrich` require `X-Scraper-Secret` or `Authorization: Bearer` matching the API’s env. The Go API sends this header automatically.
 

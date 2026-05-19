@@ -22,6 +22,7 @@ pnpm monorepo with three apps and one shared package:
 **Prerequisites:** Docker (for Postgres), Node.js >=20, pnpm, Go 1.25+
 
 **First-time setup:**
+
 ```bash
 pnpm install && cd apps/api && go mod download
 make db-up           # Start Postgres in Docker
@@ -31,6 +32,7 @@ make db-seed         # Seed stores
 ```
 
 **Running locally (three separate terminals):**
+
 ```bash
 # Terminal 1 - Scraper (port 3000)
 pnpm --filter @mtb-aggregator/scraper run dev
@@ -43,6 +45,7 @@ cd apps/web && pnpm run dev
 ```
 
 **Environment variables** — create a `.env` at repo root:
+
 - `DATABASE_URL` (defaults to `postgres://mtb:mtb@localhost:5432/mtb_deals`)
 - `SCRAPER_SERVICE_URL` (defaults to `http://localhost:3000`)
 - `SCRAPER_SERVICE_SECRET` — same value on API and scraper in production; API sends `X-Scraper-Secret` on scraper requests
