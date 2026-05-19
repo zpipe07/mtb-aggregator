@@ -159,7 +159,7 @@ func (c *Client) SearchCatalogItemsPaginated(ctx context.Context, catalogID, ite
 // (sale + optional category filters applied).
 func FetchCompetitiveCyclistScrapeResults(ctx context.Context, cfg Config) ([]scraper.ScrapeResult, error) {
 	if !cfg.CatalogConfigured() {
-		return nil, fmt.Errorf("Impact catalog: set %s and %s", EnvAccountSID, EnvAuthToken)
+		return nil, fmt.Errorf("impact catalog: set %s and %s", EnvAccountSID, EnvAuthToken)
 	}
 	cl := NewClient(cfg)
 	catID, err := ResolveCCCatalogID(ctx, cl, cfg)
