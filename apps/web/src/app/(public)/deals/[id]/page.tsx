@@ -8,7 +8,10 @@ import {
   findCategoryWithAncestors,
 } from "@/lib/categoryTree";
 import { buildDealsCategoryPath } from "@/lib/dealsCategoryPath";
-import { sanitizeDealsListBackHref } from "@/lib/dealsBackHref";
+import {
+  dealsListBackLabel,
+  sanitizeDealsListBackHref,
+} from "@/lib/dealsBackHref";
 import { buildBreadcrumbJsonLd, buildProductJsonLd } from "@/lib/jsonLd";
 import { absoluteUrl } from "@/lib/siteUrl";
 import { DealDetailContent } from "./DealDetailContent";
@@ -82,14 +85,15 @@ export default async function DealPage({ params, searchParams }: Props) {
         : undefined;
   const backToDealsHref = sanitizeDealsListBackHref(fromRaw);
 
-  const [deal, priceHistory] = await Promise.all([
-    fetchDeal(dealId),
-    fetchPriceHistory(dealId),
-  ]).catch(() => [null, null]);
+  const [deal, priceHistory, categoryTree] = await Promise.all([
+    fetchDeal(dealId).catch(() => null),
+    fetchPriceHistory(dealId).catch(() => null),
+    fetchCategoryTree().catch(() => []),
+  ]);
 
   if (!deal) notFound();
 
-  const categoryTree = await fetchCategoryTree().catch(() => []);
+  const backToDealsLabel = dealsListBackLabel(backToDealsHref, categoryTree);
 
   const categorySlug = categorySlugFromCanonicalPath(
     categoryTree,
@@ -136,6 +140,7 @@ export default async function DealPage({ params, searchParams }: Props) {
         deal={deal}
         priceHistory={priceHistory ?? undefined}
         backToDealsHref={backToDealsHref}
+        backToDealsLabel={backToDealsLabel}
         categoryBrowseHref={categoryBrowseHref}
         categoryBrowseLabel={categoryBrowseLabel}
       />
