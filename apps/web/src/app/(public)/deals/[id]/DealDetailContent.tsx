@@ -14,12 +14,12 @@ import {
 import { ExternalLink } from "lucide-react";
 import { track } from "@vercel/analytics";
 import posthog from "posthog-js";
-import type { Deal } from "@/api";
-import type { PriceHistoryResponse } from "@/api";
+import type { CategoryTreeNode, Deal, PriceHistoryResponse } from "@/api";
 import { isCategoryBrowseRedundantWithBack } from "@/lib/dealsBackHref";
 import { dealsListSurfaceFromListHref } from "@/lib/dealsListSurface";
 import { cn, focusRing } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { useDealDetailListContext } from "./DealDetailBackNav";
 
 const monoMicro =
   "font-mono text-[10px] font-semibold uppercase tracking-[0.14em]";
@@ -88,21 +88,21 @@ function SectionLabel({ kicker, title }: { kicker: string; title: string }) {
 type Props = {
   deal: Deal;
   priceHistory?: PriceHistoryResponse | null;
-  backToDealsHref?: string;
-  backToDealsLabel?: string;
+  categoryTree: CategoryTreeNode[];
   categoryBrowseHref?: string;
   categoryBrowseLabel?: string;
 };
 
-export function DealDetailContent({
+function DealDetailContentInner({
   deal,
   priceHistory,
-  backToDealsHref = "/deals",
-  backToDealsLabel = "← Back to deals",
+  categoryTree,
   categoryBrowseHref,
   categoryBrowseLabel,
 }: Props) {
   const viewUrl = deal.affiliate_url || deal.product_url;
+  const { backToDealsHref, backToDealsLabel } =
+    useDealDetailListContext(categoryTree);
   const listSurface = dealsListSurfaceFromListHref(backToDealsHref);
   const showCategoryChip =
     categoryBrowseHref != null &&
@@ -559,4 +559,8 @@ export function DealDetailContent({
       </div>
     </div>
   );
+}
+
+export function DealDetailContent(props: Props) {
+  return <DealDetailContentInner {...props} />;
 }

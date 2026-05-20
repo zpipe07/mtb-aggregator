@@ -17,7 +17,8 @@ import { DealsPageContent } from "@/views/DealsPageContent";
 import { SeoHubLinksGlobal } from "@/components/SeoHubLinks";
 import DealsLoading from "./loading";
 
-export const revalidate = 60;
+/** 4h — must match {@link PUBLIC_ISR_REVALIDATE_SECONDS} in @/lib/revalidate. */
+export const revalidate = 14400;
 
 const dealsDescription =
   "Browse all mountain bike deals. Filter by category, brand, price, and specs to find your next ride at the best price.";
