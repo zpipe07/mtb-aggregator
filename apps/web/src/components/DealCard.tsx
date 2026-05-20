@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { ExternalLink } from "lucide-react";
 import posthog from "posthog-js";
 import { track } from "@vercel/analytics";
 import type { Deal } from "../api";
@@ -41,6 +42,20 @@ function skuForTab(deal: Deal) {
   const raw = deal.store_sku?.trim();
   if (!raw) return `#${deal.id}`;
   return raw.length <= 14 ? raw : `${raw.slice(0, 12)}…`;
+}
+
+function SnagRetailerLabel({ label = "Snag" }: { label?: string }) {
+  return (
+    <span className="relative z-[1] inline-flex items-center gap-1.5">
+      {label}
+      <ExternalLink
+        aria-hidden
+        className="size-3.5 shrink-0"
+        strokeWidth={2.25}
+      />
+      <span className="sr-only"> (opens in new tab)</span>
+    </span>
+  );
 }
 
 export function DealCard({ deal, href }: DealCardProps) {
@@ -163,7 +178,7 @@ export function DealCard({ deal, href }: DealCardProps) {
                   });
                 }}
               >
-                <span className="relative z-[1]">Snag</span>
+                <SnagRetailerLabel />
               </a>
             </Button>
             <Button
@@ -223,7 +238,7 @@ export function DealCard({ deal, href }: DealCardProps) {
               });
             }}
           >
-            <span className="relative z-[1]">Snag</span>
+            <SnagRetailerLabel />
           </a>
         </Button>
       )}

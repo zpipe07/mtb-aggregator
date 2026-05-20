@@ -11,6 +11,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
+import { ExternalLink } from "lucide-react";
 import { track } from "@vercel/analytics";
 import posthog from "posthog-js";
 import type { Deal } from "@/api";
@@ -306,7 +307,15 @@ export function DealDetailContent({
                       });
                     }}
                   >
-                    <span className="relative z-[1]">Snag the Deal</span>
+                    <span className="relative z-[1] inline-flex items-center gap-2">
+                      Snag the Deal
+                      <ExternalLink
+                        aria-hidden
+                        className="size-4 shrink-0"
+                        strokeWidth={2.25}
+                      />
+                      <span className="sr-only"> (opens in new tab)</span>
+                    </span>
                   </a>
                 </Button>
                 {deal.price_range != null &&
