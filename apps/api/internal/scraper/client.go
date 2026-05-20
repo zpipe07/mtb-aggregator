@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"strings"
@@ -97,7 +98,7 @@ func (c *Client) Scrape(ctx context.Context, url, store string) ([]ScrapeResult,
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("scraper returned status %d", resp.StatusCode)
+		return nil, scraperHTTPError("scrape", resp)
 	}
 
 	var results []ScrapeResult
@@ -129,7 +130,7 @@ func (c *Client) Enrich(ctx context.Context, productURL, store string) (*EnrichR
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("scraper returned status %d", resp.StatusCode)
+		return nil, scraperHTTPError("enrich", resp)
 	}
 
 	var result EnrichResult
@@ -138,4 +139,27 @@ func (c *Client) Enrich(ctx context.Context, productURL, store string) (*EnrichR
 	}
 
 	return &result, nil
+}
+
+type scraperErrorBody struct {
+	Error   string `json:"error"`
+	Message string `json:"message"`
+}
+
+func scraperHTTPError(op string, resp *http.Response) error {
+	body, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
+	detail := strings.TrimSpace(string(body))
+	var parsed scraperErrorBody
+	if err := json.Unmarshal(body, &parsed); err == nil {
+		switch {
+		case strings.TrimSpace(parsed.Message) != "":
+			detail = strings.TrimSpace(parsed.Message)
+		case strings.TrimSpace(parsed.Error) != "":
+			detail = strings.TrimSpace(parsed.Error)
+		}
+	}
+	if detail != "" {
+		return fmt.Errorf("scraper %s returned status %d: %s", op, resp.StatusCode, detail)
+	}
+	return fmt.Errorf("scraper returned status %d", resp.StatusCode)
 }

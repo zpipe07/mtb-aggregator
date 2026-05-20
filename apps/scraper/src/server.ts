@@ -128,6 +128,7 @@ app.post("/enrich", scraperServiceAuth, async (req, res) => {
     return res.json(result);
   } catch (err) {
     console.error("Enrich error:", err);
+    captureRouteError(err, { route: "enrich", store, url });
     try {
       await mkdir(LOGS_DIR, { recursive: true });
       const timestamp = new Date().toISOString().replace(/[:.]/g, "-");

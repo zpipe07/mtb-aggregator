@@ -78,17 +78,27 @@ Go HTTP server that orchestrates scraping, enrichment, and serves the REST API. 
 - **`ENRICH_JOB_TIMEOUT`** / **`ENRICH_BATCH_SIZE`** — Optional Go duration (**default `30m`**) and batch size (**default `50`**) for in-process enrichment. When the work deadline is reached, `timed_out` (and other terminal statuses) are written using a **short detached DB context** so the row does not stay stuck `running` if the work `context` is already canceled (which would otherwise make `UpdateEnrichJob` fail under pgx).
 - **Startup catch-up:** If either in-process cron is enabled (not `disabled`), on each API start the scheduler checks the DB for the last scrape/enrich job start. If that job is older than **24 hours** (or missing), it runs once in the background with `triggered_by=catch-up`. Helps after deploys/restarts or if a scheduled run was missed while the process was down.
 - `CORS_ORIGINS` — Comma-separated allowed `Origin` values for browser requests (e.g. `https://example.com,https://www.example.com`). If unset, defaults to `*` (any origin). Set explicitly when using a custom web domain and you want to restrict cross-origin access to the API.
-- `SENTRY_DSN` — Optional; enables [Sentry](https://sentry.io) (HTTP panics and 5xx via `sentryhttp`)
-- `SENTRY_ENVIRONMENT` — e.g. `production` / `development` (optional)
+- **`SENTRY_DSN`** — **Required in production** (Render API). Enables [Sentry](https://sentry.io) (HTTP panics and 5xx via `sentryhttp`). Without it, `internal/sentryutil` calls from the scheduler are no-ops and admin Operations failures never reach Sentry. Use a dedicated **Go/API** project DSN (not the web or scraper DSN).
+- `SENTRY_ENVIRONMENT` — e.g. `production` (recommended on Render)
 - `SENTRY_RELEASE` — Optional release override; if unset on Render, `RENDER_GIT_COMMIT` is used automatically
-- Scheduler scrape/enrich jobs report to Sentry via `internal/sentryutil` (see [docs/ARCHITECTURE.md](../../docs/ARCHITECTURE.md#error-monitoring-sentry))
+- Scheduler scrape/enrich jobs report to Sentry via `internal/sentryutil`: store scrape failures, job `timed_out`, and **aggregated** completed enrich jobs with many listing errors (`phase=listing_errors_aggregate`). Per-listing enrich errors are capped in Sentry (see [docs/ARCHITECTURE.md](../../docs/ARCHITECTURE.md#error-monitoring-sentry)).
 - **OpenAI (LLM classify + extract):** `OPENAI_API_KEY`; optional `OPENAI_MODEL` (default `gpt-4o-mini`), `OPENAI_BASE_URL` (OpenAI-compatible endpoints). Chat completions use retries with backoff on transient **429** (non-quota) and **5xx**; **`insufficient_quota`** is not retried. Tunables: `OPENAI_MAX_RETRIES` (default `3`), `OPENAI_RETRY_BASE_MS` (default `500` ms, exponential backoff with jitter; honors `Retry-After` when present).
 - **`LLM_CATEGORY_PRESERVE_THRESHOLD`** — Optional `0`–`1`. When set, PDP enrichment updates `category_path` but **does not** overwrite `canonical_category` / `category_id` if `metadata.llm_category` already has a non-empty `canonical_category` and `confidence` ≥ this threshold. If unset, the active `llm_category_classifier.confidence_threshold` is used (else default `0.5`). Prevents path-based taxonomy from clobbering a prior confident LLM category when the classifier fails (e.g. quota).
 - **Enrichment LLM behavior:** If OpenAI returns **`insufficient_quota`** during a scheduled enrich job, the scheduler **skips further LLM classify/extract calls for the remainder of that job** (scraped data still persists). The job’s `enrich_jobs` error list includes a quota message. `POST /admin/listings/:id/enrich` returns **`llm_warnings`** (string array) when classify or extract fails while the PDP update succeeded.
 
 ## Error reporting
 
-When `SENTRY_DSN` is set (deployed environments should set it), **significant errors must reach Sentry**, not only logs: HTTP layer uses `sentryhttp`; handlers that catch errors and return 5xx should call `sentry.CaptureException`; background work uses `internal/sentryutil`. Full policy: [docs/ARCHITECTURE.md](../../docs/ARCHITECTURE.md#error-monitoring-sentry).
+When `SENTRY_DSN` is set ( **required on Render production** ), **significant errors must reach Sentry**, not only logs: HTTP layer uses `sentryhttp`; handlers that catch errors and return 5xx should call `sentry.CaptureException`; background work uses `internal/sentryutil`. Full policy: [docs/ARCHITECTURE.md](../../docs/ARCHITECTURE.md#error-monitoring-sentry).
+
+### Sentry alerts (recommended)
+
+After setting `SENTRY_DSN` on Render and redeploying, confirm startup log `[sentry] initialized`, then in the **API** Sentry project:
+
+1. **Issues** — filter `component:scheduler` to see scrape/enrich job events.
+2. **Alerts → Create** — e.g. “A new issue is created” with filter `component:scheduler`, notify email or Slack.
+3. Optional spike alert — “number of events” > 10 in 1 hour with tag `job:enrich`.
+
+Scraper route failures (`route:scrape` / `route:enrich`) live in the **scraper** Sentry project, not the API project.
 
 ## Running
 
