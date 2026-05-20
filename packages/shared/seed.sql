@@ -26,3 +26,7 @@ WHERE NOT EXISTS (SELECT 1 FROM stores WHERE name = 'Competitive Cyclist');
 INSERT INTO stores (name, base_url, scrape_url, store_type, affiliate_network)
 SELECT 'Canyon', 'https://www.canyon.com/en-us/', 'https://www.canyon.com/en-us/sale/', 'canyon', NULL
 WHERE NOT EXISTS (SELECT 1 FROM stores WHERE name = 'Canyon');
+
+INSERT INTO stores (name, base_url, scrape_url, store_type, affiliate_network)
+SELECT 'Specialized', 'https://www.specialized.com/us/en', 'https://www.specialized.com/us/en/shop/sale', 'specialized', NULL
+WHERE NOT EXISTS (SELECT 1 FROM stores WHERE name = 'Specialized');
