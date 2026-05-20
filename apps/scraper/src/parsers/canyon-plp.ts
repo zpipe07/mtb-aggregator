@@ -2,8 +2,7 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import * as cheerio from "cheerio";
-import type { CheerioAPI, Cheerio } from "cheerio";
-import type { Element } from "domhandler";
+import type { CheerioAPI } from "cheerio";
 
 import { BROWSER_USER_AGENT, SCRAPER_MAX_PRODUCTS } from "../config.js";
 import type { ScrapeResult } from "../types.js";
@@ -137,7 +136,7 @@ interface TileVariantLink {
 
 function collectTileVariantLinks(
   $: CheerioAPI,
-  tile: Cheerio<Element>,
+  tile: cheerio.Cheerio<any>,
 ): TileVariantLink[] {
   const links: TileVariantLink[] = [];
   const seen = new Set<string>();
@@ -177,7 +176,7 @@ function collectTileVariantLinks(
   ];
 }
 
-function parseTilePrices($: CheerioAPI, tile: Cheerio<Element>): {
+function parseTilePrices($: CheerioAPI, tile: cheerio.Cheerio<any>): {
   currentPrice: number | null;
   originalPrice: number | null;
 } {
@@ -195,7 +194,7 @@ function parseTilePrices($: CheerioAPI, tile: Cheerio<Element>): {
   return { currentPrice, originalPrice };
 }
 
-function parseTileImage($: CheerioAPI, tile: Cheerio<Element>): string | null {
+function parseTileImage($: CheerioAPI, tile: cheerio.Cheerio<any>): string | null {
   const img =
     tile.find(".productTileDefault__image").attr("src") ??
     tile.find(".productTileDefault__image").attr("data-src") ??
