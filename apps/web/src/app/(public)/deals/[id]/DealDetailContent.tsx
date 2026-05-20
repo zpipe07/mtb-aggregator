@@ -11,6 +11,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
+import { ExternalLink } from "lucide-react";
 import { track } from "@vercel/analytics";
 import posthog from "posthog-js";
 import type { Deal } from "@/api";
@@ -88,6 +89,7 @@ type Props = {
   deal: Deal;
   priceHistory?: PriceHistoryResponse | null;
   backToDealsHref?: string;
+  backToDealsLabel?: string;
   categoryBrowseHref?: string;
   categoryBrowseLabel?: string;
 };
@@ -96,11 +98,16 @@ export function DealDetailContent({
   deal,
   priceHistory,
   backToDealsHref = "/deals",
+  backToDealsLabel = "← Back to deals",
   categoryBrowseHref,
   categoryBrowseLabel,
 }: Props) {
   const viewUrl = deal.affiliate_url || deal.product_url;
   const listSurface = dealsListSurfaceFromListHref(backToDealsHref);
+  const showCategoryChip =
+    categoryBrowseHref != null &&
+    categoryBrowseLabel != null &&
+    !isCategoryBrowseRedundantWithBack(backToDealsHref, categoryBrowseHref);
   const discountPct =
     deal.discount_pct != null
       ? Math.round(deal.discount_pct)
@@ -140,7 +147,7 @@ export function DealDetailContent({
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
-      <div className="mb-6 space-y-2">
+      <nav aria-label="Deal navigation" className="mb-6">
         <Link
           href={backToDealsHref}
           className={cn(
@@ -148,25 +155,9 @@ export function DealDetailContent({
             focusRing,
           )}
         >
-          ← Back to deals
+          {backToDealsLabel}
         </Link>
-        {categoryBrowseHref &&
-        categoryBrowseLabel &&
-        !isCategoryBrowseRedundantWithBack(backToDealsHref, categoryBrowseHref) ? (
-          <p className="text-sm text-muted-foreground">
-            <Link
-              href={categoryBrowseHref}
-              className={cn(
-                "rounded-sm font-medium text-foreground underline-offset-4 hover:underline",
-                focusRing,
-              )}
-            >
-              {categoryBrowseLabel}
-            </Link>
-            <span className="font-normal"> — more deals in this category</span>
-          </p>
-        ) : null}
-      </div>
+      </nav>
 
       <div className="relative pt-3">
         <span
@@ -250,7 +241,9 @@ export function DealDetailContent({
                 >
                   {savings != null && savings > 0 ? (
                     <div className="space-y-0.5">
-                      <span className={cn(monoMicro, "text-muted-foreground block")}>
+                      <span
+                        className={cn(monoMicro, "text-muted-foreground block")}
+                      >
                         save
                       </span>
                       <span className="font-mono text-sm font-medium leading-none tabular-nums text-muted-foreground">
@@ -293,7 +286,7 @@ export function DealDetailContent({
                   </div>
                 </div>
 
-                <Button asChild className="mt-5">
+                <Button asChild className="mt-5" size="lg">
                   <a
                     href={viewUrl}
                     target="_blank"
@@ -314,7 +307,15 @@ export function DealDetailContent({
                       });
                     }}
                   >
-                    <span className="relative z-[1]">Snag the Deal</span>
+                    <span className="relative z-[1] inline-flex items-center gap-2">
+                      Snag the Deal
+                      <ExternalLink
+                        aria-hidden
+                        className="size-4 shrink-0"
+                        strokeWidth={2.25}
+                      />
+                      <span className="sr-only"> (opens in new tab)</span>
+                    </span>
                   </a>
                 </Button>
                 {deal.price_range != null &&
@@ -325,6 +326,20 @@ export function DealDetailContent({
                       {formatMoney(deal.price_range[1])} across variants
                     </p>
                   )}
+                {showCategoryChip ? (
+                  <p className="mt-4 max-w-full">
+                    <Link
+                      href={categoryBrowseHref}
+                      title={categoryBrowseLabel}
+                      className={cn(
+                        "inline-block max-w-full truncate rounded-sm font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground hover:text-foreground hover:underline hover:underline-offset-4",
+                        focusRing,
+                      )}
+                    >
+                      More in {categoryBrowseLabel}
+                    </Link>
+                  </p>
+                ) : null}
               </div>
             </div>
 
@@ -371,20 +386,24 @@ export function DealDetailContent({
                             {v.variant_options &&
                             Object.keys(v.variant_options).length > 0 ? (
                               <div className="flex flex-wrap gap-1.5">
-                                {Object.entries(v.variant_options).map(([k, val]) => (
-                                  <span
-                                    key={k}
-                                    className={cn(
-                                      "inline-flex items-baseline gap-1 rounded-sm border border-foreground/40 bg-card px-2 py-0.5",
-                                      monoMicro,
-                                    )}
-                                  >
-                                    <span className="text-muted-foreground">{k}</span>
-                                    <span className="font-medium text-foreground">
-                                      {val}
+                                {Object.entries(v.variant_options).map(
+                                  ([k, val]) => (
+                                    <span
+                                      key={k}
+                                      className={cn(
+                                        "inline-flex items-baseline gap-1 rounded-sm border border-foreground/40 bg-card px-2 py-0.5",
+                                        monoMicro,
+                                      )}
+                                    >
+                                      <span className="text-muted-foreground">
+                                        {k}
+                                      </span>
+                                      <span className="font-medium text-foreground">
+                                        {val}
+                                      </span>
                                     </span>
-                                  </span>
-                                ))}
+                                  ),
+                                )}
                               </div>
                             ) : (
                               <span className="text-muted-foreground">—</span>
@@ -420,8 +439,8 @@ export function DealDetailContent({
                   </table>
                 </div>
                 <p className={cn(monoMicro, "mt-3 text-muted-foreground")}>
-                  Prices and availability are from the retailer; open the deal to
-                  select a variant on the store site.
+                  Prices and availability are from the retailer; open the deal
+                  to select a variant on the store site.
                 </p>
               </div>
             )}
@@ -430,7 +449,9 @@ export function DealDetailContent({
               <div className="mt-8 border-t border-border pt-8">
                 <SectionLabel kicker="// 02" title="Price history" />
                 {chartData.length === 0 && (
-                  <p className="text-sm text-muted-foreground">No history yet.</p>
+                  <p className="text-sm text-muted-foreground">
+                    No history yet.
+                  </p>
                 )}
                 {chartData.length === 1 && (
                   <p className="text-sm text-muted-foreground">
@@ -472,11 +493,17 @@ export function DealDetailContent({
                           />
                           <XAxis
                             dataKey="dateLabel"
-                            tick={{ fontSize: 11, fontFamily: "var(--font-mono)" }}
+                            tick={{
+                              fontSize: 11,
+                              fontFamily: "var(--font-mono)",
+                            }}
                             stroke="var(--color-muted-foreground)"
                           />
                           <YAxis
-                            tick={{ fontSize: 11, fontFamily: "var(--font-mono)" }}
+                            tick={{
+                              fontSize: 11,
+                              fontFamily: "var(--font-mono)",
+                            }}
                             stroke="var(--color-muted-foreground)"
                             tickFormatter={(v) => `$${v}`}
                             domain={["dataMin - 5", "dataMax + 5"]}
@@ -498,7 +525,8 @@ export function DealDetailContent({
                               color: "var(--color-foreground)",
                               fontFamily: "var(--font-mono)",
                               fontSize: "12px",
-                              boxShadow: "var(--shadow-sm, 0 1px 2px rgb(0 0 0 / 0.06))",
+                              boxShadow:
+                                "var(--shadow-sm, 0 1px 2px rgb(0 0 0 / 0.06))",
                             }}
                             labelStyle={{
                               color: "var(--color-muted-foreground)",
@@ -514,7 +542,10 @@ export function DealDetailContent({
                             stroke="var(--color-primary)"
                             strokeWidth={2}
                             dot={{ fill: "var(--color-primary)", r: 3 }}
-                            activeDot={{ r: 5, fill: "var(--color-foreground)" }}
+                            activeDot={{
+                              r: 5,
+                              fill: "var(--color-foreground)",
+                            }}
                           />
                         </LineChart>
                       </ResponsiveContainer>

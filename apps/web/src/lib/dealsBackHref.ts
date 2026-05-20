@@ -1,3 +1,8 @@
+import type { CategoryTreeNode } from "@/api";
+import { findCategoryBySlug } from "@/lib/categoryTree";
+import { parseCategorySlugFromDealsPath } from "@/lib/dealsCategoryPath";
+import { getSeoHubBySlug } from "@/lib/seoHubs";
+
 /**
  * Build `/deals` list path from Next.js page `searchParams` (same shape as `await searchParams`).
  */
@@ -70,6 +75,36 @@ export function sanitizeDealsListBackHref(
 
 export function buildDealDetailHref(dealId: number, dealsListPath: string): string {
   return `/deals/${dealId}?from=${encodeURIComponent(dealsListPath)}`;
+}
+
+/** Contextual label for deal detail "Back to deals" from a sanitized list href. */
+export function dealsListBackLabel(
+  href: string,
+  categoryTree?: CategoryTreeNode[] | null,
+): string {
+  try {
+    const pathname = new URL(href, "http://localhost").pathname;
+
+    if (pathname.startsWith("/deals/c/")) {
+      const slug = parseCategorySlugFromDealsPath(pathname);
+      if (slug && categoryTree?.length) {
+        const node = findCategoryBySlug(categoryTree, slug);
+        if (node) return `← Back to ${node.name}`;
+      }
+      return "← Back to deals";
+    }
+
+    if (pathname.startsWith("/deals/hub/")) {
+      const hubSlug = pathname.slice("/deals/hub/".length).replace(/\/$/, "");
+      const hub = hubSlug ? getSeoHubBySlug(hubSlug) : undefined;
+      if (hub) return `← Back to ${hub.title}`;
+      return "← Back to deals";
+    }
+
+    return "← Back to deals";
+  } catch {
+    return "← Back to deals";
+  }
 }
 
 /**
