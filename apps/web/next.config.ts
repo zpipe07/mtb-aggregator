@@ -2,6 +2,7 @@ import type { NextConfig } from "next";
 import { withSentryConfig } from "@sentry/nextjs";
 
 const nextConfig: NextConfig = {
+  transpilePackages: ["@mtb-aggregator/logging"],
   // Expose release/environment to the browser bundle (Sentry client + Vercel git SHA)
   env: {
     NEXT_PUBLIC_SENTRY_RELEASE:

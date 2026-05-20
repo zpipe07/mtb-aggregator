@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"os"
 	"strconv"
 	"strings"
@@ -17,11 +16,18 @@ import (
 	"github.com/mtb-aggregator/api/internal/impact"
 	"github.com/mtb-aggregator/api/internal/llm"
 	"github.com/mtb-aggregator/api/internal/llmlisting"
+	"github.com/mtb-aggregator/api/internal/logutil"
 	"github.com/mtb-aggregator/api/internal/metadata"
 	"github.com/mtb-aggregator/api/internal/scraper"
 	"github.com/mtb-aggregator/api/internal/sentryutil"
 	"github.com/mtb-aggregator/api/internal/taxonomy"
 	"github.com/robfig/cron/v3"
+)
+
+var (
+	schedulerLog   = logutil.Logger("scheduler")
+	enrichmentLog  = logutil.Logger("enrichment")
+	catchUpLog     = logutil.Logger("catch-up")
 )
 
 const defaultEnrichBatchSize = 50
@@ -99,7 +105,7 @@ func (s *Scheduler) finalizeEnrichJob(jobID int, status string, processed, enric
 		return
 	}
 	if err := s.db.UpdateEnrichJobDetached(jobID, status, processed, enriched, errStrs); err != nil {
-		log.Printf("[enrichment] failed to persist job %d final status %q: %v", jobID, status, err)
+		enrichmentLog.Error("failed to persist enrich job final status", "job_id", jobID, "status", status, logutil.ErrAttr(err))
 		tags := map[string]string{"component": "scheduler", "job": "enrich", "phase": "finalize_job", "status": status}
 		if scope != "" {
 			tags["store_type"] = scope
@@ -140,13 +146,13 @@ func (s *Scheduler) RunScrapeJob(storeType string, triggeredBy string) {
 		stores, err = s.db.GetStores(ctx)
 	}
 	if err != nil {
-		log.Printf("[scheduler] failed to get stores: %v", err)
+		schedulerLog.Error("failed to get stores", logutil.ErrAttr(err))
 		sentryutil.CaptureError(err, map[string]string{"component": "scheduler", "job": "scrape", "phase": "list_stores"})
 		return
 	}
 	if len(stores) == 0 {
 		if storeType != "" {
-			log.Printf("[scheduler] no stores found for store_type=%q (run seed for that store: make db-seed or make db-seed-remote)", storeType)
+			schedulerLog.Warn("no stores found for store_type", "store_type", storeType, "hint", "run seed for that store: make db-seed or make db-seed-remote")
 		}
 		return
 	}
@@ -169,7 +175,7 @@ func (s *Scheduler) scrapeStore(ctx context.Context, store db.Store, triggeredBy
 
 	jobID, err := s.db.CreateScrapeJob(ctx, &store.ID, store.Name, triggeredBy)
 	if err != nil {
-		log.Printf("[scheduler] failed to create scrape job for %s: %v", store.Name, err)
+		schedulerLog.Error("failed to create scrape job", "store", store.Name, logutil.ErrAttr(err))
 		sentryutil.CaptureError(err, map[string]string{"component": "scheduler", "job": "scrape", "phase": "create_job", "store": store.Name})
 	}
 
@@ -177,7 +183,7 @@ func (s *Scheduler) scrapeStore(ctx context.Context, store db.Store, triggeredBy
 	var results []scraper.ScrapeResult
 	defer func() {
 		if r := recover(); r != nil {
-			log.Printf("[scheduler] panic scraping %s: %v", store.Name, r)
+			schedulerLog.Error("panic scraping store", "store", store.Name, "panic", r)
 			sentryutil.CapturePanicValue(r, map[string]string{"component": "scheduler", "job": "scrape", "store": store.Name})
 			if jobID != 0 {
 				errStrs := []string{fmt.Sprintf("panic: %v", r)}
@@ -187,14 +193,14 @@ func (s *Scheduler) scrapeStore(ctx context.Context, store db.Store, triggeredBy
 		}
 	}()
 
-	log.Printf("[scheduler] scraping %s (%s)", store.Name, store.ScrapeURL)
+	schedulerLog.Info("scraping store", "store", store.Name, "url", store.ScrapeURL)
 
 	scrapeStartedAt := time.Now()
 	if strings.EqualFold(store.StoreType, "competitivecyclist") {
 		icfg := impact.ConfigFromEnv()
 		if !icfg.CatalogConfigured() {
 			err = fmt.Errorf("competitivecyclist requires %s and %s (Impact Partner catalog); Playwright fallback disabled", impact.EnvAccountSID, impact.EnvAuthToken)
-			log.Printf("[scheduler] scrape failed for %s: %v", store.Name, err)
+			schedulerLog.Error("scrape failed", "store", store.Name, logutil.ErrAttr(err))
 			sentryutil.CaptureError(err, map[string]string{"component": "scheduler", "job": "scrape", "store": store.Name, "source": "impact-catalog"})
 			if jobID != 0 {
 				errs := []string{err.Error()}
@@ -204,13 +210,13 @@ func (s *Scheduler) scrapeStore(ctx context.Context, store db.Store, triggeredBy
 		}
 		results, err = impact.FetchCompetitiveCyclistScrapeResults(ctx, icfg)
 		if err == nil {
-			log.Printf("[scheduler] %s: impact-catalog returned %d listings", store.Name, len(results))
+			schedulerLog.Info("impact-catalog returned listings", "store", store.Name, "count", len(results))
 		}
 	} else {
 		results, err = s.scraper.Scrape(ctx, store.ScrapeURL, storeType)
 	}
 	if err != nil {
-		log.Printf("[scheduler] scrape failed for %s: %v", store.Name, err)
+		schedulerLog.Error("scrape failed", "store", store.Name, logutil.ErrAttr(err))
 		sentryutil.CaptureError(err, map[string]string{"component": "scheduler", "job": "scrape", "store": store.Name})
 		if jobID != 0 {
 			errs := []string{err.Error()}
@@ -223,18 +229,18 @@ func (s *Scheduler) scrapeStore(ctx context.Context, store db.Store, triggeredBy
 		return
 	}
 
-	log.Printf("[scheduler] %s: got %d listings", store.Name, len(results))
+	schedulerLog.Info("scrape returned listings", "store", store.Name, "count", len(results))
 
 	// Health monitoring: flag if 0 results for 2+ consecutive scrapes (possible selector breakage)
 	if len(results) == 0 && store.LastScrapeResultCount != nil && *store.LastScrapeResultCount == 0 {
-		log.Printf("[scheduler] WARNING: %s returned 0 results for 2+ consecutive scrapes - check for site/selector changes", store.Name)
+		schedulerLog.Warn("zero scrape results for consecutive runs; check site/selector changes", "store", store.Name)
 		sentryutil.CaptureWarning(
 			store.Name+": 0 scrape results for 2+ consecutive runs (possible selector/site change)",
 			map[string]string{"component": "scheduler", "job": "scrape", "store": store.Name},
 		)
 	}
 	if err := s.db.UpdateStoreLastScrapeResultCount(ctx, store.ID, len(results)); err != nil {
-		log.Printf("[scheduler] failed to update last_scrape_result_count for %s: %v", store.Name, err)
+		schedulerLog.Error("failed to update last_scrape_result_count", "store", store.Name, logutil.ErrAttr(err))
 		sentryutil.CaptureError(err, map[string]string{"component": "scheduler", "job": "scrape", "phase": "update_last_count", "store": store.Name})
 	}
 
@@ -243,22 +249,21 @@ func (s *Scheduler) scrapeStore(ctx context.Context, store db.Store, triggeredBy
 	validation := scraper.ValidateBatch(results, store.Name, strictMode)
 
 	if len(validation.Errors) > 0 {
-		log.Printf("[scheduler] %s: %d validation errors (invalid results will be skipped)", store.Name, len(validation.Errors))
+		schedulerLog.Warn("validation errors; invalid results will be skipped", "store", store.Name, "count", len(validation.Errors))
 		for _, e := range validation.Errors {
 			if e.Index >= 0 {
-				log.Printf("[scheduler]   %s", e.Error())
+				schedulerLog.Warn("validation error", "store", store.Name, "detail", e.Error())
 			}
 		}
-		// Cap error log to first 5
 		if len(validation.Errors) > 5 {
-			log.Printf("[scheduler]   ... and %d more", len(validation.Errors)-5)
+			schedulerLog.Warn("additional validation errors omitted", "store", store.Name, "remaining", len(validation.Errors)-5)
 		}
 	}
 	for _, w := range validation.Warnings {
-		log.Printf("[scheduler] %s: WARNING %s", store.Name, w.Reason)
+		schedulerLog.Warn("scrape validation warning", "store", store.Name, "reason", w.Reason)
 	}
 	if validation.AbortSave {
-		log.Printf("[scheduler] %s: aborting save (strict mode). Set SCRAPER_STRICT_ORIGINAL_PRICE=0 to warn only.", store.Name)
+		schedulerLog.Warn("aborting save in strict mode; set SCRAPER_STRICT_ORIGINAL_PRICE=0 to warn only", "store", store.Name)
 		sentryutil.CaptureError(
 			fmt.Errorf("scrape validation aborted save for %s (%d validation errors)", store.Name, len(validation.Errors)),
 			map[string]string{"component": "scheduler", "job": "scrape", "store": store.Name, "phase": "strict_validation"},
@@ -280,7 +285,7 @@ func (s *Scheduler) scrapeStore(ctx context.Context, store db.Store, triggeredBy
 
 	for i, r := range results {
 		if ctx.Err() != nil {
-			log.Printf("[scheduler] %s: job timeout, saving partial progress: %d found, %d upserted", store.Name, len(results), validCount)
+			schedulerLog.Warn("scrape job timeout; saving partial progress", "store", store.Name, "found", len(results), "upserted", validCount)
 			sentryutil.CaptureError(
 				fmt.Errorf("scrape job timed out for %s (%d found, %d upserted)", store.Name, len(results), validCount),
 				map[string]string{"component": "scheduler", "job": "scrape", "store": store.Name},
@@ -301,8 +306,13 @@ func (s *Scheduler) scrapeStore(ctx context.Context, store db.Store, triggeredBy
 		if lastPrice, ok, _ := s.db.GetLastPrice(ctx, store.ID, r.StoreSKU); ok && lastPrice > 0 {
 			dropPct := (lastPrice - r.CurrentPrice) / lastPrice
 			if dropPct > 0.9 {
-				log.Printf("[scheduler] WARNING: %s %s price dropped %.0f%% ($%.2f -> $%.2f), skipping",
-					store.Name, r.StoreSKU, dropPct*100, lastPrice, r.CurrentPrice)
+				schedulerLog.Warn("price drop exceeded threshold; skipping listing",
+					"store", store.Name,
+					"store_sku", r.StoreSKU,
+					"drop_pct", dropPct*100,
+					"last_price", lastPrice,
+					"current_price", r.CurrentPrice,
+				)
 				continue
 			}
 		}
@@ -360,12 +370,12 @@ func (s *Scheduler) scrapeStore(ctx context.Context, store db.Store, triggeredBy
 
 		id, err := s.db.UpsertListing(ctx, listing)
 		if err != nil {
-			log.Printf("[scheduler] upsert failed for %s: %v", r.StoreSKU, err)
+			schedulerLog.Error("upsert failed", "store_sku", r.StoreSKU, logutil.ErrAttr(err))
 			continue
 		}
 
 		if err := s.db.InsertPriceHistory(ctx, id, r.CurrentPrice); err != nil {
-			log.Printf("[scheduler] price history failed for %s: %v", r.StoreSKU, err)
+			schedulerLog.Error("price history insert failed", "store_sku", r.StoreSKU, logutil.ErrAttr(err))
 		}
 
 		validCount++
@@ -383,12 +393,12 @@ func (s *Scheduler) scrapeStore(ctx context.Context, store db.Store, triggeredBy
 		}
 		status := "completed"
 		if err := s.db.UpdateScrapeJob(ctx, jobID, status, &found, &validCount, errStrs, warnStrs); err != nil {
-			log.Printf("[scheduler] failed to update scrape job %d: %v", jobID, err)
+			schedulerLog.Error("failed to update scrape job", "job_id", jobID, logutil.ErrAttr(err))
 			sentryutil.CaptureError(err, map[string]string{"component": "scheduler", "job": "scrape", "phase": "finalize_job", "store": store.Name})
 		}
 	}
 
-	log.Printf("[scheduler] %s: saved %d listings", store.Name, validCount)
+	schedulerLog.Info("scrape saved listings", "store", store.Name, "count", validCount)
 
 	// After a successful full scrape, hide any listings that were not re-confirmed
 	// (last_scraped before this run started). This catches products that are no
@@ -400,10 +410,10 @@ func (s *Scheduler) scrapeStore(ctx context.Context, store db.Store, triggeredBy
 	if validCount >= minResultsForStaleCleanup && ctx.Err() == nil {
 		hidden, err := s.db.HideStaleListings(ctx, store.ID, scrapeStartedAt)
 		if err != nil {
-			log.Printf("[scheduler] %s: stale listing cleanup failed: %v", store.Name, err)
+			schedulerLog.Error("stale listing cleanup failed", "store", store.Name, logutil.ErrAttr(err))
 			sentryutil.CaptureError(err, map[string]string{"component": "scheduler", "job": "scrape", "phase": "stale_cleanup", "store": store.Name})
 		} else if hidden > 0 {
-			log.Printf("[scheduler] %s: hid %d stale listings (no longer on sale)", store.Name, hidden)
+			schedulerLog.Info("hid stale listings", "store", store.Name, "count", hidden)
 		}
 	}
 }
@@ -420,7 +430,7 @@ func (s *Scheduler) RunEnrichmentJob(force bool, triggeredBy string) {
 
 	jobID, err := s.db.CreateEnrichJob(ctx, nil, triggeredBy, force, "enrich")
 	if err != nil {
-		log.Printf("[enrichment] failed to create enrich job: %v", err)
+		enrichmentLog.Error("failed to create enrich job", logutil.ErrAttr(err))
 		sentryutil.CaptureError(err, map[string]string{"component": "scheduler", "job": "enrich", "phase": "create_job"})
 	}
 
@@ -428,7 +438,7 @@ func (s *Scheduler) RunEnrichmentJob(force bool, triggeredBy string) {
 	var errStrs []string
 	defer func() {
 		if r := recover(); r != nil {
-			log.Printf("[enrichment] panic: %v", r)
+			enrichmentLog.Error("panic during enrichment", "panic", r)
 			sentryutil.CapturePanicValue(r, map[string]string{"component": "scheduler", "job": "enrich", "scope": "global"})
 			if jobID != 0 {
 				panicErrs := append(errStrs, fmt.Sprintf("panic: %v", r))
@@ -440,7 +450,7 @@ func (s *Scheduler) RunEnrichmentJob(force bool, triggeredBy string) {
 	batchSize := getEnrichBatchSize()
 	listings, err := s.db.GetListingsNeedingEnrichment(ctx, batchSize, force)
 	if err != nil {
-		log.Printf("[enrichment] failed to get listings: %v", err)
+		enrichmentLog.Error("failed to get listings", logutil.ErrAttr(err))
 		sentryutil.CaptureError(err, map[string]string{"component": "scheduler", "job": "enrich", "phase": "list_listings"})
 		if jobID != 0 {
 			s.finalizeEnrichJob(jobID, "failed", nil, nil, []string{err.Error()}, "")
@@ -449,7 +459,7 @@ func (s *Scheduler) RunEnrichmentJob(force bool, triggeredBy string) {
 	}
 
 	if len(listings) == 0 {
-		log.Printf("[enrichment] no listings need enrichment")
+		enrichmentLog.Info("no listings need enrichment")
 		if jobID != 0 {
 			z := 0
 			s.finalizeEnrichJob(jobID, "completed", &z, &z, nil, "")
@@ -457,7 +467,7 @@ func (s *Scheduler) RunEnrichmentJob(force bool, triggeredBy string) {
 		return
 	}
 
-	log.Printf("[enrichment] enriching %d listings", len(listings))
+	enrichmentLog.Info("enriching listings", "count", len(listings))
 
 	var llmState llmlisting.QuotaJobState
 	seenJensonGroups := make(map[string]bool)
@@ -465,7 +475,7 @@ func (s *Scheduler) RunEnrichmentJob(force bool, triggeredBy string) {
 	processed := 0
 	for _, l := range listings {
 		if ctx.Err() != nil {
-			log.Printf("[enrichment] job timeout, saving partial progress: %d processed, %d enriched", processed, successCount)
+			enrichmentLog.Warn("enrichment job timeout; saving partial progress", "processed", processed, "enriched", successCount)
 			sentryutil.CaptureError(
 				fmt.Errorf("enrichment job timed out (%d processed, %d enriched)", processed, successCount),
 				map[string]string{"component": "scheduler", "job": "enrich", "scope": "global"},
@@ -479,30 +489,30 @@ func (s *Scheduler) RunEnrichmentJob(force bool, triggeredBy string) {
 		processed++
 		result, err := s.scraper.Enrich(ctx, l.ProductURL, l.StoreType)
 		if err != nil {
-			log.Printf("[enrichment] failed for listing %d: %v", l.ID, err)
+			enrichmentLog.Error("enrichment failed for listing", "listing_id", l.ID, logutil.ErrAttr(err))
 			errStrs = append(errStrs, fmt.Sprintf("listing %d: %v", l.ID, err))
 			continue
 		}
 
 		if err := s.db.UpdateListingEnrichment(ctx, l.ID, result.CategoryPath, result.RawSpecs, result.Unavailable, result.Description); err != nil {
-			log.Printf("[enrichment] failed to update listing %d: %v", l.ID, err)
+			enrichmentLog.Error("failed to update listing enrichment", "listing_id", l.ID, logutil.ErrAttr(err))
 			errStrs = append(errStrs, fmt.Sprintf("listing %d update: %v", l.ID, err))
 			continue
 		}
 
 		if err := s.db.ApplyJensonPDPVariantFanout(ctx, l.StoreID, l.StoreType, l.StoreSKU, enrichVariantsToJenson(result.Variants), seenJensonGroups); err != nil {
-			log.Printf("[enrichment] jenson variant fan-out failed for listing %d: %v", l.ID, err)
+			enrichmentLog.Warn("jenson variant fan-out failed", "listing_id", l.ID, logutil.ErrAttr(err))
 		}
 		if err := applyCompetitiveCyclistVariantFanout(ctx, s.db, l.ID, l.StoreID, l.StoreType, l.StoreSKU, l.ProductURL, result.Variants, seenCCGroups); err != nil {
-			log.Printf("[enrichment] competitivecyclist variant fan-out failed for listing %d: %v", l.ID, err)
+			enrichmentLog.Warn("competitivecyclist variant fan-out failed", "listing_id", l.ID, logutil.ErrAttr(err))
 		}
 
 		successCount++
 		if result.Unavailable {
-			log.Printf("[enrichment] listing %d: marked unavailable (out of stock)", l.ID)
+			enrichmentLog.Debug("listing marked unavailable", "listing_id", l.ID)
 		}
 		if len(result.CategoryPath) > 0 {
-			log.Printf("[enrichment] listing %d: category_path=%v", l.ID, result.CategoryPath)
+			enrichmentLog.Debug("listing category path updated", "listing_id", l.ID, "category_path", result.CategoryPath)
 		}
 		llmlisting.RunSpecDetermination(ctx, s.db, s.llm, l.ID, &llmState, &errStrs)
 	}
@@ -513,7 +523,7 @@ func (s *Scheduler) RunEnrichmentJob(force bool, triggeredBy string) {
 		s.finalizeEnrichJob(jobID, status, &p, &successCount, errStrs, "")
 		captureEnrichJobListingErrorsAggregate("", len(listings), successCount, errStrs)
 	}
-	log.Printf("[enrichment] enriched %d/%d listings", successCount, len(listings))
+	enrichmentLog.Info("enrichment batch completed", "enriched", successCount, "total", len(listings))
 }
 
 func enrichVariantsToJenson(v []scraper.EnrichVariant) []db.JensonPDPVariant {
@@ -549,7 +559,7 @@ func (s *Scheduler) RunEnrichmentJobForStore(storeType string, force bool, trigg
 		}
 	}
 	if !hasEnricher {
-		log.Printf("[enrichment] no enricher for store_type=%q; skipping", storeType)
+		enrichmentLog.Warn("no enricher for store_type; skipping", "store_type", storeType)
 		return
 	}
 	s.runEnrichmentLoop(db.EnrichmentFilter{StoreType: storeType}, force, triggeredBy)
@@ -570,7 +580,7 @@ func (s *Scheduler) RunEnrichmentWithFilter(f db.EnrichmentFilter, force bool, t
 			}
 		}
 		if !hasEnricher {
-			log.Printf("[enrichment] no enricher for store_type=%q; skipping", f.StoreType)
+			enrichmentLog.Warn("no enricher for store_type; skipping", "store_type", f.StoreType)
 			return
 		}
 	}
@@ -594,7 +604,7 @@ func (s *Scheduler) runEnrichmentLoop(f db.EnrichmentFilter, force bool, trigger
 	}
 	jobID, err := s.db.CreateEnrichJob(ctx, stPtr, triggeredBy, force, "enrich")
 	if err != nil {
-		log.Printf("[enrichment] failed to create enrich job: %v", err)
+		enrichmentLog.Error("failed to create enrich job", logutil.ErrAttr(err))
 		sentryutil.CaptureError(err, map[string]string{"component": "scheduler", "job": "enrich", "phase": "create_job", "store_type": scope})
 	}
 
@@ -603,7 +613,7 @@ func (s *Scheduler) runEnrichmentLoop(f db.EnrichmentFilter, force bool, trigger
 	var errStrs []string
 	defer func() {
 		if r := recover(); r != nil {
-			log.Printf("[enrichment] panic: %v", r)
+			enrichmentLog.Error("panic during enrichment", "panic", r)
 			sentryutil.CapturePanicValue(r, map[string]string{"component": "scheduler", "job": "enrich", "store_type": scope})
 			if jobID != 0 {
 				panicErrs := append(errStrs, fmt.Sprintf("panic: %v", r))
@@ -616,7 +626,7 @@ func (s *Scheduler) runEnrichmentLoop(f db.EnrichmentFilter, force bool, trigger
 	var llmState llmlisting.QuotaJobState
 	for {
 		if ctx.Err() != nil {
-			log.Printf("[enrichment] %s: job timeout, saving partial progress: %d processed, %d enriched", scope, totalProcessed, totalSuccess)
+			enrichmentLog.Warn("enrichment job timeout; saving partial progress", "scope", scope, "processed", totalProcessed, "enriched", totalSuccess)
 			sentryutil.CaptureError(
 				fmt.Errorf("enrichment job timed out for scope=%s (%d processed, %d enriched)", scope, totalProcessed, totalSuccess),
 				map[string]string{"component": "scheduler", "job": "enrich", "store_type": scope},
@@ -629,7 +639,7 @@ func (s *Scheduler) runEnrichmentLoop(f db.EnrichmentFilter, force bool, trigger
 		}
 		listings, err := s.db.GetListingsNeedingEnrichmentForFilter(ctx, f, batchSize, force)
 		if err != nil {
-			log.Printf("[enrichment] failed to get listings for %s: %v", scope, err)
+			enrichmentLog.Error("failed to get listings for scope", "scope", scope, logutil.ErrAttr(err))
 			sentryutil.CaptureError(err, map[string]string{"component": "scheduler", "job": "enrich", "phase": "list_listings", "store_type": scope})
 			if jobID != 0 {
 				s.finalizeEnrichJob(jobID, "failed", nil, nil, []string{err.Error()}, scope)
@@ -639,13 +649,13 @@ func (s *Scheduler) runEnrichmentLoop(f db.EnrichmentFilter, force bool, trigger
 		if len(listings) == 0 {
 			break
 		}
-		log.Printf("[enrichment] %s: enriching batch of %d listings", scope, len(listings))
+		enrichmentLog.Info("enriching batch", "scope", scope, "count", len(listings))
 		seenJensonGroups := make(map[string]bool)
 	seenCCGroups := make(map[string]bool)
 		successCount := 0
 		for _, l := range listings {
 			if ctx.Err() != nil {
-				log.Printf("[enrichment] %s: job timeout, saving partial progress: %d processed, %d enriched", scope, totalProcessed, totalSuccess)
+				enrichmentLog.Warn("enrichment job timeout; saving partial progress", "scope", scope, "processed", totalProcessed, "enriched", totalSuccess)
 				sentryutil.CaptureError(
 					fmt.Errorf("enrichment job timed out for scope=%s (%d processed, %d enriched)", scope, totalProcessed, totalSuccess),
 					map[string]string{"component": "scheduler", "job": "enrich", "store_type": scope},
@@ -658,33 +668,33 @@ func (s *Scheduler) runEnrichmentLoop(f db.EnrichmentFilter, force bool, trigger
 			}
 			result, err := s.scraper.Enrich(ctx, l.ProductURL, l.StoreType)
 			if err != nil {
-				log.Printf("[enrichment] failed for listing %d: %v", l.ID, err)
+				enrichmentLog.Error("enrichment failed for listing", "listing_id", l.ID, logutil.ErrAttr(err))
 				errStrs = append(errStrs, fmt.Sprintf("listing %d: %v", l.ID, err))
 				continue
 			}
 			if err := s.db.UpdateListingEnrichment(ctx, l.ID, result.CategoryPath, result.RawSpecs, result.Unavailable, result.Description); err != nil {
-				log.Printf("[enrichment] failed to update listing %d: %v", l.ID, err)
+				enrichmentLog.Error("failed to update listing enrichment", "listing_id", l.ID, logutil.ErrAttr(err))
 				errStrs = append(errStrs, fmt.Sprintf("listing %d update: %v", l.ID, err))
 				continue
 			}
 			if err := s.db.ApplyJensonPDPVariantFanout(ctx, l.StoreID, l.StoreType, l.StoreSKU, enrichVariantsToJenson(result.Variants), seenJensonGroups); err != nil {
-				log.Printf("[enrichment] jenson variant fan-out failed for listing %d: %v", l.ID, err)
+				enrichmentLog.Warn("jenson variant fan-out failed", "listing_id", l.ID, logutil.ErrAttr(err))
 			}
 			if err := applyCompetitiveCyclistVariantFanout(ctx, s.db, l.ID, l.StoreID, l.StoreType, l.StoreSKU, l.ProductURL, result.Variants, seenCCGroups); err != nil {
-				log.Printf("[enrichment] competitivecyclist variant fan-out failed for listing %d: %v", l.ID, err)
+				enrichmentLog.Warn("competitivecyclist variant fan-out failed", "listing_id", l.ID, logutil.ErrAttr(err))
 			}
 			successCount++
 			totalSuccess++
 			if result.Unavailable {
-				log.Printf("[enrichment] listing %d: marked unavailable (out of stock)", l.ID)
+				enrichmentLog.Debug("listing marked unavailable", "listing_id", l.ID)
 			}
 			if len(result.CategoryPath) > 0 {
-				log.Printf("[enrichment] listing %d: category_path=%v", l.ID, result.CategoryPath)
+				enrichmentLog.Debug("listing category path updated", "listing_id", l.ID, "category_path", result.CategoryPath)
 			}
 			llmlisting.RunSpecDetermination(ctx, s.db, s.llm, l.ID, &llmState, &errStrs)
 		}
 		totalProcessed += len(listings)
-		log.Printf("[enrichment] %s: batch done %d/%d", scope, successCount, len(listings))
+		enrichmentLog.Info("enrichment batch done", "scope", scope, "enriched", successCount, "batch_size", len(listings))
 		if len(listings) < batchSize {
 			break
 		}
@@ -694,9 +704,9 @@ func (s *Scheduler) runEnrichmentLoop(f db.EnrichmentFilter, force bool, trigger
 		captureEnrichJobListingErrorsAggregate(scope, totalProcessed, totalSuccess, errStrs)
 	}
 	if totalProcessed > 0 {
-		log.Printf("[enrichment] %s: enriched %d/%d listings total", scope, totalSuccess, totalProcessed)
+		enrichmentLog.Info("enrichment completed", "scope", scope, "enriched", totalSuccess, "processed", totalProcessed)
 	} else {
-		log.Printf("[enrichment] %s: no listings need enrichment", scope)
+		enrichmentLog.Info("no listings need enrichment", "scope", scope)
 	}
 }
 
@@ -708,30 +718,30 @@ func (s *Scheduler) RunCatchUp(scrapeInterval, enrichInterval time.Duration) {
 
 	scrapeAge, err := s.db.LastScrapeJobAge(ctx)
 	if err != nil {
-		log.Printf("[catch-up] failed to check last scrape job: %v", err)
+		catchUpLog.Error("failed to check last scrape job", logutil.ErrAttr(err))
 	} else if scrapeAge < 0 || scrapeAge > scrapeInterval {
 		label := "never"
 		if scrapeAge >= 0 {
 			label = scrapeAge.Round(time.Minute).String() + " ago"
 		}
-		log.Printf("[catch-up] last scrape is overdue (%s, threshold %s) — running now", label, scrapeInterval)
+		catchUpLog.Info("last scrape overdue; running now", "last_scrape", label, "threshold", scrapeInterval.String())
 		go s.RunScrapeJob("", "catch-up")
 	} else {
-		log.Printf("[catch-up] last scrape was %s ago (threshold %s) — not overdue", scrapeAge.Round(time.Minute), scrapeInterval)
+		catchUpLog.Debug("last scrape not overdue", "age", scrapeAge.Round(time.Minute).String(), "threshold", scrapeInterval.String())
 	}
 
 	enrichAge, err := s.db.LastEnrichJobAge(ctx)
 	if err != nil {
-		log.Printf("[catch-up] failed to check last enrich job: %v", err)
+		catchUpLog.Error("failed to check last enrich job", logutil.ErrAttr(err))
 	} else if enrichAge < 0 || enrichAge > enrichInterval {
 		label := "never"
 		if enrichAge >= 0 {
 			label = enrichAge.Round(time.Minute).String() + " ago"
 		}
-		log.Printf("[catch-up] last enrichment is overdue (%s, threshold %s) — running now", label, enrichInterval)
+		catchUpLog.Info("last enrichment overdue; running now", "last_enrichment", label, "threshold", enrichInterval.String())
 		go s.RunEnrichmentJob(false, "catch-up")
 	} else {
-		log.Printf("[catch-up] last enrichment was %s ago (threshold %s) — not overdue", enrichAge.Round(time.Minute), enrichInterval)
+		catchUpLog.Debug("last enrichment not overdue", "age", enrichAge.Round(time.Minute).String(), "threshold", enrichInterval.String())
 	}
 }
 
@@ -742,13 +752,13 @@ func (s *Scheduler) Start(spec string, triggeredBy string) {
 	tb := triggeredBy
 	s.cron.AddFunc(spec, func() { s.RunScrapeJob("", tb) })
 	s.cron.Start()
-	log.Printf("[scheduler] started scrape cron with spec %s", spec)
+	schedulerLog.Info("started scrape cron", "spec", spec)
 }
 
 func (s *Scheduler) StartEnrichment(spec string) {
 	if spec != "" {
 		s.cron.AddFunc(spec, func() { s.RunEnrichmentJob(false, "cron") })
-		log.Printf("[scheduler] started enrichment cron with spec %s", spec)
+		schedulerLog.Info("started enrichment cron", "spec", spec)
 	}
 }
 
