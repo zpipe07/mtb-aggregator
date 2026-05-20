@@ -100,6 +100,10 @@ After setting `SENTRY_DSN` on Render and redeploying, confirm startup log `[sent
 
 Scraper route failures (`route:scrape` / `route:enrich`) live in the **scraper** Sentry project, not the API project.
 
+## Logging
+
+Structured JSON logs via `internal/logutil` (`log/slog`). Env: `LOG_LEVEL`, `LOG_FORMAT`, `LOG_HTTP_ACCESS` (default `auto` disables app access logs on Render). Schema and Render tips: [docs/LOGGING.md](../../docs/LOGGING.md).
+
 ## Running
 
 ```bash

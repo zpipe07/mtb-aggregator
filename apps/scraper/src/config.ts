@@ -1,6 +1,7 @@
 /** Used for plain HTTP fetch enrichers (Shopify JSON, etc.). */
 import { existsSync } from "node:fs";
 import { isAbsolute, resolve } from "node:path";
+import { startupLogger } from "./logging.js";
 
 export const USER_AGENT =
   "MTBDealBot/1.0 (+https://github.com/mtb-aggregator; contact for bot info)";
@@ -36,9 +37,13 @@ export function scraperStorageStateLoadPath(): string {
 export function logScraperStorageStateConfig(): void {
   if (!SCRAPER_STORAGE_STATE_RAW) return;
   const loadPath = scraperStorageStateLoadPath();
-  console.log(
-    `[scraper] SCRAPER_STORAGE_STATE env=${JSON.stringify(SCRAPER_STORAGE_STATE_RAW)} resolved=${SCRAPER_STORAGE_STATE} cwd=${process.cwd()} load=${loadPath || "(file missing — enrich will run without saved cookies)"}`,
-  );
+  startupLogger.info({
+    msg: "scraper storage state configured",
+    env: SCRAPER_STORAGE_STATE_RAW,
+    resolved: SCRAPER_STORAGE_STATE,
+    cwd: process.cwd(),
+    load: loadPath || "(file missing — enrich will run without saved cookies)",
+  });
 }
 
 /** Max ms to wait for WAF challenge to clear before giving up (default 120s). */
