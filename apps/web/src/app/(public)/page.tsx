@@ -29,9 +29,8 @@ function avantlinkVerificationScriptMarkup(raw: string): string | null {
   return `<script type="text/javascript" src="${src}"><\/script>`;
 }
 
-import { PUBLIC_ISR_REVALIDATE_SECONDS } from "@/lib/revalidate";
-
-export const revalidate = PUBLIC_ISR_REVALIDATE_SECONDS;
+/** 4h — must match PUBLIC_ISR_REVALIDATE_SECONDS in @/lib/revalidate (literal required by Next.js). */
+export const revalidate = 14400;
 
 const homeDescription =
   "Compare mountain bike deals across top retailers. Find the best prices on bikes, components, gear, and accessories — updated throughout the day.";

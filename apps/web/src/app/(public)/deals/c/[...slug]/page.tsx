@@ -25,9 +25,8 @@ import { DealsPageContent } from "@/views/DealsPageContent";
 import { SeoHubLinksForCategory } from "@/components/SeoHubLinks";
 import CategoryDealsLoading from "./loading";
 
-import { PUBLIC_ISR_REVALIDATE_SECONDS } from "@/lib/revalidate";
-
-export const revalidate = PUBLIC_ISR_REVALIDATE_SECONDS;
+/** 4h — must match {@link PUBLIC_ISR_REVALIDATE_SECONDS} in @/lib/revalidate. */
+export const revalidate = 14400;
 
 type Props = {
   params: Promise<{ slug: string[] }>;

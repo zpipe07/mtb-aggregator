@@ -2,7 +2,6 @@ import type { MetadataRoute } from "next";
 import { fetchCategoryTree, fetchDeals } from "@/api";
 import { filterCategoryTreeWithDeals } from "@/lib/categoryTree";
 import { allDealsCategoryPathsFromTree } from "@/lib/dealsCategoryPath";
-import { SITEMAP_REVALIDATE_SECONDS } from "@/lib/revalidate";
 import { absoluteUrl } from "@/lib/siteUrl";
 import {
   listSeoHubs,
@@ -12,7 +11,8 @@ import {
   buildSeoHubPublicPath,
 } from "@/lib/seoHubs";
 
-export const revalidate = SITEMAP_REVALIDATE_SECONDS;
+/** 4h — must match {@link PUBLIC_ISR_REVALIDATE_SECONDS} in @/lib/revalidate. */
+export const revalidate = 14400;
 
 const DEAL_PAGE_SIZE = 5000;
 /** Google’s per-sitemap URL limit; leave headroom for static + category URLs. */

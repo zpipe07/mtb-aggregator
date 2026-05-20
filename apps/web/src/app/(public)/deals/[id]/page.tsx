@@ -10,12 +10,12 @@ import {
 } from "@/lib/categoryTree";
 import { buildDealsCategoryPath } from "@/lib/dealsCategoryPath";
 import { buildBreadcrumbJsonLd, buildProductJsonLd } from "@/lib/jsonLd";
-import { PUBLIC_ISR_REVALIDATE_SECONDS } from "@/lib/revalidate";
 import { absoluteUrl } from "@/lib/siteUrl";
 import { DealDetailContent } from "./DealDetailContent";
 import DealDetailLoading from "./loading";
 
-export const revalidate = PUBLIC_ISR_REVALIDATE_SECONDS;
+/** 4h — must match PUBLIC_ISR_REVALIDATE_SECONDS in @/lib/revalidate (literal required by Next.js). */
+export const revalidate = 14400;
 
 type Props = {
   params: Promise<{ id: string }>;
