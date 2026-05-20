@@ -27,6 +27,7 @@ export const STORE_TYPES = [
   "revelbikes",
   "ridebicycles",
   "thundermountainbikes",
+  "mackcycle",
   "canyon",
   "specialized",
 ] as const;

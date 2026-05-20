@@ -146,6 +146,17 @@ make scrape-now-specialized
 make enrich-now-specialized
 ```
 
+### Mack Cycle
+
+**Listing scrape** (`mackcycle` in `PARSERS`) uses **fetch** against Shopify collection `products.json` on `/collections/sale` (`limit=250`, paginated). Emits one row per variant; `product_group_key` is the product handle; `variant_options` from `shopify-helpers`. Seed `scrape_url`: `https://www.mackcycle.com/collections/sale`.
+
+**PDP enrichment** (`enrichMackCycle`) mirrors Worldwide Cyclery / Thunder Mountain: parallel `GET /products/{handle}.json` (specs from `body_html` tables/dl) and PDP HTML (breadcrumbs). No affiliate URL in MVP.
+
+```bash
+make scrape-now-mackcycle
+make enrich-now-mackcycle
+```
+
 ## Endpoints
 
 | Endpoint  | Method | Purpose                                           |
@@ -169,6 +180,7 @@ Parsers live in `src/parsers/` — one file per store:
 - `competitivecyclist.ts` — Competitive Cyclist (**enrich only**; ingest is Impact catalog on the API)
 - `ridebicycles.ts` — Ride Bicycles (Shopify JSON API; in-stock + ≥10% off compare-at)
 - `thundermountainbikes.ts` — Thunder Mountain Bikes (Shopify collection JSON + PDP enrich like Worldwide Cyclery)
+- `mackcycle.ts` — Mack Cycle (Shopify collection JSON + PDP enrich like Worldwide Cyclery)
 - `canyon.ts` / `canyon-plp.ts` / `canyon-pdp.ts` — Canyon US sale (Demandware ajax PLP + fetch PDP enrich)
 - `specialized.ts` / `specialized-plp.ts` / `specialized-pdp.ts` — Specialized US sale (GraphQL PLP + fetch PDP enrich)
 
@@ -203,7 +215,7 @@ Parsers live in `src/parsers/` — one file per store:
 
 **JensonUSA** (`jensonusa.ts`): clearance cards expose `variants[]` inside `data-product-result-dto` (after page hydration). The parser emits **one row per variant** with `store_sku` = `variant.code`, `product_group_key` = parent `dto.code`, and `variant_options` from whatever facet fields exist on the **listing** DTO (often **Color only**; Size and other axes may be missing). **PDP enrichment** (`enrichJensonUSA`) parses `serverSideViewModel.variants` from the product page HTML and returns a `variants` array (`code`, `dimensions`, `is_orderable`); the API fans that out to every sibling row with the same `product_group_key` (one PDP fetch per parent). Parser modules: `jensonusa-dto.ts`, `jensonusa-pdp.ts`, tests `jensonusa-dto*.test.ts`, `jensonusa-pdp-variants.test.ts`.
 
-Shopify parsers (`ridebicycles`, `worldwidecyclery`, `revelbikes`, `thundermountainbikes`) emit one row per variant; the API stores `product_group_key` as `{store_id}:{handle}` and `variant_options` as JSON for deduplication and filters. Shared helpers: `parsers/shopify-helpers.ts`.
+Shopify parsers (`ridebicycles`, `worldwidecyclery`, `revelbikes`, `thundermountainbikes`, `mackcycle`) emit one row per variant; the API stores `product_group_key` as `{store_id}:{handle}` and `variant_options` as JSON for deduplication and filters. Shared helpers: `parsers/shopify-helpers.ts`.
 
 ## Running
 
