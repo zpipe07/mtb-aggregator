@@ -9,6 +9,7 @@ import {
   scrapeThunderMountainBikes,
   enrichThunderMountainBikes,
 } from "./thundermountainbikes.js";
+import { scrapeMackCycle, enrichMackCycle } from "./mackcycle.js";
 import { scrapeCanyon, enrichCanyon } from "./canyon.js";
 import { scrapeSpecialized, enrichSpecialized } from "./specialized.js";
 import { enrichCompetitiveCyclist } from "./competitivecyclist.js";
@@ -23,6 +24,7 @@ export const PARSERS: Record<string, ParserFn> = {
   backcountry: scrapeBackcountry,
   ridebicycles: scrapeRideBicycles,
   thundermountainbikes: scrapeThunderMountainBikes,
+  mackcycle: scrapeMackCycle,
   canyon: scrapeCanyon,
   specialized: scrapeSpecialized,
 };
@@ -34,6 +36,7 @@ export const ENRICHERS: Record<string, EnrichFn> = {
   backcountry: enrichBackcountry,
   ridebicycles: enrichRideBicycles,
   thundermountainbikes: enrichThunderMountainBikes,
+  mackcycle: enrichMackCycle,
   canyon: enrichCanyon,
   specialized: enrichSpecialized,
   competitivecyclist: enrichCompetitiveCyclist,
