@@ -26,6 +26,14 @@ import (
 
 const defaultEnrichBatchSize = 50
 
+// enrichListingErrorsSentryMin is the minimum errStrs count before reporting a completed job to Sentry.
+const enrichListingErrorsSentryMin = 5
+
+// enrichListingErrorsSentryFailurePct triggers Sentry when more than this percent of listings fail enrichment.
+const enrichListingErrorsSentryFailurePct = 50
+
+const enrichListingErrorsSentrySampleMax = 3
+
 func getEnrichBatchSize() int {
 	if s := os.Getenv("ENRICH_BATCH_SIZE"); s != "" {
 		if n, err := strconv.Atoi(s); err == nil && n > 0 {
@@ -51,6 +59,37 @@ func getScrapeJobTimeout() time.Duration {
 		}
 	}
 	return 20 * time.Minute
+}
+
+// captureEnrichJobListingErrorsAggregate reports one Sentry event when a completed enrich job
+// accumulated many per-listing failures (stored in enrich_jobs.errors but not sent individually).
+func captureEnrichJobListingErrorsAggregate(scope string, processed, enriched int, errStrs []string) {
+	if processed <= 0 || len(errStrs) == 0 {
+		return
+	}
+	failures := processed - enriched
+	failurePct := failures * 100 / processed
+	if len(errStrs) < enrichListingErrorsSentryMin && failurePct <= enrichListingErrorsSentryFailurePct {
+		return
+	}
+	sampleN := enrichListingErrorsSentrySampleMax
+	if sampleN > len(errStrs) {
+		sampleN = len(errStrs)
+	}
+	samples := strings.Join(errStrs[:sampleN], "; ")
+	err := fmt.Errorf(
+		"enrich job completed with %d listing errors (scope=%s, processed=%d, enriched=%d, failure_pct=%d%%; samples: %s)",
+		len(errStrs), scope, processed, enriched, failurePct, samples,
+	)
+	tags := map[string]string{
+		"component": "scheduler",
+		"job":       "enrich",
+		"phase":     "listing_errors_aggregate",
+	}
+	if scope != "" {
+		tags["store_type"] = scope
+	}
+	sentryutil.CaptureError(err, tags)
 }
 
 // finalizeEnrichJob writes terminal job status using a DB context that is not the (possibly
@@ -472,6 +511,7 @@ func (s *Scheduler) RunEnrichmentJob(force bool, triggeredBy string) {
 	if jobID != 0 {
 		p := len(listings)
 		s.finalizeEnrichJob(jobID, status, &p, &successCount, errStrs, "")
+		captureEnrichJobListingErrorsAggregate("", len(listings), successCount, errStrs)
 	}
 	log.Printf("[enrichment] enriched %d/%d listings", successCount, len(listings))
 }
@@ -651,6 +691,7 @@ func (s *Scheduler) runEnrichmentLoop(f db.EnrichmentFilter, force bool, trigger
 	}
 	if jobID != 0 {
 		s.finalizeEnrichJob(jobID, "completed", &totalProcessed, &totalSuccess, errStrs, scope)
+		captureEnrichJobListingErrorsAggregate(scope, totalProcessed, totalSuccess, errStrs)
 	}
 	if totalProcessed > 0 {
 		log.Printf("[enrichment] %s: enriched %d/%d listings total", scope, totalSuccess, totalProcessed)

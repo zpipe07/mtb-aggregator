@@ -59,7 +59,7 @@ cd apps/web && pnpm run dev
 - When in-process cron is enabled, startup **catch-up** runs scrape/enrich if the last DB job is more than 24h old (see [apps/api/README.md](apps/api/README.md))
 - `NEXT_PUBLIC_API_URL` — client-side API base (defaults to `/api`); `API_URL` for server-side (full URL)
 - `NEXT_PUBLIC_SITE_URL` — public web origin for Next.js `metadataBase`, canonical URLs, Open Graph, sitemap, and `robots.txt` sitemap line (**required on Vercel Production**; Preview falls back to `VERCEL_URL` when unset)
-- `SENTRY_DSN` — optional; enables Sentry on the API when set (`SENTRY_ENVIRONMENT` optional; release = `SENTRY_RELEASE` or `RENDER_GIT_COMMIT` on Render). Scheduler jobs also send high-signal events via `internal/sentryutil` when DSN is set.
+- **`SENTRY_DSN`** — **required on Render API in production**; enables Sentry (`SENTRY_ENVIRONMENT` optional; release = `SENTRY_RELEASE` or `RENDER_GIT_COMMIT`). Scheduler jobs send high-signal events via `internal/sentryutil` only when DSN is set.
 - **OpenAI (enrichment LLM):** `OPENAI_API_KEY`, optional `OPENAI_MODEL` (default `gpt-4o-mini`), `OPENAI_BASE_URL` (compatible API base). Retries: `OPENAI_MAX_RETRIES` (default `3`), `OPENAI_RETRY_BASE_MS` (default `500`). Category preservation during PDP enrichment: optional `LLM_CATEGORY_PRESERVE_THRESHOLD` (`0`–`1`; overrides classifier threshold / default `0.5` — see [apps/api/README.md](apps/api/README.md)).
 - `NEXT_PUBLIC_SENTRY_DSN` — optional; enables Sentry on the web app (see [apps/web/README.md](apps/web/README.md)); Vercel provides `VERCEL_GIT_COMMIT_SHA` / `VERCEL_ENV` for release/environment mapping in `next.config.ts`
 - Scraper: same `SENTRY_DSN` / `SENTRY_*` as API when enabled (see [apps/scraper/README.md](apps/scraper/README.md))
