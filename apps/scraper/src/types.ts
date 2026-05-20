@@ -28,6 +28,7 @@ export const STORE_TYPES = [
   "ridebicycles",
   "thundermountainbikes",
   "canyon",
+  "specialized",
 ] as const;
 export type StoreType = (typeof STORE_TYPES)[number];
 
