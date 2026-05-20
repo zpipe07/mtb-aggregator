@@ -167,7 +167,11 @@ make enrich-now-mackcycle
 
 ### Error monitoring (Sentry)
 
-When `SENTRY_DSN` is set (production should set it), new routes that can fail with 5xx must report via `captureRouteError` or `next(err)` + `setupExpressErrorHandler`—not only `console.error`. Policy: [docs/ARCHITECTURE.md](../../docs/ARCHITECTURE.md#error-monitoring-sentry).
+When `SENTRY_DSN` is set (production should set it), new routes that can fail with 5xx must report via `captureRouteError` or `next(err)` + `setupExpressErrorHandler`—not only stdout logs. Policy: [docs/ARCHITECTURE.md](../../docs/ARCHITECTURE.md#error-monitoring-sentry).
+
+### Logging
+
+Structured JSON via `@mtb-aggregator/logging` (`src/logging.ts`, `src/server.ts`). Env: `LOG_LEVEL`, `LOG_FORMAT`, `LOG_HTTP_ACCESS`. Full schema: [docs/LOGGING.md](../../docs/LOGGING.md).
 
 ## Parser Structure
 

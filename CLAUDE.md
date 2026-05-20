@@ -63,6 +63,7 @@ cd apps/web && pnpm run dev
 - **OpenAI (enrichment LLM):** `OPENAI_API_KEY`, optional `OPENAI_MODEL` (default `gpt-4o-mini`), `OPENAI_BASE_URL` (compatible API base). Retries: `OPENAI_MAX_RETRIES` (default `3`), `OPENAI_RETRY_BASE_MS` (default `500`). Category preservation during PDP enrichment: optional `LLM_CATEGORY_PRESERVE_THRESHOLD` (`0`–`1`; overrides classifier threshold / default `0.5` — see [apps/api/README.md](apps/api/README.md)).
 - `NEXT_PUBLIC_SENTRY_DSN` — optional; enables Sentry on the web app (see [apps/web/README.md](apps/web/README.md)); Vercel provides `VERCEL_GIT_COMMIT_SHA` / `VERCEL_ENV` for release/environment mapping in `next.config.ts`
 - Scraper: same `SENTRY_DSN` / `SENTRY_*` as API when enabled (see [apps/scraper/README.md](apps/scraper/README.md))
+- **Logging (all apps):** `LOG_LEVEL` (default `info`), `LOG_FORMAT` (`json` or `text`), `LOG_HTTP_ACCESS` (`auto` — off on Render/Vercel to avoid duplicating platform access logs). See [docs/LOGGING.md](docs/LOGGING.md).
 - **`SCRAPER_STORAGE_STATE`** (scraper) — Playwright cookie file for **Competitive Cyclist PDP enrich** (AWS WAF). Local bootstrap: generate `apps/scraper/cc-storage.json` via `playwright codegen --save-storage` (see [apps/scraper/README.md](apps/scraper/README.md#competitive-cyclist)). Production: mount as Render secret file on the **scraper** service (e.g. `/etc/secrets/cc-storage.json`). Optional **`SCRAPER_HEADED=1`** for the first manual WAF solve locally.
 
 ## Commands
@@ -166,7 +167,7 @@ For remote (Neon, etc.): `make db-migrate-remote` (uses `go run ./cmd/migrate`)
 
 ### Further Reading
 
-- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — Data flow, services, component library, **error monitoring (Sentry) policy**
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — Data flow, services, component library, **error monitoring (Sentry) policy**, **logging**
 - [docs/DESIGN.md](docs/DESIGN.md) — Visual identity, copy guidelines, "dialed-in" vibe
 - [docs/SCRAPING.md](docs/SCRAPING.md) — Parser structure, adding stores
 - [docs/TAXONOMY.md](docs/TAXONOMY.md) — Category mappings, LLM classifier

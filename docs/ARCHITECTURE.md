@@ -197,6 +197,10 @@ The CI workflow sets `permissions: contents: read` and `pull-requests: read` so 
 
 See [README.md](../README.md) for setup and [.cursor/plans/mtb_aggregator_deployment.plan.md](../.cursor/plans/mtb_aggregator_deployment.plan.md) for deployment details.
 
+### Logging
+
+All services emit **JSON log lines** to stdout with shared fields (`ts`, `level`, `service`, `component`, `msg`). On Render/Vercel, **platform HTTP access logs are not duplicated** by the app when `LOG_HTTP_ACCESS=auto` (default). Tune with `LOG_LEVEL`, `LOG_FORMAT`, and `LOG_HTTP_ACCESS`. Full schema and Render filter tips: [docs/LOGGING.md](LOGGING.md).
+
 ### Error monitoring (Sentry)
 
 #### Policy: report significant errors to Sentry

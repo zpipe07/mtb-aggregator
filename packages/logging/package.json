@@ -1,0 +1,27 @@
+{
+  "name": "@mtb-aggregator/logging",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Shared structured logging for Node apps",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "import": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "pino": "^9.6.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.2.3",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.4"
+  }
+}

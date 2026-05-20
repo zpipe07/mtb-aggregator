@@ -90,6 +90,10 @@ Go HTTP server that orchestrates scraping, enrichment, and serves the REST API. 
 
 When `SENTRY_DSN` is set (deployed environments should set it), **significant errors must reach Sentry**, not only logs: HTTP layer uses `sentryhttp`; handlers that catch errors and return 5xx should call `sentry.CaptureException`; background work uses `internal/sentryutil`. Full policy: [docs/ARCHITECTURE.md](../../docs/ARCHITECTURE.md#error-monitoring-sentry).
 
+## Logging
+
+Structured JSON logs via `internal/logutil` (`log/slog`). Env: `LOG_LEVEL`, `LOG_FORMAT`, `LOG_HTTP_ACCESS` (default `auto` disables app access logs on Render). Schema and Render tips: [docs/LOGGING.md](../../docs/LOGGING.md).
+
 ## Running
 
 ```bash

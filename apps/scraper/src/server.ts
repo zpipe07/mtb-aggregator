@@ -6,12 +6,14 @@ import { mkdir, writeFile } from "fs/promises";
 import { join } from "path";
 import { runWithBrowser } from "./browser.js";
 import { logScraperStorageStateConfig } from "./config.js";
+import { scraperAccessMiddleware, scraperLogger, securityLogger, startupLogger } from "./logging.js";
 import { getParser, getEnricher, PARSERS, ENRICHERS } from "./parsers/index.js";
 import { captureRouteError } from "./sentry-helpers.js";
 import { ScrapeRequestSchema, ScrapeResultSchema, EnrichRequestSchema } from "./types.js";
 
 const app = express();
 app.use(express.json());
+app.use(scraperAccessMiddleware());
 
 const PORT = process.env.PORT ?? 3000;
 const LOGS_DIR = process.env.SCREENSHOT_DIR ?? join(process.cwd(), "logs");
@@ -44,7 +46,8 @@ app.post("/scrape", scraperServiceAuth, async (req, res) => {
   }
 
   const { url, store } = parseResult.data;
-  console.log(`[scraper] scrape started: store=${store} url=${url}`);
+  const startedAt = Date.now();
+  scraperLogger.info({ msg: "scrape started", store, url });
   const parser = getParser(store);
 
   if (!parser) {
@@ -69,16 +72,26 @@ app.post("/scrape", scraperServiceAuth, async (req, res) => {
     }
 
     if (errors.length > 0) {
-      console.warn("Validation warnings:", errors.slice(0, 5));
+      scraperLogger.warn({ msg: "scrape validation warnings", store, count: errors.length, sample: errors.slice(0, 5) });
     }
 
-    console.log(`[scraper] scrape completed: store=${store} count=${validated.length}`);
+    scraperLogger.info({
+      msg: "scrape completed",
+      store,
+      count: validated.length,
+      duration_ms: Date.now() - startedAt,
+    });
     return res.json(validated);
   } catch (err) {
-    console.error("Scrape error:", err);
+    scraperLogger.error({
+      msg: "scrape failed",
+      store,
+      url,
+      err: err instanceof Error ? err.message : String(err),
+      duration_ms: Date.now() - startedAt,
+    });
     captureRouteError(err, { route: "scrape", store, url });
 
-    // Take screenshot on failure (if we have page context - for now just log)
     try {
       await mkdir(LOGS_DIR, { recursive: true });
       const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
@@ -87,9 +100,13 @@ app.post("/scrape", scraperServiceAuth, async (req, res) => {
         logPath,
         `Error: ${err instanceof Error ? err.message : String(err)}\n\nStack: ${err instanceof Error ? err.stack : ""}`
       );
-      console.log("Error logged to", logPath);
+      scraperLogger.info({ msg: "scrape error written to file", path: logPath, store });
     } catch (logErr) {
-      console.error("Failed to write error log:", logErr);
+      scraperLogger.error({
+        msg: "failed to write scrape error log",
+        store,
+        err: logErr instanceof Error ? logErr.message : String(logErr),
+      });
     }
 
     return res.status(500).json({
@@ -113,7 +130,8 @@ app.post("/enrich", scraperServiceAuth, async (req, res) => {
   }
 
   const { url, store } = parseResult.data;
-  console.log(`[scraper] enrich started: store=${store} url=${url}`);
+  const startedAt = Date.now();
+  scraperLogger.info({ msg: "enrich started", store, url });
   const enricher = getEnricher(store);
 
   if (!enricher) {
@@ -124,10 +142,17 @@ app.post("/enrich", scraperServiceAuth, async (req, res) => {
 
   try {
     const result = await enricher(url);
-    console.log(`[scraper] enrich completed: store=${store}`);
+    scraperLogger.info({ msg: "enrich completed", store, duration_ms: Date.now() - startedAt });
     return res.json(result);
   } catch (err) {
-    console.error("Enrich error:", err);
+    scraperLogger.error({
+      msg: "enrich failed",
+      store,
+      url,
+      err: err instanceof Error ? err.message : String(err),
+      duration_ms: Date.now() - startedAt,
+    });
+    captureRouteError(err, { route: "enrich", store, url });
     try {
       await mkdir(LOGS_DIR, { recursive: true });
       const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
@@ -136,8 +161,13 @@ app.post("/enrich", scraperServiceAuth, async (req, res) => {
         logPath,
         `Error: ${err instanceof Error ? err.message : String(err)}\n\nStack: ${err instanceof Error ? err.stack : ""}`
       );
+      scraperLogger.info({ msg: "enrich error written to file", path: logPath, store });
     } catch (logErr) {
-      console.error("Failed to write error log:", logErr);
+      scraperLogger.error({
+        msg: "failed to write enrich error log",
+        store,
+        err: logErr instanceof Error ? logErr.message : String(logErr),
+      });
     }
     return res.status(500).json({
       error: "Enrich failed",
@@ -211,13 +241,13 @@ app.post("/scrape-debug", scraperServiceAuth, async (req, res) => {
 Sentry.setupExpressErrorHandler(app);
 
 app.listen(PORT, () => {
-  console.log(`Scraper listening on port ${PORT}`);
+  startupLogger.info({ msg: "scraper listening", port: PORT });
   logScraperStorageStateConfig();
   const isProd =
     process.env.NODE_ENV === "production" || String(process.env.RENDER ?? "").toLowerCase() === "true";
   if (isProd && !String(process.env.SCRAPER_SERVICE_SECRET ?? "").trim()) {
-    console.warn(
-      "[security] SCRAPER_SERVICE_SECRET unset in production: POST /scrape, /enrich, /scrape-debug are unauthenticated"
-    );
+    securityLogger.warn({
+      msg: "SCRAPER_SERVICE_SECRET unset in production: POST /scrape, /enrich, /scrape-debug are unauthenticated",
+    });
   }
 });
