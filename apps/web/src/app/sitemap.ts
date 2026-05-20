@@ -2,6 +2,7 @@ import type { MetadataRoute } from "next";
 import { fetchCategoryTree, fetchDeals } from "@/api";
 import { filterCategoryTreeWithDeals } from "@/lib/categoryTree";
 import { allDealsCategoryPathsFromTree } from "@/lib/dealsCategoryPath";
+import { SITEMAP_REVALIDATE_SECONDS } from "@/lib/revalidate";
 import { absoluteUrl } from "@/lib/siteUrl";
 import {
   listSeoHubs,
@@ -11,7 +12,7 @@ import {
   buildSeoHubPublicPath,
 } from "@/lib/seoHubs";
 
-export const revalidate = 3600;
+export const revalidate = SITEMAP_REVALIDATE_SECONDS;
 
 const DEAL_PAGE_SIZE = 5000;
 /** Google’s per-sitemap URL limit; leave headroom for static + category URLs. */
@@ -21,19 +22,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const entries: MetadataRoute.Sitemap = [
     {
       url: absoluteUrl("/"),
-      lastModified: new Date(),
       changeFrequency: "daily",
       priority: 1,
     },
     {
       url: absoluteUrl("/deals"),
-      lastModified: new Date(),
       changeFrequency: "hourly",
       priority: 0.9,
     },
     {
       url: absoluteUrl("/categories"),
-      lastModified: new Date(),
       changeFrequency: "daily",
       priority: 0.8,
     },
@@ -46,7 +44,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     )) {
       entries.push({
         url: absoluteUrl(path),
-        lastModified: new Date(),
         changeFrequency: "daily",
         priority: 0.8,
       });
@@ -76,7 +73,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       if (path == null) continue;
       entries.push({
         url: absoluteUrl(path),
-        lastModified: new Date(),
         changeFrequency: "daily",
         priority: 0.75,
       });
@@ -101,7 +97,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         if (dealUrls >= MAX_DEAL_URLS_IN_SITEMAP) break;
         entries.push({
           url: absoluteUrl(`/deals/${d.id}`),
-          lastModified: new Date(),
           changeFrequency: "weekly",
           priority: 0.5,
         });

@@ -8,7 +8,9 @@ import { absoluteUrl } from "@/lib/siteUrl";
 import { CategoriesPageContent } from "@/views/CategoriesPageContent";
 import { SeoHubLinksGlobal } from "@/components/SeoHubLinks";
 
-export const revalidate = 60;
+import { PUBLIC_ISR_REVALIDATE_SECONDS } from "@/lib/revalidate";
+
+export const revalidate = PUBLIC_ISR_REVALIDATE_SECONDS;
 
 const pageDescription =
   "See every mountain bike category on The Dropper—bikes, components, gear, and accessories—with live deal counts. Pick a category to browse filtered deals.";

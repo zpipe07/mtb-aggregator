@@ -29,7 +29,9 @@ function avantlinkVerificationScriptMarkup(raw: string): string | null {
   return `<script type="text/javascript" src="${src}"><\/script>`;
 }
 
-export const revalidate = 60;
+import { PUBLIC_ISR_REVALIDATE_SECONDS } from "@/lib/revalidate";
+
+export const revalidate = PUBLIC_ISR_REVALIDATE_SECONDS;
 
 const homeDescription =
   "Compare mountain bike deals across top retailers. Find the best prices on bikes, components, gear, and accessories — updated throughout the day.";

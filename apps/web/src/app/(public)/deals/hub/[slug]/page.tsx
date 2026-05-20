@@ -24,7 +24,9 @@ import { absoluteUrl } from "@/lib/siteUrl";
 import { DealsPageContent } from "@/views/DealsPageContent";
 import HubDealsLoading from "./loading";
 
-export const revalidate = 60;
+import { PUBLIC_ISR_REVALIDATE_SECONDS } from "@/lib/revalidate";
+
+export const revalidate = PUBLIC_ISR_REVALIDATE_SECONDS;
 
 type Props = {
   params: Promise<{ slug: string }>;

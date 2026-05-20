@@ -17,7 +17,9 @@ import { DealsPageContent } from "@/views/DealsPageContent";
 import { SeoHubLinksGlobal } from "@/components/SeoHubLinks";
 import DealsLoading from "./loading";
 
-export const revalidate = 60;
+import { PUBLIC_ISR_REVALIDATE_SECONDS } from "@/lib/revalidate";
+
+export const revalidate = PUBLIC_ISR_REVALIDATE_SECONDS;
 
 const dealsDescription =
   "Browse all mountain bike deals. Filter by category, brand, price, and specs to find your next ride at the best price.";
