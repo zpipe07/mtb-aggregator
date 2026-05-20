@@ -78,10 +78,12 @@ make scrape-now-wwc          # worldwidecyclery only
 make scrape-now-revel        # revelbikes only
 make scrape-now-competitivecyclist  # CC only (Impact catalog on API; requires IMPACT_* creds)
 make scrape-now-thundermountainbikes  # thundermountainbikes only
+make scrape-now-canyon         # canyon only
 make enrich-now              # enrich unenriched listings
 make enrich-now-revel        # revelbikes only (optional FORCE=1)
 make enrich-now-competitivecyclist   # CC only (optional FORCE=1)
 make enrich-now-thundermountainbikes   # thundermountainbikes only (optional FORCE=1)
+make enrich-now-canyon         # canyon only (optional FORCE=1)
 make enrich-now FORCE=1      # re-enrich all
 make impact-catalog-probe    # list Impact catalogs + sample catalog Items page (requires IMPACT_ACCOUNT_SID + IMPACT_AUTH_TOKEN)
 
