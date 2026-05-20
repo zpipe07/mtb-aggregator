@@ -10,9 +10,11 @@ export const BROWSER_USER_AGENT =
   process.env.BROWSER_USER_AGENT?.trim() ||
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
 
+/** Raw env value (for logs). */
+export const SCRAPER_STORAGE_STATE_RAW = process.env.SCRAPER_STORAGE_STATE?.trim() || "";
+
 /** Resolve SCRAPER_STORAGE_STATE to an absolute path (cwd, then monorepo root). */
-export function resolveScraperStorageState(): string {
-  const raw = process.env.SCRAPER_STORAGE_STATE?.trim() || "";
+export function resolveScraperStorageState(raw = SCRAPER_STORAGE_STATE_RAW): string {
   if (!raw) return "";
   if (isAbsolute(raw)) return raw;
   const fromCwd = resolve(process.cwd(), raw);
@@ -22,8 +24,22 @@ export function resolveScraperStorageState(): string {
   return fromCwd;
 }
 
-/** Playwright storage state JSON (cookies + localStorage) after passing AWS WAF once. */
+/** Resolved path for load/save (absolute when possible). */
 export const SCRAPER_STORAGE_STATE = resolveScraperStorageState();
+
+/** Path to pass to Playwright only when the file exists (missing file must not crash enrich). */
+export function scraperStorageStateLoadPath(): string {
+  if (!SCRAPER_STORAGE_STATE) return "";
+  return existsSync(SCRAPER_STORAGE_STATE) ? SCRAPER_STORAGE_STATE : "";
+}
+
+export function logScraperStorageStateConfig(): void {
+  if (!SCRAPER_STORAGE_STATE_RAW) return;
+  const loadPath = scraperStorageStateLoadPath();
+  console.log(
+    `[scraper] SCRAPER_STORAGE_STATE env=${JSON.stringify(SCRAPER_STORAGE_STATE_RAW)} resolved=${SCRAPER_STORAGE_STATE} cwd=${process.cwd()} load=${loadPath || "(file missing — enrich will run without saved cookies)"}`,
+  );
+}
 
 /** Max ms to wait for WAF challenge to clear before giving up (default 120s). */
 export const SCRAPER_WAF_WAIT_MS = Math.max(

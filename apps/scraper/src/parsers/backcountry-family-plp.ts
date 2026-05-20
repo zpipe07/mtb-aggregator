@@ -7,7 +7,9 @@ import {
   BROWSER_USER_AGENT,
   SCRAPE_DELAY_MS,
   SCRAPER_STORAGE_STATE,
+  SCRAPER_STORAGE_STATE_RAW,
   SCRAPER_WAF_WAIT_MS,
+  scraperStorageStateLoadPath,
 } from "../config.js";
 
 const LOGS_DIR = process.env.SCREENSHOT_DIR ?? join(process.cwd(), "logs");
@@ -19,7 +21,9 @@ function isWafPage(title: string, hasGoku: boolean): boolean {
 }
 
 /** Playwright context options shared by Backcountry-family PLP scrape and PDP enrich. */
-export function backcountryFamilyContextOptions(brandLabel: string): Parameters<Browser["newContext"]>[0] {
+export function backcountryFamilyContextOptions(
+  brandLabel: string,
+): Parameters<Browser["newContext"]>[0] {
   const contextOptions: Parameters<Browser["newContext"]>[0] = {
     userAgent: BROWSER_USER_AGENT,
     viewport: { width: 1280, height: 900 },
@@ -27,9 +31,16 @@ export function backcountryFamilyContextOptions(brandLabel: string): Parameters<
     timezoneId: "America/Denver",
     extraHTTPHeaders: { "Accept-Language": "en-US,en;q=0.9" },
   };
-  if (SCRAPER_STORAGE_STATE) {
-    console.log(`[scraper] ${brandLabel}: loading storage state from ${SCRAPER_STORAGE_STATE}`);
-    contextOptions.storageState = SCRAPER_STORAGE_STATE;
+  const storagePath = scraperStorageStateLoadPath();
+  if (storagePath) {
+    console.log(
+      `[scraper] ${brandLabel}: loading storage state from ${storagePath}`,
+    );
+    contextOptions.storageState = storagePath;
+  } else if (SCRAPER_STORAGE_STATE_RAW) {
+    console.warn(
+      `[scraper] ${brandLabel}: SCRAPER_STORAGE_STATE=${JSON.stringify(SCRAPER_STORAGE_STATE_RAW)} resolved=${SCRAPER_STORAGE_STATE} but file not found — starting without saved cookies`,
+    );
   }
   return contextOptions;
 }
@@ -46,11 +57,16 @@ export async function waitForBackcountryFamilyPdpReady(
   while (Date.now() < deadline) {
     const snap = await page.evaluate(() => {
       const title = document.title || "";
-      const hasGoku = !!(window as unknown as { gokuProps?: unknown }).gokuProps;
-      const ldJson = document.querySelectorAll('script[type="application/ld+json"]').length;
+      const hasGoku = !!(window as unknown as { gokuProps?: unknown })
+        .gokuProps;
+      const ldJson = document.querySelectorAll(
+        'script[type="application/ld+json"]',
+      ).length;
       const html = document.documentElement.innerHTML;
       const hasHasVariant = html.includes('"hasVariant"');
-      const hasProductLd = html.includes('"@type":"Product"') || html.includes('"@type": "Product"');
+      const hasProductLd =
+        html.includes('"@type":"Product"') ||
+        html.includes('"@type": "Product"');
       return { title, hasGoku, ldJson, hasHasVariant, hasProductLd };
     });
 
@@ -93,7 +109,8 @@ export async function waitForBackcountryFamilyPlReady(
   while (Date.now() < deadline) {
     const snap = await page.evaluate(() => {
       const title = document.title || "";
-      const hasGoku = !!(window as unknown as { gokuProps?: unknown }).gokuProps;
+      const hasGoku = !!(window as unknown as { gokuProps?: unknown })
+        .gokuProps;
       const stateKeys = [
         "__INITIAL_STATE__",
         "__PRELOADED_STATE__",
@@ -101,7 +118,10 @@ export async function waitForBackcountryFamilyPlReady(
         "__NEXT_DATA__",
         "__REDUX_STATE__",
       ] as const;
-      const foundStateKey = stateKeys.find((k) => !!(window as unknown as Record<string, unknown>)[k]) ?? null;
+      const foundStateKey =
+        stateKeys.find(
+          (k) => !!(window as unknown as Record<string, unknown>)[k],
+        ) ?? null;
       const pdpLinks = document.querySelectorAll('a[href*="/p/"]').length;
       return { title, hasGoku, foundStateKey, pdpLinks };
     });
@@ -330,7 +350,10 @@ export const SALE_LISTING_EVAL_SOURCE = `
 `;
 
 /** Build next page URL by incrementing the `page` query param (1-indexed). */
-export function salePlIncrementPage(currentUrl: string, pageNum: number): string {
+export function salePlIncrementPage(
+  currentUrl: string,
+  pageNum: number,
+): string {
   const u = new URL(currentUrl);
   u.searchParams.set("page", String(pageNum));
   return u.toString();
@@ -357,7 +380,9 @@ export type SalePlExtractionDiag = {
   pageTitle?: string;
 };
 
-export function mapSalePlExtractedToScrapeResult(r: SalePlExtractedProduct): ScrapeResult {
+export function mapSalePlExtractedToScrapeResult(
+  r: SalePlExtractedProduct,
+): ScrapeResult {
   return {
     store_sku: r.sku,
     product_name: r.name,
@@ -371,7 +396,9 @@ export function mapSalePlExtractedToScrapeResult(r: SalePlExtractedProduct): Scr
   };
 }
 
-export function deduplicateSalePlBySku(results: ScrapeResult[]): ScrapeResult[] {
+export function deduplicateSalePlBySku(
+  results: ScrapeResult[],
+): ScrapeResult[] {
   const seen = new Set<string>();
   return results.filter((row) => {
     if (seen.has(row.store_sku)) return false;
@@ -405,7 +432,16 @@ function findProductArrayInJson(obj: unknown, depth = 0): unknown[] | null {
     return null;
   }
   const record = obj as Record<string, unknown>;
-  for (const key of ["products", "items", "results", "hits", "skus", "listings", "productList", "productResults"]) {
+  for (const key of [
+    "products",
+    "items",
+    "results",
+    "hits",
+    "skus",
+    "listings",
+    "productList",
+    "productResults",
+  ]) {
     const val = record[key];
     if (Array.isArray(val) && val.length > 0) {
       const found = findProductArrayInJson(val, depth + 1);
@@ -421,18 +457,24 @@ function findProductArrayInJson(obj: unknown, depth = 0): unknown[] | null {
   return null;
 }
 
-function mapJsonProduct(p: Record<string, unknown>, origin: string): SalePlExtractedProduct | null {
+function mapJsonProduct(
+  p: Record<string, unknown>,
+  origin: string,
+): SalePlExtractedProduct | null {
   const parsePrice = (val: unknown): number | null => {
     if (val == null) return null;
     if (typeof val === "number") return val > 0 ? val : null;
     const n = parseFloat(String(val).replace(/[^\d.]/g, ""));
     return Number.isFinite(n) && n > 0 ? n : null;
   };
-  const name = String(p.title ?? p.name ?? p.displayName ?? p.productName ?? "");
+  const name = String(
+    p.title ?? p.name ?? p.displayName ?? p.productName ?? "",
+  );
   const sku = String(p.sku ?? p.skuId ?? p.productId ?? p.itemId ?? p.id ?? "");
   let productUrl = String(p.url ?? p.productUrl ?? p.pdpUrl ?? p.href ?? "");
   if (productUrl && !productUrl.startsWith("http")) {
-    productUrl = origin + (productUrl.startsWith("/") ? productUrl : `/${productUrl}`);
+    productUrl =
+      origin + (productUrl.startsWith("/") ? productUrl : `/${productUrl}`);
   }
   const pricing = p.pricing as Record<string, unknown> | undefined;
   const prices = p.prices as Record<string, unknown> | undefined;
@@ -442,15 +484,23 @@ function mapJsonProduct(p: Record<string, unknown>, origin: string): SalePlExtra
     parsePrice(prices?.sale ?? prices?.current);
   if (!name || !sku || !currentPrice || !productUrl) return null;
   const originalPrice =
-    parsePrice(pricing?.retail ?? pricing?.original ?? pricing?.compare ?? pricing?.msrp) ??
-    parsePrice(p.retailPrice ?? p.originalPrice ?? p.compareAtPrice ?? p.msrp) ??
+    parsePrice(
+      pricing?.retail ?? pricing?.original ?? pricing?.compare ?? pricing?.msrp,
+    ) ??
+    parsePrice(
+      p.retailPrice ?? p.originalPrice ?? p.compareAtPrice ?? p.msrp,
+    ) ??
     parsePrice(prices?.retail ?? prices?.original);
   const brandRaw = p.brand ?? p.brandName ?? p.vendor;
   const images = p.images as unknown;
   let imageUrl: string | null = null;
   if (typeof p.imageUrl === "string") imageUrl = p.imageUrl;
   else if (typeof p.image === "string") imageUrl = p.image;
-  else if (Array.isArray(images) && images[0] && typeof images[0] === "object") {
+  else if (
+    Array.isArray(images) &&
+    images[0] &&
+    typeof images[0] === "object"
+  ) {
     const img0 = images[0] as Record<string, unknown>;
     imageUrl = String(img0.url ?? img0.src ?? "");
   }
@@ -471,7 +521,10 @@ function mapJsonProduct(p: Record<string, unknown>, origin: string): SalePlExtra
   };
 }
 
-function extractFromCapturedJson(payloads: unknown[], origin: string): SalePlExtractedProduct[] {
+function extractFromCapturedJson(
+  payloads: unknown[],
+  origin: string,
+): SalePlExtractedProduct[] {
   const out: SalePlExtractedProduct[] = [];
   for (const payload of payloads) {
     const arr = findProductArrayInJson(payload);
@@ -495,7 +548,8 @@ function attachJsonResponseCapture(page: Page, payloads: unknown[]): void {
         const url = response.url();
         if (!/search|catalog|product|graphql|api|rc/i.test(url)) return;
         const text = await response.text();
-        if (text.length < 300 || !/(\"sku\"|\"product|\"items\")/i.test(text)) return;
+        if (text.length < 300 || !/(\"sku\"|\"product|\"items\")/i.test(text))
+          return;
         payloads.push(JSON.parse(text) as unknown);
       } catch {
         /* ignore parse errors */
@@ -505,16 +559,21 @@ function attachJsonResponseCapture(page: Page, payloads: unknown[]): void {
 }
 
 /** Backcountry-family React PLPs (AWS WAF + embedded product JSON): Backcountry, Competitive Cyclist, etc. */
-export async function scrapeBackcountryFamilySalePl(browser: Browser, opts: {
-  startUrl: string;
-  /** Log prefix, e.g. "Backcountry" or "Competitive Cyclist" */
-  brandLabel: string;
-  /** Filename prefix for HTML debug dumps */
-  debugFilePrefix: string;
-}): Promise<ScrapeResult[]> {
+export async function scrapeBackcountryFamilySalePl(
+  browser: Browser,
+  opts: {
+    startUrl: string;
+    /** Log prefix, e.g. "Backcountry" or "Competitive Cyclist" */
+    brandLabel: string;
+    /** Filename prefix for HTML debug dumps */
+    debugFilePrefix: string;
+  },
+): Promise<ScrapeResult[]> {
   const { startUrl, brandLabel, debugFilePrefix } = opts;
   const origin = new URL(startUrl).origin;
-  const context = await browser.newContext(backcountryFamilyContextOptions(brandLabel));
+  const context = await browser.newContext(
+    backcountryFamilyContextOptions(brandLabel),
+  );
   const page = await context.newPage();
   const capturedJson: unknown[] = [];
   attachJsonResponseCapture(page, capturedJson);
@@ -524,18 +583,31 @@ export async function scrapeBackcountryFamilySalePl(browser: Browser, opts: {
     let pageNum = 1;
 
     while (pageNum <= MAX_PAGES) {
-      const pageUrl = pageNum === 1 ? startUrl : salePlIncrementPage(startUrl, pageNum);
-      console.log(`[scraper] ${brandLabel} page ${pageNum}: fetching ${pageUrl}`);
+      const pageUrl =
+        pageNum === 1 ? startUrl : salePlIncrementPage(startUrl, pageNum);
+      console.log(
+        `[scraper] ${brandLabel} page ${pageNum}: fetching ${pageUrl}`,
+      );
 
-      await page.goto(pageUrl, { waitUntil: "domcontentloaded", timeout: 90000 });
-      const { ready, wafBlocked } = await waitForBackcountryFamilyPlReady(page, brandLabel);
+      await page.goto(pageUrl, {
+        waitUntil: "domcontentloaded",
+        timeout: 90000,
+      });
+      const { ready, wafBlocked } = await waitForBackcountryFamilyPlReady(
+        page,
+        brandLabel,
+      );
       if (!ready) {
         if (wafBlocked) break;
       }
-      await page.waitForLoadState("networkidle", { timeout: 30000 }).catch(() => undefined);
+      await page
+        .waitForLoadState("networkidle", { timeout: 30000 })
+        .catch(() => undefined);
       await new Promise((r) => setTimeout(r, SCRAPE_DELAY_MS));
 
-      let extracted = (await page.evaluate(SALE_LISTING_EVAL_SOURCE)) as SalePlExtractionDiag;
+      let extracted = (await page.evaluate(
+        SALE_LISTING_EVAL_SOURCE,
+      )) as SalePlExtractionDiag;
 
       if (extracted.results.length === 0 && capturedJson.length > 0) {
         const fromNetwork = extractFromCapturedJson(capturedJson, origin);
@@ -557,17 +629,27 @@ export async function scrapeBackcountryFamilySalePl(browser: Browser, opts: {
       );
       if (extracted.results.length === 0) {
         if (extracted.scriptSample) {
-          console.log(`[scraper] ${brandLabel} script sample:`, extracted.scriptSample);
+          console.log(
+            `[scraper] ${brandLabel} script sample:`,
+            extracted.scriptSample,
+          );
         }
         const html = await page.content();
         const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
         await mkdir(LOGS_DIR, { recursive: true });
-        const htmlPath = join(LOGS_DIR, `${debugFilePrefix}-debug-${timestamp}.html`);
+        const htmlPath = join(
+          LOGS_DIR,
+          `${debugFilePrefix}-debug-${timestamp}.html`,
+        );
         await writeFile(htmlPath, html);
-        console.log(`[scraper] ${brandLabel}: page HTML saved to ${htmlPath} (${html.length} bytes)`);
+        console.log(
+          `[scraper] ${brandLabel}: page HTML saved to ${htmlPath} (${html.length} bytes)`,
+        );
       }
 
-      allResults.push(...extracted.results.map(mapSalePlExtractedToScrapeResult));
+      allResults.push(
+        ...extracted.results.map(mapSalePlExtractedToScrapeResult),
+      );
 
       if (extracted.results.length === 0) break;
       if (pageNum >= MAX_PAGES) break;
@@ -580,6 +662,8 @@ export async function scrapeBackcountryFamilySalePl(browser: Browser, opts: {
   }
 
   const deduped = deduplicateSalePlBySku(allResults);
-  console.log(`[scraper] ${brandLabel} done: ${deduped.length} listings after dedup`);
+  console.log(
+    `[scraper] ${brandLabel} done: ${deduped.length} listings after dedup`,
+  );
   return deduped;
 }
