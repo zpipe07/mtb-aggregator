@@ -207,20 +207,6 @@ export function DealDetailContent({
                   {deal.store_name.toUpperCase()}
                 </p>
 
-                {showCategoryChip ? (
-                  <div className="mt-3 max-w-full">
-                    <Button variant="outline" size="sm" asChild>
-                      <Link
-                        href={categoryBrowseHref}
-                        title={categoryBrowseLabel}
-                        className={cn("max-w-full truncate", focusRing)}
-                      >
-                        More in {categoryBrowseLabel}
-                      </Link>
-                    </Button>
-                  </div>
-                ) : null}
-
                 <div className="mt-4 flex flex-wrap items-center gap-2">
                   {discountPct != null && discountPct > 0 && (
                     <span
@@ -299,7 +285,7 @@ export function DealDetailContent({
                   </div>
                 </div>
 
-                <Button asChild className="mt-5">
+                <Button asChild className="mt-5" size="lg">
                   <a
                     href={viewUrl}
                     target="_blank"
@@ -331,6 +317,20 @@ export function DealDetailContent({
                       {formatMoney(deal.price_range[1])} across variants
                     </p>
                   )}
+                {showCategoryChip ? (
+                  <p className="mt-4 max-w-full">
+                    <Link
+                      href={categoryBrowseHref}
+                      title={categoryBrowseLabel}
+                      className={cn(
+                        "inline-block max-w-full truncate rounded-sm font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground hover:text-foreground hover:underline hover:underline-offset-4",
+                        focusRing,
+                      )}
+                    >
+                      More in {categoryBrowseLabel}
+                    </Link>
+                  </p>
+                ) : null}
               </div>
             </div>
 
