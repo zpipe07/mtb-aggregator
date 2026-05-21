@@ -34,3 +34,7 @@ WHERE NOT EXISTS (SELECT 1 FROM stores WHERE name = 'Specialized');
 INSERT INTO stores (name, base_url, scrape_url, store_type, affiliate_network)
 SELECT 'Mack Cycle', 'https://www.mackcycle.com', 'https://www.mackcycle.com/collections/sale', 'mackcycle', NULL
 WHERE NOT EXISTS (SELECT 1 FROM stores WHERE name = 'Mack Cycle');
+
+INSERT INTO stores (name, base_url, scrape_url, store_type, affiliate_network)
+SELECT 'Trek', 'https://www.trekbikes.com/us/en_US', 'https://www.trekbikes.com/us/en_US/bikes/mountain-bikes/c/B300/?pageSize=24&q=%3Arelevance%3AsaleFlag%3Atrue&sort=relevance', 'trek', NULL
+WHERE NOT EXISTS (SELECT 1 FROM stores WHERE name = 'Trek');

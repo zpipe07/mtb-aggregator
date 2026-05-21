@@ -82,6 +82,7 @@ make scrape-now-thundermountainbikes  # thundermountainbikes only
 make scrape-now-canyon         # canyon only
 make scrape-now-specialized    # specialized only
 make scrape-now-mackcycle      # mackcycle only
+make scrape-now-trek           # trek only
 make enrich-now              # enrich unenriched listings
 make enrich-now-revel        # revelbikes only (optional FORCE=1)
 make enrich-now-competitivecyclist   # CC only (optional FORCE=1)
@@ -89,6 +90,7 @@ make enrich-now-thundermountainbikes   # thundermountainbikes only (optional FOR
 make enrich-now-canyon         # canyon only (optional FORCE=1)
 make enrich-now-specialized    # specialized only (optional FORCE=1)
 make enrich-now-mackcycle      # mackcycle only (optional FORCE=1)
+make enrich-now-trek           # trek only (optional FORCE=1)
 make enrich-now FORCE=1      # re-enrich all
 make impact-catalog-probe    # list Impact catalogs + sample catalog Items page (requires IMPACT_ACCOUNT_SID + IMPACT_AUTH_TOKEN)
 

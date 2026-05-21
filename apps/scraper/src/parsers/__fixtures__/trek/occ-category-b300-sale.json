@@ -1,0 +1,589 @@
+{
+   "type" : "productCategorySearchPageWsDTO",
+   "pagination" : {
+      "currentPage" : 0,
+      "pageSize" : 24,
+      "sort" : "relevance",
+      "totalPages" : 1,
+      "totalResults" : 23
+   },
+   "products" : [ {
+      "brandNameFull" : "Trek",
+      "code" : "57635",
+      "defaultCategory" : "Electric mountain bikes",
+      "description" : "Slash+ 9.9 US S Dark Star/Purple Flip,Slash+ 9.9 US M Dark Star/Purple Flip,Slash+ 9.9 US L Dark Star/Purple Flip,Slash+ 9.9 US XL Dark Star/Purple Flip",
+      "images" : [ {
+         "format" : "product",
+         "imageType" : "PRIMARY",
+         "url" : "//media.trekbikes.com/image/upload/c_pad,w_1360,h_1020,f_jpg,fl_progressive:semi,q_auto,fl_strip_profile/SlashPlus99-26-57635-A-Primary"
+      } ],
+      "isCPO" : false,
+      "marketingModelYear" : "2026",
+      "name" : "Slash+ 9.9",
+      "preOrderFlag" : false,
+      "price" : {
+         "currencyIso" : "USD",
+         "formattedValue" : "$10,999.97",
+         "priceType" : "BUY",
+         "value" : 10999.97
+      },
+      "priceIndicatorFlag" : "S",
+      "productCallout" : "NEW",
+      "productType" : "BikeProduct",
+      "saleFlag" : true,
+      "url" : "/bikes/mountain-bikes/electric-mountain-bikes/slash/slash-9-9/p/57635/",
+      "volumePricesFlag" : false
+   }, {
+      "brandNameFull" : "Trek",
+      "code" : "57406",
+      "defaultCategory" : "Electric mountain bikes",
+      "description" : "Slash+ 9.7 US S Trek Black/Dark Prismatic,Slash+ 9.7 US M Trek Black/Dark Prismatic,Slash+ 9.7 US L Trek Black/Dark Prismatic,Slash+ 9.7 US XL Trek Black/Dark Prismatic,Slash+ 9.7 US S Gloss Chameleon Green/Matte Dark Web,Slash+ 9.7 US M Gloss Chameleon Green/Matte Dark Web,Slash+ 9.7 US L Gloss Chameleon Green/Matte Dark Web,Slash+ 9.7 US XL Gloss Chameleon Green/Matte Dark Web",
+      "images" : [ {
+         "format" : "product",
+         "imageType" : "PRIMARY",
+         "url" : "//media.trekbikes.com/image/upload/c_pad,w_1360,h_1020,f_jpg,fl_progressive:semi,q_auto,fl_strip_profile/SlashPlus97-26-57406-B-Primary"
+      } ],
+      "isCPO" : false,
+      "marketingModelYear" : "2026",
+      "name" : "Slash+ 9.7",
+      "preOrderFlag" : false,
+      "price" : {
+         "currencyIso" : "USD",
+         "formattedValue" : "$7,999.97",
+         "priceType" : "BUY",
+         "value" : 7999.97
+      },
+      "priceIndicatorFlag" : "S",
+      "productCallout" : "NEW",
+      "productType" : "BikeProduct",
+      "saleFlag" : true,
+      "url" : "/bikes/mountain-bikes/electric-mountain-bikes/slash/slash-9-7/p/57406/",
+      "volumePricesFlag" : false
+   }, {
+      "brandNameFull" : "Trek",
+      "code" : "41550",
+      "defaultCategory" : "Electric mountain bikes",
+      "description" : "FUEL EXe 8 GX AXS US S Matte Keswick,FUEL EXe 8 GX AXS US M Matte Keswick,FUEL EXe 8 GX AXS US L Matte Keswick,FUEL EXe 8 GX AXS US XL Matte Keswick,FUEL EXe 8 GX AXS US S Rage Red to Deep Dark Blue Fade,FUEL EXe 8 GX AXS US M Rage Red to Deep Dark Blue Fade,FUEL EXe 8 GX AXS US L Rage Red to Deep Dark Blue Fade,FUEL EXe 8 GX AXS US XL Rage Red to Deep Dark Blue Fade",
+      "images" : [ {
+         "format" : "product",
+         "imageType" : "PRIMARY",
+         "url" : "//media.trekbikes.com/image/upload/c_pad,w_1360,h_1020,f_jpg,fl_progressive:semi,q_auto,fl_strip_profile/FuelEXe8GXAXSUS-24-41550-A-Primary"
+      } ],
+      "isCPO" : false,
+      "marketingModelYear" : "2025",
+      "name" : "Fuel EXe 8 GX AXS T-Type",
+      "preOrderFlag" : false,
+      "price" : {
+         "currencyIso" : "USD",
+         "formattedValue" : "$4,799.93",
+         "priceType" : "BUY",
+         "value" : 4799.93
+      },
+      "priceIndicatorFlag" : "C",
+      "productType" : "BikeProduct",
+      "saleFlag" : true,
+      "url" : "/bikes/mountain-bikes/electric-mountain-bikes/fuel-exe/fuel-exe-8-gx-axs-t-type/p/41550/",
+      "volumePricesFlag" : false
+   }, {
+      "brandNameFull" : "Trek",
+      "code" : "41476",
+      "defaultCategory" : "Electric mountain bikes",
+      "description" : "FUEL EXe 5 Deore US S Matte Dnister Black,FUEL EXe 5 Deore US M Matte Dnister Black,FUEL EXe 5 Deore US L Matte Dnister Black,FUEL EXe 5 Deore US XL Matte Dnister Black,FUEL EXe 5 Deore US S Matte Blue Sage,FUEL EXe 5 Deore US M Matte Blue Sage,FUEL EXe 5 Deore US L Matte Blue Sage,FUEL EXe 5 Deore US XL Matte Blue Sage,FUEL EXe 5 Deore US S Matte Mercury,FUEL EXe 5 Deore US M Matte Mercury,FUEL EXe 5 Deore US L Matte Mercury,FUEL EXe 5 Deore US XL Matte Mercury",
+      "images" : [ {
+         "format" : "product",
+         "imageType" : "PRIMARY",
+         "url" : "//media.trekbikes.com/image/upload/c_pad,w_1360,h_1020,f_jpg,fl_progressive:semi,q_auto,fl_strip_profile/FuelEXe5US-24-41476-B-Primary"
+      } ],
+      "isCPO" : false,
+      "marketingModelYear" : "2025",
+      "name" : "Fuel EXe 5",
+      "preOrderFlag" : false,
+      "price" : {
+         "currencyIso" : "USD",
+         "formattedValue" : "$3,599.93",
+         "priceType" : "BUY",
+         "value" : 3599.93
+      },
+      "priceIndicatorFlag" : "C",
+      "productType" : "BikeProduct",
+      "saleFlag" : true,
+      "url" : "/bikes/mountain-bikes/electric-mountain-bikes/fuel-exe/fuel-exe-5/p/41476/",
+      "volumePricesFlag" : false
+   }, {
+      "brandNameFull" : "Trek",
+      "code" : "41009",
+      "defaultCategory" : "Electric mountain bikes",
+      "description" : "Marlin+ 6 US XS 27.5 Dnister Black,Marlin+ 6 US S 27.5 Dnister Black,Marlin+ 6 US M 29 Dnister Black,Marlin+ 6 US L 29 Dnister Black,Marlin+ 6 US XL 29 Dnister Black,Marlin+ 6 US XS 27.5 Crimson,Marlin+ 6 US S 27.5 Crimson,Marlin+ 6 US M 29 Crimson,Marlin+ 6 US L 29 Crimson,Marlin+ 6 US XL 29 Crimson,Marlin + 6 US XS 27.5 Lichen Green,Marlin + 6 US S 27.5 Lichen Green,Marlin + 6 US M 29 Lichen Green,Marlin + 6 US L 29 Lichen Green,Marlin + 6 US XL 29 Lichen Green",
+      "images" : [ {
+         "format" : "product",
+         "imageType" : "PRIMARY",
+         "url" : "//media.trekbikes.com/image/upload/c_pad,w_1360,h_1020,f_jpg,fl_progressive:semi,q_auto,fl_strip_profile/MarlinPlus6US-24-41009-B-Primary"
+      } ],
+      "isCPO" : false,
+      "marketingModelYear" : "2025",
+      "name" : "Marlin+ 6",
+      "preOrderFlag" : false,
+      "price" : {
+         "currencyIso" : "USD",
+         "formattedValue" : "$2,499.99",
+         "priceType" : "BUY",
+         "value" : 2499.99
+      },
+      "priceIndicatorFlag" : "S",
+      "productType" : "BikeProduct",
+      "saleFlag" : true,
+      "url" : "/bikes/mountain-bikes/electric-mountain-bikes/marlin/marlin-6/p/41009/",
+      "volumePricesFlag" : false
+   }, {
+      "brandNameFull" : "Trek",
+      "code" : "40773",
+      "defaultCategory" : "Cross Country mountain bikes",
+      "description" : "Marlin 5 XXS 26 Matte Dnister Black,Marlin 5 XS 27.5 Matte Dnister Black,Marlin 5 S 27.5 Matte Dnister Black,Marlin 5 M 29 Matte Dnister Black,Marlin 5 ML 29 Matte Dnister Black,Marlin 5 L 29 Matte Dnister Black,Marlin 5 XL 29 Matte Dnister Black,Marlin 5 XXL 29 Matte Dnister Black,Marlin 5 XXS 26 Alpine Blue to Deep Dark Blue Fade,Marlin 5 XS 27.5 Alpine Blue to Deep Dark Blue Fade,Marlin 5 S 27.5 Alpine Blue to Deep Dark Blue Fade,Marlin 5 M 29 Alpine Blue to Deep Dark Blue Fade,Marlin 5 ML 29 Alpine Blue to Deep Dark Blue Fade,Marlin 5 L 29 Alpine Blue to Deep Dark Blue Fade,Marlin 5 XL 29 Alpine Blue to Deep Dark Blue Fade,Marlin 5 XXL 29 Alpine Blue to Deep Dark Blue Fade,Marlin 5 XXS 26 Power Surge,Marlin 5 XS 27.5 Power Surge,Marlin 5 S 27.5 Power Surge,Marlin 5 M 29 Power Surge,Marlin 5 ML 29 Power Surge,Marlin 5 L 29 Power Surge,Marlin 5 XL 29 Power Surge,Marlin 5 XXL 29 Power Surge,Marlin 5 XXS 26 Purple Flip To Trek Black Fade,Marlin 5 XS 27.5 Purple Flip To Trek Black Fade,Marlin 5 S 27.5 Purple Flip To Trek Black Fade,Marlin 5 M 29 Purple Flip To Trek Black Fade,Marlin 5 ML 29 Purple Flip To Trek Black Fade,Marlin 5 L 29 Purple Flip To Trek Black Fade,Marlin 5 XL 29 Purple Flip To Trek Black Fade,Marlin 5 XXL 29 Purple Flip To Trek Black Fade",
+      "images" : [ {
+         "format" : "product",
+         "imageType" : "PRIMARY",
+         "url" : "//media.trekbikes.com/image/upload/c_pad,w_1360,h_1020,f_jpg,fl_progressive:semi,q_auto,fl_strip_profile/Marlin5-24-40773-A-Primary"
+      } ],
+      "isCPO" : false,
+      "marketingModelYear" : "2025",
+      "name" : "Marlin 5 Gen 3",
+      "preOrderFlag" : false,
+      "price" : {
+         "currencyIso" : "USD",
+         "formattedValue" : "$679.93",
+         "priceType" : "BUY",
+         "value" : 679.93
+      },
+      "priceIndicatorFlag" : "C",
+      "productType" : "BikeProduct",
+      "saleFlag" : true,
+      "url" : "/bikes/mountain-bikes/cross-country-mountain-bikes/marlin/marlin-5-gen-3/p/40773/",
+      "volumePricesFlag" : false
+   }, {
+      "brandNameFull" : "Trek",
+      "code" : "41554",
+      "defaultCategory" : "Electric mountain bikes",
+      "description" : "FUEL EXe 8 XT US S Satin Mercury,FUEL EXe 8 XT US M Satin Mercury,FUEL EXe 8 XT US L Satin Mercury,FUEL EXe 8 XT US XL Satin Mercury,FUEL EXe 8 XT US S Nautical Navy,FUEL EXe 8 XT US M Nautical Navy,FUEL EXe 8 XT US L Nautical Navy,FUEL EXe 8 XT US XL Nautical Navy,FUEL EXe 8 XT US S Supernova,FUEL EXe 8 XT US M Supernova,FUEL EXe 8 XT US L Supernova,FUEL EXe 8 XT US XL Supernova,FUEL EXe 8 XT US M Nautical Navy,FUEL EXe 8 XT US L Nautical Navy",
+      "images" : [ {
+         "format" : "product",
+         "imageType" : "PRIMARY",
+         "url" : "//media.trekbikes.com/image/upload/c_pad,w_1360,h_1020,f_jpg,fl_progressive:semi,q_auto,fl_strip_profile/FuelEXe8XTUS-24-41554-A-Primary"
+      } ],
+      "isCPO" : false,
+      "marketingModelYear" : "2025",
+      "name" : "Fuel EXe 8 XT",
+      "preOrderFlag" : false,
+      "price" : {
+         "currencyIso" : "USD",
+         "formattedValue" : "$4,499.93",
+         "priceType" : "BUY",
+         "value" : 4499.93
+      },
+      "priceIndicatorFlag" : "C",
+      "productType" : "BikeProduct",
+      "saleFlag" : true,
+      "url" : "/bikes/mountain-bikes/electric-mountain-bikes/fuel-exe/fuel-exe-8-xt/p/41554/",
+      "volumePricesFlag" : false
+   }, {
+      "brandNameFull" : "Trek",
+      "code" : "41669",
+      "defaultCategory" : "Trail mountain bikes",
+      "description" : "Slash 9 GX AXS S 27.5 Mercury,Slash 9 GX AXS M Mercury,Slash 9 GX AXS ML Mercury,Slash 9 GX AXS L Mercury,Slash 9 GX AXS XL Mercury,Slash 9 GX AXS S 27.5 Crimson,Slash 9 GX AXS M Crimson,Slash 9 GX AXS ML Crimson,Slash 9 GX AXS L Crimson,Slash 9 GX AXS XL Crimson,Slash 9 GX AXS S 27.5 Mercury,Slash 9 GX AXS M Mercury,Slash 9 GX AXS ML Mercury,Slash 9 GX AXS L Mercury,Slash 9 GX AXS XL Mercury,Slash 9 GX AXS S 27.5 Crimson,Slash 9 GX AXS M Crimson,Slash 9 GX AXS ML Crimson,Slash 9 GX AXS L Crimson,Slash 9 GX AXS XL Crimson",
+      "images" : [ {
+         "format" : "product",
+         "imageType" : "PRIMARY",
+         "url" : "//media.trekbikes.com/image/upload/c_pad,w_1360,h_1020,f_jpg,fl_progressive:semi,q_auto,fl_strip_profile/Slash9-24-41669-A-Primary"
+      } ],
+      "isCPO" : false,
+      "marketingModelYear" : "2025",
+      "name" : "Slash 9 GX AXS T-Type Gen 6",
+      "preOrderFlag" : false,
+      "price" : {
+         "currencyIso" : "USD",
+         "formattedValue" : "$3,499.93",
+         "priceType" : "BUY",
+         "value" : 3499.93
+      },
+      "priceIndicatorFlag" : "C",
+      "productType" : "BikeProduct",
+      "saleFlag" : true,
+      "url" : "/bikes/mountain-bikes/trail-mountain-bikes/slash/slash-9-gx-axs-t-type-gen-6/p/41669/",
+      "volumePricesFlag" : false
+   }, {
+      "brandNameFull" : "Trek",
+      "code" : "41327",
+      "defaultCategory" : "Trail mountain bikes",
+      "description" : "Fuel EX 8 XT XS 27.5 Satin Mercury,Fuel EX 8 XT S 27.5 Satin Mercury,Fuel EX 8 XT S 29 Satin Mercury,Fuel EX 8 XT M 29 Satin Mercury,Fuel EX 8 XT ML 29 Satin Mercury,Fuel EX 8 XT L 29 Satin Mercury,Fuel EX 8 XT XL 29 Satin Mercury,Fuel EX 8 XT XXL 29 Satin Mercury,Fuel EX 8 XT XS 27.5 Nautical Navy,Fuel EX 8 XT S 27.5 Nautical Navy,Fuel EX 8 XT S 29 Nautical Navy,Fuel EX 8 XT M 29 Nautical Navy,Fuel EX 8 XT ML 29 Nautical Navy,Fuel EX 8 XT L 29 Nautical Navy,Fuel EX 8 XT XL 29 Nautical Navy,Fuel EX 8 XT XXL 29 Nautical Navy,Fuel EX 8 XT XS 27.5 Satin Mercury,Fuel EX 8 XT S 27.5 Satin Mercury,Fuel EX 8 XT S 29 Satin Mercury,Fuel EX 8 XT M 29 Satin Mercury,Fuel EX 8 XT ML 29 Satin Mercury,Fuel EX 8 XT L 29 Satin Mercury,Fuel EX 8 XT XL 29 Satin Mercury,Fuel EX 8 XT XXL 29 Satin Mercury,Fuel EX 8 XT XS 27.5 Nautical Navy,Fuel EX 8 XT S 27.5 Nautical Navy,Fuel EX 8 XT S 29 Nautical Navy,Fuel EX 8 XT M 29 Nautical Navy,Fuel EX 8 XT ML 29 Nautical Navy,Fuel EX 8 XT L 29 Nautical Navy,Fuel EX 8 XT XL 29 Nautical Navy,Fuel EX 8 XT XXL 29 Nautical Navy,Fuel EX 8 XT XS 27.5 Nautical Navy,Fuel EX 8 XT S 27.5 Nautical Navy,Fuel EX 8 XT S 29 Nautical Navy,Fuel EX 8 XT M 29 Nautical Navy,Fuel EX 8 XT ML 29 Nautical Navy,Fuel EX 8 XT L 29 Nautical Navy,Fuel EX 8 XT XL 29 Nautical Navy,Fuel EX 8 XT XXL 29 Nautical Navy,Fuel EX 8 XS 27.5 Pennyflake,Fuel EX 8 S 27.5 Pennyflake,Fuel EX 8 M 29 Pennyflake,Fuel EX 8 ML 29 Pennyflake,Fuel EX 8 L 29 Pennyflake,Fuel EX 8 XL 29 Pennyflake,Fuel EX 8 XXL 29 Pennyflake,Fuel EX 8 XT XS 27.5 Pennyflake,Fuel EX 8 XT S 27.5 Pennyflake,Fuel EX 8 XT M 29 Pennyflake,Fuel EX 8 XT ML 29 Pennyflake,Fuel EX 8 XT L 29 Pennyflake,Fuel EX 8 XT XL 29 Pennyflake,Fuel EX 8 XT XXL 29 Pennyflake,Fuel EX 8 XT XS 27.5 Pennyflake,Fuel EX 8 XT S 27.5 Pennyflake,Fuel EX 8 XT M 29 Pennyflake,Fuel EX 8 XT ML 29 Pennyflake,Fuel EX 8 XT L 29 Pennyflake,Fuel EX 8 XT XL 29 Pennyflake,Fuel EX 8 XT XXL 29 Pennyflake",
+      "images" : [ {
+         "format" : "product",
+         "imageType" : "PRIMARY",
+         "url" : "//media.trekbikes.com/image/upload/c_pad,w_1360,h_1020,f_jpg,fl_progressive:semi,q_auto,fl_strip_profile/FuelEX8XT-24-41327-B-Primary"
+      } ],
+      "isCPO" : false,
+      "marketingModelYear" : "2025",
+      "name" : "Fuel EX 8 XT Gen 6",
+      "preOrderFlag" : false,
+      "price" : {
+         "currencyIso" : "USD",
+         "formattedValue" : "$2,799.93",
+         "priceType" : "BUY",
+         "value" : 2799.93
+      },
+      "priceIndicatorFlag" : "C",
+      "productType" : "BikeProduct",
+      "saleFlag" : true,
+      "url" : "/bikes/mountain-bikes/trail-mountain-bikes/fuel-ex/fuel-ex-8-xt-gen-6/p/41327/",
+      "volumePricesFlag" : false
+   }, {
+      "brandNameFull" : "Trek",
+      "code" : "30283",
+      "defaultCategory" : "Downhill mountain bikes",
+      "description" : "Session C 29 F/S S Viper Red,Session C 29 F/S M Viper Red,Session C 29 F/S L Viper Red,Session C 29 F/S XL Viper Red",
+      "images" : [ {
+         "format" : "product",
+         "imageType" : "PRIMARY",
+         "url" : "//media.trekbikes.com/image/upload/c_pad,w_1360,h_1020,f_jpg,fl_progressive:semi,q_auto,fl_strip_profile/SessionC29Frameset_21_30283_A_Primary"
+      } ],
+      "isCPO" : false,
+      "marketingModelYear" : "2023",
+      "name" : "Session C 29 Frameset",
+      "preOrderFlag" : false,
+      "price" : {
+         "currencyIso" : "USD",
+         "formattedValue" : "$1,799.93",
+         "priceType" : "BUY",
+         "value" : 1799.93
+      },
+      "priceIndicatorFlag" : "C",
+      "productType" : "BikeProduct",
+      "saleFlag" : true,
+      "url" : "/bikes/mountain-bikes/downhill-mountain-bikes/session/session-c-29-frameset/p/30283/",
+      "volumePricesFlag" : false
+   }, {
+      "brandNameFull" : "Trek",
+      "code" : "33359",
+      "defaultCategory" : "Trail mountain bikes",
+      "description" : "Fuel EX C F/S XS 27.5 Lithium Grey/Factory Orange,Fuel EX C F/S S 27.5 Lithium Grey/Factory Orange,Fuel EX C F/S S 29 Lithium Grey/Factory Orange,Fuel EX C F/S M 29 Lithium Grey/Factory Orange,Fuel EX C F/S ML 29 Lithium Grey/Factory Orange,Fuel EX C F/S L 29 Lithium Grey/Factory Orange,Fuel EX C F/S XL 29 Lithium Grey/Factory Orange,Fuel EX C F/S M 29 Raw Carbon/Rage Red,Fuel EX C F/S ML 29 Raw Carbon/Rage Red,Fuel EX C F/S L 29 Raw Carbon/Rage Red,Fuel EX C F/S XL 29 Raw Carbon/Rage Red,Fuel EX C F/S M 29 Satin Black Olive,Fuel EX C F/S ML 29 Satin Black Olive,Fuel EX C F/S L 29 Satin Black Olive,Fuel EX C F/S XL 29 Satin Black Olive",
+      "images" : [ {
+         "format" : "product",
+         "imageType" : "PRIMARY",
+         "url" : "//media.trekbikes.com/image/upload/c_pad,w_1360,h_1020,f_jpg,fl_progressive:semi,q_auto,fl_strip_profile/FuelEXCFrameset_21_33359_B_Primary"
+      } ],
+      "isCPO" : false,
+      "marketingModelYear" : "2022",
+      "name" : "Fuel EX C Gen 5 Frameset",
+      "preOrderFlag" : false,
+      "price" : {
+         "currencyIso" : "USD",
+         "formattedValue" : "$1,599.93",
+         "priceType" : "BUY",
+         "value" : 1599.93
+      },
+      "priceIndicatorFlag" : "C",
+      "productType" : "BikeProduct",
+      "saleFlag" : true,
+      "url" : "/bikes/mountain-bikes/trail-mountain-bikes/fuel-ex/fuel-ex-c-gen-5-frameset/p/33359/",
+      "volumePricesFlag" : false
+   }, {
+      "brandNameFull" : "Trek",
+      "code" : "35214",
+      "defaultCategory" : "Trail mountain bikes",
+      "description" : "Remedy 27.5 C F/S S Matte Trek Black,Remedy 27.5 C F/S M Matte Trek Black,Remedy 27.5 C F/S ML Matte Trek Black,Remedy 27.5 C F/S L Matte Trek Black,Remedy 27.5 C F/S XL Matte Trek Black",
+      "images" : [ {
+         "format" : "product",
+         "imageType" : "PRIMARY",
+         "url" : "//media.trekbikes.com/image/upload/c_pad,w_1360,h_1020,f_jpg,fl_progressive:semi,q_auto,fl_strip_profile/Remedy275CFrameset_22_35214_A_Primary"
+      } ],
+      "isCPO" : false,
+      "marketingModelYear" : "2024",
+      "name" : "Remedy 27.5 C Frameset",
+      "preOrderFlag" : false,
+      "price" : {
+         "currencyIso" : "USD",
+         "formattedValue" : "$1,499.93",
+         "priceType" : "BUY",
+         "value" : 1499.93
+      },
+      "priceIndicatorFlag" : "C",
+      "productType" : "BikeProduct",
+      "saleFlag" : true,
+      "url" : "/bikes/mountain-bikes/trail-mountain-bikes/remedy/remedy-27-5-c-frameset/p/35214/",
+      "volumePricesFlag" : false
+   }, {
+      "brandNameFull" : "Trek",
+      "code" : "37961",
+      "defaultCategory" : "Trail mountain bikes",
+      "description" : "Slash AL F/S S 29 Teal to Nautical Navy Fade,Slash AL F/S M 29 Teal to Nautical Navy Fade,Slash AL F/S ML 29 Teal to Nautical Navy Fade,Slash AL F/S L 29 Teal to Nautical Navy Fade,Slash AL F/S XL 29 Teal to Nautical Navy Fade",
+      "images" : [ {
+         "format" : "product",
+         "imageType" : "PRIMARY",
+         "url" : "//media.trekbikes.com/image/upload/c_pad,w_1360,h_1020,f_jpg,fl_progressive:semi,q_auto,fl_strip_profile/SlashALFrameset_21_33071_A_Primary"
+      } ],
+      "isCPO" : false,
+      "marketingModelYear" : "2023",
+      "name" : "Slash AL Gen 5 Frameset",
+      "preOrderFlag" : false,
+      "price" : {
+         "currencyIso" : "USD",
+         "formattedValue" : "$1,499.93",
+         "priceType" : "BUY",
+         "value" : 1499.93
+      },
+      "priceIndicatorFlag" : "C",
+      "productType" : "BikeProduct",
+      "saleFlag" : true,
+      "url" : "/bikes/mountain-bikes/trail-mountain-bikes/slash/slash-al-gen-5-frameset/p/37961/",
+      "volumePricesFlag" : false
+   }, {
+      "brandNameFull" : "Trek",
+      "code" : "33369",
+      "defaultCategory" : "Trail mountain bikes",
+      "description" : "Remedy 27.5 Al F/S S Marigold to Radioactive Red Fade,Remedy 27.5 Al F/S M Marigold to Radioactive Red Fade,Remedy 27.5 Al F/S ML Marigold to Radioactive Red Fade,Remedy 27.5 Al F/S L Marigold to Radioactive Red Fade,Remedy 27.5 Al F/S XL Marigold to Radioactive Red Fade",
+      "images" : [ {
+         "format" : "product",
+         "imageType" : "PRIMARY",
+         "url" : "//media.trekbikes.com/image/upload/c_pad,w_1360,h_1020,f_jpg,fl_progressive:semi,q_auto,fl_strip_profile/Remedy275AlFrameset_21_33369_A_Primary"
+      } ],
+      "isCPO" : false,
+      "marketingModelYear" : "2022",
+      "name" : "Remedy 27.5 Al Frameset",
+      "preOrderFlag" : false,
+      "price" : {
+         "currencyIso" : "USD",
+         "formattedValue" : "$899.93",
+         "priceType" : "BUY",
+         "value" : 899.93
+      },
+      "priceIndicatorFlag" : "C",
+      "productType" : "BikeProduct",
+      "saleFlag" : true,
+      "url" : "/bikes/mountain-bikes/trail-mountain-bikes/remedy/remedy-27-5-al-frameset/p/33369/",
+      "volumePricesFlag" : false
+   }, {
+      "brandNameFull" : "Trek",
+      "code" : "38642",
+      "defaultCategory" : "Trail mountain bikes",
+      "description" : "Remedy Al F/S S Marigold to Radioactive Red Fade,Remedy Al F/S M Marigold to Radioactive Red Fade,Remedy Al F/S L Marigold to Radioactive Red Fade,Remedy Al F/S XL Marigold to Radioactive Red Fade,Remedy Al F/S ML Marigold to Radioactive Red Fade",
+      "images" : [ {
+         "format" : "product",
+         "imageType" : "PRIMARY",
+         "url" : "//media.trekbikes.com/image/upload/c_pad,w_1360,h_1020,f_jpg,fl_progressive:semi,q_auto,fl_strip_profile/RemedyAlFrameset_23_38642_A_Primary"
+      } ],
+      "isCPO" : false,
+      "marketingModelYear" : "2024",
+      "name" : "Remedy AL Frameset",
+      "preOrderFlag" : false,
+      "price" : {
+         "currencyIso" : "USD",
+         "formattedValue" : "$899.93",
+         "priceType" : "BUY",
+         "value" : 899.93
+      },
+      "priceIndicatorFlag" : "C",
+      "productType" : "BikeProduct",
+      "saleFlag" : true,
+      "url" : "/bikes/mountain-bikes/trail-mountain-bikes/remedy/remedy-al-frameset/p/38642/",
+      "volumePricesFlag" : false
+   }, {
+      "brandNameFull" : "Trek",
+      "code" : "33241",
+      "defaultCategory" : "Cross Country mountain bikes",
+      "description" : "Procaliber F/S S 29 Crystal White/Trek Black,Procaliber F/S M 29 Crystal White/Trek Black,Procaliber F/S ML 29 Crystal White/Trek Black,Procaliber F/S L 29 Crystal White/Trek Black,Procaliber F/S XL 29 Crystal White/Trek Black,Procaliber F/S XXL 29 Crystal White/Trek Black",
+      "images" : [ {
+         "format" : "product",
+         "imageType" : "PRIMARY",
+         "url" : "//media.trekbikes.com/image/upload/c_pad,w_1360,h_1020,f_jpg,fl_progressive:semi,q_auto,fl_strip_profile/ProcaliberFrameset_21_33241_A_Primary"
+      } ],
+      "isCPO" : false,
+      "marketingModelYear" : "2024",
+      "name" : "Procaliber Frameset Gen 2",
+      "preOrderFlag" : false,
+      "price" : {
+         "currencyIso" : "USD",
+         "formattedValue" : "$849.93",
+         "priceType" : "BUY",
+         "value" : 849.93
+      },
+      "priceIndicatorFlag" : "C",
+      "productType" : "BikeProduct",
+      "saleFlag" : true,
+      "url" : "/bikes/mountain-bikes/cross-country-mountain-bikes/procaliber/procaliber-frameset-gen-2/p/33241/",
+      "volumePricesFlag" : false
+   }, {
+      "brandNameFull" : "Trek",
+      "code" : "30187",
+      "defaultCategory" : "Trail mountain bikes",
+      "description" : "Stache C F/S S Slate/Volt Green,Stache C F/S M Slate/Volt Green,Stache C F/S L Slate/Volt Green,Stache C F/S XL Slate/Volt Green",
+      "images" : [ {
+         "format" : "product",
+         "imageType" : "PRIMARY",
+         "url" : "//media.trekbikes.com/image/upload/c_pad,w_1360,h_1020,f_jpg,fl_progressive:semi,q_auto,fl_strip_profile/StacheCFS_19_23112_A_Primary"
+      } ],
+      "isCPO" : false,
+      "marketingModelYear" : "2024",
+      "name" : "Stache C Frameset",
+      "preOrderFlag" : false,
+      "price" : {
+         "currencyIso" : "USD",
+         "formattedValue" : "$599.93",
+         "priceType" : "BUY",
+         "value" : 599.93
+      },
+      "priceIndicatorFlag" : "C",
+      "productType" : "BikeProduct",
+      "saleFlag" : true,
+      "url" : "/bikes/mountain-bikes/trail-mountain-bikes/stache/stache-c-frameset/p/30187/",
+      "volumePricesFlag" : false
+   }, {
+      "brandNameFull" : "Trek",
+      "code" : "29103",
+      "defaultCategory" : "Trail mountain bikes",
+      "description" : "Stache AL F/S S Matte Trek Black,Stache AL F/S M Matte Trek Black,Stache AL F/S ML Matte Trek Black,Stache AL F/S L Matte Trek Black,Stache AL F/S XL Matte Trek Black",
+      "images" : [ {
+         "format" : "product",
+         "imageType" : "PRIMARY",
+         "url" : "//media.trekbikes.com/image/upload/c_pad,w_1360,h_1020,f_jpg,fl_progressive:semi,q_auto,fl_strip_profile/StacheAlFrameset_20_29103_A_Primary"
+      } ],
+      "isCPO" : false,
+      "marketingModelYear" : "2024",
+      "name" : "Stache AL Frameset",
+      "preOrderFlag" : false,
+      "price" : {
+         "currencyIso" : "USD",
+         "formattedValue" : "$499.93",
+         "priceType" : "BUY",
+         "value" : 499.93
+      },
+      "priceIndicatorFlag" : "C",
+      "productType" : "BikeProduct",
+      "saleFlag" : true,
+      "url" : "/bikes/mountain-bikes/trail-mountain-bikes/stache/stache-al-frameset/p/29103/",
+      "volumePricesFlag" : false
+   }, {
+      "brandNameFull" : "Trek",
+      "code" : "26914",
+      "defaultCategory" : "1120",
+      "description" : "1120 F/S S Matte Solid Charcoal,1120 F/S M Matte Solid Charcoal,1120 F/S L Matte Solid Charcoal,1120 F/S XL Matte Solid Charcoal",
+      "images" : [ {
+         "format" : "product",
+         "imageType" : "PRIMARY",
+         "url" : "//media.trekbikes.com/image/upload/c_pad,w_1360,h_1020,f_jpg,fl_progressive:semi,q_auto,fl_strip_profile/1120Frameset_20_26914_A_Primary"
+      } ],
+      "isCPO" : false,
+      "marketingModelYear" : "2021",
+      "name" : "1120 Frameset",
+      "preOrderFlag" : false,
+      "price" : {
+         "currencyIso" : "USD",
+         "formattedValue" : "$499.93",
+         "priceType" : "BUY",
+         "value" : 499.93
+      },
+      "priceIndicatorFlag" : "C",
+      "productType" : "BikeProduct",
+      "saleFlag" : true,
+      "url" : "/bikes/bikepacking-touring-bikes/1120/1120-frameset/p/26914/",
+      "volumePricesFlag" : false
+   }, {
+      "brandNameFull" : "Trek",
+      "code" : "61559",
+      "defaultCategory" : "Trail mountain bikes",
+      "description" : "Roscoe F/S S 27.5 Lava,Roscoe F/S M 29 Lava,Roscoe F/S ML 29 Lava,Roscoe F/S L 29 Lava,Roscoe F/S XL 29 Lava",
+      "images" : [ {
+         "format" : "product",
+         "imageType" : "PRIMARY",
+         "url" : "//media.trekbikes.com/image/upload/c_pad,w_1360,h_1020,f_jpg,fl_progressive:semi,q_auto,fl_strip_profile/RoscoeFrameset-26-61559-A-Primary"
+      } ],
+      "isCPO" : false,
+      "marketingModelYear" : "2026",
+      "name" : "Roscoe Gen 4 Frameset",
+      "preOrderFlag" : false,
+      "price" : {
+         "currencyIso" : "USD",
+         "formattedValue" : "$499.97",
+         "priceType" : "BUY",
+         "value" : 499.97
+      },
+      "priceIndicatorFlag" : "S",
+      "productCallout" : "NEW",
+      "productType" : "BikeProduct",
+      "saleFlag" : true,
+      "url" : "/bikes/mountain-bikes/trail-mountain-bikes/roscoe/roscoe-gen-4-frameset/p/61559/",
+      "volumePricesFlag" : false
+   }, {
+      "brandNameFull" : "Trek",
+      "code" : "37141",
+      "defaultCategory" : "Trail mountain bikes",
+      "description" : "Fuel EX C F/S XS 27.5 Deep Smoke,Fuel EX C F/S S 27.5 Deep Smoke,Fuel EX C F/S S 29 Deep Smoke,Fuel EX C F/S M 29 Deep Smoke,Fuel EX C F/S ML 29 Deep Smoke,Fuel EX C F/S L 29 Deep Smoke,Fuel EX C F/S XL 29 Deep Smoke,Fuel EX C F/S XS 27.5 Mulsanne Blue,Fuel EX C F/S S 27.5 Mulsanne Blue,Fuel EX C F/S S 29 Mulsanne Blue,Fuel EX C F/S M 29 Mulsanne Blue,Fuel EX C F/S ML 29 Mulsanne Blue,Fuel EX C F/S L 29 Mulsanne Blue,Fuel EX C F/S XL 29 Mulsanne Blue",
+      "images" : [ {
+         "format" : "product",
+         "imageType" : "PRIMARY",
+         "url" : "//media.trekbikes.com/image/upload/c_pad,w_1360,h_1020,f_jpg,fl_progressive:semi,q_auto,fl_strip_profile/FuelEXCFrameset_23_37141_A_Primary"
+      } ],
+      "isCPO" : false,
+      "marketingModelYear" : "2025",
+      "name" : "Fuel EX C Gen 6 Frameset",
+      "preOrderFlag" : false,
+      "price" : {
+         "currencyIso" : "USD",
+         "formattedValue" : "$3,499.97",
+         "priceType" : "BUY",
+         "value" : 3499.97
+      },
+      "priceIndicatorFlag" : "S",
+      "productType" : "BikeProduct",
+      "saleFlag" : true,
+      "url" : "/bikes/mountain-bikes/trail-mountain-bikes/fuel-ex/fuel-ex-c-gen-6-frameset/p/37141/",
+      "volumePricesFlag" : false
+   }, {
+      "brandNameFull" : "Trek",
+      "code" : "35649",
+      "defaultCategory" : "Trail mountain bikes",
+      "description" : "Top Fuel Al F/S S Mulsanne Blue,Top Fuel Al F/S M Mulsanne Blue,Top Fuel Al F/S ML Mulsanne Blue,Top Fuel Al F/S L Mulsanne Blue,Top Fuel Al F/S XL Mulsanne Blue,Top Fuel Al F/S XXL Mulsanne Blue",
+      "images" : [ {
+         "format" : "product",
+         "imageType" : "PRIMARY",
+         "url" : "//media.trekbikes.com/image/upload/c_pad,w_1360,h_1020,f_jpg,fl_progressive:semi,q_auto,fl_strip_profile/TopFuelALFrameset_22_35649_A_Primary"
+      } ],
+      "isCPO" : false,
+      "marketingModelYear" : "2024",
+      "name" : "Top Fuel AL Gen 3 Frameset",
+      "preOrderFlag" : false,
+      "price" : {
+         "currencyIso" : "USD",
+         "formattedValue" : "$999.93",
+         "priceType" : "BUY",
+         "value" : 999.93
+      },
+      "priceIndicatorFlag" : "C",
+      "productType" : "BikeProduct",
+      "saleFlag" : true,
+      "url" : "/bikes/mountain-bikes/trail-mountain-bikes/top-fuel/top-fuel-al-gen-3-frameset/p/35649/",
+      "volumePricesFlag" : false
+   }, {
+      "brandNameFull" : "Trek",
+      "code" : "29757",
+      "defaultCategory" : "Downhill mountain bikes",
+      "description" : "Ticket DJ F/S L Matte Emerald Iris",
+      "images" : [ {
+         "format" : "product",
+         "imageType" : "PRIMARY",
+         "url" : "//media.trekbikes.com/image/upload/c_pad,w_1360,h_1020,f_jpg,fl_progressive:semi,q_auto,fl_strip_profile/TicketDJFrameset_20_29757_A_Primary"
+      } ],
+      "isCPO" : false,
+      "marketingModelYear" : "2026",
+      "name" : "Ticket DJ Frameset",
+      "preOrderFlag" : false,
+      "price" : {
+         "currencyIso" : "USD",
+         "formattedValue" : "$599.97",
+         "priceType" : "BUY",
+         "value" : 599.97
+      },
+      "priceIndicatorFlag" : "S",
+      "productType" : "BikeProduct",
+      "saleFlag" : true,
+      "url" : "/bikes/mountain-bikes/downhill-mountain-bikes/ticket/ticket-dj-frameset/p/29757/",
+      "volumePricesFlag" : false
+   } ]
+}
