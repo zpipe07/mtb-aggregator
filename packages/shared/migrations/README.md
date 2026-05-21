@@ -35,6 +35,7 @@ Override the migrations directory: `MIGRATIONS_DIR=path/to/migrations make db-mi
 | `022_bikes_taxonomy_subcategories.sql` | Bikes: `bikes-emtb` + MTB discipline children under `bikes-mountain` + Full Power/Lightweight under eMTB; high-priority `category_mappings` rows |
 | `023_category_descriptions.sql` | `categories.description` — optional rubric text per category, injected into the LLM category classifier user prompt |
 | `025_jenson_hide_superseded_parent_listings.sql` | Hides legacy JensonUSA listings whose `store_sku` is a strict prefix of another row’s SKU on the same `product_url` (parent row after per-variant scraping) |
+| `026_universalcycles_hide_superseded_parent_listings.sql` | Hides Universal Cycles parent product-id rows when attribute SKU siblings (`{productId}-{attributeId}`) exist on the same `product_url` |
 
 After 019, run **`make backfill-field-library`** once (from repo root) to rename ambiguous `type` / `material` keys in `extraction_schema` and `metadata.llm_specs`, seed shared defs, and populate `llm_prompt_profile_fields`.
 

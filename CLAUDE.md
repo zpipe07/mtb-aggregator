@@ -83,6 +83,7 @@ make scrape-now-canyon         # canyon only
 make scrape-now-specialized    # specialized only
 make scrape-now-mackcycle      # mackcycle only
 make scrape-now-trek           # trek only
+make scrape-now-universalcycles  # universalcycles only
 make enrich-now              # enrich unenriched listings
 make enrich-now-revel        # revelbikes only (optional FORCE=1)
 make enrich-now-competitivecyclist   # CC only (optional FORCE=1)
@@ -91,6 +92,7 @@ make enrich-now-canyon         # canyon only (optional FORCE=1)
 make enrich-now-specialized    # specialized only (optional FORCE=1)
 make enrich-now-mackcycle      # mackcycle only (optional FORCE=1)
 make enrich-now-trek           # trek only (optional FORCE=1)
+make enrich-now-universalcycles  # universalcycles only (optional FORCE=1)
 make enrich-now FORCE=1      # re-enrich all
 make impact-catalog-probe    # list Impact catalogs + sample catalog Items page (requires IMPACT_ACCOUNT_SID + IMPACT_AUTH_TOKEN)
 
@@ -131,6 +133,7 @@ pnpm --filter @mtb-aggregator/web run build-storybook  # static build to storybo
 - Adding a new store: create parser in `parsers/`, add to maps in `parsers/index.ts`, add store enum value to `ScrapeRequestSchema`/`EnrichRequestSchema` in `types.ts`, insert store record in DB
 - **JensonUSA clearance:** `data-product-result-dto` includes `variants[]`; `jensonusa-dto.ts` emits one `ScrapeResult` per variant (`product_group_key` = parent `code`, listing `variant_options` often Color-only). PDP enrich (`jensonusa-pdp.ts` + `enrichJensonUSA`) returns `variants[]` from `serverSideViewModel.variants`; the API fans out full `variant_options` and `is_in_stock` to all siblings. `make backfill-jenson-variants` replays that for existing rows. Migration `025` hides superseded parent-SKU rows after per-variant scrapes land.
 - **Competitive Cyclist:** Impact catalog ingest (API) creates flat rows per SKU; PDP enrich (`cc-pdp-variants.ts` JSON-LD **`hasVariant`**) fans out **`product_group_key`** + **`variant_options`** to siblings sharing the same canonical **`product_url`**. `make backfill-cc-variants` replays grouping for existing rows. CC PDP fetch uses Playwright + **`SCRAPER_STORAGE_STATE`** (WAF cookies); bootstrap **`apps/scraper/cc-storage.json`** locally — [apps/scraper/README.md](apps/scraper/README.md#competitive-cyclist).
+- **Universal Cycles:** fetch + Cheerio on `specials.php` (~615 sale products, `?resultpage=` pagination). Scrape emits one parent row per product id; PDP enrich (`universalcycles-pdp.ts`) returns `variants[]` per `#attribute_{id}` block; the API upserts composite SKU rows (`{productId}-{attributeId}`) via `ApplyUniversalCyclesVariantFanout` and hides the parent. Migration `026` hides superseded parent rows when attribute siblings exist. OOS attributes stay listed with `is_in_stock=false` (Jenson pattern).
 
 ### API (`apps/api/`)
 

@@ -169,6 +169,17 @@ make scrape-now-trek
 make enrich-now-trek
 ```
 
+### Universal Cycles
+
+**Listing scrape** (`universalcycles` in `PARSERS`) uses **fetch + Cheerio** against `specials.php`, paginated with `?resultpage=2` … `N` (not `page=`). Parses `.product-box` tiles; `store_sku` is the product `id` from `product_details.php?id=`. Prefers **Overstock Item From:** over **From:** for `current_price`; optional **MSRP:** for `original_price`. Section headers (`h4.well`) seed `category_path`. Seed `scrape_url`: `https://www.universalcycles.com/specials.php`.
+
+**PDP enrichment** (`enrichUniversalCycles`) fetches PDP HTML and parses `#attribute_{id}` blocks into `variants[]` (composite SKU, dimensions label, per-variant prices, `is_orderable` from Add to Cart vs Notify/Out of Stock). Description and bullet specs come from `#PageContent`. The API fans out attribute rows via `ApplyUniversalCyclesVariantFanout` and hides the parent product-id row; migration `026` backfills hidden parents when siblings exist.
+
+```bash
+make scrape-now-universalcycles
+make enrich-now-universalcycles
+```
+
 ## Endpoints
 
 | Endpoint  | Method | Purpose                                           |
@@ -204,6 +215,7 @@ Parsers live in `src/parsers/` — one file per store:
 - `canyon.ts` / `canyon-plp.ts` / `canyon-pdp.ts` — Canyon US sale (Demandware ajax PLP + fetch PDP enrich)
 - `specialized.ts` / `specialized-plp.ts` / `specialized-pdp.ts` — Specialized US sale (GraphQL PLP + fetch PDP enrich)
 - `trek.ts` / `trek-plp.ts` / `trek-pdp.ts` — Trek US MTB sale (OCC PLP + HTML MSRP merge + fetch PDP enrich)
+- `universalcycles.ts` / `universalcycles-plp.ts` / `universalcycles-pdp.ts` — Universal Cycles specials (fetch PLP + attribute fan-out on PDP enrich)
 
 `parsers/index.ts` registers `PARSERS` and `ENRICHERS` maps. Enrichers fetch product detail pages (PDP) for category paths and specs.
 
