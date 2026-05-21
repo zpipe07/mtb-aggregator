@@ -68,10 +68,6 @@ export default async function DealsPage({ searchParams }: Props) {
       Object.keys(filterParams.specFilters).length > 0
         ? filterParams.specFilters
         : undefined,
-    variantFilters:
-      Object.keys(filterParams.variantFilters).length > 0
-        ? filterParams.variantFilters
-        : undefined,
     q: filterParams.searchQuery.trim() || undefined,
     sort: filterParams.sort,
     group_variants: true,
@@ -90,10 +86,6 @@ export default async function DealsPage({ searchParams }: Props) {
     specFilters:
       Object.keys(filterParams.specFilters).length > 0
         ? filterParams.specFilters
-        : undefined,
-    variantFilters:
-      Object.keys(filterParams.variantFilters).length > 0
-        ? filterParams.variantFilters
         : undefined,
     q: filterParams.searchQuery.trim() || undefined,
   };
@@ -118,7 +110,6 @@ export default async function DealsPage({ searchParams }: Props) {
   const facetsBase = facetsResponse ?? {
     spec_facets: [],
     brand_facets: [],
-    variant_facets: [],
     price_range: { min: 0, max: 0 },
     total_matching: 0,
   };

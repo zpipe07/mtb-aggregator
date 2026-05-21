@@ -193,8 +193,6 @@ export function buildFetchDealsParamsFromHubAndFilters(
     offset: fp.offset,
     specFilters:
       Object.keys(fp.specFilters).length > 0 ? fp.specFilters : undefined,
-    variantFilters:
-      Object.keys(fp.variantFilters).length > 0 ? fp.variantFilters : undefined,
     store: fp.storeFilter || undefined,
     group_variants: true as const,
   };
@@ -214,7 +212,6 @@ export function buildFetchFacetsParamsFromHubAndFilters(
     max_price: dealParams.max_price,
     q: dealParams.q,
     specFilters: dealParams.specFilters,
-    variantFilters: dealParams.variantFilters,
   };
 }
 
@@ -229,7 +226,6 @@ export function emptyParsedFilterParams(): ParsedFilterParams {
     minPrice: "",
     excludeCategorySlug: "",
     specFilters: {},
-    variantFilters: {},
     sort: "discount",
     offset: 0,
   };

@@ -63,7 +63,6 @@ export function DealsPageContent({
     categoryFilter,
     minDiscount,
     specFilters,
-    variantFilters,
     sort,
     offset,
     setSearchQuery,
@@ -72,8 +71,6 @@ export function DealsPageContent({
     setMinDiscount,
     toggleSpecFilter,
     clearSpecFilter,
-    toggleVariantFilter,
-    clearVariantFilter,
     setSort,
     setOffset,
     clearAllFilters,
@@ -84,8 +81,7 @@ export function DealsPageContent({
   const activeFilterCount =
     [storeFilter, minDiscount].filter(Boolean).length +
     brandFilters.length +
-    Object.values(specFilters).reduce((n, a) => n + a.length, 0) +
-    Object.values(variantFilters).reduce((n, a) => n + a.length, 0);
+    Object.values(specFilters).reduce((n, a) => n + a.length, 0);
 
   const activeFilters = useMemo(() => {
     const chips: { key: string; label: string; onRemove: () => void }[] = [];
@@ -121,28 +117,17 @@ export function DealsPageContent({
         });
       });
     });
-    Object.entries(variantFilters).forEach(([key, values]) => {
-      values.forEach((value) => {
-        chips.push({
-          key: `variant_${key}:${value}`,
-          label: `${key}: ${value}`,
-          onRemove: () => toggleVariantFilter(key, value),
-        });
-      });
-    });
     return chips;
   }, [
     storeFilter,
     brandFilters,
     minDiscount,
     specFilters,
-    variantFilters,
     facets?.spec_facets,
     setStoreFilter,
     toggleBrandFilter,
     setMinDiscount,
     toggleSpecFilter,
-    toggleVariantFilter,
   ]);
 
   const handleStoreChange = (value: string) => {
@@ -186,22 +171,6 @@ export function DealsPageContent({
     });
     toggleSpecFilter(key, v);
   };
-  const handleToggleVariantFilter = (key: string, value: string) => {
-    const v = value.trim();
-    if (!v) return;
-    const cur = variantFilters[key] ?? [];
-    const idx = cur.indexOf(v);
-    const added = idx < 0;
-    const nextCount = added ? cur.length + 1 : cur.length - 1;
-    posthog.capture("filter_applied", {
-      filter_type: "variant",
-      variant_key: key,
-      value: v,
-      selected_count: nextCount,
-      action: added ? "add" : "remove",
-    });
-    toggleVariantFilter(key, v);
-  };
   const handleClearAllFilters = () => {
     posthog.capture("filters_cleared", {
       had_category_path: pathname.startsWith("/deals/c/"),
@@ -230,16 +199,12 @@ export function DealsPageContent({
     categoryFilter,
     minDiscount,
     specFilters,
-    variantFilters,
     specFacets: facets?.spec_facets ?? [],
-    variantFacets: facets?.variant_facets ?? [],
     onStoreChange: handleStoreChange,
     onToggleBrand: handleToggleBrand,
     onMinDiscountChange: handleMinDiscountChange,
     onToggleSpecFilter: handleToggleSpecFilter,
     onClearSpecFilter: clearSpecFilter,
-    onToggleVariantFilter: handleToggleVariantFilter,
-    onClearVariantFilter: clearVariantFilter,
   };
 
   return (

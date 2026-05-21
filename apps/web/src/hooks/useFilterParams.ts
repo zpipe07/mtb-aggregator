@@ -20,7 +20,6 @@ import {
 export type { SortOption };
 
 const SPEC_PREFIX = "spec_";
-const VARIANT_PREFIX = "variant_";
 
 function mergeCategoryFromPath(
   parsed: ParsedFilterParams,
@@ -52,7 +51,6 @@ function applyToParams(
     minPrice: string;
     excludeCategorySlug: string;
     specFilters: Record<string, string[]>;
-    variantFilters: Record<string, string[]>;
     sort: SortOption;
     offset: number;
   }>,
@@ -92,18 +90,6 @@ function applyToParams(
       for (const v of vals) {
         const t = v.trim();
         if (t) next.append(`${SPEC_PREFIX}${k}`, t);
-      }
-    });
-  }
-
-  if (updates.variantFilters !== undefined) {
-    Array.from(next.keys()).forEach((key) => {
-      if (key.startsWith(VARIANT_PREFIX)) next.delete(key);
-    });
-    Object.entries(updates.variantFilters).forEach(([k, vals]) => {
-      for (const v of vals) {
-        const t = v.trim();
-        if (t) next.append(`${VARIANT_PREFIX}${k}`, t);
       }
     });
   }
@@ -164,7 +150,6 @@ export function useFilterParams(options?: {
         minPrice: string;
         excludeCategorySlug: string;
         specFilters: Record<string, string[]>;
-        variantFilters: Record<string, string[]>;
         sort: SortOption;
         offset: number;
       }>,
@@ -208,7 +193,6 @@ export function useFilterParams(options?: {
       const next = applyToParams(raw, {
         categoryFilter: "",
         specFilters: {},
-        variantFilters: {},
         offset: 0,
       });
       const targetPath = v ? buildDealsCategoryPath(v, categoryTree) : "/deals";
@@ -242,28 +226,6 @@ export function useFilterParams(options?: {
     },
     [updateParams, display.specFilters],
   );
-  const toggleVariantFilter = useCallback(
-    (key: string, value: string) => {
-      const v = value.trim();
-      if (!v) return;
-      const cur = display.variantFilters[key] ?? [];
-      const idx = cur.indexOf(v);
-      const nextVals = idx >= 0 ? cur.filter((x) => x !== v) : [...cur, v];
-      const next = { ...display.variantFilters };
-      if (nextVals.length === 0) delete next[key];
-      else next[key] = nextVals;
-      updateParams({ variantFilters: next, offset: 0 });
-    },
-    [updateParams, display.variantFilters],
-  );
-  const clearVariantFilter = useCallback(
-    (key: string) => {
-      const next = { ...display.variantFilters };
-      delete next[key];
-      updateParams({ variantFilters: next, offset: 0 });
-    },
-    [updateParams, display.variantFilters],
-  );
   const setSort = useCallback(
     (v: SortOption) => updateParams({ sort: v, offset: 0 }),
     [updateParams],
@@ -283,7 +245,6 @@ export function useFilterParams(options?: {
       minPrice: "",
       excludeCategorySlug: "",
       specFilters: {},
-      variantFilters: {},
       offset: 0,
     });
   }, [updateParams]);
@@ -309,8 +270,6 @@ export function useFilterParams(options?: {
     setMinDiscount,
     toggleSpecFilter,
     clearSpecFilter,
-    toggleVariantFilter,
-    clearVariantFilter,
     setSort,
     setOffset,
     clearAllFilters,
