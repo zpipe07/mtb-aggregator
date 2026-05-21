@@ -5,8 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/server.ts",
+    "build:deps": "pnpm --filter @mtb-aggregator/logging run build",
+    "prebuild": "pnpm run build:deps",
     "build": "tsc",
     "start": "node dist/server.js",
+    "pretest": "pnpm run build:deps",
     "test": "vitest run",
     "test:watch": "vitest"
   },

@@ -70,11 +70,20 @@ jobs:
           go install golang.org/x/vuln/cmd/govulncheck@v1.2.0
           govulncheck ./...
 
+      - name: Build logging package
+        run: pnpm --filter @mtb-aggregator/logging run build
+
       - name: Build scraper
         run: pnpm --filter @mtb-aggregator/scraper run build
 
       - name: Scraper tests
         run: pnpm --filter @mtb-aggregator/scraper run test
+
+      - name: Build API Docker image
+        run: docker build -t mtb-api-ci -f apps/api/Dockerfile .
+
+      - name: Build scraper Docker image
+        run: docker build -t mtb-scraper-ci -f apps/scraper/Dockerfile .
 
       - name: API build
         run: cd apps/api && go build -o /dev/null .
