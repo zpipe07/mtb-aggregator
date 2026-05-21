@@ -3,8 +3,8 @@ import { buildDealsCategoryPath } from "./dealsCategoryPath";
 
 /**
  * Build `/deals` or `/deals/c/...` with non-category query params preserved
- * (`q`, `store`, `brand`, `sort`, `offset`, `min_discount`, `spec_*`).
- * Omits `category` (path carries the category).
+ * (`q`, `store`, `brand`, `sort`, `min_discount`, `spec_*`).
+ * Omits `category` (path carries the category) and `offset` (category nav → page 1).
  */
 export function buildDealsBrowseHref(
   categorySlug: string,
@@ -13,6 +13,7 @@ export function buildDealsBrowseHref(
 ): string {
   const qs = new URLSearchParams(searchParams.toString());
   qs.delete("category");
+  qs.delete("offset");
   const s = qs.toString();
   const path = categorySlug
     ? buildDealsCategoryPath(categorySlug, categoryTree)
