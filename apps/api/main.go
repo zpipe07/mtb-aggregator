@@ -672,6 +672,10 @@ func main() {
 			handlers.PostAdminListingLLMOverrides(w, r, id)
 			return
 		}
+		if len(parts) > 1 && parts[1] == "category" {
+			handlers.PatchAdminListingCategory(w, r, id)
+			return
+		}
 		if r.Method == http.MethodPatch {
 			handlers.PatchAdminListingHidden(w, r, id)
 			return

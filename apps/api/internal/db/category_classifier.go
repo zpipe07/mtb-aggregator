@@ -112,6 +112,37 @@ func (db *DB) UpdateListingCanonicalCategory(ctx context.Context, id int, canoni
 	return err
 }
 
+// UpdateListingCategoryManual sets canonical_category and category_id from an admin category picker.
+// Sets metadata.manual_category_override for future enrichment lock semantics.
+func (db *DB) UpdateListingCategoryManual(ctx context.Context, listingID int, categoryID int) error {
+	path, err := db.GetCategoryPathNamesRootToLeaf(ctx, categoryID)
+	if err != nil {
+		return err
+	}
+	if len(path) == 0 {
+		return fmt.Errorf("category %d not found", categoryID)
+	}
+	var existing []byte
+	err = db.pool.QueryRow(ctx, `SELECT COALESCE(metadata, '{}') FROM store_listings WHERE id = $1`, listingID).Scan(&existing)
+	if err != nil {
+		if err.Error() == "no rows in result set" {
+			return fmt.Errorf("listing not found")
+		}
+		return err
+	}
+	merged := metadata.MergeManualCategoryOverride(existing)
+	tag, err := db.pool.Exec(ctx, `
+		UPDATE store_listings SET canonical_category = $1, category_id = $2, metadata = $3 WHERE id = $4
+	`, pq.Array(path), categoryID, merged, listingID)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return fmt.Errorf("listing not found")
+	}
+	return nil
+}
+
 // UpdateListingLLMCategoryMetadata merges llm_category into metadata without changing canonical_category.
 // Used when classification confidence is below threshold (audit trail for admin review).
 func (db *DB) UpdateListingLLMCategoryMetadata(ctx context.Context, id int, llmCategory map[string]interface{}) error {

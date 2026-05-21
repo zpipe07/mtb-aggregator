@@ -900,6 +900,44 @@ func (h *Handlers) PatchAdminListingHidden(w http.ResponseWriter, r *http.Reques
 	json.NewEncoder(w).Encode(map[string]bool{"ok": true})
 }
 
+// PatchAdminListingCategory sets canonical category from admin picker. Body: {"category_id": 5}.
+func (h *Handlers) PatchAdminListingCategory(w http.ResponseWriter, r *http.Request, id int) {
+	if r.Method != http.MethodPatch {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var body struct {
+		CategoryID *int `json:"category_id"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		http.Error(w, "invalid json", http.StatusBadRequest)
+		return
+	}
+	if body.CategoryID == nil || *body.CategoryID <= 0 {
+		http.Error(w, "category_id required", http.StatusBadRequest)
+		return
+	}
+	cat, err := h.DB.GetCategoryByID(r.Context(), *body.CategoryID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if cat == nil {
+		http.Error(w, "category not found", http.StatusNotFound)
+		return
+	}
+	if err := h.DB.UpdateListingCategoryManual(r.Context(), id, *body.CategoryID); err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			http.Error(w, "not found", http.StatusNotFound)
+			return
+		}
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]bool{"ok": true})
+}
+
 // PostAdminListingLLMOverrides sets manual overrides for LLM-derived specs (admin). Body: {"mtb_class": "Trail", ...}.
 func (h *Handlers) PostAdminListingLLMOverrides(w http.ResponseWriter, r *http.Request, id int) {
 	if r.Method != http.MethodPost {

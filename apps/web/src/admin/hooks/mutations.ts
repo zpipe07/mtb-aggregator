@@ -11,6 +11,7 @@ import {
   enrichListing,
   runListingLLMSpecs,
   setListingHidden,
+  setListingCategory,
   setListingLLMOverrides,
   runLLMExtractionForCategory,
   createTaxonomyMapping,
@@ -207,10 +208,32 @@ export function useSetListingHidden() {
   });
 }
 
+export function useSetListingCategory() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, categoryId }: { id: number; categoryId: number }) =>
+      setListingCategory(id, categoryId),
+    onSuccess: (_, { id, categoryId }) => {
+      queryClient.invalidateQueries({ queryKey: adminListingKeys.all });
+      queryClient.invalidateQueries({ queryKey: adminListingKeys.detail(id) });
+      queryClient.invalidateQueries({
+        queryKey: adminCategoryKeys.profileFields(categoryId),
+      });
+      queryClient.invalidateQueries({ queryKey: dealKeys.all });
+    },
+  });
+}
+
 export function useSetListingLLMOverrides() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, overrides }: { id: number; overrides: Record<string, string | null> }) =>
+    mutationFn: ({
+      id,
+      overrides,
+    }: {
+      id: number;
+      overrides: Record<string, string | string[] | null>;
+    }) =>
       setListingLLMOverrides(id, overrides),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: adminListingKeys.all });

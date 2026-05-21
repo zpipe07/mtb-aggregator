@@ -43,6 +43,8 @@ export const adminTaxonomyKeys = {
 
 export const adminCategoryKeys = {
   all: ["admin", "categories"] as const,
+  profileFields: (categoryId: number) =>
+    [...adminCategoryKeys.all, "profileFields", categoryId] as const,
 };
 
 export const adminSpecFilterKeys = {

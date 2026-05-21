@@ -564,6 +564,56 @@ export async function fetchAdminListing(
   return res.json();
 }
 
+/** Profile field from GET /admin/categories/:id/profile-fields (effective extraction schema). */
+export interface AdminProfileField {
+  key: string;
+  type: string;
+  description?: string;
+  values?: string[];
+  label?: string;
+  sort_order?: number;
+  filterable?: boolean;
+}
+
+/** Set canonical category for a listing (admin manual override). */
+export async function setListingCategory(
+  id: number,
+  categoryId: number,
+): Promise<void> {
+  const res = await fetch(`${getApiBase()}/admin/listings/${id}/category`, {
+    method: "PATCH",
+    headers: adminHeaders(),
+    body: JSON.stringify({ category_id: categoryId }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const msg =
+      typeof data?.error === "string"
+        ? data.error
+        : res.status === 404
+          ? "Listing not found"
+          : "Update failed";
+    throw new Error(msg);
+  }
+}
+
+/** Effective LLM profile fields for a category (merged ancestor profiles). */
+export async function fetchCategoryProfileFields(
+  categoryId: number,
+): Promise<AdminProfileField[]> {
+  const res = await fetch(
+    `${getApiBase()}/admin/categories/${categoryId}/profile-fields`,
+    { headers: adminHeaders() },
+  );
+  if (!res.ok) {
+    throw new Error(
+      res.status === 401 ? "Unauthorized" : "Failed to fetch profile fields",
+    );
+  }
+  const data = (await res.json()) as { fields?: AdminProfileField[] };
+  return Array.isArray(data.fields) ? data.fields : [];
+}
+
 /** Set hidden flag for a listing. Hidden listings are excluded from the public deals feed. */
 export async function setListingHidden(
   id: number,
@@ -589,7 +639,7 @@ export async function setListingHidden(
 /** Set LLM overrides for a listing. Body is the overrides map e.g. { mtb_class: "Trail" }. Pass null for a key to clear. */
 export async function setListingLLMOverrides(
   id: number,
-  overrides: Record<string, string | null>,
+  overrides: Record<string, string | string[] | null>,
 ): Promise<void> {
   const res = await fetch(
     `${getApiBase()}/admin/listings/${id}/llm-overrides`,

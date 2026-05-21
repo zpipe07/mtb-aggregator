@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState, type Dispatch, type SetStateAction } from "react";
 import {
   LineChart,
   Line,
@@ -17,12 +17,14 @@ import {
   useAdminListing,
   useCanonicalCategoryPaths,
   useAdminCategoryTree,
+  useCategoryProfileFields,
   useEnrichJob,
 } from "./hooks/queries";
 import {
   useEnrichListing,
   useRunListingLLMSpecs,
   useSetListingHidden,
+  useSetListingCategory,
   useSetListingLLMOverrides,
   usePostBulkListingsClassify,
   usePostBulkListingsEnrich,
@@ -32,6 +34,7 @@ import type {
   AdminBulkListingsFilterBody,
   AdminCategoryTreeNode,
   AdminListing,
+  AdminProfileField,
 } from "./api";
 import { CategoryPicker } from "./CategoryPicker";
 import { sanitizeForHtmlId } from "../lib/htmlId";
@@ -55,6 +58,28 @@ function adminCategorySlugForPath(
     if (n.children?.length) {
       const found = adminCategorySlugForPath(n.children, path, full);
       if (found) return found;
+    }
+  }
+  return null;
+}
+
+/** Resolves admin tree path (root → leaf names) to category id. */
+function adminCategoryIdForPath(
+  nodes: AdminCategoryTreeNode[],
+  path: string[],
+  prefix: string[] = [],
+): number | null {
+  for (const n of nodes) {
+    const full = [...prefix, n.name];
+    if (
+      full.length === path.length &&
+      full.every((segment, i) => segment === path[i])
+    ) {
+      return n.id;
+    }
+    if (n.children?.length) {
+      const found = adminCategoryIdForPath(n.children, path, full);
+      if (found != null) return found;
     }
   }
   return null;
@@ -99,17 +124,41 @@ function getMetadataObj(metadata: AdminListing["metadata"]): Record<string, unkn
   return null;
 }
 
+function specValueToString(v: unknown): string {
+  if (v == null) return "";
+  if (Array.isArray(v)) return v.map(String).join(", ");
+  return String(v);
+}
+
 /** Get displayed spec value: llm_overrides[key] ?? llm_specs[key] ?? specs[key] (legacy). */
-function getDisplayedSpec(metadata: AdminListing["metadata"], key: string): string | undefined {
+function getDisplayedSpec(metadata: AdminListing["metadata"], key: string): string {
   const obj = getMetadataObj(metadata);
-  if (!obj) return undefined;
-  const overrides = obj.llm_overrides as Record<string, string> | undefined;
-  if (overrides && typeof overrides[key] === "string") return overrides[key];
+  if (!obj) return "";
+  const overrides = obj.llm_overrides as Record<string, unknown> | undefined;
+  if (overrides && key in overrides) return specValueToString(overrides[key]);
   const llmSpecs = obj.llm_specs as Record<string, unknown> | undefined;
-  if (llmSpecs && llmSpecs[key] != null) return String(llmSpecs[key]);
+  if (llmSpecs && llmSpecs[key] != null) return specValueToString(llmSpecs[key]);
   const specs = obj.specs as Record<string, unknown> | undefined;
-  if (specs && specs[key] != null) return String(specs[key]);
-  return undefined;
+  if (specs && specs[key] != null) return specValueToString(specs[key]);
+  return "";
+}
+
+function getDisplayedSpecMulti(
+  metadata: AdminListing["metadata"],
+  key: string,
+): string[] {
+  const obj = getMetadataObj(metadata);
+  if (!obj) return [];
+  const raw =
+    (obj.llm_overrides as Record<string, unknown> | undefined)?.[key] ??
+    (obj.llm_specs as Record<string, unknown> | undefined)?.[key] ??
+    (obj.specs as Record<string, unknown> | undefined)?.[key];
+  if (Array.isArray(raw)) return raw.map(String);
+  if (raw == null || raw === "") return [];
+  return String(raw)
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
 }
 
 /** Check if a spec key has an override. */
@@ -179,24 +228,166 @@ function getAllSpecKeys(metadata: AdminListing["metadata"]): string[] {
   return [...keys].sort();
 }
 
+function fieldLabel(field: AdminProfileField): string {
+  return field.label?.trim() || field.key.replace(/_/g, " ");
+}
+
+function SpecFieldInput({
+  field,
+  metadata,
+  edits,
+  setEdits,
+  termId,
+}: {
+  field: AdminProfileField;
+  metadata: AdminListing["metadata"];
+  edits: Record<string, string | string[]>;
+  setEdits: Dispatch<SetStateAction<Record<string, string | string[]>>>;
+  termId: string;
+}) {
+  const key = field.key;
+  const isOverridden = hasOverride(metadata, key);
+  const inputClass = `w-full max-w-xs rounded border px-2 py-1 text-sm ${
+    isOverridden ? "border-blue-300 bg-blue-50" : "border-stone-300"
+  }`;
+
+  if (field.type === "enum" && field.values && field.values.length > 0) {
+    const displayed = getDisplayedSpec(metadata, key);
+    const value = key in edits ? String(edits[key]) : displayed;
+    return (
+      <select
+        id={termId}
+        value={value}
+        onChange={(e) => setEdits((prev) => ({ ...prev, [key]: e.target.value }))}
+        aria-labelledby={termId}
+        className={inputClass}
+      >
+        <option value="">—</option>
+        {field.values.map((v) => (
+          <option key={v} value={v}>
+            {v}
+          </option>
+        ))}
+      </select>
+    );
+  }
+
+  if (field.type === "multi_enum" && field.values && field.values.length > 0) {
+    const displayed = getDisplayedSpecMulti(metadata, key);
+    const selected =
+      key in edits && Array.isArray(edits[key])
+        ? (edits[key] as string[])
+        : displayed;
+    return (
+      <div className="flex flex-wrap gap-2 max-w-md" role="group" aria-labelledby={termId}>
+        {field.values.map((v) => {
+          const checked = selected.includes(v);
+          return (
+            <label
+              key={v}
+              className="inline-flex items-center gap-1 text-sm text-stone-700"
+            >
+              <input
+                type="checkbox"
+                checked={checked}
+                onChange={() => {
+                  const next = checked
+                    ? selected.filter((x) => x !== v)
+                    : [...selected, v];
+                  setEdits((prev) => ({ ...prev, [key]: next }));
+                }}
+                className="rounded border-stone-300"
+              />
+              {v}
+            </label>
+          );
+        })}
+      </div>
+    );
+  }
+
+  if (field.type === "integer" || field.type === "number") {
+    const displayed = getDisplayedSpec(metadata, key);
+    const value = key in edits ? String(edits[key]) : displayed;
+    return (
+      <input
+        type="number"
+        id={termId}
+        value={value}
+        onChange={(e) => setEdits((prev) => ({ ...prev, [key]: e.target.value }))}
+        aria-labelledby={termId}
+        className={inputClass}
+        placeholder="—"
+      />
+    );
+  }
+
+  const displayed = getDisplayedSpec(metadata, key);
+  const value = key in edits ? String(edits[key]) : displayed;
+  return (
+    <input
+      type="text"
+      id={termId}
+      value={value}
+      onChange={(e) => setEdits((prev) => ({ ...prev, [key]: e.target.value }))}
+      aria-labelledby={termId}
+      className={inputClass}
+      placeholder="—"
+    />
+  );
+}
+
 function ListingSpecOverrides({
   listingId,
   metadata,
+  categoryId,
   mutation,
 }: {
   listingId: number;
   metadata: AdminListing["metadata"];
+  categoryId: number | null | undefined;
   mutation: ReturnType<typeof useSetListingLLMOverrides>;
 }) {
   const specTermPrefix = useId();
-  const [edits, setEdits] = useState<Record<string, string>>({});
-  const keys = getAllSpecKeys(metadata);
-  if (keys.length === 0) return null;
+  const [edits, setEdits] = useState<Record<string, string | string[]>>({});
+  const { data: profileFields = [] } = useCategoryProfileFields(categoryId);
 
-  const overridesToSave: Record<string, string | null> = {};
-  for (const key of keys) {
-    const displayed = getDisplayedSpec(metadata, key) ?? "";
-    const current = key in edits ? edits[key] : displayed;
+  const profileKeys = new Set(profileFields.map((f) => f.key));
+  const extraKeys = getAllSpecKeys(metadata).filter((k) => !profileKeys.has(k));
+  const sortedProfileFields = [...profileFields].sort(
+    (a, b) => (b.sort_order ?? 0) - (a.sort_order ?? 0),
+  );
+  const allKeys = [
+    ...sortedProfileFields.map((f) => f.key),
+    ...extraKeys,
+  ];
+  if (allKeys.length === 0) return null;
+
+  const fieldByKey = new Map(profileFields.map((f) => [f.key, f]));
+
+  const overridesToSave: Record<string, string | string[] | null> = {};
+  for (const key of allKeys) {
+    const field = fieldByKey.get(key);
+    if (field?.type === "multi_enum") {
+      const displayed = getDisplayedSpecMulti(metadata, key);
+      const current =
+        key in edits && Array.isArray(edits[key])
+          ? (edits[key] as string[])
+          : displayed;
+      const same =
+        current.length === displayed.length &&
+        current.every((v, i) => v === displayed[i]);
+      if (!same) {
+        if (current.length === 0 && hasOverride(metadata, key)) {
+          overridesToSave[key] = null;
+        } else {
+          overridesToSave[key] = current;
+        }
+      }
+      continue;
+    }
+    const displayed = getDisplayedSpec(metadata, key);
+    const current = key in edits ? String(edits[key]) : displayed;
     if (current !== displayed) {
       if (current === "" && hasOverride(metadata, key)) overridesToSave[key] = null;
       else if (current !== "") overridesToSave[key] = current;
@@ -214,27 +405,59 @@ function ListingSpecOverrides({
     <div>
       <h4 className="font-medium text-stone-700 mb-2">Specifications (LLM overrides)</h4>
       <p className="text-xs text-stone-500 mb-2">
-        Edit values to override LLM-extracted specs. Overridden values appear highlighted.
+        Edit values to override LLM-extracted specs. Profile fields use dropdowns when defined.
+        Overridden values appear highlighted.
       </p>
       <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 mb-2">
-        {keys.map((key) => {
-          const displayed = getDisplayedSpec(metadata, key) ?? "";
-          const value = key in edits ? edits[key] : displayed;
+        {sortedProfileFields.map((field) => {
+          const key = field.key;
+          const isOverridden = hasOverride(metadata, key);
+          const termId = `${specTermPrefix}-${sanitizeForHtmlId(key)}`;
+          return (
+            <span key={key} className="contents">
+              <dt id={termId} className="text-stone-500 flex items-center gap-1">
+                {fieldLabel(field)}
+                {isOverridden && (
+                  <span className="text-xs bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded">
+                    override
+                  </span>
+                )}
+              </dt>
+              <dd>
+                <SpecFieldInput
+                  field={field}
+                  metadata={metadata}
+                  edits={edits}
+                  setEdits={setEdits}
+                  termId={termId}
+                />
+              </dd>
+            </span>
+          );
+        })}
+        {extraKeys.map((key) => {
+          const displayed = getDisplayedSpec(metadata, key);
+          const value = key in edits ? String(edits[key]) : displayed;
           const isOverridden = hasOverride(metadata, key);
           const termId = `${specTermPrefix}-${sanitizeForHtmlId(key)}`;
           return (
             <span key={key} className="contents">
               <dt id={termId} className="text-stone-500 flex items-center gap-1">
                 {key.replace(/_/g, " ")}
+                <span className="text-xs text-stone-400">(extra)</span>
                 {isOverridden && (
-                  <span className="text-xs bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded">override</span>
+                  <span className="text-xs bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded">
+                    override
+                  </span>
                 )}
               </dt>
               <dd>
                 <input
                   type="text"
                   value={value}
-                  onChange={(e) => setEdits((prev) => ({ ...prev, [key]: e.target.value }))}
+                  onChange={(e) =>
+                    setEdits((prev) => ({ ...prev, [key]: e.target.value }))
+                  }
                   aria-labelledby={termId}
                   className={`w-full max-w-xs rounded border px-2 py-1 text-sm ${
                     isOverridden ? "border-blue-300 bg-blue-50" : "border-stone-300"
@@ -335,6 +558,7 @@ export function DataBrowser() {
   const enrichMutation = useEnrichListing();
   const listingLLMMutation = useRunListingLLMSpecs();
   const setHiddenMutation = useSetListingHidden();
+  const setCategoryMutation = useSetListingCategory();
   const setLLMOverridesMutation = useSetListingLLMOverrides();
   const bulkClassifyMutation = usePostBulkListingsClassify();
   const bulkEnrichMutation = usePostBulkListingsEnrich();
@@ -410,6 +634,7 @@ export function DataBrowser() {
         enrichMutation.isError ||
         listingLLMMutation.isError ||
         setHiddenMutation.isError ||
+        setCategoryMutation.isError ||
         setLLMOverridesMutation.isError ||
         bulkClassifyMutation.isError ||
         bulkEnrichMutation.isError ||
@@ -421,6 +646,8 @@ export function DataBrowser() {
               ? listingLLMMutation.error?.message ?? "LLM specs failed"
               : setHiddenMutation.isError
               ? setHiddenMutation.error?.message ?? "Update failed"
+              : setCategoryMutation.isError
+                ? setCategoryMutation.error?.message ?? "Category update failed"
               : setLLMOverridesMutation.isError
                 ? setLLMOverridesMutation.error?.message ?? "Override failed"
                 : bulkClassifyMutation.isError
@@ -436,6 +663,7 @@ export function DataBrowser() {
               enrichMutation.reset();
               listingLLMMutation.reset();
               setHiddenMutation.reset();
+              setCategoryMutation.reset();
               setLLMOverridesMutation.reset();
               bulkClassifyMutation.reset();
               bulkEnrichMutation.reset();
@@ -1062,16 +1290,26 @@ export function DataBrowser() {
                   <dt className="text-stone-500">Category path</dt>
                   <dd>{(detail.category_path ?? []).join(" > ") || "—"}</dd>
                   <dt className="text-stone-500">Canonical category</dt>
-                  <dd>{canonCatDisplay(detail.canonical_category)}</dd>
-                  {detail.category_id != null && (
-                    <>
-                      <dt className="text-stone-500">Category ID</dt>
-                      <dd>
-                        {detail.category_id}
-                        {detail.category_name ? ` (${detail.category_name})` : ""}
-                      </dd>
-                    </>
-                  )}
+                  <dd className="max-w-sm">
+                    <CategoryPicker
+                      id="listing-detail-category"
+                      label=""
+                      placeholder="Select category…"
+                      value={detail.canonical_category ?? []}
+                      onChange={(path) => {
+                        const cid = adminCategoryIdForPath(categoryTree, path);
+                        if (cid != null) {
+                          setCategoryMutation.mutate({
+                            id: detail.id,
+                            categoryId: cid,
+                          });
+                        }
+                      }}
+                    />
+                    {setCategoryMutation.isPending && (
+                      <p className="text-xs text-stone-500 mt-1">Saving category…</p>
+                    )}
+                  </dd>
                   <dt className="text-stone-500">LLM confidence</dt>
                   <dd>
                     {getLLMConfidence(detail.metadata) != null ? (
@@ -1126,6 +1364,7 @@ export function DataBrowser() {
                 <ListingSpecOverrides
                   listingId={detail.id}
                   metadata={detail.metadata}
+                  categoryId={detail.category_id}
                   mutation={setLLMOverridesMutation}
                 />
                 {chartData.length > 0 && (
