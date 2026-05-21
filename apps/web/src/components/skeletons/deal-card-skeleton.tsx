@@ -5,7 +5,7 @@ type DealCardSkeletonProps = {
   className?: string;
 };
 
-/** Mirrors {@link DealCard} — SKU tab, square media, body, price row, footer. */
+/** Mirrors {@link DealCard} — store tab, 16:9 media on mobile, body, price row, stacked CTAs. */
 export function DealCardSkeleton({ className }: DealCardSkeletonProps) {
   return (
     <div className={cn("relative pt-3 rounded-sm", className)}>
@@ -18,7 +18,7 @@ export function DealCardSkeleton({ className }: DealCardSkeletonProps) {
       <div className="relative overflow-hidden rounded-sm border border-foreground bg-card">
         <Skeleton
           className={cn(
-            "aspect-square w-full rounded-none border-b border-foreground",
+            "aspect-[16/9] w-full rounded-none border-b border-foreground sm:aspect-square",
           )}
         />
         <div className="space-y-3 p-4 pb-0">
@@ -38,11 +38,10 @@ export function DealCardSkeleton({ className }: DealCardSkeletonProps) {
             </div>
           </div>
         </div>
-        <div className="space-y-3 px-4 pb-4 pt-3">
-          <Skeleton className="h-2.5 w-28 max-w-[85%]" />
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <Skeleton className="h-9 w-full flex-1 rounded-sm" />
-            <Skeleton className="h-9 w-full flex-1 rounded-sm" />
+        <div className="space-y-2 px-4 pb-4 pt-3">
+          <div className="flex flex-col gap-2">
+            <Skeleton className="min-h-10 w-full rounded-sm" />
+            <Skeleton className="min-h-10 w-full rounded-sm" />
           </div>
         </div>
       </div>

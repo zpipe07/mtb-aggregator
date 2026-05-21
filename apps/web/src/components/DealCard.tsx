@@ -38,13 +38,7 @@ function CardCropMarks() {
   );
 }
 
-function skuForTab(deal: Deal) {
-  const raw = deal.store_sku?.trim();
-  if (!raw) return `#${deal.id}`;
-  return raw.length <= 14 ? raw : `${raw.slice(0, 12)}…`;
-}
-
-function SnagRetailerLabel({ label = "Snag" }: { label?: string }) {
+function SnagRetailerLabel({ label = "Snag this deal" }: { label?: string }) {
   return (
     <span className="relative z-[1] inline-flex items-center gap-1.5">
       {label}
@@ -145,18 +139,11 @@ export function DealCard({ deal, href }: DealCardProps) {
   );
 
   const footer = (
-    <div className="space-y-3 px-4 pb-4 pt-3">
-      <span
-        className={cn(monoMicro, "block min-w-0 truncate text-muted-foreground")}
-      >
-        {"// "}
-        {deal.store_name.toUpperCase()}
-      </span>
-
+    <div className="px-4 pb-4 pt-3">
       {href ? (
         <>
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch">
-            <Button asChild size="default" className="w-full sm:flex-1">
+          <div className="flex flex-col gap-2">
+            <Button asChild size="lg" className="w-full">
               <a
                 href={viewUrl}
                 target="_blank"
@@ -181,12 +168,7 @@ export function DealCard({ deal, href }: DealCardProps) {
                 <SnagRetailerLabel />
               </a>
             </Button>
-            <Button
-              asChild
-              variant="outline"
-              size="default"
-              className="w-full sm:flex-1"
-            >
+            <Button asChild variant="outline" size="lg" className="w-full">
               <Link
                 href={href}
                 className="inline-flex"
@@ -216,7 +198,7 @@ export function DealCard({ deal, href }: DealCardProps) {
           </div>
         </>
       ) : (
-        <Button asChild size="default" className="w-full">
+        <Button asChild size="lg" className="w-full">
           <a
             href={viewUrl}
             target="_blank"
@@ -246,7 +228,7 @@ export function DealCard({ deal, href }: DealCardProps) {
   );
 
   const imageBlock = (
-    <div className="group/image relative aspect-square overflow-hidden border-b border-foreground bg-muted">
+    <div className="group/image relative aspect-[16/9] overflow-hidden border-b border-foreground bg-muted sm:aspect-square">
       {deal.image_url ? (
         <img
           src={deal.image_url}
@@ -295,10 +277,10 @@ export function DealCard({ deal, href }: DealCardProps) {
           monoMicro,
           "tabular-nums text-foreground",
         )}
-        title={deal.store_sku || undefined}
+        title={deal.store_name}
       >
         {"// "}
-        {skuForTab(deal)}
+        {deal.store_name.toUpperCase()}
       </span>
 
       <article
