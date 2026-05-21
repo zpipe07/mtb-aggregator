@@ -158,6 +158,17 @@ make scrape-now-mackcycle
 make enrich-now-mackcycle
 ```
 
+### Trek
+
+**Listing scrape** (`trek` in `PARSERS`) uses **fetch** against SAP Commerce OCC (`api.trekbikes.com/occ/v2/us/categories/B300/products?query=:relevance:saleFlag:true`), paginated with `currentPage` / `pageSize=24`. In parallel, fetches the seed PLP HTML and parses Vue `:product` blocks for `wasPriceRange` (MSRP). Emits one row per product code; `store_sku` and `product_group_key` are the OCC `code`. Seed `scrape_url`: MTB category B300 with `saleFlag:true`.
+
+**PDP enrichment** (`enrichTrek`) fetches PDP HTML (follow redirects) and parses `#breadcrumbs` plus `og:description`. Technical specs are client-rendered on Trek PDPs; `raw_specs` is typically null until a Playwright follow-up. No affiliate URL in MVP.
+
+```bash
+make scrape-now-trek
+make enrich-now-trek
+```
+
 ## Endpoints
 
 | Endpoint  | Method | Purpose                                           |
@@ -192,6 +203,7 @@ Parsers live in `src/parsers/` — one file per store:
 - `mackcycle.ts` — Mack Cycle (Shopify collection JSON + PDP enrich like Worldwide Cyclery)
 - `canyon.ts` / `canyon-plp.ts` / `canyon-pdp.ts` — Canyon US sale (Demandware ajax PLP + fetch PDP enrich)
 - `specialized.ts` / `specialized-plp.ts` / `specialized-pdp.ts` — Specialized US sale (GraphQL PLP + fetch PDP enrich)
+- `trek.ts` / `trek-plp.ts` / `trek-pdp.ts` — Trek US MTB sale (OCC PLP + HTML MSRP merge + fetch PDP enrich)
 
 `parsers/index.ts` registers `PARSERS` and `ENRICHERS` maps. Enrichers fetch product detail pages (PDP) for category paths and specs.
 

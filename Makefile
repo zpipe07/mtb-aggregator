@@ -1,4 +1,4 @@
-.PHONY: dev db-up db-down db-migrate db-migrate-docker db-seed db-up-local db-migrate-local db-migrate-remote db-seed-remote backfill-brands backfill-canonical-categories backfill-llm-specs backfill-field-library backfill-variant-options backfill-jenson-variants backfill-cc-variants scrape scrape-now scrape-now-wwc scrape-now-revel scrape-now-competitivecyclist scrape-now-ridebicycles scrape-now-thundermountainbikes scrape-now-canyon scrape-now-specialized scrape-now-mackcycle enrich-now enrich-now-revel enrich-now-competitivecyclist enrich-now-thundermountainbikes enrich-now-canyon enrich-now-specialized enrich-now-mackcycle build-all install impact-catalog-probe
+.PHONY: dev db-up db-down db-migrate db-migrate-docker db-seed db-up-local db-migrate-local db-migrate-remote db-seed-remote backfill-brands backfill-canonical-categories backfill-llm-specs backfill-field-library backfill-variant-options backfill-jenson-variants backfill-cc-variants scrape scrape-now scrape-now-wwc scrape-now-revel scrape-now-competitivecyclist scrape-now-ridebicycles scrape-now-thundermountainbikes scrape-now-canyon scrape-now-specialized scrape-now-mackcycle scrape-now-trek enrich-now enrich-now-revel enrich-now-competitivecyclist enrich-now-thundermountainbikes enrich-now-canyon enrich-now-specialized enrich-now-mackcycle enrich-now-trek build-all install impact-catalog-probe
 
 # Ensure Make can find docker (Docker Desktop CLI locations)
 export PATH := /Applications/Docker.app/Contents/Resources/bin:/usr/local/bin:/opt/homebrew/bin:$(PATH)
@@ -136,6 +136,10 @@ scrape-now-specialized:
 scrape-now-mackcycle:
 	@curl -s -X POST "http://localhost:8080/scrape-now?store=mackcycle"
 
+# Scrape only Trek (requires API running)
+scrape-now-trek:
+	@curl -s -X POST "http://localhost:8080/scrape-now?store=trek"
+
 # Trigger enrichment job manually (requires API and scraper running)
 # Add force=1 to re-enrich all listings: make enrich-now FORCE=1
 enrich-now:
@@ -159,6 +163,9 @@ enrich-now-specialized:
 
 enrich-now-mackcycle:
 	@curl -s -X POST "http://localhost:8080/enrich-now?store=mackcycle$(if $(FORCE),&force=1,)"
+
+enrich-now-trek:
+	@curl -s -X POST "http://localhost:8080/enrich-now?store=trek$(if $(FORCE),&force=1,)"
 
 # Discover Impact catalogs and sample CC catalog items (requires IMPACT_ACCOUNT_SID + IMPACT_AUTH_TOKEN in .env)
 impact-catalog-probe:
