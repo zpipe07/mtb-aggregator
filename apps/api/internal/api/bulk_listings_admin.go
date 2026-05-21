@@ -374,6 +374,7 @@ func runBulkEnrichInBackground(h *Handlers, jobID int, ids []int, total int) {
 	processedN := 0
 	jensonSeen := make(map[string]bool)
 	ccSeen := make(map[string]bool)
+	ucSeen := make(map[string]bool)
 	for _, id := range ids {
 		if workCtx.Err() != nil {
 			errStrs = append(errStrs, "job timed out: "+workCtx.Err().Error())
@@ -382,7 +383,7 @@ func runBulkEnrichInBackground(h *Handlers, jobID int, ids []int, total int) {
 			}
 			return
 		}
-		if err := h.adminEnrichOneListing(workCtx, id, &errStrs, jensonSeen, ccSeen); err != nil {
+		if err := h.adminEnrichOneListing(workCtx, id, &errStrs, jensonSeen, ccSeen, ucSeen); err != nil {
 			errStrs = append(errStrs, err.Error())
 		} else {
 			enrichedN++
@@ -398,7 +399,8 @@ func runBulkEnrichInBackground(h *Handlers, jobID int, ids []int, total int) {
 // adminEnrichOneListing runs PDP enrich + LLM for one listing. errStrs collects non-fatal LLM warnings; returns fatal error.
 // jensonSeen dedupes JensonUSA PDP variant fan-out across listings in the same product_group_key (optional).
 // ccSeen dedupes Competitive Cyclist hasVariant fan-out per normalized product_url (optional).
-func (h *Handlers) adminEnrichOneListing(ctx context.Context, id int, errStrs *[]string, jensonSeen, ccSeen map[string]bool) error {
+// ucSeen dedupes Universal Cycles attribute fan-out per product group (optional).
+func (h *Handlers) adminEnrichOneListing(ctx context.Context, id int, errStrs *[]string, jensonSeen, ccSeen, ucSeen map[string]bool) error {
 	storeID, productURL, storeType, storeSKU, err := h.DB.GetListingEnrichmentInfo(ctx, id)
 	if err != nil {
 		return err
@@ -428,6 +430,9 @@ func (h *Handlers) adminEnrichOneListing(ctx context.Context, id int, errStrs *[
 	}
 	if err := applyCompetitiveCyclistPDPAfterEnrich(ctx, h.DB, id, storeID, storeType, storeSKU, productURL, result.Variants, ccSeen); err != nil {
 		log.Printf("[admin] bulk enrich competitivecyclist variant fan-out listing %d: %v", id, err)
+	}
+	if err := applyUniversalCyclesPDPAfterEnrich(ctx, h.DB, id, storeType, result.Variants, ucSeen); err != nil {
+		log.Printf("[admin] bulk enrich universalcycles variant fan-out listing %d: %v", id, err)
 	}
 	if w := h.runLLMCategoryClassification(ctx, id); w != "" && errStrs != nil {
 		*errStrs = append(*errStrs, w)

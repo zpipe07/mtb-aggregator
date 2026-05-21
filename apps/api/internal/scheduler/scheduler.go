@@ -169,7 +169,7 @@ func (s *Scheduler) scrapeStore(ctx context.Context, store db.Store, triggeredBy
 	if storeType == "" {
 		storeType = strings.ToLower(strings.ReplaceAll(store.Name, " ", ""))
 	}
-	if storeType != "jensonusa" && storeType != "backcountry" && storeType != "competitivecyclist" && storeType != "worldwidecyclery" && storeType != "revelbikes" && storeType != "ridebicycles" && storeType != "thundermountainbikes" && storeType != "mackcycle" && storeType != "canyon" && storeType != "specialized" && storeType != "trek" {
+	if storeType != "jensonusa" && storeType != "backcountry" && storeType != "competitivecyclist" && storeType != "worldwidecyclery" && storeType != "revelbikes" && storeType != "ridebicycles" && storeType != "thundermountainbikes" && storeType != "mackcycle" && storeType != "canyon" && storeType != "specialized" && storeType != "trek" && storeType != "universalcycles" {
 		storeType = "jensonusa"
 	}
 
@@ -472,6 +472,7 @@ func (s *Scheduler) RunEnrichmentJob(force bool, triggeredBy string) {
 	var llmState llmlisting.QuotaJobState
 	seenJensonGroups := make(map[string]bool)
 	seenCCGroups := make(map[string]bool)
+	seenUCGroups := make(map[string]bool)
 	processed := 0
 	for _, l := range listings {
 		if ctx.Err() != nil {
@@ -505,6 +506,9 @@ func (s *Scheduler) RunEnrichmentJob(force bool, triggeredBy string) {
 		}
 		if err := applyCompetitiveCyclistVariantFanout(ctx, s.db, l.ID, l.StoreID, l.StoreType, l.StoreSKU, l.ProductURL, result.Variants, seenCCGroups); err != nil {
 			enrichmentLog.Warn("competitivecyclist variant fan-out failed", "listing_id", l.ID, logutil.ErrAttr(err))
+		}
+		if err := applyUniversalCyclesVariantFanout(ctx, s.db, l.ID, l.StoreType, result.Variants, seenUCGroups); err != nil {
+			enrichmentLog.Warn("universalcycles variant fan-out failed", "listing_id", l.ID, logutil.ErrAttr(err))
 		}
 
 		successCount++
@@ -651,7 +655,8 @@ func (s *Scheduler) runEnrichmentLoop(f db.EnrichmentFilter, force bool, trigger
 		}
 		enrichmentLog.Info("enriching batch", "scope", scope, "count", len(listings))
 		seenJensonGroups := make(map[string]bool)
-	seenCCGroups := make(map[string]bool)
+		seenCCGroups := make(map[string]bool)
+		seenUCGroups := make(map[string]bool)
 		successCount := 0
 		for _, l := range listings {
 			if ctx.Err() != nil {
@@ -682,6 +687,9 @@ func (s *Scheduler) runEnrichmentLoop(f db.EnrichmentFilter, force bool, trigger
 			}
 			if err := applyCompetitiveCyclistVariantFanout(ctx, s.db, l.ID, l.StoreID, l.StoreType, l.StoreSKU, l.ProductURL, result.Variants, seenCCGroups); err != nil {
 				enrichmentLog.Warn("competitivecyclist variant fan-out failed", "listing_id", l.ID, logutil.ErrAttr(err))
+			}
+			if err := applyUniversalCyclesVariantFanout(ctx, s.db, l.ID, l.StoreType, result.Variants, seenUCGroups); err != nil {
+				enrichmentLog.Warn("universalcycles variant fan-out failed", "listing_id", l.ID, logutil.ErrAttr(err))
 			}
 			successCount++
 			totalSuccess++

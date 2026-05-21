@@ -1038,6 +1038,9 @@ func (h *Handlers) PostAdminEnrichListing(w http.ResponseWriter, r *http.Request
 	if err := applyCompetitiveCyclistPDPAfterEnrich(r.Context(), h.DB, id, storeID, storeType, storeSKU, productURL, result.Variants, nil); err != nil {
 		log.Printf("[admin] competitivecyclist variant fan-out listing %d: %v", id, err)
 	}
+	if err := applyUniversalCyclesPDPAfterEnrich(r.Context(), h.DB, id, storeType, result.Variants, nil); err != nil {
+		log.Printf("[admin] universalcycles variant fan-out listing %d: %v", id, err)
+	}
 	var llmWarnings []string
 	if w := h.runLLMCategoryClassification(r.Context(), id); w != "" {
 		llmWarnings = append(llmWarnings, w)

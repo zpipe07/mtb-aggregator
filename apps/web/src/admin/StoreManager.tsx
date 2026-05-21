@@ -168,7 +168,7 @@ export function StoreManager() {
   const { data: storeTypesRaw = [] } = useStoreTypes();
   const { data: enrichersRaw = [] } = useStoreTypesWithEnrichers();
 
-  const storeTypes = storeTypesRaw.length > 0 ? storeTypesRaw : ["jensonusa", "worldwidecyclery", "revelbikes", "backcountry", "ridebicycles", "thundermountainbikes", "mackcycle", "canyon", "specialized", "trek"];
+  const storeTypes = storeTypesRaw.length > 0 ? storeTypesRaw : ["jensonusa", "worldwidecyclery", "revelbikes", "backcountry", "ridebicycles", "thundermountainbikes", "mackcycle", "canyon", "specialized", "trek", "universalcycles"];
   const enricherSet = new Set((Array.isArray(enrichersRaw) ? enrichersRaw : []).map((t) => t.toLowerCase()));
 
   const createMutation = useCreateStore();

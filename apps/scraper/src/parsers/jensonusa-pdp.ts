@@ -36,6 +36,10 @@ export interface PdpEnrichVariant {
   code: string;
   dimensions: Record<string, string>;
   is_orderable: boolean;
+  /** Universal Cycles per-attribute sale price (optional). */
+  current_price?: number;
+  /** Universal Cycles per-attribute MSRP (optional). */
+  original_price?: number | null;
 }
 
 function extractPdpVariantDimensions(

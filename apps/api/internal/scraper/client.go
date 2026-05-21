@@ -38,11 +38,13 @@ type ScrapeRequest struct {
 	Store string `json:"store"`
 }
 
-// EnrichVariant is one PDP variant row (JensonUSA enricher).
+// EnrichVariant is one PDP variant row (JensonUSA / Universal Cycles enricher).
 type EnrichVariant struct {
-	Code        string            `json:"code"`
-	Dimensions  map[string]string `json:"dimensions"`
-	IsOrderable bool              `json:"is_orderable"`
+	Code          string            `json:"code"`
+	Dimensions    map[string]string `json:"dimensions"`
+	IsOrderable   bool              `json:"is_orderable"`
+	CurrentPrice  *float64          `json:"current_price,omitempty"`
+	OriginalPrice *float64          `json:"original_price,omitempty"`
 }
 
 // EnrichResult from POST /enrich
