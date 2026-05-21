@@ -9,7 +9,6 @@ const VALID_SORTS = [
 export type SortOption = (typeof VALID_SORTS)[number];
 
 const SPEC_PREFIX = "spec_";
-const VARIANT_PREFIX = "variant_";
 
 function dedupePreserveOrder(values: string[]): string[] {
   const seen = new Set<string>();
@@ -34,7 +33,6 @@ export interface ParsedFilterParams {
   /** From `exclude_category_slug` query param */
   excludeCategorySlug: string;
   specFilters: Record<string, string[]>;
-  variantFilters: Record<string, string[]>;
   sort: SortOption;
   offset: number;
 }
@@ -103,7 +101,6 @@ export function parseFilterParamsFromSearch(
   const offset = Math.max(0, parseInt(offsetParam ?? "0", 10) || 0);
 
   const specFilters = collectPrefixedMulti(params, SPEC_PREFIX);
-  const variantFilters = collectPrefixedMulti(params, VARIANT_PREFIX);
 
   const effectiveSort =
     searchQuery.trim() === "" && sort === "relevance"
@@ -119,7 +116,6 @@ export function parseFilterParamsFromSearch(
     minPrice,
     excludeCategorySlug,
     specFilters,
-    variantFilters,
     sort: effectiveSort,
     offset,
   };
@@ -167,7 +163,6 @@ export function parseFilterParamsFromURL(
   const offset = Math.max(0, parseInt(offsetParam ?? "0", 10) || 0);
 
   const specFilters: Record<string, string[]> = {};
-  const variantFilters: Record<string, string[]> = {};
   params.forEach((value, key) => {
     const t = value.trim();
     if (!t) return;
@@ -177,20 +172,10 @@ export function parseFilterParamsFromURL(
       specFilters[specKey] = specFilters[specKey] ?? [];
       specFilters[specKey].push(t);
     }
-    if (key.startsWith(VARIANT_PREFIX)) {
-      const vk = key.slice(VARIANT_PREFIX.length);
-      if (!vk) return;
-      variantFilters[vk] = variantFilters[vk] ?? [];
-      variantFilters[vk].push(t);
-    }
   });
   for (const k of Object.keys(specFilters)) {
     specFilters[k] = dedupePreserveOrder(specFilters[k]);
     if (specFilters[k].length === 0) delete specFilters[k];
-  }
-  for (const k of Object.keys(variantFilters)) {
-    variantFilters[k] = dedupePreserveOrder(variantFilters[k]);
-    if (variantFilters[k].length === 0) delete variantFilters[k];
   }
 
   const effectiveSort =
@@ -207,7 +192,6 @@ export function parseFilterParamsFromURL(
     minPrice,
     excludeCategorySlug,
     specFilters,
-    variantFilters,
     sort: effectiveSort,
     offset,
   };

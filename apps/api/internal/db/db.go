@@ -756,9 +756,8 @@ type GetDealsParams struct {
 	Sort                  string // newest, discount, value, price_asc, price_desc, relevance
 	Limit             int
 	Offset            int
-	SpecFilters       map[string][]string // spec key -> values; OR within key, AND across keys
-	GroupVariants     bool                // one row per product group (Shopify variants collapsed)
-	VariantFilters    map[string][]string // variant option key -> values; OR within key
+	SpecFilters   map[string][]string // spec key -> values; OR within key, AND across keys
+	GroupVariants bool                // one row per product group (Shopify variants collapsed)
 }
 
 // GetDealsResult includes deals and total count for pagination

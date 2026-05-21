@@ -34,7 +34,6 @@ export interface DealsParams {
   min_price?: number;
   exclude_category_slug?: string;
   specFilters?: Record<string, string[]>;
-  variantFilters?: Record<string, string[]>;
   group_variants?: boolean;
   q?: string;
   sort?: string;
@@ -53,7 +52,6 @@ function buildDealsParams(params: DealsParams) {
     min_price: params.min_price,
     exclude_category_slug: params.exclude_category_slug || undefined,
     specFilters: params.specFilters,
-    variantFilters: params.variantFilters,
     group_variants: params.group_variants ?? true,
     q: params.q?.trim() || undefined,
     sort: params.sort ?? "discount",
@@ -129,7 +127,6 @@ export interface FacetsParams {
   min_discount?: number;
   q?: string;
   specFilters?: Record<string, string[]>;
-  variantFilters?: Record<string, string[]>;
 }
 
 function buildFacetsParams(params: FacetsParams) {
@@ -142,7 +139,6 @@ function buildFacetsParams(params: FacetsParams) {
     min_discount: params.min_discount,
     q: params.q?.trim() || undefined,
     specFilters: params.specFilters,
-    variantFilters: params.variantFilters,
   };
 }
 

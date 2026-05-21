@@ -73,7 +73,6 @@ export async function fetchDeals(params?: {
   limit?: number;
   offset?: number;
   specFilters?: Record<string, string[]>;
-  variantFilters?: Record<string, string[]>;
   /** Default true: collapse Shopify variants into one card */
   group_variants?: boolean;
 }): Promise<DealListResponse> {
@@ -108,15 +107,6 @@ export async function fetchDeals(params?: {
       for (const value of values) {
         const t = value.trim();
         if (t) search.append(`spec_${key}`, t);
-      }
-    }
-  }
-  if (params?.variantFilters) {
-    for (const [key, values] of Object.entries(params.variantFilters)) {
-      if (!key) continue;
-      for (const value of values) {
-        const t = value.trim();
-        if (t) search.append(`variant_${key}`, t);
       }
     }
   }
@@ -235,20 +225,9 @@ export interface BrandFacet {
   count: number;
 }
 
-export interface VariantFacetValue {
-  value: string;
-  count: number;
-}
-
-export interface VariantFacet {
-  key: string;
-  values: VariantFacetValue[];
-}
-
 export interface FacetsResponse {
   spec_facets: SpecFacet[];
   brand_facets: BrandFacet[];
-  variant_facets: VariantFacet[];
   price_range: { min: number; max: number };
   total_matching: number;
 }
@@ -264,7 +243,6 @@ export interface FacetsParams {
   max_price?: number;
   q?: string;
   specFilters?: Record<string, string[]>;
-  variantFilters?: Record<string, string[]>;
 }
 
 export async function fetchFacets(
@@ -295,15 +273,6 @@ export async function fetchFacets(
       for (const value of values) {
         const t = value.trim();
         if (t) search.append(`spec_${key}`, t);
-      }
-    }
-  }
-  if (params?.variantFilters) {
-    for (const [key, values] of Object.entries(params.variantFilters)) {
-      if (!key) continue;
-      for (const value of values) {
-        const t = value.trim();
-        if (t) search.append(`variant_${key}`, t);
       }
     }
   }

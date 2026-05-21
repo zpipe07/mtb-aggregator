@@ -125,29 +125,6 @@ func (h *Handlers) GetDeals(w http.ResponseWriter, r *http.Request) {
 			params.SpecFilters[k] = deduped
 		}
 	}
-	params.VariantFilters = make(map[string][]string)
-	for key, vals := range r.URL.Query() {
-		if !strings.HasPrefix(key, "variant_") {
-			continue
-		}
-		vk := strings.TrimSpace(strings.TrimPrefix(key, "variant_"))
-		if vk == "" {
-			continue
-		}
-		for _, v := range vals {
-			if t := strings.TrimSpace(v); t != "" {
-				params.VariantFilters[vk] = append(params.VariantFilters[vk], t)
-			}
-		}
-	}
-	for k, sl := range params.VariantFilters {
-		deduped := parseNonEmptyQueryMulti(sl)
-		if len(deduped) == 0 {
-			delete(params.VariantFilters, k)
-		} else {
-			params.VariantFilters[k] = deduped
-		}
-	}
 	if r.URL.Query().Get("group_variants") == "1" || r.URL.Query().Get("group_variants") == "true" {
 		params.GroupVariants = true
 	}
@@ -364,30 +341,6 @@ func (h *Handlers) GetFacets(w http.ResponseWriter, r *http.Request) {
 			params.SpecFilters[k] = deduped
 		}
 	}
-	params.VariantFilters = make(map[string][]string)
-	for key, vals := range r.URL.Query() {
-		if !strings.HasPrefix(key, "variant_") {
-			continue
-		}
-		vk := strings.TrimSpace(strings.TrimPrefix(key, "variant_"))
-		if vk == "" {
-			continue
-		}
-		for _, v := range vals {
-			if t := strings.TrimSpace(v); t != "" {
-				params.VariantFilters[vk] = append(params.VariantFilters[vk], t)
-			}
-		}
-	}
-	for k, sl := range params.VariantFilters {
-		deduped := parseNonEmptyQueryMulti(sl)
-		if len(deduped) == 0 {
-			delete(params.VariantFilters, k)
-		} else {
-			params.VariantFilters[k] = deduped
-		}
-	}
-
 	result, err := h.DB.GetFacets(r.Context(), params)
 	if err != nil {
 		log.Printf("[api] GetFacets error: %v", err)

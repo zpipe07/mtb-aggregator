@@ -3,7 +3,7 @@ import { buildDealsCategoryPath } from "./dealsCategoryPath";
 
 /**
  * Build `/deals` or `/deals/c/...` with non-category query params preserved
- * (`q`, `store`, `brand`, `sort`, `offset`, `min_discount`, `spec_*`, `variant_*`).
+ * (`q`, `store`, `brand`, `sort`, `offset`, `min_discount`, `spec_*`).
  * Omits `category` (path carries the category).
  */
 export function buildDealsBrowseHref(

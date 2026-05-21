@@ -104,7 +104,6 @@ export default async function SeoHubDealsPage({ params, searchParams }: Props) {
   const facetsBase = facetsResponse ?? {
     spec_facets: [],
     brand_facets: [],
-    variant_facets: [],
     price_range: { min: 0, max: 0 },
     total_matching: 0,
   };

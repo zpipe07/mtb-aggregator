@@ -8,44 +8,6 @@ import (
 	"github.com/lib/pq"
 )
 
-// appendVariantFilters adds AND conditions for variant_options JSON (key matched case-insensitively).
-// Multiple values for the same key are OR'd (ILIKE ANY).
-func appendVariantFilters(sb *strings.Builder, args *[]interface{}, argNum *int, filters map[string][]string) {
-	if filters == nil {
-		return
-	}
-	for k, vals := range filters {
-		if k == "" || len(vals) == 0 {
-			continue
-		}
-		var patterns []string
-		for _, v := range vals {
-			if t := strings.TrimSpace(v); t != "" {
-				patterns = append(patterns, t)
-			}
-		}
-		if len(patterns) == 0 {
-			continue
-		}
-		n := *argNum
-		if len(patterns) == 1 {
-			sb.WriteString(fmt.Sprintf(` AND EXISTS (
-  SELECT 1 FROM jsonb_each_text(COALESCE(l.variant_options, '{}'::jsonb)) kv
-  WHERE lower(kv.key) = lower($%d) AND kv.value ILIKE $%d
-)`, n, n+1))
-			*args = append(*args, k, patterns[0])
-			*argNum = n + 2
-			continue
-		}
-		sb.WriteString(fmt.Sprintf(` AND EXISTS (
-  SELECT 1 FROM jsonb_each_text(COALESCE(l.variant_options, '{}'::jsonb)) kv
-  WHERE lower(kv.key) = lower($%d) AND kv.value ILIKE ANY($%d::text[])
-)`, n, n+1))
-		*args = append(*args, k, pq.Array(patterns))
-		*argNum = n + 2
-	}
-}
-
 // dealsFilterSQL returns AND ... fragments for GetDeals-style filters (after base WHERE).
 // nextArg is the next placeholder index to use for ORDER BY / LIMIT.
 func (db *DB) dealsFilterSQL(ctx context.Context, params GetDealsParams) (string, []interface{}, int, error) {
@@ -143,8 +105,6 @@ func (db *DB) dealsFilterSQL(ctx context.Context, params GetDealsParams) (string
 		args = append(args, params.Search)
 		argNum++
 	}
-	appendVariantFilters(&sb, &args, &argNum, params.VariantFilters)
-
 	return sb.String(), args, argNum, nil
 }
 
