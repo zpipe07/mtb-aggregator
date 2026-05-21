@@ -70,6 +70,9 @@ jobs:
           go install golang.org/x/vuln/cmd/govulncheck@v1.2.0
           govulncheck ./...
 
+      - name: Build logging package
+        run: pnpm --filter @mtb-aggregator/logging run build
+
       - name: Build scraper
         run: pnpm --filter @mtb-aggregator/scraper run build
 
