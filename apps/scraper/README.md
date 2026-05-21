@@ -173,6 +173,10 @@ When `SENTRY_DSN` is set (production should set it), new routes that can fail wi
 
 Structured JSON via `@mtb-aggregator/logging` (`src/logging.ts`, `src/server.ts`). Env: `LOG_LEVEL`, `LOG_FORMAT`, `LOG_HTTP_ACCESS`. Full schema: [docs/LOGGING.md](../../docs/LOGGING.md).
 
+### Docker (Render)
+
+The scraper image is built from [`Dockerfile`](Dockerfile). Workspace deps copied into the image include `packages/logging` (shared logger) and `packages/shared`. The image runs `pnpm --filter @mtb-aggregator/logging run build` before compiling the scraper so production `node dist/server.js` resolves compiled JS from `@mtb-aggregator/logging`.
+
 ## Parser Structure
 
 Parsers live in `src/parsers/` — one file per store:
