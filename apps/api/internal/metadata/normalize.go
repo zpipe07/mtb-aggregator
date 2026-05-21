@@ -123,6 +123,20 @@ func MergeLLMSpecs(existing []byte, llmResult map[string]interface{}) []byte {
 	return b
 }
 
+// MergeManualCategoryOverride sets metadata.manual_category_override=true for admin manual category edits.
+func MergeManualCategoryOverride(existing []byte) []byte {
+	var base map[string]interface{}
+	if len(existing) > 0 {
+		_ = json.Unmarshal(existing, &base)
+	}
+	if base == nil {
+		base = make(map[string]interface{})
+	}
+	base["manual_category_override"] = true
+	b, _ := json.Marshal(base)
+	return b
+}
+
 // MergeLLMCategory stores LLM category classification result in metadata.llm_category for admin review.
 // Format: { "canonical_category": [...], "confidence": 0.95, "reasoning": "..." }
 func MergeLLMCategory(existing []byte, llmCategory map[string]interface{}) []byte {

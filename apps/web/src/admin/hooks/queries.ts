@@ -23,6 +23,7 @@ import {
   fetchCategoryClassifier,
   fetchAdminCategoryTree,
   fetchCanonicalCategoryPaths,
+  fetchCategoryProfileFields,
 } from "../api";
 import {
   adminDashboardKeys,
@@ -265,5 +266,14 @@ export function useAdminCategoryTree() {
     queryKey: adminCategoryKeys.all,
     queryFn: fetchAdminCategoryTree,
     staleTime: 60 * 1000,
+  });
+}
+
+export function useCategoryProfileFields(categoryId: number | null | undefined) {
+  return useQuery({
+    queryKey: adminCategoryKeys.profileFields(categoryId ?? 0),
+    queryFn: () => fetchCategoryProfileFields(categoryId!),
+    enabled: categoryId != null && categoryId > 0,
+    staleTime: 5 * 60 * 1000,
   });
 }

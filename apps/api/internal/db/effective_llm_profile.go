@@ -11,6 +11,26 @@ import (
 	"github.com/mtb-aggregator/api/internal/llm"
 )
 
+// GetCategoryPathNamesRootToLeaf returns category display names from root to the given leaf (inclusive).
+func (db *DB) GetCategoryPathNamesRootToLeaf(ctx context.Context, leafID int) ([]string, error) {
+	ids, err := db.GetCategoryPathIDsRootToLeaf(ctx, leafID)
+	if err != nil {
+		return nil, err
+	}
+	names := make([]string, 0, len(ids))
+	for _, id := range ids {
+		cat, err := db.GetCategoryByID(ctx, id)
+		if err != nil {
+			return nil, err
+		}
+		if cat == nil {
+			return nil, fmt.Errorf("category %d not found", id)
+		}
+		names = append(names, cat.Name)
+	}
+	return names, nil
+}
+
 // GetCategoryPathIDsRootToLeaf returns category IDs from root to the given leaf (inclusive).
 func (db *DB) GetCategoryPathIDsRootToLeaf(ctx context.Context, leafID int) ([]int, error) {
 	var rev []int
