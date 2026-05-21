@@ -97,7 +97,7 @@ export function parseUniversalCyclesAttributesFromHtml(
 
     const blockHtml = $.html(el);
     const label = cleanText($(el).find("h4.text-left").first().text());
-    const dimensions = label ? { Option: label } : {};
+    const dimensions: Record<string, string> = label ? { Option: label } : {};
     const { currentPrice, originalPrice } = parseAttributePrices(blockHtml);
     const code = parseCompositeSku(blockHtml, productId, attributeId);
 
