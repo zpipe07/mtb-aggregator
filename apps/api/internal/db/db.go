@@ -1724,7 +1724,7 @@ func (db *DB) UpdateListingEnrichment(ctx context.Context, id int, categoryPath 
 	classifierCfg, _ := db.GetCategoryClassifier(ctx)
 	threshold := resolveLLMCategoryPreserveThreshold(os.Getenv("LLM_CATEGORY_PRESERVE_THRESHOLD"), classifierCfg)
 	_, conf, hasLLM := llmCategoryFromMetadata(existingMeta)
-	preserveLLMCategory := hasLLM && conf >= threshold
+	preserveLLMCategory := metadata.HasManualCategoryOverride(existingMeta) || (hasLLM && conf >= threshold)
 
 	// If we got a non-empty categoryPath, update category_path and usually canonical_category/category_id from taxonomy.Map.
 	// When metadata already has a confident LLM category, only refresh category_path + metadata so we do not overwrite

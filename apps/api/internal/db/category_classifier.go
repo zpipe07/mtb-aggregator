@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/lib/pq"
@@ -114,33 +115,76 @@ func (db *DB) UpdateListingCanonicalCategory(ctx context.Context, id int, canoni
 
 // UpdateListingCategoryManual sets canonical_category and category_id from an admin category picker.
 // Sets metadata.manual_category_override for future enrichment lock semantics.
-func (db *DB) UpdateListingCategoryManual(ctx context.Context, listingID int, categoryID int) error {
+// Also updates non-hidden siblings sharing the same store_id and product_group_key.
+// Returns the number of sibling rows updated (excluding the target listing).
+func (db *DB) UpdateListingCategoryManual(ctx context.Context, listingID int, categoryID int) (siblingsUpdated int, err error) {
 	path, err := db.GetCategoryPathNamesRootToLeaf(ctx, categoryID)
 	if err != nil {
-		return err
+		return 0, err
 	}
 	if len(path) == 0 {
-		return fmt.Errorf("category %d not found", categoryID)
+		return 0, fmt.Errorf("category %d not found", categoryID)
 	}
 	var existing []byte
-	err = db.pool.QueryRow(ctx, `SELECT COALESCE(metadata, '{}') FROM store_listings WHERE id = $1`, listingID).Scan(&existing)
+	var storeID int
+	var groupKey *string
+	err = db.pool.QueryRow(ctx, `
+		SELECT COALESCE(metadata, '{}'), store_id, product_group_key
+		FROM store_listings WHERE id = $1
+	`, listingID).Scan(&existing, &storeID, &groupKey)
 	if err != nil {
 		if err.Error() == "no rows in result set" {
-			return fmt.Errorf("listing not found")
+			return 0, fmt.Errorf("listing not found")
 		}
-		return err
+		return 0, err
 	}
 	merged := metadata.MergeManualCategoryOverride(existing)
 	tag, err := db.pool.Exec(ctx, `
 		UPDATE store_listings SET canonical_category = $1, category_id = $2, metadata = $3 WHERE id = $4
 	`, pq.Array(path), categoryID, merged, listingID)
 	if err != nil {
-		return err
+		return 0, err
 	}
 	if tag.RowsAffected() == 0 {
-		return fmt.Errorf("listing not found")
+		return 0, fmt.Errorf("listing not found")
 	}
-	return nil
+	if groupKey != nil && strings.TrimSpace(*groupKey) != "" {
+		sibTag, err := db.pool.Exec(ctx, `
+			UPDATE store_listings
+			SET canonical_category = $1, category_id = $2,
+			    metadata = jsonb_set(COALESCE(metadata, '{}'::jsonb), '{manual_category_override}', 'true'::jsonb, true)
+			WHERE store_id = $3 AND product_group_key = $4 AND id != $5 AND hidden = false
+		`, pq.Array(path), categoryID, storeID, *groupKey, listingID)
+		if err != nil {
+			return 0, err
+		}
+		siblingsUpdated = int(sibTag.RowsAffected())
+	}
+	return siblingsUpdated, nil
+}
+
+// BulkSetListingsCategory applies manual category assignment to many listings by id.
+func (db *DB) BulkSetListingsCategory(ctx context.Context, categoryID int, listingIDs []int) (updated int, err error) {
+	if len(listingIDs) == 0 {
+		return 0, nil
+	}
+	path, err := db.GetCategoryPathNamesRootToLeaf(ctx, categoryID)
+	if err != nil {
+		return 0, err
+	}
+	if len(path) == 0 {
+		return 0, fmt.Errorf("category %d not found", categoryID)
+	}
+	tag, err := db.pool.Exec(ctx, `
+		UPDATE store_listings
+		SET canonical_category = $1, category_id = $2,
+		    metadata = jsonb_set(COALESCE(metadata, '{}'::jsonb), '{manual_category_override}', 'true'::jsonb, true)
+		WHERE id = ANY($3)
+	`, pq.Array(path), categoryID, pq.Array(listingIDs))
+	if err != nil {
+		return 0, err
+	}
+	return int(tag.RowsAffected()), nil
 }
 
 // UpdateListingLLMCategoryMetadata merges llm_category into metadata without changing canonical_category.

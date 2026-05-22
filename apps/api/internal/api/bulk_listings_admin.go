@@ -442,3 +442,67 @@ func (h *Handlers) adminEnrichOneListing(ctx context.Context, id int, errStrs *[
 	}
 	return nil
 }
+
+type bulkSetCategoryBody struct {
+	bulkListingsFilterBody
+	CategoryID int `json:"category_id"`
+}
+
+// PostAdminListingsBulkSetCategory sets canonical category for all listings matching the filter.
+func (h *Handlers) PostAdminListingsBulkSetCategory(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var body bulkSetCategoryBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		http.Error(w, "invalid json", http.StatusBadRequest)
+		return
+	}
+	if body.CategoryID <= 0 {
+		http.Error(w, "category_id required", http.StatusBadRequest)
+		return
+	}
+	cat, err := h.DB.GetCategoryByID(r.Context(), body.CategoryID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if cat == nil {
+		http.Error(w, "category not found", http.StatusNotFound)
+		return
+	}
+	params := body.toGetAdminListingsParams()
+	maxN := adminBulkMaxListings()
+	ids, total, err := h.DB.ListAdminListingIDsByFilter(r.Context(), params, false, false, maxN)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if total > maxN {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"error": fmt.Sprintf("filter matches %d listings (max per run is %d); narrow filters", total, maxN),
+		})
+		return
+	}
+	if len(ids) == 0 {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"ok": true, "updated": 0, "total": 0,
+		})
+		return
+	}
+	updated, err := h.DB.BulkSetListingsCategory(r.Context(), body.CategoryID, ids)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
+		"ok":      true,
+		"updated": updated,
+		"total":   total,
+	})
+}

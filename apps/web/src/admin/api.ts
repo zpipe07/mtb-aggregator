@@ -575,17 +575,31 @@ export interface AdminProfileField {
   filterable?: boolean;
 }
 
+export interface TaxonomyMappingSuggestion {
+  raw_keywords: string[];
+  canonical: string[];
+  reason: string;
+}
+
+export interface SetListingCategoryResult {
+  ok: boolean;
+  siblings_updated?: number;
+  suggested_mapping?: TaxonomyMappingSuggestion;
+}
+
 /** Set canonical category for a listing (admin manual override). */
 export async function setListingCategory(
   id: number,
   categoryId: number,
-): Promise<void> {
+): Promise<SetListingCategoryResult> {
   const res = await fetch(`${getApiBase()}/admin/listings/${id}/category`, {
     method: "PATCH",
     headers: adminHeaders(),
     body: JSON.stringify({ category_id: categoryId }),
   });
-  const data = await res.json().catch(() => ({}));
+  const data = (await res.json().catch(() => ({}))) as SetListingCategoryResult & {
+    error?: string;
+  };
   if (!res.ok) {
     const msg =
       typeof data?.error === "string"
@@ -595,6 +609,7 @@ export async function setListingCategory(
           : "Update failed";
     throw new Error(msg);
   }
+  return data;
 }
 
 /** Effective LLM profile fields for a category (merged ancestor profiles). */
@@ -1583,6 +1598,35 @@ export async function postAdminListingsBulkEnrich(
     throw new Error(msg);
   }
   return data as BulkListingsResult;
+}
+
+export interface BulkSetCategoryBody extends AdminBulkListingsFilterBody {
+  category_id: number;
+}
+
+export interface BulkSetCategoryResult {
+  ok: boolean;
+  updated: number;
+  total: number;
+}
+
+export async function postAdminListingsBulkSetCategory(
+  body: BulkSetCategoryBody,
+): Promise<BulkSetCategoryResult> {
+  const res = await fetch(`${getApiBase()}/admin/listings/bulk-set-category`, {
+    method: "POST",
+    headers: adminHeaders(),
+    body: JSON.stringify(body),
+  });
+  const data = (await res.json().catch(() => ({}))) as BulkSetCategoryResult & {
+    error?: string;
+  };
+  if (!res.ok) {
+    const msg =
+      typeof data?.error === "string" ? data.error : "Bulk set category failed";
+    throw new Error(msg);
+  }
+  return data;
 }
 
 export async function postAdminListingsBulkLLMSpecs(
