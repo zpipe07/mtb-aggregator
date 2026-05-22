@@ -72,7 +72,7 @@ export function DealDetailModal({ dealId, onClose }: DealDetailModalProps) {
       : null;
 
   const chartData =
-    priceHistory?.points.map((p) => ({
+    (priceHistory?.points ?? []).map((p) => ({
       ...p,
       dateLabel: formatAxisDate(p.recorded_at),
     })) ?? [];
