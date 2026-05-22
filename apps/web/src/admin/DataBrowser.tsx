@@ -600,7 +600,7 @@ export function DataBrowser() {
   }
 
   const chartData =
-    priceHistory?.points.map((p) => ({
+    (priceHistory?.points ?? []).map((p) => ({
       ...p,
       dateLabel: formatAxisDate(p.recorded_at),
     })) ?? [];

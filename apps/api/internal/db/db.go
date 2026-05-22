@@ -993,6 +993,10 @@ func (db *DB) GetPriceHistory(ctx context.Context, listingID int) (*PriceHistory
 		return nil, err
 	}
 
+	if points == nil {
+		points = []PriceHistoryPoint{}
+	}
+
 	n := float64(len(points))
 	avg := 0.0
 	if n > 0 {

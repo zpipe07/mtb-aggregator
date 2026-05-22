@@ -128,10 +128,10 @@ function DealDetailContentInner({
       : null;
 
   const chartData =
-    priceHistory?.points.map((p) => ({
+    (priceHistory?.points ?? []).map((p) => ({
       ...p,
       dateLabel: formatAxisDate(p.recorded_at),
-    })) ?? [];
+    }));
 
   useEffect(() => {
     posthog.capture("deal_detail_viewed", {
