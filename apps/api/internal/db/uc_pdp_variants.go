@@ -130,8 +130,10 @@ func (db *DB) ApplyUniversalCyclesVariantFanout(ctx context.Context, parentListi
 			ProductGroupHandle: &groupHandle,
 			VariantOptions:     variantOpts,
 		}
-		if _, err := db.UpsertListing(ctx, listing); err != nil {
+		if id, err := db.UpsertListing(ctx, listing); err != nil {
 			return fmt.Errorf("upsert UC variant %s: %w", code, err)
+		} else if err := db.InsertPriceHistory(ctx, id, currentPrice); err != nil {
+			return fmt.Errorf("price history for UC variant %s: %w", code, err)
 		}
 	}
 
