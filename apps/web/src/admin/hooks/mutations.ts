@@ -46,6 +46,7 @@ import {
   postAdminListingsBulkClassify,
   postAdminListingsBulkEnrich,
   postAdminListingsBulkLLMSpecs,
+  postAdminListingsBulkSetCategory,
   createAdminCategory,
   updateAdminCategory,
   deleteAdminCategory,
@@ -651,6 +652,17 @@ export function usePostBulkListingsLLMSpecs() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: adminListingKeys.all });
       queryClient.invalidateQueries({ queryKey: adminEnrichJobKeys.all });
+    },
+  });
+}
+
+export function usePostBulkListingsSetCategory() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: postAdminListingsBulkSetCategory,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminListingKeys.all });
+      queryClient.invalidateQueries({ queryKey: dealKeys.all });
     },
   });
 }

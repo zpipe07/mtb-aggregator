@@ -123,6 +123,19 @@ func MergeLLMSpecs(existing []byte, llmResult map[string]interface{}) []byte {
 	return b
 }
 
+// HasManualCategoryOverride reports whether metadata has manual_category_override=true.
+func HasManualCategoryOverride(existing []byte) bool {
+	if len(existing) == 0 {
+		return false
+	}
+	var base map[string]interface{}
+	if err := json.Unmarshal(existing, &base); err != nil {
+		return false
+	}
+	v, _ := base["manual_category_override"].(bool)
+	return v
+}
+
 // MergeManualCategoryOverride sets metadata.manual_category_override=true for admin manual category edits.
 func MergeManualCategoryOverride(existing []byte) []byte {
 	var base map[string]interface{}

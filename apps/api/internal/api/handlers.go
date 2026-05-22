@@ -926,7 +926,8 @@ func (h *Handlers) PatchAdminListingCategory(w http.ResponseWriter, r *http.Requ
 		http.Error(w, "category not found", http.StatusNotFound)
 		return
 	}
-	if err := h.DB.UpdateListingCategoryManual(r.Context(), id, *body.CategoryID); err != nil {
+	siblingsUpdated, err := h.DB.UpdateListingCategoryManual(r.Context(), id, *body.CategoryID)
+	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
 			http.Error(w, "not found", http.StatusNotFound)
 			return
@@ -934,8 +935,44 @@ func (h *Handlers) PatchAdminListingCategory(w http.ResponseWriter, r *http.Requ
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	resp := map[string]interface{}{
+		"ok":                true,
+		"siblings_updated":  siblingsUpdated,
+	}
+	listing, err := h.DB.GetAdminListingByID(r.Context(), id)
+	if err == nil && listing != nil && len(listing.CategoryPath) > 0 {
+		path, _ := h.DB.GetCategoryPathNamesRootToLeaf(r.Context(), *body.CategoryID)
+		mapped := taxonomy.Map(listing.CategoryPath)
+		if mapped == nil || !canonicalPathsEqual(mapped, path) {
+			kw := strings.ToLower(strings.TrimSpace(strings.Join(listing.CategoryPath, " ")))
+			if kw != "" {
+				breadcrumb := strings.Join(listing.CategoryPath, " > ")
+				target := strings.Join(path, " > ")
+				resp["suggested_mapping"] = map[string]interface{}{
+					"raw_keywords": []string{kw},
+					"canonical":    path,
+					"reason": fmt.Sprintf(
+						"Store breadcrumb %q doesn't map to the selected category (%s)",
+						breadcrumb, target,
+					),
+				}
+			}
+		}
+	}
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]bool{"ok": true})
+	json.NewEncoder(w).Encode(resp)
+}
+
+func canonicalPathsEqual(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
 }
 
 // PostAdminListingLLMOverrides sets manual overrides for LLM-derived specs (admin). Body: {"mtb_class": "Trail", ...}.

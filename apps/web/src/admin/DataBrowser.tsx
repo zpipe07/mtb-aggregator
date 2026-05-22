@@ -29,12 +29,15 @@ import {
   usePostBulkListingsClassify,
   usePostBulkListingsEnrich,
   usePostBulkListingsLLMSpecs,
+  usePostBulkListingsSetCategory,
+  useCreateTaxonomyMapping,
 } from "./hooks/mutations";
 import type {
   AdminBulkListingsFilterBody,
   AdminCategoryTreeNode,
   AdminListing,
   AdminProfileField,
+  TaxonomyMappingSuggestion,
 } from "./api";
 import { CategoryPicker } from "./CategoryPicker";
 import { sanitizeForHtmlId } from "../lib/htmlId";
@@ -516,12 +519,15 @@ export function DataBrowser() {
   /** Path from CategoryPicker — maps to category_slug (subtree / same as public /deals). */
   const [pickedCategoryPath, setPickedCategoryPath] = useState<string[]>([]);
   const [bulkModal, setBulkModal] = useState<
-    "classify" | "enrich" | "llm_specs" | null
+    "classify" | "enrich" | "llm_specs" | "set_category" | null
   >(null);
   const [bulkConfirmText, setBulkConfirmText] = useState("");
   const [bulkAllowEmptySpecs, setBulkAllowEmptySpecs] = useState(false);
+  const [bulkSetCategoryPath, setBulkSetCategoryPath] = useState<string[]>([]);
   const [bulkJobId, setBulkJobId] = useState<number | null>(null);
   const [bulkFlash, setBulkFlash] = useState<string | null>(null);
+  const [taxonomySuggestion, setTaxonomySuggestion] =
+    useState<TaxonomyMappingSuggestion | null>(null);
 
   const { data: stores = [] } = useAdminStores();
   const { data: canonicalPaths = [] } = useCanonicalCategoryPaths();
@@ -559,6 +565,12 @@ export function DataBrowser() {
   const listingLLMMutation = useRunListingLLMSpecs();
   const setHiddenMutation = useSetListingHidden();
   const setCategoryMutation = useSetListingCategory();
+
+  useEffect(() => {
+    setTaxonomySuggestion(null);
+    setCategoryMutation.reset();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reset when switching listings only
+  }, [selectedId]);
   const setLLMOverridesMutation = useSetListingLLMOverrides();
   const bulkClassifyMutation = usePostBulkListingsClassify();
   const bulkEnrichMutation = usePostBulkListingsEnrich();
@@ -577,6 +589,8 @@ export function DataBrowser() {
   }, [bulkJobId, bulkJob?.status, refetchBulkJob]);
 
   const bulkLLMSpecsMutation = usePostBulkListingsLLMSpecs();
+  const bulkSetCategoryMutation = usePostBulkListingsSetCategory();
+  const createTaxonomyMappingMutation = useCreateTaxonomyMapping();
 
   function buildBulkFilterBody(): AdminBulkListingsFilterBody {
     const body: AdminBulkListingsFilterBody = {
@@ -620,9 +634,10 @@ export function DataBrowser() {
     setHiddenMutation.mutate({ id: selectedId, hidden });
   }
 
-  function bulkConfirmPhrase(m: "classify" | "enrich" | "llm_specs") {
+  function bulkConfirmPhrase(m: "classify" | "enrich" | "llm_specs" | "set_category") {
     if (m === "classify") return "reclassify";
     if (m === "enrich") return "re-enrich";
+    if (m === "set_category") return "set-category";
     return "bulk-llm-specs";
   }
 
@@ -638,7 +653,9 @@ export function DataBrowser() {
         setLLMOverridesMutation.isError ||
         bulkClassifyMutation.isError ||
         bulkEnrichMutation.isError ||
-        bulkLLMSpecsMutation.isError) && (
+        bulkLLMSpecsMutation.isError ||
+        bulkSetCategoryMutation.isError ||
+        createTaxonomyMappingMutation.isError) && (
         <div className="mb-4 rounded border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
           {enrichMutation.isError
             ? enrichMutation.error?.message ?? "Enrich failed"
@@ -656,7 +673,13 @@ export function DataBrowser() {
                     ? bulkLLMSpecsMutation.error?.message ?? "Bulk LLM specs failed"
                   : bulkEnrichMutation.isError
                     ? bulkEnrichMutation.error?.message ?? "Bulk enrich failed"
-                    : error?.message ?? "Failed to load"}
+                    : bulkSetCategoryMutation.isError
+                      ? bulkSetCategoryMutation.error?.message ??
+                        "Bulk set category failed"
+                      : createTaxonomyMappingMutation.isError
+                        ? createTaxonomyMappingMutation.error?.message ??
+                          "Create taxonomy rule failed"
+                        : error?.message ?? "Failed to load"}
           <button
             type="button"
             onClick={() => {
@@ -668,6 +691,8 @@ export function DataBrowser() {
               bulkClassifyMutation.reset();
               bulkEnrichMutation.reset();
               bulkLLMSpecsMutation.reset();
+              bulkSetCategoryMutation.reset();
+              createTaxonomyMappingMutation.reset();
               if (isError) refetch();
             }}
             className="ml-2 underline"
@@ -898,6 +923,17 @@ export function DataBrowser() {
           >
             LLM specs (no PDP) ({totalCount.toLocaleString()})
           </button>
+          <button
+            type="button"
+            onClick={() => {
+              setBulkConfirmText("");
+              setBulkSetCategoryPath([]);
+              setBulkModal("set_category");
+            }}
+            className="rounded border border-violet-600 bg-white px-3 py-1.5 text-violet-900 hover:bg-violet-50"
+          >
+            Set category ({totalCount.toLocaleString()})
+          </button>
           {bulkJobId && bulkJob && (
             <span className="text-stone-600">
               Job #{bulkJobId}{" "}
@@ -934,17 +970,30 @@ export function DataBrowser() {
                 ? "Re-classify all matching"
                 : bulkModal === "enrich"
                   ? "Re-enrich all matching"
-                  : "LLM specs — all matching"}
+                  : bulkModal === "set_category"
+                    ? "Set category for all matching"
+                    : "LLM specs — all matching"}
             </h3>
             <p className="text-sm text-stone-600">
               This will affect up to {totalCount.toLocaleString()} listing
               {totalCount === 1 ? "" : "s"} (same filters as the table).{" "}
               {bulkModal === "enrich"
                 ? "Re-enrich scrapes each PDP; it is slower and heavier than re-classify."
-                : bulkModal === "llm_specs"
+                : bulkModal === "set_category"
+                  ? "Assigns the selected canonical category to every listing in the current filter. Manual overrides are not re-classified by LLM."
+                  : bulkModal === "llm_specs"
                   ? "Runs LLM category + prompt extraction using data already stored (no PDP fetch). Defaults to listings that have scraped specs."
                   : ""}
             </p>
+            {bulkModal === "set_category" && (
+              <CategoryPicker
+                id="bulk-set-category-picker"
+                label="Canonical category"
+                placeholder="Select category for all matching listings…"
+                value={bulkSetCategoryPath}
+                onChange={setBulkSetCategoryPath}
+              />
+            )}
             {bulkModal === "llm_specs" && (
               <label className="flex items-start gap-2 text-sm text-stone-700">
                 <input
@@ -987,13 +1036,32 @@ export function DataBrowser() {
                   bulkClassifyMutation.isPending ||
                   bulkEnrichMutation.isPending ||
                   bulkLLMSpecsMutation.isPending ||
+                  bulkSetCategoryMutation.isPending ||
+                  (bulkModal === "set_category" &&
+                    adminCategoryIdForPath(categoryTree, bulkSetCategoryPath) ==
+                      null) ||
                   (totalCount > 1000 &&
                     bulkConfirmText.trim() !== bulkConfirmPhrase(bulkModal))
                 }
                 onClick={async () => {
                   const body = buildBulkFilterBody();
                   try {
-                    if (bulkModal === "classify") {
+                    if (bulkModal === "set_category") {
+                      const cid = adminCategoryIdForPath(
+                        categoryTree,
+                        bulkSetCategoryPath,
+                      );
+                      if (cid == null) return;
+                      const r = await bulkSetCategoryMutation.mutateAsync({
+                        ...body,
+                        category_id: cid,
+                      });
+                      setBulkFlash(
+                        `Updated category on ${r.updated.toLocaleString()} of ${r.total.toLocaleString()} listing${r.total === 1 ? "" : "s"}.`,
+                      );
+                      setBulkModal(null);
+                      void refetch();
+                    } else if (bulkModal === "classify") {
                       const r = await bulkClassifyMutation.mutateAsync(body);
                       setBulkJobId(r.job_id);
                       if (r.async) {
@@ -1036,7 +1104,8 @@ export function DataBrowser() {
               >
                 {bulkClassifyMutation.isPending ||
                 bulkEnrichMutation.isPending ||
-                bulkLLMSpecsMutation.isPending
+                bulkLLMSpecsMutation.isPending ||
+                bulkSetCategoryMutation.isPending
                   ? "Running…"
                   : "Confirm"}
               </button>
@@ -1297,17 +1366,80 @@ export function DataBrowser() {
                       placeholder="Select category…"
                       value={detail.canonical_category ?? []}
                       onChange={(path) => {
+                        setTaxonomySuggestion(null);
                         const cid = adminCategoryIdForPath(categoryTree, path);
                         if (cid != null) {
-                          setCategoryMutation.mutate({
-                            id: detail.id,
-                            categoryId: cid,
-                          });
+                          setCategoryMutation.mutate(
+                            { id: detail.id, categoryId: cid },
+                            {
+                              onSuccess: (data) => {
+                                setTaxonomySuggestion(
+                                  data.suggested_mapping ?? null,
+                                );
+                              },
+                            },
+                          );
                         }
                       }}
                     />
                     {setCategoryMutation.isPending && (
                       <p className="text-xs text-stone-500 mt-1">Saving category…</p>
+                    )}
+                    {setCategoryMutation.isSuccess &&
+                      (setCategoryMutation.data?.siblings_updated ?? 0) > 0 && (
+                        <p className="text-xs text-green-700 mt-1">
+                          Also updated{" "}
+                          {setCategoryMutation.data!.siblings_updated} variant
+                          {setCategoryMutation.data!.siblings_updated === 1
+                            ? ""
+                            : "s"}{" "}
+                          in the same product group.
+                        </p>
+                      )}
+                    {taxonomySuggestion && (
+                      <div className="mt-2 rounded border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-stone-800">
+                        <p className="mb-2">{taxonomySuggestion.reason}</p>
+                        <p className="text-xs text-stone-600 mb-2">
+                          Create a taxonomy rule so future listings with similar store
+                          breadcrumbs map to{" "}
+                          <strong>
+                            {taxonomySuggestion.canonical.join(" > ")}
+                          </strong>
+                          ?
+                        </p>
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            disabled={createTaxonomyMappingMutation.isPending}
+                            className="rounded bg-stone-700 px-2 py-1 text-xs text-white hover:bg-stone-600 disabled:opacity-50"
+                            onClick={() => {
+                              createTaxonomyMappingMutation.mutate(
+                                {
+                                  raw_keywords: taxonomySuggestion.raw_keywords,
+                                  canonical: taxonomySuggestion.canonical,
+                                  priority: 100,
+                                },
+                                {
+                                  onSuccess: () => {
+                                    setTaxonomySuggestion(null);
+                                  },
+                                },
+                              );
+                            }}
+                          >
+                            {createTaxonomyMappingMutation.isPending
+                              ? "Creating…"
+                              : "Create rule"}
+                          </button>
+                          <button
+                            type="button"
+                            className="rounded border border-stone-300 px-2 py-1 text-xs hover:bg-white"
+                            onClick={() => setTaxonomySuggestion(null)}
+                          >
+                            Dismiss
+                          </button>
+                        </div>
+                      </div>
                     )}
                   </dd>
                   <dt className="text-stone-500">LLM confidence</dt>

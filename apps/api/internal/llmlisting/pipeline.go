@@ -11,6 +11,7 @@ import (
 
 	"github.com/mtb-aggregator/api/internal/db"
 	"github.com/mtb-aggregator/api/internal/llm"
+	"github.com/mtb-aggregator/api/internal/metadata"
 	"github.com/mtb-aggregator/api/internal/sentryutil"
 )
 
@@ -86,6 +87,9 @@ func ClassificationStep(ctx context.Context, pool *db.DB, client *llm.Client, li
 	validPaths, categoryDesc := db.ClassifierPathsFromTreeRows(pathRows, llm.CategoryPathSeparator)
 	listing, err := pool.GetListingForCategoryClassification(ctx, listingID)
 	if err != nil || listing == nil {
+		return nil
+	}
+	if metadata.HasManualCategoryOverride(listing.Metadata) {
 		return nil
 	}
 	var meta struct {
