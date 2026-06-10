@@ -174,7 +174,7 @@ GitHub Actions (`.github/workflows/ci.yml`) runs on every push and PR to `main`:
 
 The CI workflow sets `permissions: contents: read` and `pull-requests: read` so `GITHUB_TOKEN` can list PR commits for **gitleaks** (without this, `pull_request` runs can fail with HTTP 403 from the GitHub API).
 
-**Go patch version:** [`apps/api/go.mod`](../apps/api/go.mod) sets `toolchain go1.25.10` so local and CI builds use a stdlib that satisfies **govulncheck** (security fixes land in patch releases; pinning only `go 1.25` is not enough). CI uses Go **1.25.10**; the API **Dockerfile** uses `golang:1.25.10-alpine`.
+**Go patch version:** [`apps/api/go.mod`](../apps/api/go.mod) sets `toolchain go1.25.11` so local and CI builds use a stdlib that satisfies **govulncheck** (security fixes land in patch releases; pinning only `go 1.25` is not enough). CI uses Go **1.25.11**; the API **Dockerfile** uses `golang:1.25.11-alpine`.
 
 **Dependency hygiene:** Root `package.json` defines `pnpm.overrides` to align transitive packages with patched versions where advisories affected nested dependencies; keep overrides minimal and revisit when upgrading direct deps.
 
