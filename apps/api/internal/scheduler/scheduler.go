@@ -422,6 +422,10 @@ func (s *Scheduler) scrapeStore(ctx context.Context, store db.Store, triggeredBy
 
 // RunEnrichmentJob runs enrichment for listings needing it (all enricher stores, batched until timeout or backlog drained).
 // triggeredBy is "manual", "cron", or "catch-up" for job history.
+//
+// Implementation lives in runEnrichmentLoop (shared with store-scoped and filtered jobs). An empty
+// EnrichmentFilter is equivalent to the old GetListingsNeedingEnrichment query, but the loop keeps
+// fetching batches until the job timeout or the backlog is empty — the old inline version stopped after one batch.
 func (s *Scheduler) RunEnrichmentJob(force bool, triggeredBy string) {
 	if triggeredBy == "" {
 		triggeredBy = "manual"
