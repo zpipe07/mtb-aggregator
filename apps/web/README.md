@@ -62,7 +62,7 @@ pnpm run storybook    # Storybook (port 6006)
 pnpm run build        # Production build
 ```
 
-The API must be running for data. Configure `NEXT_PUBLIC_API_URL` (client and server-side fetches during build) or `API_URL` (server-only override) or use the default proxy (`/api` → `http://localhost:8080`). Static pages (`/`, `/categories`, sitemap) tolerate a unreachable API at **build** time (empty fallbacks); ISR refreshes them when the API is up.
+The API must be running for data. Configure `NEXT_PUBLIC_API_URL` (client) or `API_URL` (server) or use the default proxy (`/api` → `http://localhost:8080`).
 
 **Canonical site URL (SEO):** Set `NEXT_PUBLIC_SITE_URL` to your public origin (e.g. `https://thedropper.shop`) so `metadataBase`, Open Graph `url`, canonical links, [`sitemap.ts`](src/app/sitemap.ts), and [`robots.ts`](src/app/robots.ts) resolve correctly.
 

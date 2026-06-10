@@ -208,28 +208,6 @@ export async function fetchCategoryTree(): Promise<CategoryTreeNode[]> {
   return Array.isArray(data) ? data : [];
 }
 
-const EMPTY_DEAL_LIST: DealListResponse = { deals: [], total_count: 0 };
-
-/** For static generation when the API may be cold/unreachable (e.g. Vercel preview build). */
-export async function fetchCategoryTreeSafe(): Promise<CategoryTreeNode[]> {
-  try {
-    return await fetchCategoryTree();
-  } catch {
-    return [];
-  }
-}
-
-/** For static generation when the API may be cold/unreachable (e.g. Vercel preview build). */
-export async function fetchDealsSafe(
-  params?: Parameters<typeof fetchDeals>[0],
-): Promise<DealListResponse> {
-  try {
-    return await fetchDeals(params);
-  } catch {
-    return EMPTY_DEAL_LIST;
-  }
-}
-
 export interface SpecFacetValue {
   value: string;
   count: number;

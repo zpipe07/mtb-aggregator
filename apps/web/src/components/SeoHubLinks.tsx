@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { fetchDealsSafe } from "@/api";
+import { fetchDeals } from "@/api";
 import {
   listSeoHubs,
   hubMeetsIndexThreshold,
@@ -10,7 +10,7 @@ import {
 } from "@/lib/seoHubs";
 
 async function hubEligible(hub: SeoHubDefinition): Promise<boolean> {
-  const res = await fetchDealsSafe({
+  const res = await fetchDeals({
     ...buildFetchDealsParamsFromHubAndFilters(hub, emptyParsedFilterParams()),
     limit: 1,
     offset: 0,
