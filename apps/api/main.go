@@ -446,17 +446,20 @@ func main() {
 			storeLog = store
 		}
 		enrichNowLog.Info("triggered manually", "store", storeLog, "force", force, "canonical", canonPath, "llm_below", confBelow)
-		if len(canonPath) > 0 || confBelow != nil {
-			sched.RunEnrichmentWithFilter(db.EnrichmentFilter{
-				StoreType:            store,
-				CanonicalCategory:   canonPath,
-				LlmConfidenceBelow: confBelow,
-			}, force, "manual")
-		} else {
-			sched.RunEnrichmentJobForStore(store, force, "manual")
-		}
+		go func() {
+			if len(canonPath) > 0 || confBelow != nil {
+				sched.RunEnrichmentWithFilter(db.EnrichmentFilter{
+					StoreType:          store,
+					CanonicalCategory:  canonPath,
+					LlmConfidenceBelow: confBelow,
+				}, force, "manual")
+			} else {
+				sched.RunEnrichmentJobForStore(store, force, "manual")
+			}
+		}()
 		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`{"status":"ok"}`))
+		w.WriteHeader(http.StatusAccepted)
+		w.Write([]byte(`{"status":"ok","async":true}`))
 	})
 
 	// POST /llm-specs-now (?store=&canonical_category=&llm_confidence_below=&allow_empty_specs=1) — classify + extract from DB only (async enrich job).
