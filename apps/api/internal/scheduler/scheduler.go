@@ -55,7 +55,9 @@ func getEnrichJobTimeout() time.Duration {
 			return d
 		}
 	}
-	return 30 * time.Minute
+	// PDP enrichment is sequential and often ~1–2 min/listing (Playwright + LLM).
+	// 30m only yields ~15 listings; nightly jobs need a longer window.
+	return 4 * time.Hour
 }
 
 func getScrapeJobTimeout() time.Duration {
@@ -418,116 +420,17 @@ func (s *Scheduler) scrapeStore(ctx context.Context, store db.Store, triggeredBy
 	}
 }
 
-// RunEnrichmentJob runs enrichment for listings needing it (all stores, one batch).
-// triggeredBy is "manual" or "cron" for job history.
+// RunEnrichmentJob runs enrichment for listings needing it (all enricher stores, batched until timeout or backlog drained).
+// triggeredBy is "manual", "cron", or "catch-up" for job history.
+//
+// Implementation lives in runEnrichmentLoop (shared with store-scoped and filtered jobs). An empty
+// EnrichmentFilter is equivalent to the old GetListingsNeedingEnrichment query, but the loop keeps
+// fetching batches until the job timeout or the backlog is empty — the old inline version stopped after one batch.
 func (s *Scheduler) RunEnrichmentJob(force bool, triggeredBy string) {
 	if triggeredBy == "" {
 		triggeredBy = "manual"
 	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), getEnrichJobTimeout())
-	defer cancel()
-
-	jobID, err := s.db.CreateEnrichJob(ctx, nil, triggeredBy, force, "enrich")
-	if err != nil {
-		enrichmentLog.Error("failed to create enrich job", logutil.ErrAttr(err))
-		sentryutil.CaptureError(err, map[string]string{"component": "scheduler", "job": "enrich", "phase": "create_job"})
-	}
-
-	successCount := 0
-	var errStrs []string
-	defer func() {
-		if r := recover(); r != nil {
-			enrichmentLog.Error("panic during enrichment", "panic", r)
-			sentryutil.CapturePanicValue(r, map[string]string{"component": "scheduler", "job": "enrich", "scope": "global"})
-			if jobID != 0 {
-				panicErrs := append(errStrs, fmt.Sprintf("panic: %v", r))
-				s.finalizeEnrichJob(jobID, "failed", nil, &successCount, panicErrs, "")
-			}
-		}
-	}()
-
-	batchSize := getEnrichBatchSize()
-	listings, err := s.db.GetListingsNeedingEnrichment(ctx, batchSize, force)
-	if err != nil {
-		enrichmentLog.Error("failed to get listings", logutil.ErrAttr(err))
-		sentryutil.CaptureError(err, map[string]string{"component": "scheduler", "job": "enrich", "phase": "list_listings"})
-		if jobID != 0 {
-			s.finalizeEnrichJob(jobID, "failed", nil, nil, []string{err.Error()}, "")
-		}
-		return
-	}
-
-	if len(listings) == 0 {
-		enrichmentLog.Info("no listings need enrichment")
-		if jobID != 0 {
-			z := 0
-			s.finalizeEnrichJob(jobID, "completed", &z, &z, nil, "")
-		}
-		return
-	}
-
-	enrichmentLog.Info("enriching listings", "count", len(listings))
-
-	var llmState llmlisting.QuotaJobState
-	seenJensonGroups := make(map[string]bool)
-	seenCCGroups := make(map[string]bool)
-	seenUCGroups := make(map[string]bool)
-	processed := 0
-	for _, l := range listings {
-		if ctx.Err() != nil {
-			enrichmentLog.Warn("enrichment job timeout; saving partial progress", "processed", processed, "enriched", successCount)
-			sentryutil.CaptureError(
-				fmt.Errorf("enrichment job timed out (%d processed, %d enriched)", processed, successCount),
-				map[string]string{"component": "scheduler", "job": "enrich", "scope": "global"},
-			)
-			if jobID != 0 {
-				errStrs = append(errStrs, "job timed out")
-				s.finalizeEnrichJob(jobID, "timed_out", &processed, &successCount, errStrs, "")
-			}
-			return
-		}
-		processed++
-		result, err := s.scraper.Enrich(ctx, l.ProductURL, l.StoreType)
-		if err != nil {
-			enrichmentLog.Error("enrichment failed for listing", "listing_id", l.ID, logutil.ErrAttr(err))
-			errStrs = append(errStrs, fmt.Sprintf("listing %d: %v", l.ID, err))
-			continue
-		}
-
-		if err := s.db.UpdateListingEnrichment(ctx, l.ID, result.CategoryPath, result.RawSpecs, result.Unavailable, result.Description); err != nil {
-			enrichmentLog.Error("failed to update listing enrichment", "listing_id", l.ID, logutil.ErrAttr(err))
-			errStrs = append(errStrs, fmt.Sprintf("listing %d update: %v", l.ID, err))
-			continue
-		}
-
-		if err := s.db.ApplyJensonPDPVariantFanout(ctx, l.StoreID, l.StoreType, l.StoreSKU, enrichVariantsToJenson(result.Variants), seenJensonGroups); err != nil {
-			enrichmentLog.Warn("jenson variant fan-out failed", "listing_id", l.ID, logutil.ErrAttr(err))
-		}
-		if err := applyCompetitiveCyclistVariantFanout(ctx, s.db, l.ID, l.StoreID, l.StoreType, l.StoreSKU, l.ProductURL, result.Variants, seenCCGroups); err != nil {
-			enrichmentLog.Warn("competitivecyclist variant fan-out failed", "listing_id", l.ID, logutil.ErrAttr(err))
-		}
-		if err := applyUniversalCyclesVariantFanout(ctx, s.db, l.ID, l.StoreType, result.Variants, seenUCGroups); err != nil {
-			enrichmentLog.Warn("universalcycles variant fan-out failed", "listing_id", l.ID, logutil.ErrAttr(err))
-		}
-
-		successCount++
-		if result.Unavailable {
-			enrichmentLog.Debug("listing marked unavailable", "listing_id", l.ID)
-		}
-		if len(result.CategoryPath) > 0 {
-			enrichmentLog.Debug("listing category path updated", "listing_id", l.ID, "category_path", result.CategoryPath)
-		}
-		llmlisting.RunSpecDetermination(ctx, s.db, s.llm, l.ID, &llmState, &errStrs)
-	}
-
-	status := "completed"
-	if jobID != 0 {
-		p := len(listings)
-		s.finalizeEnrichJob(jobID, status, &p, &successCount, errStrs, "")
-		captureEnrichJobListingErrorsAggregate("", len(listings), successCount, errStrs)
-	}
-	enrichmentLog.Info("enrichment batch completed", "enriched", successCount, "total", len(listings))
+	s.runEnrichmentLoop(db.EnrichmentFilter{}, force, triggeredBy)
 }
 
 func enrichVariantsToJenson(v []scraper.EnrichVariant) []db.JensonPDPVariant {
@@ -671,6 +574,7 @@ func (s *Scheduler) runEnrichmentLoop(f db.EnrichmentFilter, force bool, trigger
 				}
 				return
 			}
+			totalProcessed++
 			result, err := s.scraper.Enrich(ctx, l.ProductURL, l.StoreType)
 			if err != nil {
 				enrichmentLog.Error("enrichment failed for listing", "listing_id", l.ID, logutil.ErrAttr(err))
@@ -701,7 +605,6 @@ func (s *Scheduler) runEnrichmentLoop(f db.EnrichmentFilter, force bool, trigger
 			}
 			llmlisting.RunSpecDetermination(ctx, s.db, s.llm, l.ID, &llmState, &errStrs)
 		}
-		totalProcessed += len(listings)
 		enrichmentLog.Info("enrichment batch done", "scope", scope, "enriched", successCount, "batch_size", len(listings))
 		if len(listings) < batchSize {
 			break
