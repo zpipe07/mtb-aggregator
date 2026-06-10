@@ -42,3 +42,7 @@ WHERE NOT EXISTS (SELECT 1 FROM stores WHERE name = 'Trek');
 INSERT INTO stores (name, base_url, scrape_url, store_type, affiliate_network)
 SELECT 'Universal Cycles', 'https://www.universalcycles.com', 'https://www.universalcycles.com/specials.php', 'universalcycles', NULL
 WHERE NOT EXISTS (SELECT 1 FROM stores WHERE name = 'Universal Cycles');
+
+INSERT INTO stores (name, base_url, scrape_url, store_type, affiliate_network)
+SELECT 'N+1 Bikes', 'https://www.n1bikes.com', 'https://www.n1bikes.com/categories/all?discount=0.2', 'n1bikes', NULL
+WHERE NOT EXISTS (SELECT 1 FROM stores WHERE name = 'N+1 Bikes');

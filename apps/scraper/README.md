@@ -181,6 +181,17 @@ make scrape-now-universalcycles
 make enrich-now-universalcycles
 ```
 
+### N+1 Bikes
+
+**Listing scrape** (`n1bikes` in `PARSERS`) uses the public **MasterLinq** catalog API (`POST …/api/ecom/catalog/search` with header `x-account-code: LKY`), paginated with `continuationToken`. The seed URL `?discount=0.2` maps to `discountAtOrAbove: 0.2`. Emits one row per on-sale variant where `map < msrp`; **online stock** uses summed supplier inventory in `totalInventoryByProduct` (not retail-only “In Stock” badges).
+
+**PDP enrichment** (`enrichN1Bikes`) fetches product HTML and parses embedded `specifications` JSON plus `og:description`.
+
+```bash
+make scrape-now-n1bikes
+make enrich-now-n1bikes
+```
+
 ## Endpoints
 
 | Endpoint  | Method | Purpose                                           |
@@ -217,6 +228,7 @@ Parsers live in `src/parsers/` — one file per store:
 - `specialized.ts` / `specialized-plp.ts` / `specialized-pdp.ts` — Specialized US sale (GraphQL PLP + fetch PDP enrich)
 - `trek.ts` / `trek-plp.ts` / `trek-pdp.ts` — Trek US MTB sale (OCC PLP + HTML MSRP merge + fetch PDP enrich)
 - `universalcycles.ts` / `universalcycles-plp.ts` / `universalcycles-pdp.ts` — Universal Cycles specials (fetch PLP + attribute fan-out on PDP enrich)
+- `n1bikes.ts` / `n1bikes-plp.ts` / `n1bikes-pdp.ts` — N+1 Bikes sale catalog (MasterLinq API + PDP specs enrich)
 
 `parsers/index.ts` registers `PARSERS` and `ENRICHERS` maps. Enrichers fetch product detail pages (PDP) for category paths and specs.
 
