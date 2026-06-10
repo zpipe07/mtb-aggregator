@@ -10,13 +10,11 @@
 
 ### Workspace package build
 
-`@mtb-aggregator/logging` must be built before scraper/web dev servers start (otherwise `ERR_MODULE_NOT_FOUND`). CI builds it explicitly; locally run:
+`@mtb-aggregator/logging` must be compiled before scraper/web start or build (otherwise `ERR_MODULE_NOT_FOUND` / Vercel `pnpm run build` exit 1). The web and scraper packages run **`prebuild` → `build:deps`** automatically on `pnpm run build`; for dev servers, build logging once if needed:
 
 ```bash
 pnpm --filter @mtb-aggregator/logging run build
 ```
-
-The scraper `pretest`/`prebuild` hooks do this automatically for tests/builds.
 
 ### Port allocation (important)
 
