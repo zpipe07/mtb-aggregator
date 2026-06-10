@@ -105,6 +105,7 @@ make backfill-canonical-categories   # recategorize listings after taxonomy chan
 make backfill-llm-specs              # populate llm_specs from specs (after migration 016)
 make backfill-field-library          # migration 019: field defs + profile_fields + key renames
 make backfill-cc-variants            # CC: PDP hasVariant grouping for existing Impact rows
+make requeue-wiped-enrichment        # clear last_enriched_at when scrape wiped metadata; then enrich-now FORCE=1
 
 # Build all
 make build-all
