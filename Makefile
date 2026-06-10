@@ -81,6 +81,10 @@ backfill-canonical-categories:
 backfill-llm-specs:
 	cd apps/api && go run ./cmd/backfill-llm-specs
 
+# Clear last_enriched_at on listings whose metadata was wiped by scrape-after-enrich; then run enrich-now FORCE=1
+requeue-wiped-enrichment:
+	cd apps/api && go run ./cmd/requeue-wiped-enrichment
+
 # Rename ambiguous extraction keys, seed llm_extraction_field_defs, fill llm_prompt_profile_fields (run once after migration 019)
 backfill-field-library:
 	cd apps/api && go run ./cmd/backfill-field-library
