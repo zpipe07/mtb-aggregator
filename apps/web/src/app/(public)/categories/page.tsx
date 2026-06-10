@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { fetchCategoryTree } from "@/api";
+import { fetchCategoryTreeSafe } from "@/api";
 import { JsonLd } from "@/components/JsonLd";
 import { buildCollectionPageJsonLd } from "@/lib/jsonLd";
 import { getCategorySeo } from "@/lib/categorySeo";
@@ -32,7 +32,7 @@ export const metadata: Metadata = {
 };
 
 export default async function CategoriesPage() {
-  const categoryTree = await fetchCategoryTree();
+  const categoryTree = await fetchCategoryTreeSafe();
 
   const collectionJsonLd = buildCollectionPageJsonLd({
     name: "Mountain bike categories — The Dropper",

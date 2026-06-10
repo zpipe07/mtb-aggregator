@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { fetchCategoryTree, fetchDeals } from "@/api";
+import { fetchCategoryTreeSafe, fetchDealsSafe } from "@/api";
 import { JsonLd } from "@/components/JsonLd";
 import { buildItemListJsonLd, buildWebSiteSearchJsonLd } from "@/lib/jsonLd";
 import { absoluteUrl } from "@/lib/siteUrl";
@@ -56,8 +56,8 @@ export const metadata: Metadata = {
 
 export default async function Home() {
   const [categoryTree, dealsResponse] = await Promise.all([
-    fetchCategoryTree(),
-    fetchDeals({
+    fetchCategoryTreeSafe(),
+    fetchDealsSafe({
       sort: "value",
       min_price: 40,
       exclude_category_slug: "accessories",
