@@ -50,6 +50,8 @@ import {
   createAdminCategory,
   updateAdminCategory,
   deleteAdminCategory,
+  runDBMigrate,
+  runDBSeed,
   type StoreFormBody,
 } from "../api";
 import {
@@ -66,8 +68,33 @@ import {
   adminLLMFieldDefKeys,
   adminCategoryClassifierKeys,
   adminCategoryKeys,
+  adminDBKeys,
 } from "./queryKeys";
 import { dealKeys } from "../../hooks/queryKeys";
+
+export function useRunDBMigrate() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: runDBMigrate,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminDBKeys.all });
+      queryClient.invalidateQueries({ queryKey: adminDashboardKeys.all });
+      queryClient.invalidateQueries({ queryKey: adminStoreKeys.all });
+    },
+  });
+}
+
+export function useRunDBSeed() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: runDBSeed,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminDBKeys.all });
+      queryClient.invalidateQueries({ queryKey: adminDashboardKeys.all });
+      queryClient.invalidateQueries({ queryKey: adminStoreKeys.all });
+    },
+  });
+}
 
 export function useTriggerScrape() {
   const queryClient = useQueryClient();

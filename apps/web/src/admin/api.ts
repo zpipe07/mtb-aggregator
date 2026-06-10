@@ -999,6 +999,68 @@ export async function triggerRenormalizeSpecs(): Promise<{ updated: number }> {
   return res.json();
 }
 
+// --- Database maintenance (migrations, seed) ---
+
+export interface MigrationEntry {
+  filename: string;
+  applied: boolean;
+  applied_at?: string;
+}
+
+export interface DBMigrationsResponse {
+  migrations_dir: string;
+  migrations: MigrationEntry[];
+  pending_count: number;
+  ops_allowed: boolean;
+}
+
+export interface DBMigrateResponse {
+  applied: string[];
+  skipped: string[];
+  total: number;
+}
+
+export interface DBSeedResponse {
+  ok: boolean;
+  seed_file: string;
+}
+
+export async function fetchDBMigrations(): Promise<DBMigrationsResponse> {
+  const res = await fetch(`${getApiBase()}/admin/db/migrations`, {
+    headers: adminHeaders(),
+  });
+  if (!res.ok) {
+    throw new Error(
+      res.status === 401 ? "Unauthorized" : "Failed to fetch migration status",
+    );
+  }
+  return res.json();
+}
+
+export async function runDBMigrate(): Promise<DBMigrateResponse> {
+  const res = await fetch(`${getApiBase()}/admin/db/migrate`, {
+    method: "POST",
+    headers: adminHeaders(),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || "Migration run failed");
+  }
+  return res.json();
+}
+
+export async function runDBSeed(): Promise<DBSeedResponse> {
+  const res = await fetch(`${getApiBase()}/admin/db/seed`, {
+    method: "POST",
+    headers: adminHeaders(),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || "Seed run failed");
+  }
+  return res.json();
+}
+
 // --- Normalization (spec key aliases, value rules, unmapped dashboard) ---
 
 export interface UnmappedCategoryPath {

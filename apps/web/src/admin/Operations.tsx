@@ -9,6 +9,7 @@ import {
   useScrapeJob,
   useEnrichJob,
   useCanonicalCategoryPaths,
+  useDBMigrations,
 } from "./hooks/queries";
 import {
   useTriggerScrape,
@@ -17,6 +18,8 @@ import {
   useCancelEnrichJob,
   useRunCategoryClassifier,
   useTriggerLLMSpecs,
+  useRunDBMigrate,
+  useRunDBSeed,
 } from "./hooks/mutations";
 import type { ScrapeJob, EnrichJob } from "./api";
 
@@ -101,6 +104,16 @@ export function Operations() {
   const llmSpecsMutation = useTriggerLLMSpecs();
   const cancelScrapeMutation = useCancelScrapeJob();
   const cancelEnrichMutation = useCancelEnrichJob();
+  const dbMigrateMutation = useRunDBMigrate();
+  const dbSeedMutation = useRunDBSeed();
+
+  const {
+    data: dbMigrationsData,
+    isPending: dbMigrationsLoading,
+    isError: dbMigrationsError,
+    error: dbMigrationsErrorObj,
+    refetch: refetchDBMigrations,
+  } = useDBMigrations();
 
   const loading = useAdminStores().isPending && stores.length === 0;
   const error = jobsError ? (jobsErrorObj?.message ?? "Failed to load jobs") : null;
@@ -139,6 +152,9 @@ export function Operations() {
         classifyRunMutation.isError ||
         cancelScrapeMutation.isError ||
         cancelEnrichMutation.isError ||
+        dbMigrateMutation.isError ||
+        dbSeedMutation.isError ||
+        dbMigrationsError ||
         error) && (
         <div className="mb-4 rounded border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
           {scrapeMutation.error?.message ??
@@ -147,6 +163,9 @@ export function Operations() {
             classifyRunMutation.error?.message ??
             cancelScrapeMutation.error?.message ??
             cancelEnrichMutation.error?.message ??
+            dbMigrateMutation.error?.message ??
+            dbSeedMutation.error?.message ??
+            dbMigrationsErrorObj?.message ??
             error}
           <button
             type="button"
@@ -157,7 +176,10 @@ export function Operations() {
               classifyRunMutation.reset();
               cancelScrapeMutation.reset();
               cancelEnrichMutation.reset();
+              dbMigrateMutation.reset();
+              dbSeedMutation.reset();
               if (jobsError) refetchJobs();
+              if (dbMigrationsError) refetchDBMigrations();
             }}
             className="ml-2 underline"
           >
@@ -384,6 +406,99 @@ export function Operations() {
               )}
           </div>
         </div>
+      </div>
+
+      <div className="mb-6 rounded-lg border border-stone-200 bg-white p-4 shadow-sm">
+        <h3 className="text-sm font-medium text-stone-800 mb-1">Database maintenance</h3>
+        <p className="text-xs text-stone-500 mb-3">
+          Run incremental SQL migrations and idempotent store seed data. Migrations are tracked in{" "}
+          <code className="text-stone-600">schema_migrations</code>.
+        </p>
+        {dbMigrationsData && !dbMigrationsData.ops_allowed && (
+          <p className="mb-3 text-xs text-amber-700 rounded border border-amber-200 bg-amber-50 px-2 py-1.5">
+            DB run actions are disabled in production unless{" "}
+            <code className="text-amber-800">ALLOW_ADMIN_DB_OPS=1</code> is set on the API.
+          </p>
+        )}
+        <div className="flex flex-wrap items-center gap-2 mb-4">
+          <button
+            type="button"
+            onClick={() => dbMigrateMutation.mutate(undefined)}
+            disabled={
+              dbMigrateMutation.isPending ||
+              dbSeedMutation.isPending ||
+              dbMigrationsLoading ||
+              dbMigrationsData?.ops_allowed === false ||
+              (dbMigrationsData?.pending_count ?? 0) === 0
+            }
+            className="rounded bg-stone-800 px-3 py-2 text-sm font-medium text-white hover:bg-stone-700 disabled:opacity-50"
+          >
+            {dbMigrateMutation.isPending
+              ? "Running migrations…"
+              : `Run pending migrations${dbMigrationsData ? ` (${dbMigrationsData.pending_count})` : ""}`}
+          </button>
+          <button
+            type="button"
+            onClick={() => dbSeedMutation.mutate(undefined)}
+            disabled={
+              dbMigrateMutation.isPending ||
+              dbSeedMutation.isPending ||
+              dbMigrationsLoading ||
+              dbMigrationsData?.ops_allowed === false
+            }
+            className="rounded border border-stone-300 px-3 py-2 text-sm text-stone-800 hover:bg-stone-50 disabled:opacity-50"
+          >
+            {dbSeedMutation.isPending ? "Running seed…" : "Run seed"}
+          </button>
+          <button
+            type="button"
+            onClick={() => refetchDBMigrations()}
+            disabled={dbMigrationsLoading}
+            className="rounded border border-stone-300 px-3 py-2 text-sm text-stone-600 hover:bg-stone-50 disabled:opacity-50"
+          >
+            Refresh
+          </button>
+        </div>
+        {dbMigrateMutation.isSuccess && dbMigrateMutation.data && (
+          <p className="text-xs text-green-700 mb-3">
+            Applied {dbMigrateMutation.data.applied.length} migration
+            {dbMigrateMutation.data.applied.length === 1 ? "" : "s"}
+            {dbMigrateMutation.data.applied.length > 0
+              ? `: ${dbMigrateMutation.data.applied.join(", ")}`
+              : " (none pending)"}
+          </p>
+        )}
+        {dbSeedMutation.isSuccess && (
+          <p className="text-xs text-green-700 mb-3">Seed completed successfully.</p>
+        )}
+        {dbMigrationsLoading ? (
+          <p className="text-sm text-stone-500">Loading migration status…</p>
+        ) : dbMigrationsData ? (
+          <div className="overflow-x-auto max-h-48 overflow-y-auto rounded border border-stone-100">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="border-b border-stone-200 bg-stone-50 sticky top-0">
+                  <th className="px-3 py-1.5 text-left font-medium text-stone-600">Migration</th>
+                  <th className="px-3 py-1.5 text-left font-medium text-stone-600">Status</th>
+                  <th className="px-3 py-1.5 text-left font-medium text-stone-600">Applied at</th>
+                </tr>
+              </thead>
+              <tbody>
+                {dbMigrationsData.migrations.map((m) => (
+                  <tr key={m.filename} className="border-b border-stone-100">
+                    <td className="px-3 py-1.5 font-mono text-stone-800">{m.filename}</td>
+                    <td className={`px-3 py-1.5 ${m.applied ? "text-green-700" : "text-amber-700"}`}>
+                      {m.applied ? "Applied" : "Pending"}
+                    </td>
+                    <td className="px-3 py-1.5 text-stone-600">
+                      {m.applied_at ? formatDate(m.applied_at) : "—"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : null}
       </div>
 
       <div className="rounded-lg border border-stone-200 bg-white shadow-sm overflow-hidden">

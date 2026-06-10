@@ -761,6 +761,28 @@ func main() {
 		}
 		handlers.PostAdminRenormalizeSpecs(w, r)
 	}))
+	// Admin: GET /admin/db/migrations — list migration status; POST /admin/db/migrate, /admin/db/seed
+	http.HandleFunc("/admin/db/migrations", api.AdminRequired(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/admin/db/migrations" {
+			http.NotFound(w, r)
+			return
+		}
+		handlers.GetAdminDBMigrations(w, r)
+	}))
+	http.HandleFunc("/admin/db/migrate", api.AdminRequired(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/admin/db/migrate" {
+			http.NotFound(w, r)
+			return
+		}
+		handlers.PostAdminDBMigrate(w, r)
+	}))
+	http.HandleFunc("/admin/db/seed", api.AdminRequired(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/admin/db/seed" {
+			http.NotFound(w, r)
+			return
+		}
+		handlers.PostAdminDBSeed(w, r)
+	}))
 	// Admin: GET /admin/normalization/unmapped — unmapped category paths (dashboard)
 	http.HandleFunc("/admin/normalization/unmapped", api.AdminRequired(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/admin/normalization/unmapped" {
