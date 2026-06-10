@@ -14,5 +14,9 @@ FROM alpine:3.23
 RUN apk --no-cache add ca-certificates
 WORKDIR /app
 COPY --from=builder /api .
+COPY packages/shared/migrations /app/packages/shared/migrations
+COPY packages/shared/seed.sql /app/packages/shared/seed.sql
+ENV MIGRATIONS_DIR=/app/packages/shared/migrations
+ENV SEED_FILE=/app/packages/shared/seed.sql
 EXPOSE 8080
 CMD ["./api"]

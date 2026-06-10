@@ -75,3 +75,8 @@ export const adminLLMFieldDefKeys = {
 export const adminCategoryClassifierKeys = {
   all: ["admin", "categoryClassifier"] as const,
 };
+
+export const adminDBKeys = {
+  all: ["admin", "db"] as const,
+  migrations: () => [...adminDBKeys.all, "migrations"] as const,
+};

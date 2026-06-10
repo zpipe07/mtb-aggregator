@@ -24,6 +24,7 @@ import {
   fetchAdminCategoryTree,
   fetchCanonicalCategoryPaths,
   fetchCategoryProfileFields,
+  fetchDBMigrations,
 } from "../api";
 import {
   adminDashboardKeys,
@@ -40,6 +41,7 @@ import {
   adminLLMFieldDefKeys,
   adminCategoryClassifierKeys,
   adminCategoryKeys,
+  adminDBKeys,
 } from "./queryKeys";
 
 export function useAdminDashboard() {
@@ -275,5 +277,13 @@ export function useCategoryProfileFields(categoryId: number | null | undefined) 
     queryFn: () => fetchCategoryProfileFields(categoryId!),
     enabled: categoryId != null && categoryId > 0,
     staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useDBMigrations() {
+  return useQuery({
+    queryKey: adminDBKeys.migrations(),
+    queryFn: fetchDBMigrations,
+    staleTime: 30 * 1000,
   });
 }
