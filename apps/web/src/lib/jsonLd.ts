@@ -21,11 +21,28 @@ type ProductLike = {
   id: number;
   product_name: string;
   current_price: number;
+  original_price?: number;
+  discount_pct?: number;
   brand?: string;
   image_url?: string;
   store_name: string;
+  store_sku?: string;
   is_in_stock: boolean;
 };
+
+/** Plain-text description aligned with deal PDP meta descriptions. */
+export function buildDealProductDescription(deal: ProductLike): string {
+  const priceStr = `$${deal.current_price.toFixed(2)}`;
+  const orig =
+    deal.original_price != null && deal.original_price > deal.current_price
+      ? ` (was $${deal.original_price.toFixed(2)})`
+      : "";
+  const discount =
+    deal.discount_pct != null && deal.discount_pct > 0
+      ? ` — ${Math.round(deal.discount_pct)}% off`
+      : "";
+  return `${priceStr} at ${deal.store_name}${orig}${discount}. Compare MTB deals on The Dropper.`;
+}
 
 /** Product + Offer for a deal detail page (canonical URL is our listing page). */
 export function buildProductJsonLd(deal: ProductLike): Record<string, unknown> {
@@ -35,6 +52,7 @@ export function buildProductJsonLd(deal: ProductLike): Record<string, unknown> {
     price: deal.current_price,
     priceCurrency: "USD",
     url: pageUrl,
+    itemCondition: "https://schema.org/NewCondition",
     availability: deal.is_in_stock
       ? "https://schema.org/InStock"
       : "https://schema.org/OutOfStock",
@@ -47,10 +65,14 @@ export function buildProductJsonLd(deal: ProductLike): Record<string, unknown> {
     "@context": CTX,
     "@type": "Product",
     name: deal.product_name,
+    description: buildDealProductDescription(deal),
     offers: offer,
   };
   if (deal.brand) {
     product.brand = { "@type": "Brand", name: deal.brand };
+  }
+  if (deal.store_sku?.trim()) {
+    product.sku = deal.store_sku.trim();
   }
   if (deal.image_url) {
     product.image = deal.image_url;

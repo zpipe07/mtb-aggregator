@@ -9,7 +9,11 @@ import {
   findCategoryWithAncestors,
 } from "@/lib/categoryTree";
 import { buildDealsCategoryPath } from "@/lib/dealsCategoryPath";
-import { buildBreadcrumbJsonLd, buildProductJsonLd } from "@/lib/jsonLd";
+import {
+  buildBreadcrumbJsonLd,
+  buildDealProductDescription,
+  buildProductJsonLd,
+} from "@/lib/jsonLd";
 import { absoluteUrl } from "@/lib/siteUrl";
 import { DealDetailContent } from "./DealDetailContent";
 import DealDetailLoading from "./loading";
@@ -29,16 +33,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const deal = await fetchDeal(dealId);
     const path = `/deals/${dealId}`;
     const titleSegment = `${deal.product_name}${deal.brand ? ` | ${deal.brand}` : ""}`;
-    const priceStr = `$${deal.current_price.toFixed(2)}`;
-    const orig =
-      deal.original_price != null && deal.original_price > deal.current_price
-        ? ` (was $${deal.original_price.toFixed(2)})`
-        : "";
-    const discount =
-      deal.discount_pct != null && deal.discount_pct > 0
-        ? ` — ${Math.round(deal.discount_pct)}% off`
-        : "";
-    const description = `${priceStr} at ${deal.store_name}${orig}${discount}. Compare MTB deals on The Dropper.`;
+    const description = buildDealProductDescription(deal);
     const canonical = absoluteUrl(path);
     const ogImages = deal.image_url
       ? [{ url: deal.image_url, alt: deal.product_name }]
