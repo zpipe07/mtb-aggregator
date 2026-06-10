@@ -214,7 +214,31 @@ func (db *DB) UpsertListing(ctx context.Context, listing Listing) (int, error) {
 			category_path = CASE WHEN EXCLUDED.category_path IS NOT NULL AND array_length(EXCLUDED.category_path, 1) > 0 THEN EXCLUDED.category_path ELSE store_listings.category_path END,
 			canonical_category = CASE WHEN store_listings.canonical_category IS NOT NULL AND array_length(store_listings.canonical_category, 1) > 0 THEN store_listings.canonical_category ELSE EXCLUDED.canonical_category END,
 			category_id = COALESCE(store_listings.category_id, EXCLUDED.category_id),
-			metadata = EXCLUDED.metadata,
+			metadata = CASE
+				WHEN EXCLUDED.metadata IS NULL OR EXCLUDED.metadata = '{}'::jsonb
+				THEN store_listings.metadata
+				WHEN store_listings.metadata IS NULL OR store_listings.metadata = '{}'::jsonb
+				THEN EXCLUDED.metadata
+				ELSE (
+					COALESCE(store_listings.metadata, '{}'::jsonb)
+					|| CASE
+						WHEN EXCLUDED.metadata ? 'description'
+							AND NULLIF(BTRIM(EXCLUDED.metadata->>'description'), '') IS NOT NULL
+						THEN jsonb_build_object('description', EXCLUDED.metadata->'description')
+						ELSE '{}'::jsonb
+					END
+					|| CASE
+						WHEN EXCLUDED.metadata ? 'specs'
+							AND jsonb_typeof(EXCLUDED.metadata->'specs') = 'object'
+							AND EXCLUDED.metadata->'specs' <> '{}'::jsonb
+						THEN jsonb_build_object(
+							'specs',
+							COALESCE(store_listings.metadata->'specs', '{}'::jsonb) || EXCLUDED.metadata->'specs'
+						)
+						ELSE '{}'::jsonb
+					END
+				)
+			END,
 			is_in_stock = EXCLUDED.is_in_stock,
 			product_group_key = COALESCE(EXCLUDED.product_group_key, store_listings.product_group_key),
 			variant_options = COALESCE(EXCLUDED.variant_options, store_listings.variant_options),
@@ -1926,6 +1950,23 @@ func (db *DB) BackfillMetadata(ctx context.Context, extractFn func(productName s
 		updated++
 	}
 	return updated, rows.Err()
+}
+
+// RequeueWipedEnrichment clears last_enriched_at on listings whose metadata was wiped by a scrape
+// that ran after enrichment (empty metadata but enrichment timestamp set). Returns rows updated.
+// Run make enrich-now FORCE=1 afterward to re-fetch PDP specs.
+func (db *DB) RequeueWipedEnrichment(ctx context.Context) (int64, error) {
+	tag, err := db.pool.Exec(ctx, `
+		UPDATE store_listings
+		SET last_enriched_at = NULL
+		WHERE last_enriched_at IS NOT NULL
+		  AND (metadata IS NULL OR metadata = '{}'::jsonb)
+		  AND last_scraped > last_enriched_at
+	`)
+	if err != nil {
+		return 0, err
+	}
+	return tag.RowsAffected(), nil
 }
 
 // BackfillCanonicalCategories sets canonical_category and category_id from category_path using the given mapper (e.g. taxonomy.Map).
