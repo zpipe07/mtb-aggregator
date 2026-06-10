@@ -20,10 +20,7 @@ func adminDBOpsAllowed() bool {
 	case "production", "prod":
 		return false
 	}
-	if strings.EqualFold(strings.TrimSpace(os.Getenv("RENDER")), "true") {
-		return false
-	}
-	return true
+	return !strings.EqualFold(strings.TrimSpace(os.Getenv("RENDER")), "true")
 }
 
 // GetAdminDBMigrations returns migration file status (applied vs pending).
