@@ -4,6 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "build:deps": "pnpm --filter @mtb-aggregator/logging run build",
+    "prebuild": "pnpm run build:deps",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
