@@ -1,0 +1,67 @@
+# AGENTS.md
+
+## Cursor Cloud specific instructions
+
+### Prerequisites on the VM
+
+- **Go 1.25+** is required (`apps/api/go.mod` pins `go 1.25.0`). The system Go may be older; use `/usr/local/go/bin` (install Go 1.25.10 if missing).
+- **Docker** runs Postgres via `docker-compose.yml`. In this environment, start `dockerd` manually if needed and use `sudo docker compose` (or `sudo chmod 666 /var/run/docker.sock`) when the socket is root-only.
+- **Playwright Chromium** must be installed once for the scraper: `pnpm --filter @mtb-aggregator/scraper exec playwright install chromium --with-deps`.
+
+### Workspace package build
+
+`@mtb-aggregator/logging` must be built before scraper/web dev servers start (otherwise `ERR_MODULE_NOT_FOUND`). CI builds it explicitly; locally run:
+
+```bash
+pnpm --filter @mtb-aggregator/logging run build
+```
+
+The scraper `pretest`/`prebuild` hooks do this automatically for tests/builds.
+
+### Port allocation (important)
+
+Scraper and Next.js both default to **port 3000**. Start **scraper first**, then web with an explicit port:
+
+```bash
+# Terminal: scraper (3000)
+pnpm --filter @mtb-aggregator/scraper run dev
+
+# Terminal: API (8080)
+cd apps/api && DATABASE_URL=postgres://mtb:mtb@localhost:5432/mtb_deals go run main.go
+
+# Terminal: web (3001)
+PORT=3001 pnpm --filter @mtb-aggregator/web run dev
+```
+
+Web proxies `/api/*` → `http://localhost:8080` via `apps/web/next.config.ts` rewrites.
+
+### Database bootstrap (first time or fresh volume)
+
+```bash
+sudo docker compose up -d db
+# schema + seed + incremental migrations (see Makefile)
+cat packages/shared/schema.sql | sudo docker compose exec -T db psql -U mtb -d mtb_deals -f -
+cat packages/shared/seed.sql | sudo docker compose exec -T db psql -U mtb -d mtb_deals -f -
+for f in packages/shared/migrations/*.sql; do cat "$f" | sudo docker compose exec -T db psql -U mtb -d mtb_deals -f -; done
+```
+
+Or use `make db-up db-migrate db-seed db-migrate-docker` when Docker socket permissions allow non-sudo `docker compose`.
+
+### Standard commands (see also `CLAUDE.md`, `README.md`)
+
+| Task | Command |
+|------|---------|
+| Install deps | `make install` |
+| Web lint | `pnpm --filter @mtb-aggregator/web run lint` |
+| Scraper tests | `pnpm --filter @mtb-aggregator/scraper run test` |
+| Go vet | `cd apps/api && go vet ./...` |
+| Trigger scrape | `curl -X POST 'http://localhost:8080/scrape-now?store=worldwidecyclery'` |
+| API health | `curl http://localhost:8080/health` |
+| Scraper health | `curl http://localhost:3000/health` |
+
+### Hello-world E2E check
+
+1. Postgres + API + scraper + web running (ports above).
+2. `curl -X POST 'http://localhost:8080/scrape-now?store=worldwidecyclery'` — scrape runs in background (~1–3 min).
+3. `curl 'http://localhost:8080/deals?limit=5'` — should return listings.
+4. Browser: `http://localhost:3001/deals` — deal cards with filters and pagination.
