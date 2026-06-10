@@ -59,8 +59,10 @@ GitHub Actions runs **Lighthouse CI** against `http://127.0.0.1:3000/` and `/dea
 pnpm run dev          # Next.js dev server (port 3000)
 pnpm run test         # Vitest (filter URL parsing, etc.)
 pnpm run storybook    # Storybook (port 6006)
-pnpm run build        # Production build
+pnpm run build        # Production build (runs prebuild → compiles @mtb-aggregator/logging)
 ```
+
+`pnpm run build` runs **`prebuild`** first to compile the workspace `@mtb-aggregator/logging` package (required on Vercel/CI where `dist/` is not committed). Same pattern as `apps/scraper`.
 
 The API must be running for data. Configure `NEXT_PUBLIC_API_URL` (client) or `API_URL` (server) or use the default proxy (`/api` → `http://localhost:8080`).
 
