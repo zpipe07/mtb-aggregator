@@ -66,8 +66,6 @@ pnpm run build        # Production build (runs prebuild → compiles @mtb-aggreg
 
 The API must be running for data. Configure `NEXT_PUBLIC_API_URL` (client) or `API_URL` (server) or use the default proxy (`/api` → `http://localhost:8080`).
 
-**Vercel builds:** `next build` fetches the API on the server for `/`, `/categories`, and sitemap. Set **`API_URL`** to your **absolute** API origin (e.g. `https://mtb-aggregator-api.onrender.com`) for **Preview** and **Production**. If `NEXT_PUBLIC_API_URL` is `/api` (relative, fine in the browser via rewrites), server-side build fetches still need `API_URL` — otherwise prerender hangs and the build fails with `pnpm run build exited with 1`. GitHub Actions uses the same pattern (`API_URL` in repository Variables).
-
 **Canonical site URL (SEO):** Set `NEXT_PUBLIC_SITE_URL` to your public origin (e.g. `https://thedropper.shop`) so `metadataBase`, Open Graph `url`, canonical links, [`sitemap.ts`](src/app/sitemap.ts), and [`robots.ts`](src/app/robots.ts) resolve correctly.
 
 - **Vercel Production:** `NEXT_PUBLIC_SITE_URL` is **required** — the app throws if it is unset (see [`src/lib/siteUrl.ts`](src/lib/siteUrl.ts)). Do **not** rely on `VERCEL_URL` in production; it is the deployment hostname and would poison canonicals and sitemap URLs.
