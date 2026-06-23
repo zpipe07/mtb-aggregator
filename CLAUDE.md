@@ -56,6 +56,7 @@ cd apps/web && pnpm run dev
 - `CRON_SECRET` — shared secret for `POST /scrape-now` / `enrich-now` (header `X-Cron-Secret`); **set in production**. If unset in production (`APP_ENV=production` or `RENDER=true`), those endpoints require admin Bearer unless `ALLOW_OPEN_CRON=1`
 - `CORS_ORIGINS` — comma-separated allowed origins (defaults to `*`); when using a custom Vercel domain, include `https://yourdomain.com` (and `https://www...` if used) if not using `*`
 - `SCRAPE_CRON_SPEC` / `ENRICH_CRON_SPEC` — override cron schedules (set to `disabled` to use external cron)
+- **`ENRICH_MAX_LISTINGS`** — optional cap on total listings processed per enrich job (default unlimited; e.g. `100` stops after 100 listings regardless of batch count)
 - When in-process cron is enabled, startup **catch-up** runs scrape/enrich if the last DB job is more than 24h old (see [apps/api/README.md](apps/api/README.md))
 - `NEXT_PUBLIC_API_URL` — client-side API base (defaults to `/api`); `API_URL` for server-side (full URL)
 - `NEXT_PUBLIC_SITE_URL` — public web origin for Next.js `metadataBase`, canonical URLs, Open Graph, sitemap, and `robots.txt` sitemap line (**required on Vercel Production**; Preview falls back to `VERCEL_URL` when unset)
@@ -86,7 +87,7 @@ make scrape-now-trek           # trek only
 make scrape-now-universalcycles  # universalcycles only
 make enrich-now              # enrich unenriched listings
 make enrich-now-revel        # revelbikes only (optional FORCE=1)
-make enrich-now-competitivecyclist   # CC only (optional FORCE=1)
+make enrich-now-competitivecyclist   # CC only (optional FORCE=1) — no-op for scheduled enrich (CC not in StoreTypesWithEnrichers); use admin bulk-enrich or backfill-cc-variants
 make enrich-now-thundermountainbikes   # thundermountainbikes only (optional FORCE=1)
 make enrich-now-canyon         # canyon only (optional FORCE=1)
 make enrich-now-specialized    # specialized only (optional FORCE=1)
@@ -123,7 +124,7 @@ pnpm --filter @mtb-aggregator/web run build-storybook  # static build to storybo
 2. **Scrape job**: for each store, either **(a)** pulls Competitive Cyclist from the **Impact catalog API** in the Go scheduler when `IMPACT_ACCOUNT_SID` / `IMPACT_AUTH_TOKEN` are set, or **(b)** calls the scraper `POST /scrape` with the store's `scrape_url` and `store_type`
 3. **Scraper service** uses Playwright parsers for non-CC stores; returns `ScrapeResult[]`
 4. **API** upserts listings into Postgres, applying brand normalization and metadata extraction. For **Competitive Cyclist**, `affiliate_url` uses `IMPACT_DEEP_LINK_COMPETITIVE_CYCLIST` when set, else the catalog **`Url`** when it’s a tracked hop; otherwise the UI uses **`product_url`**. Catalog **`Description`** may be merged into `metadata.description` for LLM enrichment (no PDP for CC).
-5. **Enrich job**: fetches PDP URLs through `POST /enrich` for stores in `StoreTypesWithEnrichers` (includes **Competitive Cyclist** — enrich-only on the scraper; ingest remains Impact catalog). CC enrich parses PDP JSON-LD **`hasVariant`** and fans out **`product_group_key`** / **`variant_options`** to matching catalog SKUs (`make backfill-cc-variants` for existing rows).
+5. **Enrich job**: fetches PDP URLs through `POST /enrich` for stores in `StoreTypesWithEnrichers` (excludes **Competitive Cyclist** — Impact ingest only; CC PDP enrich is WAF-blocked in production). Optional **`ENRICH_MAX_LISTINGS`** caps total listings per job. CC variant grouping is handled via admin/backfill (`make backfill-cc-variants`) when WAF cookies are refreshed.
 6. **Category taxonomy** maps raw store category paths to canonical MTB categories (e.g. `["Components", "Brakes"]`)
 
 ### Scraper Service (`apps/scraper/`)
@@ -133,7 +134,7 @@ pnpm --filter @mtb-aggregator/web run build-storybook  # static build to storybo
 - `PARSERS` and `ENRICHERS` maps registered in `parsers/index.ts`
 - Adding a new store: create parser in `parsers/`, add to maps in `parsers/index.ts`, add store enum value to `ScrapeRequestSchema`/`EnrichRequestSchema` in `types.ts`, insert store record in DB
 - **JensonUSA clearance:** `data-product-result-dto` includes `variants[]`; `jensonusa-dto.ts` emits one `ScrapeResult` per variant (`product_group_key` = parent `code`, listing `variant_options` often Color-only). PDP enrich (`jensonusa-pdp.ts` + `enrichJensonUSA`) returns `variants[]` from `serverSideViewModel.variants`; the API fans out full `variant_options` and `is_in_stock` to all siblings. `make backfill-jenson-variants` replays that for existing rows. Migration `025` hides superseded parent-SKU rows after per-variant scrapes land.
-- **Competitive Cyclist:** Impact catalog ingest (API) creates flat rows per SKU; PDP enrich (`cc-pdp-variants.ts` JSON-LD **`hasVariant`**) fans out **`product_group_key`** + **`variant_options`** to siblings sharing the same canonical **`product_url`**. `make backfill-cc-variants` replays grouping for existing rows. CC PDP fetch uses Playwright + **`SCRAPER_STORAGE_STATE`** (WAF cookies); bootstrap **`apps/scraper/cc-storage.json`** locally — [apps/scraper/README.md](apps/scraper/README.md#competitive-cyclist).
+- **Competitive Cyclist:** Impact catalog ingest (API) creates flat rows per SKU. CC is **not** in `StoreTypesWithEnrichers` (scheduled enrich skips CC). The scraper enricher (`cc-pdp-variants.ts`) remains for admin/manual use and `make backfill-cc-variants` when WAF cookies are valid (`SCRAPER_STORAGE_STATE`; see [apps/scraper/README.md](apps/scraper/README.md#competitive-cyclist)).
 - **Universal Cycles:** fetch + Cheerio on `specials.php` (~615 sale products, `?resultpage=` pagination). Scrape emits one parent row per product id; PDP enrich (`universalcycles-pdp.ts`) returns `variants[]` per `#attribute_{id}` block; the API upserts composite SKU rows (`{productId}-{attributeId}`) via `ApplyUniversalCyclesVariantFanout` and hides the parent. Migration `026` hides superseded parent rows when attribute siblings exist. OOS attributes stay listed with `is_in_stock=false` (Jenson pattern).
 
 ### API (`apps/api/`)

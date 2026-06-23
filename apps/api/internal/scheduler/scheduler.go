@@ -49,6 +49,15 @@ func getEnrichBatchSize() int {
 	return defaultEnrichBatchSize
 }
 
+func getEnrichMaxListings() int {
+	if s := os.Getenv("ENRICH_MAX_LISTINGS"); s != "" {
+		if n, err := strconv.Atoi(s); err == nil && n > 0 {
+			return n
+		}
+	}
+	return 0
+}
+
 func getEnrichJobTimeout() time.Duration {
 	if s := os.Getenv("ENRICH_JOB_TIMEOUT"); s != "" {
 		if d, err := time.ParseDuration(s); err == nil && d > 0 {
@@ -530,6 +539,7 @@ func (s *Scheduler) runEnrichmentLoop(f db.EnrichmentFilter, force bool, trigger
 	}()
 
 	batchSize := getEnrichBatchSize()
+	maxListings := getEnrichMaxListings()
 	var llmState llmlisting.QuotaJobState
 	for {
 		if ctx.Err() != nil {
@@ -562,6 +572,9 @@ func (s *Scheduler) runEnrichmentLoop(f db.EnrichmentFilter, force bool, trigger
 		seenUCGroups := make(map[string]bool)
 		successCount := 0
 		for _, l := range listings {
+			if maxListings > 0 && totalProcessed >= maxListings {
+				break
+			}
 			if ctx.Err() != nil {
 				enrichmentLog.Warn("enrichment job timeout; saving partial progress", "scope", scope, "processed", totalProcessed, "enriched", totalSuccess)
 				sentryutil.CaptureError(
@@ -606,6 +619,10 @@ func (s *Scheduler) runEnrichmentLoop(f db.EnrichmentFilter, force bool, trigger
 			llmlisting.RunSpecDetermination(ctx, s.db, s.llm, l.ID, &llmState, &errStrs)
 		}
 		enrichmentLog.Info("enrichment batch done", "scope", scope, "enriched", successCount, "batch_size", len(listings))
+		if maxListings > 0 && totalProcessed >= maxListings {
+			enrichmentLog.Info("reached per-job listing cap", "scope", scope, "cap", maxListings, "processed", totalProcessed)
+			break
+		}
 		if len(listings) < batchSize {
 			break
 		}

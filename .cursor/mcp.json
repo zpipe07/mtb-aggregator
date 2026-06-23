@@ -7,6 +7,13 @@
     "pagespeed-insights": {
       "command": "npx",
       "args": ["-y", "pagespeed-insights-mcp"]
+    },
+    "Neon": {
+      "type": "http",
+      "url": "https://mcp.neon.tech/mcp"
+    },
+    "render": {
+      "url": "https://mcp.render.com/mcp"
     }
   }
 }
