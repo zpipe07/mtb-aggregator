@@ -10,16 +10,10 @@
     },
     "Neon": {
       "type": "http",
-      "url": "https://mcp.neon.tech/mcp",
-      "headers": {
-        "Authorization": "Bearer napi_2clqripig2db0cwrhsfa10ogglwh4gu8j2gq23h2p8p87vt9dfqho5cj00j1n3en"
-      }
+      "url": "https://mcp.neon.tech/mcp"
     },
     "render": {
-      "url": "https://mcp.render.com/mcp",
-      "headers": {
-        "Authorization": "Bearer rnd_i175ZFYQfulOrioaJwbRj8hSMV4z"
-      }
+      "url": "https://mcp.render.com/mcp"
     }
   }
 }
