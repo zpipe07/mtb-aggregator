@@ -11,6 +11,7 @@ import {
 import { buildDealsCategoryPath } from "@/lib/dealsCategoryPath";
 import { buildBreadcrumbJsonLd, buildProductJsonLd } from "@/lib/jsonLd";
 import { absoluteUrl } from "@/lib/siteUrl";
+import { RelatedDeals } from "@/components/RelatedDeals";
 import { DealDetailContent } from "./DealDetailContent";
 import DealDetailLoading from "./loading";
 
@@ -123,7 +124,7 @@ export default async function DealPage({ params }: Props) {
   return (
     <>
       <JsonLd data={buildBreadcrumbJsonLd(breadcrumbItems)} />
-      <JsonLd data={buildProductJsonLd(deal)} />
+      <JsonLd data={buildProductJsonLd(deal, priceHistory)} />
       <Suspense fallback={<DealDetailLoading />}>
         <DealDetailContent
           deal={deal}
@@ -132,6 +133,9 @@ export default async function DealPage({ params }: Props) {
           categoryBrowseHref={categoryBrowseHref}
           categoryBrowseLabel={categoryBrowseLabel}
         />
+        <div className="mx-auto max-w-3xl px-4 pb-10 sm:px-6">
+          <RelatedDeals deal={deal} categorySlug={categorySlug ?? undefined} />
+        </div>
       </Suspense>
     </>
   );

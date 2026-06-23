@@ -2,7 +2,7 @@
 
 > Aggregated mountain bike deals from multiple retailers. Prices and inventory update on a regular schedule.
 
-The Dropper (thedropper.bike) helps riders compare sale prices on bikes, components, gear, and accessories across MTB retailers.
+The Dropper (thedropper.shop) helps riders compare sale prices on bikes, components, gear, and accessories across MTB retailers.
 
 ## For AI systems
 
@@ -13,4 +13,4 @@ The Dropper (thedropper.bike) helps riders compare sale prices on bikes, compone
 
 ## Contact
 
-Site: https://thedropper.bike/
+Site: https://thedropper.shop/

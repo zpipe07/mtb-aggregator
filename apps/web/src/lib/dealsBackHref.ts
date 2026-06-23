@@ -63,7 +63,8 @@ export function sanitizeDealsListBackHref(
     if (
       u.pathname === "/deals" ||
       u.pathname.startsWith("/deals/c/") ||
-      u.pathname.startsWith("/deals/hub/")
+      u.pathname.startsWith("/deals/hub/") ||
+      u.pathname.startsWith("/deals/brand/")
     ) {
       return `${u.pathname}${u.search}`;
     }
@@ -73,8 +74,9 @@ export function sanitizeDealsListBackHref(
   }
 }
 
-export function buildDealDetailHref(dealId: number, dealsListPath: string): string {
-  return `/deals/${dealId}?from=${encodeURIComponent(dealsListPath)}`;
+/** Canonical deal detail URL (back context stored in sessionStorage on click). */
+export function buildDealDetailHref(dealId: number, _dealsListPath?: string): string {
+  return `/deals/${dealId}`;
 }
 
 /** Contextual label for deal detail "Back to deals" from a sanitized list href. */
@@ -98,6 +100,16 @@ export function dealsListBackLabel(
       const hubSlug = pathname.slice("/deals/hub/".length).replace(/\/$/, "");
       const hub = hubSlug ? getSeoHubBySlug(hubSlug) : undefined;
       if (hub) return `← Back to ${hub.title}`;
+      return "← Back to deals";
+    }
+
+    if (pathname.startsWith("/deals/brand/")) {
+      const rest = pathname.slice("/deals/brand/".length).replace(/\/$/, "");
+      const brandSlug = rest.split("/c/")[0];
+      if (brandSlug) {
+        const label = brandSlug.replace(/-/g, " ");
+        return `← Back to ${label.charAt(0).toUpperCase()}${label.slice(1)} deals`;
+      }
       return "← Back to deals";
     }
 

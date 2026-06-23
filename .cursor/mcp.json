@@ -1,19 +1,20 @@
 {
   "mcpServers": {
     "google-search-console": {
-      "command": "npx",
-      "args": ["-y", "google-searchconsole-mcp"]
+      "command": "/Users/zackpiper/.nvm/versions/node/v20.11.1/bin/npx",
+      "args": ["-y", "google-searchconsole-mcp"],
+      "env": {
+        "PATH": "/Users/zackpiper/.nvm/versions/node/v20.11.1/bin:/usr/local/bin:/usr/bin:/bin",
+        "npm_config_prefix": "/Users/zackpiper/.nvm/versions/node/v20.11.1"
+      }
     },
     "pagespeed-insights": {
-      "command": "npx",
-      "args": ["-y", "pagespeed-insights-mcp"]
-    },
-    "Neon": {
-      "type": "http",
-      "url": "https://mcp.neon.tech/mcp"
-    },
-    "render": {
-      "url": "https://mcp.render.com/mcp"
+      "command": "/Users/zackpiper/.nvm/versions/node/v20.11.1/bin/npx",
+      "args": ["-y", "pagespeed-insights-mcp"],
+      "env": {
+        "PATH": "/Users/zackpiper/.nvm/versions/node/v20.11.1/bin:/usr/local/bin:/usr/bin:/bin",
+        "npm_config_prefix": "/Users/zackpiper/.nvm/versions/node/v20.11.1"
+      }
     }
   }
 }

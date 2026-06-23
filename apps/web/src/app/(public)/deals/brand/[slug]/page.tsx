@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import {
+  fetchBrands,
   fetchDeals,
   fetchFacets,
   fetchStores,
@@ -13,42 +14,52 @@ import { parseFilterParamsFromSearch } from "@/lib/filterParams";
 import { searchParamsRecordToDealsCategoryListPath } from "@/lib/dealsBackHref";
 import { JsonLd } from "@/components/JsonLd";
 import {
-  categoryHasDeals,
-  findCategoryBySlug,
-  findCategoryWithAncestors,
-} from "@/lib/categoryTree";
-import { buildDealsCategoryPath } from "@/lib/dealsCategoryPath";
-import { categoryMetadataForSlug, getCategorySeo } from "@/lib/categorySeo";
-import { buildBreadcrumbJsonLd, buildProductItemListJsonLd, buildAggregateOfferJsonLd } from "@/lib/jsonLd";
+  brandMeetsIndexThreshold,
+  buildBrandDealsPath,
+  resolveBrandFromSlug,
+} from "@/lib/brandPages";
+import { brandMetadataForName, getBrandSeo } from "@/lib/brandSeo";
+import {
+  buildAggregateOfferJsonLd,
+  buildBreadcrumbJsonLd,
+  buildProductItemListJsonLd,
+} from "@/lib/jsonLd";
 import { absoluteUrl } from "@/lib/siteUrl";
+import { BrandCategoryLinks } from "@/components/BrandLinks";
 import { DealsPageContent } from "@/views/DealsPageContent";
-import { SeoHubLinksForCategory } from "@/components/SeoHubLinks";
-import { CategoryBrandLinks } from "@/components/BrandLinks";
-import CategoryDealsLoading from "./loading";
+import BrandDealsLoading from "./loading";
 
 /** 4h — must match {@link PUBLIC_ISR_REVALIDATE_SECONDS} in @/lib/revalidate. */
 export const revalidate = 14400;
 
 type Props = {
-  params: Promise<{ slug: string[] }>;
+  params: Promise<{ slug: string }>;
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
+async function brandDealCount(brand: string): Promise<number> {
+  const res = await fetchDeals({
+    brands: [brand],
+    limit: 1,
+    offset: 0,
+    group_variants: true,
+  });
+  return res.total_count ?? 0;
+}
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const categorySlug = slug.join("-");
-  const tree = await fetchCategoryTree();
-  const categoryNode = findCategoryBySlug(tree, categorySlug);
-  if (!categoryNode) {
-    return { title: "Category not found" };
-  }
-  const pathname = buildDealsCategoryPath(categorySlug, tree);
-  const base = categoryMetadataForSlug(categorySlug);
+  const brands = await fetchBrands().catch(() => []);
+  const brand = resolveBrandFromSlug(slug, brands);
+  if (!brand) return { title: "Brand not found" };
+  const pathname = buildBrandDealsPath(slug);
+  const total = await brandDealCount(brand);
+  const indexable = brandMeetsIndexThreshold(total);
+  const base = brandMetadataForName(brand);
   const ogTitle = `${base.title} | The Dropper`;
-  const emptyCategory = !categoryHasDeals(categoryNode);
   return {
     ...base,
-    ...(emptyCategory ? { robots: { index: false, follow: true } } : {}),
+    ...(indexable ? {} : { robots: { index: false, follow: true } }),
     alternates: { canonical: pathname },
     openGraph: {
       title: ogTitle,
@@ -65,28 +76,21 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-export default async function CategoryDealsPage({ params, searchParams }: Props) {
-  const [{ slug: slugSegments }, paramsRecord] = await Promise.all([
-    params,
-    searchParams,
-  ]);
-  const categorySlug = slugSegments.join("-");
+export default async function BrandDealsPage({ params, searchParams }: Props) {
+  const [{ slug }, paramsRecord] = await Promise.all([params, searchParams]);
+  const brands = await fetchBrands().catch(() => []);
+  const brand = resolveBrandFromSlug(slug, brands);
+  if (!brand) notFound();
 
-  const categoryTree = await fetchCategoryTree();
-  if (!findCategoryBySlug(categoryTree, categorySlug)) notFound();
-  const pathname = buildDealsCategoryPath(categorySlug, categoryTree);
-
+  const pathname = buildBrandDealsPath(slug);
   const filterParams = parseFilterParamsFromSearch(paramsRecord);
 
   const dealsParams = {
     limit: DEFAULT_PAGE_SIZE,
     offset: filterParams.offset,
     store: filterParams.storeFilter || undefined,
-    brands:
-      filterParams.brandFilters.length > 0
-        ? filterParams.brandFilters
-        : undefined,
-    category_slug: categorySlug,
+    brands: [brand],
+    category_slug: filterParams.categoryFilter || undefined,
     min_discount: filterParams.minDiscount
       ? parseFloat(filterParams.minDiscount) || undefined
       : undefined,
@@ -100,16 +104,13 @@ export default async function CategoryDealsPage({ params, searchParams }: Props)
         : undefined,
     q: filterParams.searchQuery.trim() || undefined,
     sort: filterParams.sort,
-    group_variants: true,
+    group_variants: true as const,
   };
 
   const facetsParams = {
     store: filterParams.storeFilter || undefined,
-    brands:
-      filterParams.brandFilters.length > 0
-        ? filterParams.brandFilters
-        : undefined,
-    category_slug: categorySlug,
+    brands: [brand],
+    category_slug: filterParams.categoryFilter || undefined,
     min_discount: filterParams.minDiscount
       ? parseFloat(filterParams.minDiscount) || undefined
       : undefined,
@@ -120,18 +121,12 @@ export default async function CategoryDealsPage({ params, searchParams }: Props)
     q: filterParams.searchQuery.trim() || undefined,
   };
 
-  const facetsForBrandOptionsPromise: Promise<FacetsResponse | null> =
-    filterParams.brandFilters.length > 0
-      ? fetchFacets({ ...facetsParams, brands: undefined })
-      : Promise.resolve(null);
-
-  const [dealsResponse, facetsResponse, facetsForBrandOptions, stores] =
-    await Promise.all([
-      fetchDeals(dealsParams),
-      fetchFacets(facetsParams),
-      facetsForBrandOptionsPromise,
-      fetchStores(),
-    ]);
+  const [dealsResponse, facetsResponse, stores, categoryTree] = await Promise.all([
+    fetchDeals(dealsParams),
+    fetchFacets(facetsParams),
+    fetchStores(),
+    fetchCategoryTree(),
+  ]);
 
   const deals = dealsResponse.deals ?? [];
   const totalCount = dealsResponse.total_count ?? 0;
@@ -141,38 +136,21 @@ export default async function CategoryDealsPage({ params, searchParams }: Props)
     price_range: { min: 0, max: 0 },
     total_matching: 0,
   };
-  const facets = {
-    ...facetsBase,
-    brand_facets:
-      facetsForBrandOptions?.brand_facets ?? facetsBase.brand_facets,
-  };
+  const facets = facetsBase;
+  const seo = getBrandSeo(brand);
 
   const dealsListPath = searchParamsRecordToDealsCategoryListPath(
     pathname,
-    paramsRecord
+    paramsRecord,
   );
 
-  const seo = getCategorySeo(categorySlug);
-
-  const breadcrumbItems: { name: string; path: string }[] = [
+  const breadcrumbItems = [
     { name: "Home", path: "/" },
     { name: "Deals", path: "/deals" },
+    { name: `${brand} deals`, path: pathname },
   ];
-  const foundCat = findCategoryWithAncestors(categoryTree, categorySlug);
-  if (foundCat) {
-    for (const a of foundCat.ancestors) {
-      breadcrumbItems.push({
-        name: a.name,
-        path: buildDealsCategoryPath(a.slug, categoryTree),
-      });
-    }
-    breadcrumbItems.push({
-      name: foundCat.node.name,
-      path: pathname,
-    });
-  } else {
-    breadcrumbItems.push({ name: categorySlug, path: pathname });
-  }
+
+  const priceRange = facets.price_range;
 
   return (
     <>
@@ -185,18 +163,18 @@ export default async function CategoryDealsPage({ params, searchParams }: Props)
           deals,
         })}
       />
-      {facets.price_range.max > 0 ? (
+      {priceRange.max > 0 ? (
         <JsonLd
           data={buildAggregateOfferJsonLd({
             name: seo.title,
             pageUrl: absoluteUrl(pathname),
-            lowPrice: facets.price_range.min,
-            highPrice: facets.price_range.max,
+            lowPrice: priceRange.min,
+            highPrice: priceRange.max,
             offerCount: totalCount,
           })}
         />
       ) : null}
-      <Suspense fallback={<CategoryDealsLoading />}>
+      <Suspense fallback={<BrandDealsLoading />}>
         <DealsPageContent
           deals={deals}
           totalCount={totalCount}
@@ -206,11 +184,10 @@ export default async function CategoryDealsPage({ params, searchParams }: Props)
           dealsListPath={dealsListPath}
           categoryIntro={seo.intro}
         >
-          <SeoHubLinksForCategory categorySlug={categorySlug} />
-          <CategoryBrandLinks
-            categorySlug={categorySlug}
+          <BrandCategoryLinks
+            brand={brand}
+            brandSlug={slug}
             categoryTree={categoryTree}
-            brandFacets={facets.brand_facets}
           />
         </DealsPageContent>
       </Suspense>

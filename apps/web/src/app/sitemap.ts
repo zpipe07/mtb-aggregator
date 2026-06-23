@@ -1,8 +1,13 @@
 import type { MetadataRoute } from "next";
-import { fetchCategoryTree, fetchDeals } from "@/api";
+import { fetchCategoryTree, fetchDeals, fetchBrands } from "@/api";
 import { filterCategoryTreeWithDeals } from "@/lib/categoryTree";
 import { allDealsCategoryPathsFromTree } from "@/lib/dealsCategoryPath";
 import { absoluteUrl } from "@/lib/siteUrl";
+import {
+  brandMeetsIndexThreshold,
+  brandToSlug,
+  buildBrandDealsPath,
+} from "@/lib/brandPages";
 import {
   listSeoHubs,
   hubMeetsIndexThreshold,
@@ -97,6 +102,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         if (dealUrls >= MAX_DEAL_URLS_IN_SITEMAP) break;
         entries.push({
           url: absoluteUrl(`/deals/${d.id}`),
+          lastModified: d.last_scraped ? new Date(d.last_scraped) : undefined,
           changeFrequency: "weekly",
           priority: 0.5,
         });
@@ -108,6 +114,27 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }
   } catch {
     // Skip deal URLs if API is down
+  }
+
+  try {
+    const brands = await fetchBrands();
+    for (const brand of brands) {
+      const slug = brandToSlug(brand);
+      const res = await fetchDeals({
+        brands: [brand],
+        limit: 1,
+        offset: 0,
+        group_variants: true,
+      });
+      if (!brandMeetsIndexThreshold(res.total_count ?? 0)) continue;
+      entries.push({
+        url: absoluteUrl(buildBrandDealsPath(slug)),
+        changeFrequency: "daily",
+        priority: 0.7,
+      });
+    }
+  } catch {
+    // Skip brand URLs if API is down
   }
 
   return entries;

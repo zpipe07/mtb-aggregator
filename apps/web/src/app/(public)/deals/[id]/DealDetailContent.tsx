@@ -17,6 +17,7 @@ import posthog from "posthog-js";
 import type { CategoryTreeNode, Deal, PriceHistoryResponse } from "@/api";
 import { isCategoryBrowseRedundantWithBack } from "@/lib/dealsBackHref";
 import { dealsListSurfaceFromListHref } from "@/lib/dealsListSurface";
+import { computeDealScore, pricePositionLabel } from "@/lib/dealScore";
 import { cn, focusRing } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useDealDetailListContext } from "./DealDetailBackNav";
@@ -133,6 +134,9 @@ function DealDetailContentInner({
       dateLabel: formatAxisDate(p.recorded_at),
     }));
 
+  const dealScore = computeDealScore(deal, priceHistory);
+  const priceLabel = pricePositionLabel(deal, priceHistory);
+
   useEffect(() => {
     posthog.capture("deal_detail_viewed", {
       deal_id: deal.id,
@@ -231,6 +235,22 @@ function DealDetailContentInner({
                       PRICE DROP
                     </span>
                   )}
+                  {dealScore.score >= 40 ? (
+                    <span
+                      className={cn(
+                        "inline-flex items-center rounded-sm border border-foreground/40 bg-primary/15 px-2 py-0.5",
+                        monoMicro,
+                        "text-foreground",
+                      )}
+                    >
+                      {dealScore.displayLabel.toUpperCase()}
+                    </span>
+                  ) : null}
+                  {priceLabel ? (
+                    <span className="text-xs text-muted-foreground">
+                      {priceLabel}
+                    </span>
+                  ) : null}
                 </div>
 
                 <div
@@ -447,7 +467,18 @@ function DealDetailContentInner({
 
             {priceHistory && (
               <div className="mt-8 border-t border-border pt-8">
-                <SectionLabel kicker="// 02" title="Price history" />
+                <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+                  <SectionLabel kicker="// 02" title="Price history" />
+                  <Link
+                    href={`/deals/${deal.id}/price-history`}
+                    className={cn(
+                      "font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground hover:text-foreground",
+                      focusRing,
+                    )}
+                  >
+                    Full price tracker →
+                  </Link>
+                </div>
                 {chartData.length === 0 && (
                   <p className="text-sm text-muted-foreground">
                     No history yet.

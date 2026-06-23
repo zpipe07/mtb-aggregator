@@ -6,7 +6,11 @@ import {
   buildBreadcrumbJsonLd,
   buildItemListJsonLd,
   buildProductJsonLd,
+  buildProductItemListJsonLd,
+  buildAggregateOfferJsonLd,
 } from "../src/lib/jsonLd";
+import { computeDealScore } from "../src/lib/dealScore";
+import { brandToSlug, resolveBrandFromSlug } from "../src/lib/brandPages";
 
 const crumb = buildBreadcrumbJsonLd([
   { name: "Home", path: "/" },
@@ -34,5 +38,48 @@ const product = buildProductJsonLd({
   is_in_stock: true,
 });
 assert.equal(product["@type"], "Product");
+
+const productList = buildProductItemListJsonLd({
+  name: "Fox deals",
+  totalCount: 10,
+  deals: [
+    {
+      id: 1,
+      product_name: "Fox 36",
+      current_price: 599,
+      store_name: "Shop",
+      is_in_stock: true,
+      brand: "Fox",
+    },
+  ],
+});
+assert.equal(productList["@type"], "ItemList");
+
+const aggregate = buildAggregateOfferJsonLd({
+  name: "Fox deals",
+  pageUrl: "https://example.com/deals/brand/fox",
+  lowPrice: 100,
+  highPrice: 900,
+  offerCount: 10,
+});
+assert.equal(aggregate["@type"], "AggregateOffer");
+
+assert.equal(brandToSlug("RockShox"), "rockshox");
+assert.equal(resolveBrandFromSlug("fox", ["Fox", "SRAM"]), "Fox");
+
+const score = computeDealScore({
+  id: 1,
+  store_id: 1,
+  store_name: "Shop",
+  store_sku: "x",
+  product_name: "Test",
+  current_price: 50,
+  original_price: 100,
+  product_url: "https://example.com",
+  is_in_stock: true,
+  discount_pct: 50,
+  last_scraped: "",
+});
+assert.ok(score.score >= 40);
 
 console.log("seo-smoke: ok");
