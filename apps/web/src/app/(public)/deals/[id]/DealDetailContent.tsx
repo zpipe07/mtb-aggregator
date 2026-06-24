@@ -536,7 +536,7 @@ function DealDetailContentInner({
                               fontFamily: "var(--font-mono)",
                             }}
                             stroke="var(--color-muted-foreground)"
-                            tickFormatter={(v) => `$${v}`}
+                            tickFormatter={(v) => `$${formatMoney(v)}`}
                             domain={["dataMin - 5", "dataMax + 5"]}
                           />
                           <Tooltip

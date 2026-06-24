@@ -1507,7 +1507,10 @@ export function DataBrowser() {
                         <LineChart data={chartData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
                           <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                           <XAxis dataKey="dateLabel" tick={{ fontSize: 10 }} />
-                          <YAxis tick={{ fontSize: 10 }} tickFormatter={(v) => `$${v}`} />
+                          <YAxis
+                            tick={{ fontSize: 10 }}
+                            tickFormatter={(v) => `$${Number(v).toFixed(2)}`}
+                          />
                           <Tooltip formatter={(v: number) => [`$${v.toFixed(2)}`, "Price"]} labelFormatter={(l) => l} />
                           <Line type="monotone" dataKey="price" stroke="#57534e" strokeWidth={2} dot={false} />
                         </LineChart>
