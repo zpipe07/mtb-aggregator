@@ -11,6 +11,7 @@ import { track } from "@vercel/analytics";
 import { useDeal, usePriceHistory } from "../hooks/queries";
 import { Button } from "./ui/button";
 import { cn, focusRing } from "@/lib/utils";
+import { formatMoney } from "@/lib/formatMoney";
 
 type DealDetailModalProps = {
   dealId: number | null;
@@ -19,10 +20,6 @@ type DealDetailModalProps = {
 
 const monoMicro =
   "font-mono text-[10px] font-semibold uppercase tracking-[0.14em]";
-
-function formatMoney(n: number) {
-  return n.toFixed(2);
-}
 
 function formatDate(iso: string) {
   try {

@@ -19,15 +19,12 @@ import { isCategoryBrowseRedundantWithBack } from "@/lib/dealsBackHref";
 import { dealsListSurfaceFromListHref } from "@/lib/dealsListSurface";
 import { computeDealScore, pricePositionLabel } from "@/lib/dealScore";
 import { cn, focusRing } from "@/lib/utils";
+import { formatMoney } from "@/lib/formatMoney";
 import { Button } from "@/components/ui/button";
 import { useDealDetailListContext } from "./DealDetailBackNav";
 
 const monoMicro =
   "font-mono text-[10px] font-semibold uppercase tracking-[0.14em]";
-
-function formatMoney(n: number) {
-  return n.toFixed(2);
-}
 
 function formatDate(iso: string) {
   try {

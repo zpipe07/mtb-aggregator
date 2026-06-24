@@ -41,12 +41,9 @@ import type {
 } from "./api";
 import { CategoryPicker } from "./CategoryPicker";
 import { sanitizeForHtmlId } from "../lib/htmlId";
+import { formatMoney } from "@/lib/formatMoney";
 
 const PAGE_SIZE = 25;
-
-function formatMoney(n: number) {
-  return n.toFixed(2);
-}
 
 /** Resolves admin tree path (root → leaf names) to the node's slug for GET /admin/listings?category_slug=. */
 function adminCategorySlugForPath(
