@@ -9,14 +9,27 @@ const middlewareCategoryTree = buildCategoryTreeFromFlat(
   categoriesExport.categories as CategoryFlatRow[],
 );
 
+const DEAL_DETAIL_PATH = /^\/deals\/(\d+)$/;
+
 /**
- * 308 redirect `/deals?category=<slug>` → `/deals/c/...` so category URLs stay canonical.
- * Other query params (q, brand, …) are preserved.
+ * Canonical URL hygiene:
+ * - `/deals?category=<slug>` → `/deals/c/...`
+ * - `/deals/[id]?from=...` → `/deals/[id]` (back nav uses sessionStorage)
  */
 export function middleware(request: NextRequest) {
-  if (request.nextUrl.pathname !== "/deals") {
+  const { pathname } = request.nextUrl;
+
+  const dealMatch = pathname.match(DEAL_DETAIL_PATH);
+  if (dealMatch && request.nextUrl.searchParams.has("from")) {
+    const url = request.nextUrl.clone();
+    url.searchParams.delete("from");
+    return NextResponse.redirect(url, 308);
+  }
+
+  if (pathname !== "/deals") {
     return NextResponse.next();
   }
+
   const cat = request.nextUrl.searchParams.get("category");
   if (!cat || !cat.trim()) {
     return NextResponse.next();
@@ -29,5 +42,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/deals"],
+  matcher: ["/deals", "/deals/:path*"],
 };

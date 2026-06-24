@@ -132,6 +132,66 @@ const HUBS: SeoHubDefinition[] = [
       "components",
     ],
   },
+  {
+    slug: "mountain-bikes-under-1000",
+    title: "Mountain bikes under $1,000",
+    description:
+      "Mountain bikes on sale under $1,000. Compare hardtail and entry-level full-suspension deals.",
+    intro:
+      "Budget MTB deals under a grand—hardtails and entry builds when shops mark them down.",
+    filters: { category_slug: "bikes-mountain", max_price: 1000 },
+    relatedCategorySlugs: ["bikes-mountain", "bikes"],
+  },
+  {
+    slug: "mountain-bikes-under-500",
+    title: "Mountain bikes under $500",
+    description:
+      "Mountain bikes under $500 on sale. Compare closeouts and budget builds across retailers.",
+    intro:
+      "Sub-$500 mountain bike deals—great for beginners or spare rigs.",
+    filters: { category_slug: "bikes-mountain", max_price: 500 },
+    relatedCategorySlugs: ["bikes-mountain", "bikes"],
+  },
+  {
+    slug: "components-under-200",
+    title: "MTB components under $200",
+    description:
+      "Mountain bike components on sale under $200. Compare parts deals across top retailers.",
+    intro:
+      "Component deals under $200—small upgrades and wear items at markdown prices.",
+    filters: { category_slug: "components", max_price: 200 },
+    relatedCategorySlugs: ["components"],
+  },
+  {
+    slug: "wheels-under-300",
+    title: "MTB wheels under $300",
+    description:
+      "Mountain bike wheels and wheelsets under $300. Compare sale prices across retailers.",
+    intro:
+      "Wheel deals under $300—rim, hub, and complete wheel markdowns in one feed.",
+    filters: {
+      category_slug: "components-wheels-tires",
+      max_price: 300,
+    },
+    relatedCategorySlugs: [
+      "components-wheels-tires",
+      "components-wheels-tires-complete-wheels",
+      "components",
+    ],
+  },
+  {
+    slug: "drivetrain-under-500",
+    title: "MTB drivetrain deals under $500",
+    description:
+      "Mountain bike drivetrain components under $500. Cassettes, derailleurs, and groups on sale.",
+    intro:
+      "Drivetrain deals under $500—upgrade shifting without paying full retail.",
+    filters: {
+      category_slug: "components-drivetrain",
+      max_price: 500,
+    },
+    relatedCategorySlugs: ["components-drivetrain", "components"],
+  },
 ];
 
 export function listSeoHubs(): SeoHubDefinition[] {

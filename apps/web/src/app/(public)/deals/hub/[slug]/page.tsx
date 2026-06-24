@@ -19,7 +19,7 @@ import {
   getSeoHubBySlug,
   hubMeetsIndexThreshold,
 } from "@/lib/seoHubs";
-import { buildBreadcrumbJsonLd, buildItemListJsonLd } from "@/lib/jsonLd";
+import { buildBreadcrumbJsonLd, buildProductItemListJsonLd, buildAggregateOfferJsonLd } from "@/lib/jsonLd";
 import { absoluteUrl } from "@/lib/siteUrl";
 import { DealsPageContent } from "@/views/DealsPageContent";
 import HubDealsLoading from "./loading";
@@ -128,16 +128,24 @@ export default async function SeoHubDealsPage({ params, searchParams }: Props) {
     <>
       <JsonLd data={buildBreadcrumbJsonLd(breadcrumbItems)} />
       <JsonLd
-        data={buildItemListJsonLd({
+        data={buildProductItemListJsonLd({
           name: hub.title,
           description: hub.description,
           totalCount,
-          deals: deals.map((d) => ({
-            id: d.id,
-            product_name: d.product_name,
-          })),
+          deals,
         })}
       />
+      {facets.price_range.max > 0 ? (
+        <JsonLd
+          data={buildAggregateOfferJsonLd({
+            name: hub.title,
+            pageUrl: absoluteUrl(pathname),
+            lowPrice: facets.price_range.min,
+            highPrice: facets.price_range.max,
+            offerCount: totalCount,
+          })}
+        />
+      ) : null}
       <Suspense fallback={<HubDealsLoading />}>
         <DealsPageContent
           deals={deals}

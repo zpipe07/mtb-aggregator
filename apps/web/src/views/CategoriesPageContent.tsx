@@ -209,7 +209,7 @@ export function CategoriesPageContent({ categoryTree, children }: Props) {
       </div>
 
       {children ? (
-        <div className="mt-14 border-t border-foreground/15 pt-12">
+        <div className="mt-14 space-y-10 border-t border-foreground/15 pt-12">
           {children}
         </div>
       ) : null}

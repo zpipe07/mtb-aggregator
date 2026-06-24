@@ -8,6 +8,7 @@ import { track } from "@vercel/analytics";
 import type { Deal } from "../api";
 import { Button } from "./ui/button";
 import { cn, focusRingWithin } from "@/lib/utils";
+import { computeDealScore } from "@/lib/dealScore";
 import { dealsListSurfaceFromPathname } from "@/lib/dealsListSurface";
 
 function formatMoney(n: number) {
@@ -21,6 +22,8 @@ type DealCardProps = {
   deal: Deal;
   /** When set, the image and product summary navigate to this internal URL (SEO + prefetch). */
   href?: string;
+  /** Persist list context before internal navigation (back button on detail page). */
+  onInternalNavigate?: () => void;
 };
 
 function CardCropMarks() {
@@ -52,10 +55,20 @@ function SnagRetailerLabel({ label = "Snag this deal" }: { label?: string }) {
   );
 }
 
-export function DealCard({ deal, href }: DealCardProps) {
+export function DealCard({ deal, href, onInternalNavigate }: DealCardProps) {
   const pathname = usePathname();
   const listSurface = dealsListSurfaceFromPathname(pathname);
   const viewUrl = deal.affiliate_url || deal.product_url;
+
+  const handleInternalNavigate = () => {
+    onInternalNavigate?.();
+    track("deal_card_click", {
+      deal_id: deal.id,
+      store: deal.store_name,
+      brand: deal.brand || "",
+      list_surface: listSurface,
+    });
+  };
   const discountPct =
     deal.discount_pct != null
       ? Math.round(deal.discount_pct)
@@ -64,6 +77,9 @@ export function DealCard({ deal, href }: DealCardProps) {
           deal.original_price > deal.current_price
         ? Math.round((1 - deal.current_price / deal.original_price) * 100)
         : null;
+
+  const dealScore = computeDealScore(deal);
+  const showScore = dealScore.score >= 40;
 
   const savings =
     deal.original_price != null &&
@@ -176,13 +192,7 @@ export function DealCard({ deal, href }: DealCardProps) {
                 title="Price history, specs, variants — open the full listing."
                 onClick={(e) => {
                   e.stopPropagation();
-                  track("deal_card_click", {
-                    deal_id: deal.id,
-                    store: deal.store_name,
-                    brand: deal.brand || "",
-                    cta: "view_details",
-                    list_surface: listSurface,
-                  });
+                  handleInternalNavigate();
                   posthog.capture("deal_card_click", {
                     cta: "view_details",
                     deal_id: deal.id,
@@ -253,17 +263,31 @@ export function DealCard({ deal, href }: DealCardProps) {
           </span>
         </div>
       )}
-      {deal.variant_count != null && deal.variant_count > 1 && (
-        <div className="absolute bottom-3 right-3">
-          <span
-            className={cn(
-              "inline-flex items-center gap-1.5 rounded-sm border border-foreground/40 bg-card/90 px-2 py-0.5 backdrop-blur-sm",
-              monoMicro,
-            )}
-          >
-            <span className="tabular-nums">{deal.variant_count}</span>
-            <span className="text-muted-foreground">variants</span>
-          </span>
+      {(showScore ||
+        (deal.variant_count != null && deal.variant_count > 1)) && (
+        <div className="absolute bottom-3 right-3 flex flex-col items-end gap-1">
+          {showScore ? (
+            <span
+              className={cn(
+                "inline-block rounded-sm border border-foreground/40 bg-card/90 px-2 py-0.5 backdrop-blur-sm",
+                monoMicro,
+                "text-foreground",
+              )}
+            >
+              {dealScore.displayLabel}
+            </span>
+          ) : null}
+          {deal.variant_count != null && deal.variant_count > 1 ? (
+            <span
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-sm border border-foreground/40 bg-card/90 px-2 py-0.5 backdrop-blur-sm",
+                monoMicro,
+              )}
+            >
+              <span className="tabular-nums">{deal.variant_count}</span>
+              <span className="text-muted-foreground">variants</span>
+            </span>
+          ) : null}
         </div>
       )}
     </div>
@@ -296,14 +320,7 @@ export function DealCard({ deal, href }: DealCardProps) {
             <Link
               href={href}
               className="block rounded-sm text-left outline-none"
-              onClick={() =>
-                track("deal_card_click", {
-                  deal_id: deal.id,
-                  store: deal.store_name,
-                  brand: deal.brand || "",
-                  list_surface: listSurface,
-                })
-              }
+              onClick={handleInternalNavigate}
             >
               {imageBlock}
               {body}

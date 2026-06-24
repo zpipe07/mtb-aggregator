@@ -278,8 +278,9 @@ type Deal struct {
 	ProductGroupKey *string  `json:"product_group_key,omitempty"`
 	VariantOptions  json.RawMessage `json:"variant_options,omitempty"`
 	Variants        json.RawMessage `json:"variants,omitempty"`
-	VariantCount    *int            `json:"variant_count,omitempty"`
-	PriceRange      []float64       `json:"price_range,omitempty"` // [min, max] when grouped
+	VariantCount          *int                 `json:"variant_count,omitempty"`
+	PriceRange            []float64            `json:"price_range,omitempty"` // [min, max] when grouped
+	PriceHistorySummary   *PriceHistorySummary `json:"price_history_summary,omitempty"`
 }
 
 // AdminListing extends Deal with created_at, last_enriched_at, hidden, and structured category for the admin data browser.
@@ -888,7 +889,13 @@ func (db *DB) GetDeals(ctx context.Context, params GetDealsParams) (*GetDealsRes
 	if deals == nil {
 		deals = []Deal{}
 	}
-	return &GetDealsResult{Deals: deals, TotalCount: totalCount}, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	if err := db.attachPriceHistorySummaries(ctx, deals); err != nil {
+		return nil, err
+	}
+	return &GetDealsResult{Deals: deals, TotalCount: totalCount}, nil
 }
 
 func (db *DB) GetDealByID(ctx context.Context, id int) (*Deal, error) {

@@ -15,6 +15,7 @@ import { useFilterParams } from "../hooks/useFilterParams";
 import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { buildDealDetailHref } from "@/lib/dealsBackHref";
+import { storeDealDetailBackHref } from "@/lib/dealDetailBackStorage";
 import {
   Toolbar,
   FilterSidebar,
@@ -282,6 +283,7 @@ export function DealsPageContent({
                 <DealGrid
                   deals={deals}
                   getHref={(d) => buildDealDetailHref(d.id, dealsListPath)}
+                  onDealNavigate={() => storeDealDetailBackHref(dealsListPath)}
                 />
               ) : (
                 <EmptyState />
@@ -314,7 +316,7 @@ export function DealsPageContent({
       />
 
       {children ? (
-        <div className="mt-10 border-t border-foreground/15 pt-10">
+        <div className="mt-10 space-y-10 border-t border-foreground/15 pt-10">
           {children}
         </div>
       ) : null}

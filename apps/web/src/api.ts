@@ -11,6 +11,13 @@ export interface DealVariantRow {
   is_in_stock: boolean;
 }
 
+export interface PriceHistorySummary {
+  lowest_price: number;
+  highest_price: number;
+  price_dropped: boolean;
+  point_count: number;
+}
+
 export interface Deal {
   id: number;
   store_id: number;
@@ -37,6 +44,8 @@ export interface Deal {
   variant_count?: number;
   /** [min, max] when grouped and prices differ */
   price_range?: number[];
+  /** Aggregate stats for deal scoring on list responses (≥2 history points). */
+  price_history_summary?: PriceHistorySummary;
 }
 
 export interface Store {

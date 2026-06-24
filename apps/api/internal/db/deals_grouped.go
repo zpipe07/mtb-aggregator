@@ -151,6 +151,9 @@ LEFT JOIN LATERAL (
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
+	if err := db.attachPriceHistorySummaries(ctx, deals); err != nil {
+		return nil, err
+	}
 	return &GetDealsResult{Deals: deals, TotalCount: totalCount}, nil
 }
 
