@@ -5,12 +5,13 @@ import { useRouter } from "next/navigation";
 import posthog from "posthog-js";
 import Link from "next/link";
 import { SearchBar, SEARCH_FRAME_MIN_H } from "../components/SearchBar";
-import { DealGrid } from "../components/DealGrid";
+import { DealCarousel } from "../components/DealCarousel";
 import { CategoryCard } from "../components/CategoryCard";
-import { CategoryTreeNode, type Deal } from "../api";
+import { CategoryTreeNode } from "../api";
 import { categoryHasDeals } from "../lib/categoryTree";
 import { CATEGORY_IMAGES } from "../lib/categoryImages";
 import { buildDealsCategoryPath } from "../lib/dealsCategoryPath";
+import type { HomeDealSection } from "../lib/homeDealSections";
 import { Button } from "../components/ui/button";
 import { cn, focusRing } from "@/lib/utils";
 
@@ -57,15 +58,19 @@ function buildCategoryCards(categoryTree: CategoryTreeNode[]): {
 
 type Props = {
   categoryTree: CategoryTreeNode[];
-  topDeals: Deal[];
+  dealSections: HomeDealSection[];
 };
 
-export function HomePageContent({ categoryTree, topDeals }: Props) {
+export function HomePageContent({ categoryTree, dealSections }: Props) {
   const router = useRouter();
   const [searchValue, setSearchValue] = useState("");
   const [isPending, startTransition] = useTransition();
 
   const categoryCards = buildCategoryCards(categoryTree);
+  const visibleDealSections = dealSections.filter(
+    (section) => section.deals.length > 0,
+  );
+  const dealDetailHref = (dealId: number) => `/deals/${dealId}`;
 
   const handleSearchSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -156,36 +161,58 @@ export function HomePageContent({ categoryTree, topDeals }: Props) {
         </div>
       </section>
 
-      {/* Top deals */}
-      <section>
-        <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
-          <div className="flex flex-wrap items-end gap-4">
+      {/* Top deals by category */}
+      {visibleDealSections.length > 0 ? (
+        <div className="space-y-10 lg:space-y-12">
+          {visibleDealSections.map((section, index) => (
+            <section key={section.id}>
+              <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+                <div className="flex flex-wrap items-end gap-4">
+                  <span className="pb-0.5 font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                    {`// ${String(index + 2).padStart(2, "0")}`}
+                  </span>
+                  <h2 className="text-2xl font-semibold tracking-[-0.02em] text-foreground">
+                    {section.title}
+                  </h2>
+                  <span className="mb-0.5 hidden h-px min-w-8 max-w-xs flex-1 bg-border sm:block" />
+                </div>
+                <Link
+                  href={buildDealsCategoryPath(
+                    section.categorySlug,
+                    categoryTree,
+                  )}
+                  className={cn(
+                    "rounded-sm font-mono text-xs font-semibold tracking-wide text-muted-foreground hover:text-foreground",
+                    focusRing,
+                  )}
+                >
+                  View all →
+                </Link>
+              </div>
+              <DealCarousel
+                deals={section.deals}
+                getHref={(deal) => dealDetailHref(deal.id)}
+                homeSection={section.id}
+                ariaLabel={section.title}
+              />
+            </section>
+          ))}
+        </div>
+      ) : (
+        <section>
+          <div className="mb-6 flex flex-wrap items-end gap-4">
             <span className="pb-0.5 font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
               {"// 02"}
             </span>
             <h2 className="text-2xl font-semibold tracking-[-0.02em] text-foreground">
               Top deals of the day
             </h2>
-            <span className="mb-0.5 hidden h-px min-w-8 max-w-xs flex-1 bg-border sm:block" />
           </div>
-          <Link
-            href="/deals"
-            className={cn(
-              "rounded-sm font-mono text-xs font-semibold tracking-wide text-muted-foreground hover:text-foreground",
-              focusRing,
-            )}
-          >
-            View all deals →
-          </Link>
-        </div>
-        {topDeals.length > 0 ? (
-          <DealGrid deals={topDeals} getHref={(deal) => `/deals/${deal.id}`} />
-        ) : (
-          <p className="text-muted-foreground py-8">
+          <p className="py-8 text-muted-foreground">
             No deals available right now.
           </p>
-        )}
-      </section>
+        </section>
+      )}
     </div>
   );
 }

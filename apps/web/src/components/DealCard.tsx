@@ -21,6 +21,8 @@ type DealCardProps = {
   href?: string;
   /** Persist list context before internal navigation (back button on detail page). */
   onInternalNavigate?: () => void;
+  /** Home page row id for PostHog (`home_section`). */
+  homeSection?: string;
 };
 
 function CardCropMarks() {
@@ -52,19 +54,27 @@ function SnagRetailerLabel({ label = "Snag this deal" }: { label?: string }) {
   );
 }
 
-export function DealCard({ deal, href, onInternalNavigate }: DealCardProps) {
+export function DealCard({
+  deal,
+  href,
+  onInternalNavigate,
+  homeSection,
+}: DealCardProps) {
   const pathname = usePathname();
   const listSurface = dealsListSurfaceFromPathname(pathname);
   const viewUrl = deal.affiliate_url || deal.product_url;
 
+  const analyticsBase = {
+    deal_id: deal.id,
+    store: deal.store_name,
+    brand: deal.brand || "",
+    list_surface: listSurface,
+    ...(homeSection ? { home_section: homeSection } : {}),
+  };
+
   const handleInternalNavigate = () => {
     onInternalNavigate?.();
-    track("deal_card_click", {
-      deal_id: deal.id,
-      store: deal.store_name,
-      brand: deal.brand || "",
-      list_surface: listSurface,
-    });
+    track("deal_card_click", analyticsBase);
   };
   const discountPct =
     deal.discount_pct != null
@@ -163,17 +173,10 @@ export function DealCard({ deal, href, onInternalNavigate }: DealCardProps) {
                 rel="noopener noreferrer"
                 onClick={(e) => {
                   e.stopPropagation();
-                  track("view_deal", {
-                    deal_id: deal.id,
-                    store: deal.store_name,
-                    brand: deal.brand || "",
-                    list_surface: listSurface,
-                  });
+                  track("view_deal", analyticsBase);
                   posthog.capture("deal_outbound_click", {
-                    deal_id: deal.id,
-                    store: deal.store_name,
+                    ...analyticsBase,
                     brand: deal.brand ?? "",
-                    list_surface: listSurface,
                     cta: "snag_retailer",
                   });
                 }}
@@ -191,11 +194,9 @@ export function DealCard({ deal, href, onInternalNavigate }: DealCardProps) {
                   e.stopPropagation();
                   handleInternalNavigate();
                   posthog.capture("deal_card_click", {
-                    cta: "view_details",
-                    deal_id: deal.id,
-                    store: deal.store_name,
+                    ...analyticsBase,
                     brand: deal.brand ?? "",
-                    list_surface: listSurface,
+                    cta: "view_details",
                   });
                 }}
               >
@@ -212,17 +213,10 @@ export function DealCard({ deal, href, onInternalNavigate }: DealCardProps) {
             rel="noopener noreferrer"
             onClick={(e) => {
               e.stopPropagation();
-              track("view_deal", {
-                deal_id: deal.id,
-                store: deal.store_name,
-                brand: deal.brand || "",
-                list_surface: listSurface,
-              });
+              track("view_deal", analyticsBase);
               posthog.capture("deal_outbound_click", {
-                deal_id: deal.id,
-                store: deal.store_name,
+                ...analyticsBase,
                 brand: deal.brand ?? "",
-                list_surface: listSurface,
                 cta: "snag_retailer",
               });
             }}
