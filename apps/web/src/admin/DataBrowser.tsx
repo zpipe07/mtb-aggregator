@@ -44,6 +44,10 @@ import { sanitizeForHtmlId } from "../lib/htmlId";
 
 const PAGE_SIZE = 25;
 
+function formatMoney(n: number) {
+  return n.toFixed(2);
+}
+
 /** Resolves admin tree path (root → leaf names) to the node's slug for GET /admin/listings?category_slug=. */
 function adminCategorySlugForPath(
   nodes: AdminCategoryTreeNode[],
@@ -1509,7 +1513,7 @@ export function DataBrowser() {
                           <XAxis dataKey="dateLabel" tick={{ fontSize: 10 }} />
                           <YAxis
                             tick={{ fontSize: 10 }}
-                            tickFormatter={(v) => `$${Number(v).toFixed(2)}`}
+                            tickFormatter={(v) => `$${formatMoney(v)}`}
                           />
                           <Tooltip formatter={(v: number) => [`$${v.toFixed(2)}`, "Price"]} labelFormatter={(l) => l} />
                           <Line type="monotone" dataKey="price" stroke="#57534e" strokeWidth={2} dot={false} />
