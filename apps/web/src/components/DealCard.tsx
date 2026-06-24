@@ -8,12 +8,9 @@ import { track } from "@vercel/analytics";
 import type { Deal } from "../api";
 import { Button } from "./ui/button";
 import { cn, focusRingWithin } from "@/lib/utils";
+import { formatMoney } from "@/lib/formatMoney";
 import { computeDealScore } from "@/lib/dealScore";
 import { dealsListSurfaceFromPathname } from "@/lib/dealsListSurface";
-
-function formatMoney(n: number) {
-  return n.toFixed(2);
-}
 
 const monoMicro =
   "font-mono text-[10px] font-semibold uppercase tracking-[0.14em]";
