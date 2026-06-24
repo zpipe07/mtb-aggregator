@@ -82,4 +82,25 @@ const score = computeDealScore({
 });
 assert.ok(score.score >= 40);
 
+const summaryScore = computeDealScore({
+  id: 2,
+  store_id: 1,
+  store_name: "Shop",
+  store_sku: "y",
+  product_name: "Test",
+  current_price: 50,
+  original_price: 100,
+  product_url: "https://example.com",
+  is_in_stock: true,
+  discount_pct: 50,
+  last_scraped: "",
+  price_history_summary: {
+    lowest_price: 50,
+    highest_price: 120,
+    price_dropped: true,
+    point_count: 5,
+  },
+});
+assert.equal(summaryScore.label, "steal");
+
 console.log("seo-smoke: ok");

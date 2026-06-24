@@ -13,6 +13,43 @@ export type DealScoreResult = {
   displayLabel: string;
 };
 
+/** Minimal price history for scoring (full chart or list summary). */
+export type PriceHistoryForScoring = Pick<
+  PriceHistoryResponse,
+  "lowest_price" | "highest_price" | "price_dropped"
+> & {
+  point_count?: number;
+  points?: PriceHistoryResponse["points"];
+};
+
+function hasEnoughHistory(
+  priceHistory?: PriceHistoryForScoring | null,
+): boolean {
+  if (!priceHistory) return false;
+  if ((priceHistory.points?.length ?? 0) >= 2) return true;
+  return (priceHistory.point_count ?? 0) >= 2;
+}
+
+/** Prefer full history on detail pages; fall back to list summary from the API. */
+export function resolvePriceHistoryForScoring(
+  deal: Deal,
+  priceHistory?: PriceHistoryResponse | null,
+): PriceHistoryForScoring | null {
+  if (priceHistory && priceHistory.points.length >= 2) {
+    return priceHistory;
+  }
+  const summary = deal.price_history_summary;
+  if (summary && summary.point_count >= 2) {
+    return {
+      lowest_price: summary.lowest_price,
+      highest_price: summary.highest_price,
+      price_dropped: summary.price_dropped,
+      point_count: summary.point_count,
+    };
+  }
+  return null;
+}
+
 function discountScore(deal: Deal): number {
   const pct =
     deal.discount_pct ??
@@ -31,10 +68,10 @@ function discountScore(deal: Deal): number {
 
 function priceHistoryScore(
   deal: Deal,
-  priceHistory?: PriceHistoryResponse | null,
+  priceHistory?: PriceHistoryForScoring | null,
 ): number {
-  if (!priceHistory || priceHistory.points.length < 2) return 0;
-  const { lowest_price, highest_price } = priceHistory;
+  if (!hasEnoughHistory(priceHistory)) return 0;
+  const { lowest_price, highest_price } = priceHistory!;
   if (lowest_price <= 0 || highest_price <= lowest_price) return 0;
   const price = deal.current_price;
   if (price <= lowest_price * 1.02) return 35;
@@ -67,9 +104,10 @@ export function computeDealScore(
   deal: Deal,
   priceHistory?: PriceHistoryResponse | null,
 ): DealScoreResult {
-  let score = discountScore(deal) + priceHistoryScore(deal, priceHistory);
+  const history = resolvePriceHistoryForScoring(deal, priceHistory);
+  let score = discountScore(deal) + priceHistoryScore(deal, history);
   if (deal.is_in_stock) score += 5;
-  if (priceHistory?.price_dropped) score += 10;
+  if (history?.price_dropped) score += 10;
   score = Math.min(100, Math.max(0, score));
   return labelFromScore(score);
 }
@@ -79,10 +117,11 @@ export function pricePositionLabel(
   deal: Deal,
   priceHistory?: PriceHistoryResponse | null,
 ): string | null {
-  if (!priceHistory || priceHistory.points.length < 2) return null;
-  const { lowest_price } = priceHistory;
+  const history = resolvePriceHistoryForScoring(deal, priceHistory);
+  if (!hasEnoughHistory(history)) return null;
+  const { lowest_price } = history!;
   if (deal.current_price <= lowest_price * 1.02) return "At historical low";
   if (deal.current_price <= lowest_price * 1.08) return "Near historical low";
-  if (priceHistory.price_dropped) return "Price dropped";
+  if (history!.price_dropped) return "Price dropped";
   return null;
 }

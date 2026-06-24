@@ -251,7 +251,7 @@ export function DealCard({ deal, href, onInternalNavigate }: DealCardProps) {
         </div>
       )}
       {discountPct != null && discountPct > 0 && (
-        <div className="absolute left-3 top-3 flex flex-col gap-1">
+        <div className="absolute left-3 top-3">
           <span
             className={cn(
               "inline-block rounded-sm bg-primary px-2 py-1 font-mono text-sm font-semibold tabular-nums text-foreground",
@@ -261,30 +261,33 @@ export function DealCard({ deal, href, onInternalNavigate }: DealCardProps) {
           >
             −{discountPct}%
           </span>
+        </div>
+      )}
+      {(showScore ||
+        (deal.variant_count != null && deal.variant_count > 1)) && (
+        <div className="absolute bottom-3 right-3 flex flex-col items-end gap-1">
           {showScore ? (
             <span
               className={cn(
-                "inline-block w-fit rounded-sm border border-foreground/40 bg-card/95 px-2 py-0.5",
+                "inline-block rounded-sm border border-foreground/40 bg-card/90 px-2 py-0.5 backdrop-blur-sm",
                 monoMicro,
-                "text-foreground backdrop-blur-sm",
+                "text-foreground",
               )}
             >
               {dealScore.displayLabel}
             </span>
           ) : null}
-        </div>
-      )}
-      {deal.variant_count != null && deal.variant_count > 1 && (
-        <div className="absolute bottom-3 right-3">
-          <span
-            className={cn(
-              "inline-flex items-center gap-1.5 rounded-sm border border-foreground/40 bg-card/90 px-2 py-0.5 backdrop-blur-sm",
-              monoMicro,
-            )}
-          >
-            <span className="tabular-nums">{deal.variant_count}</span>
-            <span className="text-muted-foreground">variants</span>
-          </span>
+          {deal.variant_count != null && deal.variant_count > 1 ? (
+            <span
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-sm border border-foreground/40 bg-card/90 px-2 py-0.5 backdrop-blur-sm",
+                monoMicro,
+              )}
+            >
+              <span className="tabular-nums">{deal.variant_count}</span>
+              <span className="text-muted-foreground">variants</span>
+            </span>
+          ) : null}
         </div>
       )}
     </div>

@@ -316,7 +316,7 @@ export function DealsPageContent({
       />
 
       {children ? (
-        <div className="mt-10 border-t border-foreground/15 pt-10">
+        <div className="mt-10 space-y-10 border-t border-foreground/15 pt-10">
           {children}
         </div>
       ) : null}
