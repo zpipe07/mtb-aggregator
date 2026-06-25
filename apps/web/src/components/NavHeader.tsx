@@ -11,6 +11,7 @@ import {
   useDealsMegaMenuHover,
 } from "@/components/DealsMegaMenu";
 import { cn, focusRing, focusRingInset } from "@/lib/utils";
+import { mainNavLinkTypography } from "@/lib/mainNavStyles";
 
 type NavHeaderProps = {
   categoryTree?: CategoryTreeNode[];
@@ -27,10 +28,7 @@ export function NavHeader({ categoryTree = [] }: NavHeaderProps) {
     setDesktopDealsMenuOpen,
   );
 
-  const navLinks = [
-    { href: "/", label: "Home", exact: true },
-    { href: "/categories", label: "Categories", exact: true },
-  ];
+  const navLinks = [{ href: "/", label: "Home", exact: true }];
 
   const isDealsActive = pathname.startsWith("/deals");
 
@@ -111,7 +109,8 @@ export function NavHeader({ categoryTree = [] }: NavHeaderProps) {
                 key={href}
                 href={href}
                 className={cn(
-                  "rounded-sm border-b-2 pb-1 font-mono text-[10px] font-semibold tracking-[0.2em] transition-colors",
+                  "rounded-sm border-b-2 pb-1 transition-colors",
+                  mainNavLinkTypography,
                   focusRing,
                   isActive
                     ? "border-primary text-foreground"
@@ -196,7 +195,8 @@ export function NavHeader({ categoryTree = [] }: NavHeaderProps) {
                 href={href}
                 onClick={closeMobileMenu}
                 className={cn(
-                  "block rounded-sm px-3 py-2 font-mono text-[10px] font-semibold tracking-[0.2em] transition-colors",
+                  "block rounded-sm px-3 py-2 transition-colors",
+                  mainNavLinkTypography,
                   focusRingInset,
                   isActive
                     ? "bg-primary/15 text-foreground ring-2 ring-primary/40 ring-inset"

@@ -14,6 +14,7 @@ import { categoryHasDeals } from "@/lib/categoryTree";
 import { buildDealsCategoryPath } from "@/lib/dealsCategoryPath";
 import { captureCategoryNav } from "@/lib/categoryNavAnalytics";
 import { cn, focusRing, focusRingInset } from "@/lib/utils";
+import { mainNavLinkTypography } from "@/lib/mainNavStyles";
 import { Button } from "./ui/button";
 
 const monoMicro =
@@ -199,7 +200,8 @@ export function DealsMegaMenuDesktopTrigger({
         <Link
           href="/deals"
           className={cn(
-            "rounded-sm border-b-2 pb-1 font-mono text-[10px] font-semibold tracking-[0.2em] transition-colors",
+            "rounded-sm border-b-2 pb-1 transition-colors",
+            mainNavLinkTypography,
             focusRing,
             isDealsActive
               ? "border-primary text-foreground"
@@ -316,7 +318,8 @@ export function DealsMegaMenuMobile({
           href="/deals"
           onClick={onNavigate}
           className={cn(
-            "flex-1 rounded-sm px-3 py-2 font-mono text-[10px] font-semibold tracking-[0.2em] transition-colors",
+            "flex-1 rounded-sm px-3 py-2 transition-colors",
+            mainNavLinkTypography,
             focusRingInset,
             isDealsActive
               ? "bg-primary/15 text-foreground ring-2 ring-primary/40 ring-inset"
