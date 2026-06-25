@@ -310,7 +310,7 @@ type GetAdminListingsParams struct {
 	// nil = no slug-based subtree filter; non-nil empty slice = unknown slug → no rows.
 	categoryFilterIDs *[]int
 	Search             string
-	Sort               string // newest, discount, price_asc, price_desc, relevance
+	Sort               string // newest, discount, price_asc, price_desc, relevance, last_enriched
 	LLMConfidenceBelow *float64 // filter: (metadata->>'llm_confidence')::float < value (e.g. 0.7 for low confidence)
 	// HasNonEmptySpecs when true restricts to listings with non-empty metadata.specs JSON object (for LLM-from-DB pipelines).
 	HasNonEmptySpecs *bool
@@ -477,6 +477,8 @@ func (db *DB) GetAdminListings(ctx context.Context, params GetAdminListingsParam
 		query += " ORDER BY l.current_price ASC"
 	case "price_desc":
 		query += " ORDER BY l.current_price DESC"
+	case "last_enriched":
+		query += " ORDER BY l.last_enriched_at DESC NULLS LAST"
 	default:
 		query += " ORDER BY l.last_scraped DESC"
 	}
