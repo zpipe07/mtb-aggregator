@@ -1,9 +1,10 @@
 export { NavHeader } from "./NavHeader";
+export { DealsMegaMenuPanel } from "./DealsMegaMenu";
 export { SearchBar } from "./SearchBar";
 export { Toolbar } from "./Toolbar";
 export { CategoryDrillDown } from "./CategoryDrillDown";
 export { DealsCategoryNav } from "./DealsCategoryNav";
-export type { CategoryNavSource } from "./DealsCategoryNav";
+export type { CategoryNavSource } from "@/lib/categoryNavAnalytics";
 export { FilterSidebar } from "./FilterSidebar";
 export { FilterDrawer } from "./FilterDrawer";
 export { FilterChips } from "./FilterChips";
