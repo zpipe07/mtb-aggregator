@@ -84,3 +84,11 @@ export const Disabled: Story = {
     disabled: true,
   },
 };
+
+export const AsChildLink: Story = {
+  render: () => (
+    <Button asChild>
+      <a href="/deals">Browse deals</a>
+    </Button>
+  ),
+};

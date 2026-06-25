@@ -56,14 +56,26 @@ function Button({
   }) {
   const Comp = asChild ? Slot.Root : "button";
 
-  const content =
-    !asChild && variant === "default" ? (
-      <span className="relative z-[1] inline-flex items-center gap-1.5">
-        {children}
-      </span>
-    ) : (
-      children
-    );
+  const labelWrapperClass =
+    "relative z-[1] inline-flex items-center gap-1.5";
+
+  let content = children;
+  if (variant === "default") {
+    if (asChild) {
+      const child = React.Children.only(children) as React.ReactElement<{
+        children?: React.ReactNode;
+      }>;
+      content = React.cloneElement(child, {
+        children: (
+          <span className={labelWrapperClass}>{child.props.children}</span>
+        ),
+      });
+    } else {
+      content = (
+        <span className={labelWrapperClass}>{children}</span>
+      );
+    }
+  }
 
   return (
     <Comp
