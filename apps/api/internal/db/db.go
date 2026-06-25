@@ -1544,7 +1544,7 @@ func (db *DB) GetListingsNeedingEnrichment(ctx context.Context, limit int, force
 		SELECT l.id, l.store_id, COALESCE(s.store_type, 'jensonusa'), l.product_url, COALESCE(l.store_sku, '')
 		FROM store_listings l
 		JOIN stores s ON s.id = l.store_id
-		WHERE l.product_url IS NOT NULL AND l.product_url != ''
+		WHERE l.product_url IS NOT NULL AND l.product_url != ''` + listingVisibilityGate + `
 		  AND s.store_type = ANY($2)
 	`
 	if !force {
@@ -1584,7 +1584,7 @@ func (db *DB) GetListingsNeedingEnrichmentForStore(ctx context.Context, storeTyp
 		SELECT l.id, l.store_id, COALESCE(s.store_type, 'jensonusa'), l.product_url, COALESCE(l.store_sku, '')
 		FROM store_listings l
 		JOIN stores s ON s.id = l.store_id
-		WHERE l.product_url IS NOT NULL AND l.product_url != ''
+		WHERE l.product_url IS NOT NULL AND l.product_url != ''` + listingVisibilityGate + `
 		  AND s.store_type = $2
 	`
 	if !force {
@@ -1636,7 +1636,7 @@ func (db *DB) GetListingsNeedingEnrichmentForFilter(ctx context.Context, f Enric
 		SELECT l.id, l.store_id, COALESCE(s.store_type, 'jensonusa'), l.product_url, COALESCE(l.store_sku, '')
 		FROM store_listings l
 		JOIN stores s ON s.id = l.store_id
-		WHERE l.product_url IS NOT NULL AND l.product_url != ''`
+		WHERE l.product_url IS NOT NULL AND l.product_url != ''` + listingVisibilityGate
 	if f.StoreType != "" {
 		query += fmt.Sprintf(" AND s.store_type = $%d", argNum)
 		args = append(args, f.StoreType)

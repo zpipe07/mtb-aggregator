@@ -184,6 +184,15 @@ func (h *Handlers) PostAdminListingsBulkEnrich(w http.ResponseWriter, r *http.Re
 		http.Error(w, "invalid json", http.StatusBadRequest)
 		return
 	}
+	// Default to purchasable, visible listings unless the admin explicitly overrides in_stock/hidden.
+	if body.InStock == nil {
+		inStock := true
+		body.InStock = &inStock
+	}
+	if body.Hidden == nil {
+		visible := false
+		body.Hidden = &visible
+	}
 	params := body.toGetAdminListingsParams()
 	maxN := adminBulkMaxListings()
 	ids, total, err := h.DB.ListAdminListingIDsByFilter(r.Context(), params, true, true, maxN)

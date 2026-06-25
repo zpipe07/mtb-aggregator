@@ -95,14 +95,16 @@ func parseFilterableFields(extractionSchema json.RawMessage) []filterableField {
 	return out
 }
 
+// listingVisibilityGate limits queries to in-stock, non-hidden listings (same rules as GET /deals).
+const listingVisibilityGate = " AND l.is_in_stock = true AND l.hidden = false"
+
 // facetsListingGate prefixes facet WHERE clauses with the same visibility rules as public GET /deals
 // (in-stock, not hidden). whereFromBuild is the suffix from buildFacetsWhereClause (may be empty).
 func facetsListingGate(whereFromBuild string) string {
-	const gate = " AND l.is_in_stock = true AND l.hidden = false"
 	if whereFromBuild == "" {
-		return gate
+		return listingVisibilityGate
 	}
-	return gate + whereFromBuild
+	return listingVisibilityGate + whereFromBuild
 }
 
 // GetFacets returns facets (spec keys/values, brands, price range) for the given filter context.
