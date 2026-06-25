@@ -3,21 +3,24 @@
 import { useEffect, useId, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import type { CategoryTreeNode } from "@/api";
 import {
   DealsMegaMenuDesktopPanel,
   DealsMegaMenuDesktopTrigger,
   DealsMegaMenuMobile,
   useDealsMegaMenuHover,
-  useDealsMegaMenuTree,
 } from "@/components/DealsMegaMenu";
 import { cn, focusRing, focusRingInset } from "@/lib/utils";
 
-export function NavHeader() {
+type NavHeaderProps = {
+  categoryTree?: CategoryTreeNode[];
+};
+
+export function NavHeader({ categoryTree = [] }: NavHeaderProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileDealsExpanded, setMobileDealsExpanded] = useState(false);
   const [desktopDealsMenuOpen, setDesktopDealsMenuOpen] = useState(false);
   const pathname = usePathname();
-  const { categoryTree } = useDealsMegaMenuTree();
   const desktopMenuId = useId();
   const headerRef = useRef<HTMLElement>(null);
   const { onHoverIntent, onHoverLeave } = useDealsMegaMenuHover(
@@ -39,6 +42,11 @@ export function NavHeader() {
   const closeDesktopMenu = () => setDesktopDealsMenuOpen(false);
 
   useEffect(() => {
+    setDesktopDealsMenuOpen(false);
+    setMobileDealsExpanded(false);
+  }, [pathname]);
+
+  useEffect(() => {
     if (!desktopDealsMenuOpen) return;
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") closeDesktopMenu();
@@ -58,10 +66,18 @@ export function NavHeader() {
     return () => document.removeEventListener("mousedown", onPointerDown);
   }, [desktopDealsMenuOpen]);
 
+  const handleHeaderMouseLeave = (event: React.MouseEvent<HTMLElement>) => {
+    if (!desktopDealsMenuOpen) return;
+    const next = event.relatedTarget;
+    if (next instanceof Node && headerRef.current?.contains(next)) return;
+    onHoverLeave();
+  };
+
   return (
     <header
       ref={headerRef}
       className="relative z-40 border-b border-border bg-background text-foreground"
+      onMouseLeave={handleHeaderMouseLeave}
     >
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
         <Link
@@ -112,7 +128,6 @@ export function NavHeader() {
             isDealsActive={isDealsActive}
             menuId={desktopMenuId}
             onHoverIntent={onHoverIntent}
-            onHoverLeave={onHoverLeave}
           />
         </nav>
 
@@ -159,8 +174,6 @@ export function NavHeader() {
         menuId={desktopMenuId}
         categoryTree={categoryTree}
         onNavigate={closeDesktopMenu}
-        onHoverIntent={onHoverIntent}
-        onHoverLeave={onHoverLeave}
       />
 
       {/* Mobile nav */}
