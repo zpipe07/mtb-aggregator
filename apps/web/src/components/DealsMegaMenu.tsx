@@ -102,33 +102,26 @@ function CategoryMegaMenuLink({
   );
 }
 
-const secondLevelRowGrid =
-  "grid grid-cols-[1.5rem_minmax(0,1fr)] items-start gap-x-1";
+const activeCategoryClass = "font-semibold text-foreground";
 
-function SecondLevelChevronSlot({
+function SecondLevelChevronButton({
   expanded,
   panelId,
   label,
   onToggle,
-  visible,
 }: {
   expanded: boolean;
   panelId: string;
   label: string;
   onToggle: () => void;
-  visible: boolean;
 }) {
-  if (!visible) {
-    return <span className="size-6 shrink-0" aria-hidden />;
-  }
-
   return (
     <Button
       type="button"
       variant="ghost"
       size="icon"
       className={cn(
-        "size-6 shrink-0 rounded-sm text-muted-foreground hover:text-foreground",
+        "mt-0.5 size-6 shrink-0 rounded-sm text-muted-foreground hover:text-foreground",
         focusRingInset,
       )}
       aria-expanded={expanded}
@@ -173,20 +166,13 @@ function SecondLevelCategoryGroup({
 
   if (!hasChildren) {
     return (
-      <li className={cn("min-w-0", secondLevelRowGrid)}>
-        <SecondLevelChevronSlot
-          expanded={false}
-          panelId=""
-          label={node.name}
-          onToggle={() => undefined}
-          visible={false}
-        />
+      <li className="min-w-0">
         <CategoryMegaMenuLink
           node={node}
           categoryTree={categoryTree}
           depth={1}
           onNavigate={onNavigate}
-          className={isActive ? "font-semibold text-foreground" : undefined}
+          className={isActive ? activeCategoryClass : undefined}
         />
       </li>
     );
@@ -196,26 +182,25 @@ function SecondLevelCategoryGroup({
 
   return (
     <li className="min-w-0">
-      <div className={secondLevelRowGrid}>
-        <SecondLevelChevronSlot
-          expanded={expanded}
-          panelId={panelId}
-          label={node.name}
-          onToggle={onToggle}
-          visible
-        />
+      <div className="flex items-start gap-1">
         <CategoryMegaMenuLink
           node={node}
           categoryTree={categoryTree}
           depth={1}
           onNavigate={onNavigate}
-          className={isActive ? "font-semibold text-foreground" : undefined}
+          className={cn("min-w-0 flex-1", isActive ? activeCategoryClass : undefined)}
+        />
+        <SecondLevelChevronButton
+          expanded={expanded}
+          panelId={panelId}
+          label={node.name}
+          onToggle={onToggle}
         />
       </div>
       {expanded ? (
         <ul
           id={panelId}
-          className="mt-0.5 space-y-0.5 border-l border-border pl-3 list-none ml-7"
+          className="mt-0.5 space-y-0.5 border-l border-border pl-3 list-none"
         >
           {node.children.map((grandchild) => (
             <li key={grandchild.slug} className="min-w-0">
@@ -226,7 +211,7 @@ function SecondLevelCategoryGroup({
                 onNavigate={onNavigate}
                 className={
                   activeCategorySlug === grandchild.slug
-                    ? "font-semibold text-foreground"
+                    ? activeCategoryClass
                     : undefined
                 }
               />
@@ -268,7 +253,7 @@ function RootCategoryColumn({
         categoryTree={categoryTree}
         depth={0}
         onNavigate={onNavigate}
-        className={isRootActive ? "text-primary" : undefined}
+        className={isRootActive ? activeCategoryClass : undefined}
       />
       {root.children?.length ? (
         <ul className="space-y-1 list-none pl-0">
@@ -287,6 +272,14 @@ function RootCategoryColumn({
       ) : null}
     </div>
   );
+}
+
+function categoryGridClass(count: number): string {
+  if (count <= 1) return "grid-cols-1";
+  if (count === 2) return "grid-cols-1 sm:grid-cols-2";
+  if (count === 3) return "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3";
+  if (count === 4) return "grid-cols-1 sm:grid-cols-2 lg:grid-cols-4";
+  return "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5";
 }
 
 export function DealsMegaMenuPanel({
@@ -354,7 +347,12 @@ export function DealsMegaMenuPanel({
             </Link>
           </p>
         ) : (
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+          <div
+            className={cn(
+              "grid gap-6 lg:gap-8",
+              categoryGridClass(categoryTree.length),
+            )}
+          >
             {categoryTree.map((root) => (
               <RootCategoryColumn
                 key={root.slug}
