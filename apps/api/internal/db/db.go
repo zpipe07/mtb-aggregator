@@ -310,7 +310,7 @@ type GetAdminListingsParams struct {
 	// nil = no slug-based subtree filter; non-nil empty slice = unknown slug → no rows.
 	categoryFilterIDs *[]int
 	Search             string
-	Sort               string // newest, discount, price_asc, price_desc, relevance
+	Sort               string // newest, discount, price_asc, price_desc, relevance, last_enriched
 	LLMConfidenceBelow *float64 // filter: (metadata->>'llm_confidence')::float < value (e.g. 0.7 for low confidence)
 	// HasNonEmptySpecs when true restricts to listings with non-empty metadata.specs JSON object (for LLM-from-DB pipelines).
 	HasNonEmptySpecs *bool
@@ -477,6 +477,8 @@ func (db *DB) GetAdminListings(ctx context.Context, params GetAdminListingsParam
 		query += " ORDER BY l.current_price ASC"
 	case "price_desc":
 		query += " ORDER BY l.current_price DESC"
+	case "last_enriched":
+		query += " ORDER BY l.last_enriched_at DESC NULLS LAST"
 	default:
 		query += " ORDER BY l.last_scraped DESC"
 	}
@@ -1542,7 +1544,7 @@ func (db *DB) GetListingsNeedingEnrichment(ctx context.Context, limit int, force
 		SELECT l.id, l.store_id, COALESCE(s.store_type, 'jensonusa'), l.product_url, COALESCE(l.store_sku, '')
 		FROM store_listings l
 		JOIN stores s ON s.id = l.store_id
-		WHERE l.product_url IS NOT NULL AND l.product_url != ''
+		WHERE l.product_url IS NOT NULL AND l.product_url != ''` + listingVisibilityGate + `
 		  AND s.store_type = ANY($2)
 	`
 	if !force {
@@ -1582,7 +1584,7 @@ func (db *DB) GetListingsNeedingEnrichmentForStore(ctx context.Context, storeTyp
 		SELECT l.id, l.store_id, COALESCE(s.store_type, 'jensonusa'), l.product_url, COALESCE(l.store_sku, '')
 		FROM store_listings l
 		JOIN stores s ON s.id = l.store_id
-		WHERE l.product_url IS NOT NULL AND l.product_url != ''
+		WHERE l.product_url IS NOT NULL AND l.product_url != ''` + listingVisibilityGate + `
 		  AND s.store_type = $2
 	`
 	if !force {
@@ -1634,7 +1636,7 @@ func (db *DB) GetListingsNeedingEnrichmentForFilter(ctx context.Context, f Enric
 		SELECT l.id, l.store_id, COALESCE(s.store_type, 'jensonusa'), l.product_url, COALESCE(l.store_sku, '')
 		FROM store_listings l
 		JOIN stores s ON s.id = l.store_id
-		WHERE l.product_url IS NOT NULL AND l.product_url != ''`
+		WHERE l.product_url IS NOT NULL AND l.product_url != ''` + listingVisibilityGate
 	if f.StoreType != "" {
 		query += fmt.Sprintf(" AND s.store_type = $%d", argNum)
 		args = append(args, f.StoreType)

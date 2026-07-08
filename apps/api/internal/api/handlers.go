@@ -796,7 +796,7 @@ func (h *Handlers) PostAdminCancelEnrichJob(w http.ResponseWriter, r *http.Reque
 	}
 }
 
-// GetAdminListings returns paginated listings for the admin data browser. Query: store_id, brand, has_canonical_category, has_enrichment, category (substring on any retailer or canonical segment), category_slug (subtree on category_id; same as GET /deals), canonical_category (exact path; ignored when category_slug is set), q, sort, limit, offset, llm_confidence_below.
+// GetAdminListings returns paginated listings for the admin data browser. Query: store_id, brand, has_canonical_category, has_enrichment, category (substring on any retailer or canonical segment), category_slug (subtree on category_id; same as GET /deals), canonical_category (exact path; ignored when category_slug is set), q, sort (newest, discount, price_asc, price_desc, relevance, last_enriched), limit, offset, llm_confidence_below.
 func (h *Handlers) GetAdminListings(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)

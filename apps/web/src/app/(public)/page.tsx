@@ -2,6 +2,11 @@ import type { Metadata } from "next";
 import { fetchCategoryTree, fetchDeals } from "@/api";
 import { JsonLd } from "@/components/JsonLd";
 import { buildItemListJsonLd, buildWebSiteSearchJsonLd } from "@/lib/jsonLd";
+import {
+  HOME_DEAL_SECTION_LIMIT,
+  HOME_DEAL_SECTIONS,
+  type HomeDealSection,
+} from "@/lib/homeDealSections";
 import { absoluteUrl } from "@/lib/siteUrl";
 import { HomePageContent } from "@/views/HomePageContent";
 
@@ -55,19 +60,27 @@ export const metadata: Metadata = {
 };
 
 export default async function Home() {
-  const [categoryTree, dealsResponse] = await Promise.all([
+  const [categoryTree, ...sectionResponses] = await Promise.all([
     fetchCategoryTree(),
-    fetchDeals({
-      sort: "value",
-      min_price: 40,
-      exclude_category_slug: "accessories",
-      limit: 12,
-      offset: 0,
-    }),
+    ...HOME_DEAL_SECTIONS.map((section) =>
+      fetchDeals({
+        sort: "value",
+        min_price: section.minPrice,
+        category_slug: section.categorySlug,
+        limit: HOME_DEAL_SECTION_LIMIT,
+        offset: 0,
+      }),
+    ),
   ]);
 
-  const topDeals = dealsResponse.deals ?? [];
-  const totalFeatured = dealsResponse.total_count ?? topDeals.length;
+  const dealSections: HomeDealSection[] = HOME_DEAL_SECTIONS.map(
+    (section, index) => ({
+      ...section,
+      deals: sectionResponses[index]?.deals ?? [],
+    }),
+  );
+
+  const featuredDeals = dealSections.flatMap((section) => section.deals);
 
   const avantlinkMarkup = avantlinkVerificationScriptMarkup(
     process.env.NEXT_PUBLIC_AVANTLINK_VERIFY_SCRIPT_SRC ?? "",
@@ -87,14 +100,17 @@ export default async function Home() {
         data={buildItemListJsonLd({
           name: "Featured mountain bike deals",
           description: homeDescription,
-          totalCount: totalFeatured,
-          deals: topDeals.map((d) => ({
+          totalCount: featuredDeals.length,
+          deals: featuredDeals.map((d) => ({
             id: d.id,
             product_name: d.product_name,
           })),
         })}
       />
-      <HomePageContent categoryTree={categoryTree} topDeals={topDeals} />
+      <HomePageContent
+        categoryTree={categoryTree}
+        dealSections={dealSections}
+      />
     </>
   );
 }

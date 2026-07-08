@@ -41,6 +41,7 @@ import type {
 } from "./api";
 import { CategoryPicker } from "./CategoryPicker";
 import { sanitizeForHtmlId } from "../lib/htmlId";
+import { formatMoney } from "@/lib/formatMoney";
 
 const PAGE_SIZE = 25;
 
@@ -879,7 +880,8 @@ export function DataBrowser() {
           }}
           className="rounded border border-stone-300 px-3 py-2 text-sm"
         >
-          <option value="newest">Newest</option>
+          <option value="newest">Newest scraped</option>
+          <option value="last_enriched">Recently enriched</option>
           <option value="discount">Discount %</option>
           <option value="price_asc">Price (low)</option>
           <option value="price_desc">Price (high)</option>
@@ -1140,7 +1142,7 @@ export function DataBrowser() {
                     <th className="px-4 py-2 text-left font-medium text-stone-600">Wheel</th>
                     <th className="px-4 py-2 text-right font-medium text-stone-600">LLM conf</th>
                     <th className="px-4 py-2 text-center font-medium text-stone-600">Stock</th>
-                    <th className="px-4 py-2 text-center font-medium text-stone-600">Enriched</th>
+                    <th className="px-4 py-2 text-left font-medium text-stone-600">Last enriched</th>
                     <th className="px-4 py-2 text-left font-medium text-stone-600">Last scraped</th>
                   </tr>
                 </thead>
@@ -1209,12 +1211,8 @@ export function DataBrowser() {
                           <span className="text-amber-600 font-medium">Out of stock</span>
                         )}
                       </td>
-                      <td className="px-4 py-2 text-center">
-                        {row.last_enriched_at ? (
-                          <span className="text-green-600">Yes</span>
-                        ) : (
-                          <span className="text-stone-400">No</span>
-                        )}
+                      <td className="px-4 py-2 text-stone-600 whitespace-nowrap">
+                        {row.last_enriched_at ? formatDate(row.last_enriched_at) : "—"}
                       </td>
                       <td className="px-4 py-2 text-stone-600">{formatDate(row.last_scraped)}</td>
                     </tr>
@@ -1507,7 +1505,10 @@ export function DataBrowser() {
                         <LineChart data={chartData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
                           <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                           <XAxis dataKey="dateLabel" tick={{ fontSize: 10 }} />
-                          <YAxis tick={{ fontSize: 10 }} tickFormatter={(v) => `$${v}`} />
+                          <YAxis
+                            tick={{ fontSize: 10 }}
+                            tickFormatter={(v) => `$${formatMoney(v)}`}
+                          />
                           <Tooltip formatter={(v: number) => [`$${v.toFixed(2)}`, "Price"]} labelFormatter={(l) => l} />
                           <Line type="monotone" dataKey="price" stroke="#57534e" strokeWidth={2} dot={false} />
                         </LineChart>
