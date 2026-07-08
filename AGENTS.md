@@ -4,7 +4,7 @@
 
 ### Prerequisites on the VM
 
-- **Go 1.25+** is required (`apps/api/go.mod` pins `go 1.25.0`). The system Go may be older; use `/usr/local/go/bin` (install Go 1.25.11 if missing).
+- **Go 1.25+** is required (`apps/api/go.mod` pins `go 1.25.0`). The system Go may be older; use `/usr/local/go/bin` (install Go 1.25.12 if missing).
 - **Docker** runs Postgres via `docker-compose.yml`. In this environment, start `dockerd` manually if needed and use `sudo docker compose` (or `sudo chmod 666 /var/run/docker.sock`) when the socket is root-only.
 - **Playwright Chromium** must be installed once for the scraper: `pnpm --filter @mtb-aggregator/scraper exec playwright install chromium --with-deps`.
 

@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import type { CategoryTreeNode } from "../api";
-import { DealsCategoryNavInner } from "./DealsCategoryNav";
+import { DealsMegaMenuPanel } from "./DealsMegaMenu";
 
 const tree: CategoryTreeNode[] = [
   {
@@ -11,6 +11,7 @@ const tree: CategoryTreeNode[] = [
     sort_order: 0,
     depth: 0,
     deal_count: 10,
+    product_count: 10,
     children: [
       {
         id: 2,
@@ -20,36 +21,63 @@ const tree: CategoryTreeNode[] = [
         sort_order: 0,
         depth: 1,
         deal_count: 5,
+        product_count: 5,
+        children: [
+          {
+            id: 7,
+            slug: "bikes-mountain-trail",
+            name: "Trail",
+            parent_id: 2,
+            sort_order: 0,
+            depth: 2,
+            deal_count: 2,
+            product_count: 2,
+            children: [],
+          },
+        ],
+      },
+      {
+        id: 3,
+        slug: "bikes-electric",
+        name: "Electric",
+        parent_id: 1,
+        sort_order: 1,
+        depth: 1,
+        deal_count: 3,
+        product_count: 3,
         children: [],
       },
     ],
   },
   {
-    id: 3,
+    id: 4,
     slug: "components",
     name: "Components",
     parent_id: null,
     sort_order: 1,
     depth: 0,
     deal_count: 8,
+    product_count: 8,
     children: [
       {
-        id: 4,
+        id: 5,
         slug: "components-brakes",
         name: "Brakes",
-        parent_id: 3,
+        parent_id: 4,
         sort_order: 0,
         depth: 1,
         deal_count: 3,
+        product_count: 3,
         children: [
           {
-            id: 5,
+            id: 6,
             slug: "components-brakes-disc",
             name: "Disc brakes",
-            parent_id: 4,
+            parent_id: 5,
             sort_order: 0,
             depth: 2,
             deal_count: 2,
+            product_count: 2,
             children: [],
           },
         ],
@@ -57,49 +85,46 @@ const tree: CategoryTreeNode[] = [
     ],
   },
   {
-    id: 6,
+    id: 8,
     slug: "gear",
     name: "Gear",
     parent_id: null,
     sort_order: 2,
     depth: 0,
     deal_count: 4,
+    product_count: 4,
     children: [],
   },
 ];
 
 const meta = {
-  title: "Components/DealsCategoryNav",
-  component: DealsCategoryNavInner,
-  parameters: { layout: "padded" },
+  title: "Components/DealsMegaMenu",
+  component: DealsMegaMenuPanel,
+  parameters: { layout: "fullscreen" },
   args: {
     categoryTree: tree,
-    categoryFilter: "",
-    searchParams: new URLSearchParams(),
   },
-} satisfies Meta<typeof DealsCategoryNavInner>;
+} satisfies Meta<typeof DealsMegaMenuPanel>;
 
 export default meta;
 
 type Story = StoryObj<typeof meta>;
 
-export const HiddenAtRoot: Story = {
+export const Default: Story = {
   args: {
-    categoryFilter: "",
-    searchParams: new URLSearchParams(),
+    onClose: () => undefined,
   },
 };
 
-export const BreadcrumbsOnly: Story = {
+export const WithActiveSecondLevel: Story = {
   args: {
-    categoryFilter: "components-brakes-disc",
-    searchParams: new URLSearchParams("q=hydraulic"),
+    activeCategorySlug: "bikes-mountain-trail",
+    onClose: () => undefined,
   },
 };
 
-export const DeepCategory: Story = {
+export const EmptyTree: Story = {
   args: {
-    categoryFilter: "components",
-    searchParams: new URLSearchParams(),
+    categoryTree: [],
   },
 };
