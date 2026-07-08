@@ -33,6 +33,7 @@ export const STORE_TYPES = [
   "trek",
   "universalcycles",
   "n1bikes",
+  "foxracing",
   "rideconcepts",
   "leatt",
 ] as const;

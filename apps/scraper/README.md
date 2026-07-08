@@ -214,6 +214,17 @@ make scrape-now-n1bikes
 make enrich-now-n1bikes
 ```
 
+### Fox Racing
+
+**Listing scrape** (`foxracing` in `PARSERS`) uses **fetch + Cheerio** against the Demandware ajax grid (`Search-UpdateGrid` on `cgid=sale-mtb`), paginated with `start` / `sz=60`. Parses `div.product[data-pid]` tiles; `store_sku` is the variant id (e.g. `VG-31930-001`); `product_group_key` is the base style id (`VG-31930`). Category hints come from GTM `item_category*` JSON on each tile.
+
+**PDP enrichment** (`enrichFoxRacing`) fetches product HTML and parses microdata breadcrumbs plus accordion sections (Description, Key Features, Specifications, Materials & Care). Color swatches on the PDP populate `variants[]`; the API fans out `Color` labels and per-color stock to sibling rows sharing the same `product_group_key` (base style id, e.g. `VG-29354`). Selectable sizes for the viewed color are stored in `raw_specs["Available sizes"]`.
+
+```bash
+make scrape-now-foxracing
+make enrich-now-foxracing
+```
+
 ## Endpoints
 
 | Endpoint  | Method | Purpose                                           |
@@ -253,6 +264,7 @@ Parsers live in `src/parsers/` — one file per store:
 - `trek.ts` / `trek-plp.ts` / `trek-pdp.ts` — Trek US MTB sale (OCC PLP + HTML MSRP merge + fetch PDP enrich)
 - `universalcycles.ts` / `universalcycles-plp.ts` / `universalcycles-pdp.ts` — Universal Cycles specials (fetch PLP + attribute fan-out on PDP enrich)
 - `n1bikes.ts` / `n1bikes-plp.ts` / `n1bikes-pdp.ts` — N+1 Bikes sale catalog (MasterLinq API + PDP specs enrich)
+- `foxracing.ts` / `foxracing-plp.ts` / `foxracing-pdp.ts` — Fox Racing MTB legacy drops (Demandware ajax PLP + fetch PDP enrich)
 
 `parsers/index.ts` registers `PARSERS` and `ENRICHERS` maps. Enrichers fetch product detail pages (PDP) for category paths and specs.
 

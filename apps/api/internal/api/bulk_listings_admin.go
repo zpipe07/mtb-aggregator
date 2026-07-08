@@ -384,6 +384,7 @@ func runBulkEnrichInBackground(h *Handlers, jobID int, ids []int, total int) {
 	jensonSeen := make(map[string]bool)
 	ccSeen := make(map[string]bool)
 	ucSeen := make(map[string]bool)
+	foxSeen := make(map[string]bool)
 	for _, id := range ids {
 		if workCtx.Err() != nil {
 			errStrs = append(errStrs, "job timed out: "+workCtx.Err().Error())
@@ -392,7 +393,7 @@ func runBulkEnrichInBackground(h *Handlers, jobID int, ids []int, total int) {
 			}
 			return
 		}
-		if err := h.adminEnrichOneListing(workCtx, id, &errStrs, jensonSeen, ccSeen, ucSeen); err != nil {
+		if err := h.adminEnrichOneListing(workCtx, id, &errStrs, jensonSeen, ccSeen, ucSeen, foxSeen); err != nil {
 			errStrs = append(errStrs, err.Error())
 		} else {
 			enrichedN++
@@ -409,7 +410,8 @@ func runBulkEnrichInBackground(h *Handlers, jobID int, ids []int, total int) {
 // jensonSeen dedupes JensonUSA PDP variant fan-out across listings in the same product_group_key (optional).
 // ccSeen dedupes Competitive Cyclist hasVariant fan-out per normalized product_url (optional).
 // ucSeen dedupes Universal Cycles attribute fan-out per product group (optional).
-func (h *Handlers) adminEnrichOneListing(ctx context.Context, id int, errStrs *[]string, jensonSeen, ccSeen, ucSeen map[string]bool) error {
+// foxSeen dedupes Fox Racing color fan-out per base style (optional).
+func (h *Handlers) adminEnrichOneListing(ctx context.Context, id int, errStrs *[]string, jensonSeen, ccSeen, ucSeen, foxSeen map[string]bool) error {
 	storeID, productURL, storeType, storeSKU, err := h.DB.GetListingEnrichmentInfo(ctx, id)
 	if err != nil {
 		return err
@@ -442,6 +444,9 @@ func (h *Handlers) adminEnrichOneListing(ctx context.Context, id int, errStrs *[
 	}
 	if err := applyUniversalCyclesPDPAfterEnrich(ctx, h.DB, id, storeType, result.Variants, ucSeen); err != nil {
 		log.Printf("[admin] bulk enrich universalcycles variant fan-out listing %d: %v", id, err)
+	}
+	if err := applyFoxRacingPDPAfterEnrich(ctx, h.DB, storeID, storeType, storeSKU, result.Variants, foxSeen); err != nil {
+		log.Printf("[admin] bulk enrich foxracing variant fan-out listing %d: %v", id, err)
 	}
 	if w := h.runLLMCategoryClassification(ctx, id); w != "" && errStrs != nil {
 		*errStrs = append(*errStrs, w)
