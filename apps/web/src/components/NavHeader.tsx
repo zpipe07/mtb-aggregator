@@ -8,6 +8,7 @@ import {
   DealsMegaMenuDesktopPanel,
   DealsMegaMenuDesktopTrigger,
   DealsMegaMenuMobile,
+  useActiveCategorySlug,
   useDealsMegaMenuHover,
 } from "@/components/DealsMegaMenu";
 import { cn, focusRing, focusRingInset } from "@/lib/utils";
@@ -22,6 +23,7 @@ export function NavHeader({ categoryTree = [] }: NavHeaderProps) {
   const [mobileDealsExpanded, setMobileDealsExpanded] = useState(false);
   const [desktopDealsMenuOpen, setDesktopDealsMenuOpen] = useState(false);
   const pathname = usePathname();
+  const activeCategorySlug = useActiveCategorySlug();
   const desktopMenuId = useId();
   const headerRef = useRef<HTMLElement>(null);
   const { onHoverIntent, onHoverLeave } = useDealsMegaMenuHover(
@@ -172,7 +174,8 @@ export function NavHeader({ categoryTree = [] }: NavHeaderProps) {
         isOpen={desktopDealsMenuOpen}
         menuId={desktopMenuId}
         categoryTree={categoryTree}
-        onNavigate={closeDesktopMenu}
+        activeCategorySlug={activeCategorySlug}
+        onClose={closeDesktopMenu}
       />
 
       {/* Mobile nav */}
@@ -212,7 +215,9 @@ export function NavHeader({ categoryTree = [] }: NavHeaderProps) {
             onToggle={() => setMobileDealsExpanded((open) => !open)}
             isDealsActive={isDealsActive}
             categoryTree={categoryTree}
+            activeCategorySlug={activeCategorySlug}
             onNavigate={closeMobileMenu}
+            onClose={() => setMobileDealsExpanded(false)}
           />
         </nav>
       </div>

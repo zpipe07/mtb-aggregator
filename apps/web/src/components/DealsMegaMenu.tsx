@@ -4,14 +4,16 @@ import {
   useCallback,
   useEffect,
   useId,
+  useMemo,
   useRef,
-  type ReactNode,
+  useState,
 } from "react";
 import Link from "next/link";
-import { ChevronDown } from "lucide-react";
+import { usePathname } from "next/navigation";
+import { ChevronDown, X } from "lucide-react";
 import type { CategoryTreeNode } from "@/api";
-import { categoryHasDeals } from "@/lib/categoryTree";
-import { buildDealsCategoryPath } from "@/lib/dealsCategoryPath";
+import { categoryHasDeals, findCategoryWithAncestors } from "@/lib/categoryTree";
+import { buildDealsCategoryPath, parseCategorySlugFromDealsPath } from "@/lib/dealsCategoryPath";
 import { captureCategoryNav } from "@/lib/categoryNavAnalytics";
 import { cn, focusRing, focusRingInset } from "@/lib/utils";
 import { mainNavLinkTypography } from "@/lib/mainNavStyles";
@@ -24,9 +26,33 @@ function productDealCount(node: CategoryTreeNode): number {
   return node.product_count ?? node.deal_count;
 }
 
+function getDefaultExpandedSecondLevels(
+  categoryTree: CategoryTreeNode[],
+  activeSlug: string | null,
+): Set<string> {
+  const expanded = new Set<string>();
+  if (!activeSlug) return expanded;
+
+  const found = findCategoryWithAncestors(categoryTree, activeSlug);
+  if (!found) return expanded;
+
+  for (const ancestor of found.ancestors) {
+    if (ancestor.depth === 1 && ancestor.children?.length) {
+      expanded.add(ancestor.slug);
+    }
+  }
+  if (found.node.depth === 1 && found.node.children?.length) {
+    expanded.add(found.node.slug);
+  }
+
+  return expanded;
+}
+
 type DealsMegaMenuPanelProps = {
   categoryTree: CategoryTreeNode[];
+  activeCategorySlug?: string | null;
   onNavigate?: () => void;
+  onClose?: () => void;
   className?: string;
 };
 
@@ -35,11 +61,13 @@ function CategoryMegaMenuLink({
   categoryTree,
   depth = 0,
   onNavigate,
+  className,
 }: {
   node: CategoryTreeNode;
   categoryTree: CategoryTreeNode[];
   depth?: number;
   onNavigate?: () => void;
+  className?: string;
 }) {
   const href = buildDealsCategoryPath(node.slug, categoryTree);
   const count = productDealCount(node);
@@ -53,15 +81,16 @@ function CategoryMegaMenuLink({
         onNavigate?.();
       }}
       className={cn(
-        "block rounded-sm py-1.5 text-sm transition-colors hover:text-foreground",
+        "block min-w-0 flex-1 rounded-sm py-1.5 text-sm transition-colors hover:text-foreground",
         depth === 0
           ? "font-semibold text-foreground"
           : "font-medium text-muted-foreground hover:text-foreground",
         depth >= 2 && "text-xs font-normal",
         muted && "opacity-60",
         focusRingInset,
+        className,
       )}
-      style={depth > 0 ? { paddingLeft: `${(depth - 1) * 12}px` } : undefined}
+      style={depth >= 2 ? { paddingLeft: `${(depth - 2) * 12}px` } : undefined}
     >
       {node.name}
       {count > 0 ? (
@@ -73,40 +102,202 @@ function CategoryMegaMenuLink({
   );
 }
 
-function renderCategoryLinks(
-  nodes: CategoryTreeNode[],
-  categoryTree: CategoryTreeNode[],
-  onNavigate: (() => void) | undefined,
-  depth: number,
-): ReactNode {
-  return nodes.map((node) => (
-    <li key={node.slug} className="min-w-0">
-      <CategoryMegaMenuLink
-        node={node}
-        categoryTree={categoryTree}
-        depth={depth}
-        onNavigate={onNavigate}
-      />
-      {node.children?.length ? (
-        <ul className="mt-0.5 space-y-0.5 list-none pl-0">
-          {renderCategoryLinks(node.children, categoryTree, onNavigate, depth + 1)}
+function SecondLevelCategoryGroup({
+  node,
+  categoryTree,
+  activeCategorySlug,
+  expanded,
+  onToggle,
+  onNavigate,
+}: {
+  node: CategoryTreeNode;
+  categoryTree: CategoryTreeNode[];
+  activeCategorySlug: string | null;
+  expanded: boolean;
+  onToggle: () => void;
+  onNavigate?: () => void;
+}) {
+  const hasChildren = (node.children?.length ?? 0) > 0;
+  const isActive =
+    activeCategorySlug === node.slug ||
+    (activeCategorySlug
+      ? findCategoryWithAncestors(categoryTree, activeCategorySlug)?.ancestors.some(
+          (ancestor) => ancestor.slug === node.slug,
+        )
+      : false);
+
+  if (!hasChildren) {
+    return (
+      <li className="min-w-0">
+        <CategoryMegaMenuLink
+          node={node}
+          categoryTree={categoryTree}
+          depth={1}
+          onNavigate={onNavigate}
+          className={isActive ? "font-semibold text-foreground" : undefined}
+        />
+      </li>
+    );
+  }
+
+  const panelId = `mega-menu-${node.slug}-children`;
+
+  return (
+    <li className="min-w-0">
+      <div className="flex items-start gap-0.5">
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className={cn(
+            "mt-0.5 size-6 shrink-0 rounded-sm text-muted-foreground hover:text-foreground",
+            focusRingInset,
+          )}
+          aria-expanded={expanded}
+          aria-controls={panelId}
+          aria-label={expanded ? `Collapse ${node.name}` : `Expand ${node.name}`}
+          onClick={onToggle}
+        >
+          <ChevronDown
+            className={cn(
+              "size-3.5 transition-transform duration-200",
+              expanded && "rotate-180",
+            )}
+            aria-hidden
+          />
+        </Button>
+        <CategoryMegaMenuLink
+          node={node}
+          categoryTree={categoryTree}
+          depth={1}
+          onNavigate={onNavigate}
+          className={isActive ? "font-semibold text-foreground" : undefined}
+        />
+      </div>
+      {expanded ? (
+        <ul id={panelId} className="mt-0.5 space-y-0.5 border-l border-border pl-3 list-none">
+          {node.children.map((grandchild) => (
+            <li key={grandchild.slug} className="min-w-0">
+              <CategoryMegaMenuLink
+                node={grandchild}
+                categoryTree={categoryTree}
+                depth={2}
+                onNavigate={onNavigate}
+                className={
+                  activeCategorySlug === grandchild.slug
+                    ? "font-semibold text-foreground"
+                    : undefined
+                }
+              />
+            </li>
+          ))}
         </ul>
       ) : null}
     </li>
-  ));
+  );
+}
+
+function RootCategoryColumn({
+  root,
+  categoryTree,
+  activeCategorySlug,
+  expandedSecondLevels,
+  onToggleSecondLevel,
+  onNavigate,
+}: {
+  root: CategoryTreeNode;
+  categoryTree: CategoryTreeNode[];
+  activeCategorySlug: string | null;
+  expandedSecondLevels: Set<string>;
+  onToggleSecondLevel: (slug: string) => void;
+  onNavigate?: () => void;
+}) {
+  const isRootActive =
+    activeCategorySlug === root.slug ||
+    (activeCategorySlug
+      ? findCategoryWithAncestors(categoryTree, activeCategorySlug)?.ancestors.some(
+          (ancestor) => ancestor.slug === root.slug,
+        )
+      : false);
+
+  return (
+    <div className="min-w-0 space-y-2">
+      <CategoryMegaMenuLink
+        node={root}
+        categoryTree={categoryTree}
+        depth={0}
+        onNavigate={onNavigate}
+        className={isRootActive ? "text-primary" : undefined}
+      />
+      {root.children?.length ? (
+        <ul className="space-y-1 list-none pl-0">
+          {root.children.map((child) => (
+            <SecondLevelCategoryGroup
+              key={child.slug}
+              node={child}
+              categoryTree={categoryTree}
+              activeCategorySlug={activeCategorySlug}
+              expanded={expandedSecondLevels.has(child.slug)}
+              onToggle={() => onToggleSecondLevel(child.slug)}
+              onNavigate={onNavigate}
+            />
+          ))}
+        </ul>
+      ) : null}
+    </div>
+  );
 }
 
 export function DealsMegaMenuPanel({
   categoryTree,
+  activeCategorySlug = null,
   onNavigate,
+  onClose,
   className,
 }: DealsMegaMenuPanelProps) {
+  const defaultExpanded = useMemo(
+    () => getDefaultExpandedSecondLevels(categoryTree, activeCategorySlug),
+    [categoryTree, activeCategorySlug],
+  );
+  const [expandedSecondLevels, setExpandedSecondLevels] =
+    useState<Set<string>>(defaultExpanded);
+
+  useEffect(() => {
+    setExpandedSecondLevels(defaultExpanded);
+  }, [defaultExpanded]);
+
+  const toggleSecondLevel = useCallback((slug: string) => {
+    setExpandedSecondLevels((current) => {
+      const next = new Set(current);
+      if (next.has(slug)) next.delete(slug);
+      else next.add(slug);
+      return next;
+    });
+  }, []);
+
   return (
-    <div className={cn("bg-background", className)}>
-      <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
-        <p className={cn(monoMicro, "mb-4 text-muted-foreground")}>
-          {"// browse by category"}
-        </p>
+    <div className={cn("bg-card", className)}>
+      <div className="px-4 py-5 sm:px-6 sm:py-6">
+        <div className="mb-4 flex items-start justify-between gap-3">
+          <p className={cn(monoMicro, "pt-1 text-muted-foreground")}>
+            {"// browse by category"}
+          </p>
+          {onClose ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className={cn(
+                "size-8 shrink-0 rounded-sm text-muted-foreground hover:text-foreground",
+                focusRing,
+              )}
+              aria-label="Close categories menu"
+              onClick={onClose}
+            >
+              <X className="size-4" aria-hidden />
+            </Button>
+          ) : null}
+        </div>
         {categoryTree.length === 0 ? (
           <p className="text-sm text-muted-foreground">
             Categories are unavailable right now.{" "}
@@ -122,32 +313,23 @@ export function DealsMegaMenuPanel({
             </Link>
           </p>
         ) : (
-          <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
             {categoryTree.map((root) => (
-              <div key={root.slug} className="min-w-0 space-y-2">
-                <CategoryMegaMenuLink
-                  node={root}
-                  categoryTree={categoryTree}
-                  depth={0}
-                  onNavigate={onNavigate}
-                />
-                {root.children?.length ? (
-                  <ul className="space-y-1 border-l border-border pl-3 list-none">
-                    {renderCategoryLinks(
-                      root.children,
-                      categoryTree,
-                      onNavigate,
-                      1,
-                    )}
-                  </ul>
-                ) : null}
-              </div>
+              <RootCategoryColumn
+                key={root.slug}
+                root={root}
+                categoryTree={categoryTree}
+                activeCategorySlug={activeCategorySlug}
+                expandedSecondLevels={expandedSecondLevels}
+                onToggleSecondLevel={toggleSecondLevel}
+                onNavigate={onNavigate}
+              />
             ))}
           </div>
         )}
       </div>
-      <div className="border-t border-border bg-muted/30">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
+      <div className="border-t border-border bg-muted/40">
+        <div className="flex items-center justify-between gap-4 px-4 py-3 sm:px-6">
           <Link
             href="/deals"
             onClick={() => {
@@ -241,14 +423,16 @@ type DealsMegaMenuDesktopPanelProps = {
   isOpen: boolean;
   menuId: string;
   categoryTree: CategoryTreeNode[];
-  onNavigate: () => void;
+  activeCategorySlug: string | null;
+  onClose: () => void;
 };
 
 export function DealsMegaMenuDesktopPanel({
   isOpen,
   menuId,
   categoryTree,
-  onNavigate,
+  activeCategorySlug,
+  onClose,
 }: DealsMegaMenuDesktopPanelProps) {
   if (!isOpen) return null;
 
@@ -257,12 +441,28 @@ export function DealsMegaMenuDesktopPanel({
       id={menuId}
       role="region"
       aria-label="Deals categories"
-      className="absolute inset-x-0 top-full z-50 hidden border-b border-border bg-background shadow-lg lg:block"
+      className="absolute inset-x-0 top-full z-50 hidden lg:block"
     >
-      <DealsMegaMenuPanel
-        categoryTree={categoryTree}
-        onNavigate={onNavigate}
+      <button
+        type="button"
+        className="absolute inset-x-0 top-0 min-h-[100vh] bg-foreground/12 backdrop-blur-[1px]"
+        aria-label="Close categories menu"
+        onClick={onClose}
       />
+      <div className="relative px-4 pb-6 pt-3 sm:px-6">
+        <div
+          className="mx-auto max-w-5xl overflow-hidden rounded-lg border border-border bg-card shadow-2xl"
+          onClick={(event) => event.stopPropagation()}
+          onMouseDown={(event) => event.stopPropagation()}
+        >
+          <DealsMegaMenuPanel
+            categoryTree={categoryTree}
+            activeCategorySlug={activeCategorySlug}
+            onNavigate={onClose}
+            onClose={onClose}
+          />
+        </div>
+      </div>
     </div>
   );
 }
@@ -299,7 +499,9 @@ type DealsMegaMenuMobileProps = {
   onToggle: () => void;
   isDealsActive: boolean;
   categoryTree: CategoryTreeNode[];
+  activeCategorySlug: string | null;
   onNavigate: () => void;
+  onClose: () => void;
 };
 
 export function DealsMegaMenuMobile({
@@ -307,7 +509,9 @@ export function DealsMegaMenuMobile({
   onToggle,
   isDealsActive,
   categoryTree,
+  activeCategorySlug,
   onNavigate,
+  onClose,
 }: DealsMegaMenuMobileProps) {
   const panelId = useId();
 
@@ -356,15 +560,25 @@ export function DealsMegaMenuMobile({
       {isExpanded ? (
         <div
           id={panelId}
-          className="max-h-[min(60vh,28rem)] overflow-y-auto rounded-sm border border-border bg-card px-3 py-3"
+          className="max-h-[min(60vh,28rem)] overflow-y-auto rounded-sm border border-border bg-card"
         >
           <DealsMegaMenuPanel
             categoryTree={categoryTree}
+            activeCategorySlug={activeCategorySlug}
             onNavigate={onNavigate}
+            onClose={onClose}
             className="bg-transparent"
           />
         </div>
       ) : null}
     </div>
+  );
+}
+
+export function useActiveCategorySlug(): string | null {
+  const pathname = usePathname();
+  return useMemo(
+    () => parseCategorySlugFromDealsPath(pathname),
+    [pathname],
   );
 }

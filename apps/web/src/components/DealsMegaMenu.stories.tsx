@@ -110,7 +110,18 @@ export default meta;
 
 type Story = StoryObj<typeof meta>;
 
-export const Default: Story = {};
+export const Default: Story = {
+  args: {
+    onClose: () => undefined,
+  },
+};
+
+export const WithActiveSecondLevel: Story = {
+  args: {
+    activeCategorySlug: "bikes-mountain-trail",
+    onClose: () => undefined,
+  },
+};
 
 export const EmptyTree: Story = {
   args: {
