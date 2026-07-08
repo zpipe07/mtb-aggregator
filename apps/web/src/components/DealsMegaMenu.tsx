@@ -81,7 +81,7 @@ function CategoryMegaMenuLink({
         onNavigate?.();
       }}
       className={cn(
-        "block min-w-0 flex-1 rounded-sm py-1.5 text-sm transition-colors hover:text-foreground",
+        "block min-w-0 rounded-sm py-1.5 text-left text-sm transition-colors hover:text-foreground",
         depth === 0
           ? "font-semibold text-foreground"
           : "font-medium text-muted-foreground hover:text-foreground",
@@ -99,6 +99,51 @@ function CategoryMegaMenuLink({
         </span>
       ) : null}
     </Link>
+  );
+}
+
+const secondLevelRowGrid =
+  "grid grid-cols-[1.5rem_minmax(0,1fr)] items-start gap-x-1";
+
+function SecondLevelChevronSlot({
+  expanded,
+  panelId,
+  label,
+  onToggle,
+  visible,
+}: {
+  expanded: boolean;
+  panelId: string;
+  label: string;
+  onToggle: () => void;
+  visible: boolean;
+}) {
+  if (!visible) {
+    return <span className="size-6 shrink-0" aria-hidden />;
+  }
+
+  return (
+    <Button
+      type="button"
+      variant="ghost"
+      size="icon"
+      className={cn(
+        "size-6 shrink-0 rounded-sm text-muted-foreground hover:text-foreground",
+        focusRingInset,
+      )}
+      aria-expanded={expanded}
+      aria-controls={panelId}
+      aria-label={expanded ? `Collapse ${label}` : `Expand ${label}`}
+      onClick={onToggle}
+    >
+      <ChevronDown
+        className={cn(
+          "size-3.5 transition-transform duration-200",
+          expanded && "rotate-180",
+        )}
+        aria-hidden
+      />
+    </Button>
   );
 }
 
@@ -128,7 +173,14 @@ function SecondLevelCategoryGroup({
 
   if (!hasChildren) {
     return (
-      <li className="min-w-0">
+      <li className={cn("min-w-0", secondLevelRowGrid)}>
+        <SecondLevelChevronSlot
+          expanded={false}
+          panelId=""
+          label={node.name}
+          onToggle={() => undefined}
+          visible={false}
+        />
         <CategoryMegaMenuLink
           node={node}
           categoryTree={categoryTree}
@@ -144,28 +196,14 @@ function SecondLevelCategoryGroup({
 
   return (
     <li className="min-w-0">
-      <div className="flex items-start gap-0.5">
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          className={cn(
-            "mt-0.5 size-6 shrink-0 rounded-sm text-muted-foreground hover:text-foreground",
-            focusRingInset,
-          )}
-          aria-expanded={expanded}
-          aria-controls={panelId}
-          aria-label={expanded ? `Collapse ${node.name}` : `Expand ${node.name}`}
-          onClick={onToggle}
-        >
-          <ChevronDown
-            className={cn(
-              "size-3.5 transition-transform duration-200",
-              expanded && "rotate-180",
-            )}
-            aria-hidden
-          />
-        </Button>
+      <div className={secondLevelRowGrid}>
+        <SecondLevelChevronSlot
+          expanded={expanded}
+          panelId={panelId}
+          label={node.name}
+          onToggle={onToggle}
+          visible
+        />
         <CategoryMegaMenuLink
           node={node}
           categoryTree={categoryTree}
@@ -175,7 +213,10 @@ function SecondLevelCategoryGroup({
         />
       </div>
       {expanded ? (
-        <ul id={panelId} className="mt-0.5 space-y-0.5 border-l border-border pl-3 list-none">
+        <ul
+          id={panelId}
+          className="mt-0.5 space-y-0.5 border-l border-border pl-3 list-none ml-7"
+        >
           {node.children.map((grandchild) => (
             <li key={grandchild.slug} className="min-w-0">
               <CategoryMegaMenuLink
@@ -437,33 +478,35 @@ export function DealsMegaMenuDesktopPanel({
   if (!isOpen) return null;
 
   return (
-    <div
-      id={menuId}
-      role="region"
-      aria-label="Deals categories"
-      className="absolute inset-x-0 top-full z-50 hidden lg:block"
-    >
+    <>
       <button
         type="button"
-        className="absolute inset-x-0 top-0 min-h-[100vh] bg-foreground/12 backdrop-blur-[1px]"
+        className="fixed inset-0 z-30 hidden bg-foreground/12 backdrop-blur-[1px] lg:block"
         aria-label="Close categories menu"
         onClick={onClose}
       />
-      <div className="relative px-4 pb-6 pt-3 sm:px-6">
-        <div
-          className="mx-auto max-w-5xl overflow-hidden rounded-lg border border-border bg-card shadow-2xl"
-          onClick={(event) => event.stopPropagation()}
-          onMouseDown={(event) => event.stopPropagation()}
-        >
-          <DealsMegaMenuPanel
-            categoryTree={categoryTree}
-            activeCategorySlug={activeCategorySlug}
-            onNavigate={onClose}
-            onClose={onClose}
-          />
+      <div
+        id={menuId}
+        role="region"
+        aria-label="Deals categories"
+        className="absolute inset-x-0 top-full z-50 hidden lg:block"
+      >
+        <div className="relative px-4 pb-6 pt-3 sm:px-6">
+          <div
+            className="mx-auto max-w-5xl overflow-hidden rounded-lg border border-border bg-card shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <DealsMegaMenuPanel
+              categoryTree={categoryTree}
+              activeCategorySlug={activeCategorySlug}
+              onNavigate={onClose}
+              onClose={onClose}
+            />
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
 

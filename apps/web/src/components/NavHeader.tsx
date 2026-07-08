@@ -48,6 +48,15 @@ export function NavHeader({ categoryTree = [] }: NavHeaderProps) {
 
   useEffect(() => {
     if (!desktopDealsMenuOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [desktopDealsMenuOpen]);
+
+  useEffect(() => {
+    if (!desktopDealsMenuOpen) return;
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") closeDesktopMenu();
     };
