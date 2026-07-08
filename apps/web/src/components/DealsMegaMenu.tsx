@@ -83,7 +83,7 @@ function CategoryMegaMenuLink({
       className={cn(
         "block min-w-0 rounded-sm py-1.5 text-left text-sm transition-colors hover:text-foreground",
         depth === 0
-          ? "font-semibold text-foreground"
+          ? "text-base font-semibold text-foreground sm:text-lg"
           : "font-medium text-muted-foreground hover:text-foreground",
         depth >= 2 && "text-xs font-normal",
         muted && "opacity-60",
