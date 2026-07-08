@@ -180,7 +180,7 @@ func (s *Scheduler) scrapeStore(ctx context.Context, store db.Store, triggeredBy
 	if storeType == "" {
 		storeType = strings.ToLower(strings.ReplaceAll(store.Name, " ", ""))
 	}
-	if storeType != "jensonusa" && storeType != "backcountry" && storeType != "competitivecyclist" && storeType != "worldwidecyclery" && storeType != "revelbikes" && storeType != "ridebicycles" && storeType != "thundermountainbikes" && storeType != "mackcycle" && storeType != "canyon" && storeType != "specialized" && storeType != "trek" && storeType != "universalcycles" && storeType != "n1bikes" {
+	if storeType != "jensonusa" && storeType != "backcountry" && storeType != "competitivecyclist" && storeType != "worldwidecyclery" && storeType != "revelbikes" && storeType != "ridebicycles" && storeType != "thundermountainbikes" && storeType != "mackcycle" && storeType != "canyon" && storeType != "specialized" && storeType != "trek" && storeType != "universalcycles" && storeType != "n1bikes" && storeType != "rideconcepts" {
 		storeType = "jensonusa"
 	}
 
