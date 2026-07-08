@@ -16,6 +16,7 @@ import { scrapeTrek, enrichTrek } from "./trek.js";
 import { scrapeUniversalCycles, enrichUniversalCycles } from "./universalcycles.js";
 import { scrapeN1Bikes, enrichN1Bikes } from "./n1bikes.js";
 import { scrapeRideConcepts, enrichRideConcepts } from "./rideconcepts.js";
+import { scrapeLeatt, enrichLeatt } from "./leatt.js";
 import { enrichCompetitiveCyclist } from "./competitivecyclist.js";
 
 export type ParserFn = (url: string) => Promise<ScrapeResult[]>;
@@ -35,6 +36,7 @@ export const PARSERS: Record<string, ParserFn> = {
   universalcycles: scrapeUniversalCycles,
   n1bikes: scrapeN1Bikes,
   rideconcepts: scrapeRideConcepts,
+  leatt: scrapeLeatt,
 };
 
 export const ENRICHERS: Record<string, EnrichFn> = {
@@ -51,6 +53,7 @@ export const ENRICHERS: Record<string, EnrichFn> = {
   universalcycles: enrichUniversalCycles,
   n1bikes: enrichN1Bikes,
   rideconcepts: enrichRideConcepts,
+  leatt: enrichLeatt,
   competitivecyclist: enrichCompetitiveCyclist,
 };
 

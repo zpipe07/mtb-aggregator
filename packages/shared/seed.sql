@@ -50,3 +50,7 @@ WHERE NOT EXISTS (SELECT 1 FROM stores WHERE name = 'N+1 Bikes');
 INSERT INTO stores (name, base_url, scrape_url, store_type, affiliate_network)
 SELECT 'Ride Concepts', 'https://rideconcepts.com', 'https://rideconcepts.com/collections/on-sale', 'rideconcepts', NULL
 WHERE NOT EXISTS (SELECT 1 FROM stores WHERE name = 'Ride Concepts');
+
+INSERT INTO stores (name, base_url, scrape_url, store_type, affiliate_network)
+SELECT 'Leatt', 'https://us.leatt.com', 'https://us.leatt.com/collections/mtb-hot-deals', 'leatt', NULL
+WHERE NOT EXISTS (SELECT 1 FROM stores WHERE name = 'Leatt');

@@ -84,6 +84,7 @@ make scrape-now-canyon         # canyon only
 make scrape-now-specialized    # specialized only
 make scrape-now-mackcycle      # mackcycle only
 make scrape-now-rideconcepts   # rideconcepts only
+make scrape-now-leatt          # leatt only
 make scrape-now-trek           # trek only
 make scrape-now-universalcycles  # universalcycles only
 make enrich-now              # enrich unenriched listings
@@ -94,6 +95,7 @@ make enrich-now-canyon         # canyon only (optional FORCE=1)
 make enrich-now-specialized    # specialized only (optional FORCE=1)
 make enrich-now-mackcycle      # mackcycle only (optional FORCE=1)
 make enrich-now-rideconcepts   # rideconcepts only (optional FORCE=1)
+make enrich-now-leatt          # leatt only (optional FORCE=1)
 make enrich-now-trek           # trek only (optional FORCE=1)
 make enrich-now-universalcycles  # universalcycles only (optional FORCE=1)
 make enrich-now FORCE=1      # re-enrich all

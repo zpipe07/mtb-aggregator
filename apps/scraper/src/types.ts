@@ -34,6 +34,7 @@ export const STORE_TYPES = [
   "universalcycles",
   "n1bikes",
   "rideconcepts",
+  "leatt",
 ] as const;
 export type StoreType = (typeof STORE_TYPES)[number];
 
