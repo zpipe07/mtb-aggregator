@@ -1,4 +1,4 @@
-.PHONY: dev db-up db-down db-migrate db-migrate-docker db-seed db-up-local db-migrate-local db-migrate-remote db-seed-remote backfill-brands backfill-canonical-categories backfill-llm-specs backfill-field-library backfill-variant-options backfill-jenson-variants backfill-cc-variants scrape scrape-now scrape-now-wwc scrape-now-revel scrape-now-competitivecyclist scrape-now-ridebicycles scrape-now-thundermountainbikes scrape-now-canyon scrape-now-specialized scrape-now-mackcycle scrape-now-trek scrape-now-universalcycles scrape-now-n1bikes scrape-now-rideconcepts scrape-now-leatt enrich-now enrich-now-revel enrich-now-competitivecyclist enrich-now-thundermountainbikes enrich-now-canyon enrich-now-specialized enrich-now-mackcycle enrich-now-trek enrich-now-universalcycles enrich-now-n1bikes enrich-now-rideconcepts enrich-now-leatt build-all install impact-catalog-probe
+.PHONY: dev db-up db-down db-migrate db-migrate-docker db-seed db-up-local db-migrate-local db-migrate-remote db-seed-remote backfill-brands backfill-canonical-categories backfill-llm-specs backfill-field-library backfill-variant-options backfill-jenson-variants backfill-cc-variants scrape scrape-now scrape-now-wwc scrape-now-revel scrape-now-competitivecyclist scrape-now-ridebicycles scrape-now-thundermountainbikes scrape-now-canyon scrape-now-specialized scrape-now-mackcycle scrape-now-trek scrape-now-universalcycles scrape-now-n1bikes scrape-now-foxracing scrape-now-rideconcepts scrape-now-leatt enrich-now enrich-now-revel enrich-now-competitivecyclist enrich-now-thundermountainbikes enrich-now-canyon enrich-now-specialized enrich-now-mackcycle enrich-now-trek enrich-now-universalcycles enrich-now-n1bikes enrich-now-foxracing enrich-now-rideconcepts enrich-now-leatt build-all install impact-catalog-probe
 
 # Ensure Make can find docker (Docker Desktop CLI locations)
 export PATH := /Applications/Docker.app/Contents/Resources/bin:/usr/local/bin:/opt/homebrew/bin:$(PATH)
@@ -152,6 +152,10 @@ scrape-now-universalcycles:
 scrape-now-n1bikes:
 	@curl -s -X POST "http://localhost:8080/scrape-now?store=n1bikes"
 
+# Scrape only Fox Racing (requires API running)
+scrape-now-foxracing:
+	@curl -s -X POST "http://localhost:8080/scrape-now?store=foxracing"
+
 # Scrape only Ride Concepts (requires API running)
 scrape-now-rideconcepts:
 	@curl -s -X POST "http://localhost:8080/scrape-now?store=rideconcepts"
@@ -192,6 +196,9 @@ enrich-now-universalcycles:
 
 enrich-now-n1bikes:
 	@curl -s -X POST "http://localhost:8080/enrich-now?store=n1bikes$(if $(FORCE),&force=1,)"
+
+enrich-now-foxracing:
+	@curl -s -X POST "http://localhost:8080/enrich-now?store=foxracing$(if $(FORCE),&force=1,)"
 
 enrich-now-rideconcepts:
 	@curl -s -X POST "http://localhost:8080/enrich-now?store=rideconcepts$(if $(FORCE),&force=1,)"

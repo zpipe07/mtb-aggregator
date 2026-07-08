@@ -15,6 +15,7 @@ import { scrapeSpecialized, enrichSpecialized } from "./specialized.js";
 import { scrapeTrek, enrichTrek } from "./trek.js";
 import { scrapeUniversalCycles, enrichUniversalCycles } from "./universalcycles.js";
 import { scrapeN1Bikes, enrichN1Bikes } from "./n1bikes.js";
+import { scrapeFoxRacing, enrichFoxRacing } from "./foxracing.js";
 import { scrapeRideConcepts, enrichRideConcepts } from "./rideconcepts.js";
 import { scrapeLeatt, enrichLeatt } from "./leatt.js";
 import { enrichCompetitiveCyclist } from "./competitivecyclist.js";
@@ -35,6 +36,7 @@ export const PARSERS: Record<string, ParserFn> = {
   trek: scrapeTrek,
   universalcycles: scrapeUniversalCycles,
   n1bikes: scrapeN1Bikes,
+  foxracing: scrapeFoxRacing,
   rideconcepts: scrapeRideConcepts,
   leatt: scrapeLeatt,
 };
@@ -52,6 +54,7 @@ export const ENRICHERS: Record<string, EnrichFn> = {
   trek: enrichTrek,
   universalcycles: enrichUniversalCycles,
   n1bikes: enrichN1Bikes,
+  foxracing: enrichFoxRacing,
   rideconcepts: enrichRideConcepts,
   leatt: enrichLeatt,
   competitivecyclist: enrichCompetitiveCyclist,

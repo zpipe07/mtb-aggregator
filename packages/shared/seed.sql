@@ -48,6 +48,10 @@ SELECT 'N+1 Bikes', 'https://www.n1bikes.com', 'https://www.n1bikes.com/categori
 WHERE NOT EXISTS (SELECT 1 FROM stores WHERE name = 'N+1 Bikes');
 
 INSERT INTO stores (name, base_url, scrape_url, store_type, affiliate_network)
+SELECT 'Fox Racing', 'https://www.foxracing.com', 'https://www.foxracing.com/legacy-drops/mtb/', 'foxracing', NULL
+WHERE NOT EXISTS (SELECT 1 FROM stores WHERE name = 'Fox Racing');
+
+INSERT INTO stores (name, base_url, scrape_url, store_type, affiliate_network)
 SELECT 'Ride Concepts', 'https://rideconcepts.com', 'https://rideconcepts.com/collections/on-sale', 'rideconcepts', NULL
 WHERE NOT EXISTS (SELECT 1 FROM stores WHERE name = 'Ride Concepts');
 
