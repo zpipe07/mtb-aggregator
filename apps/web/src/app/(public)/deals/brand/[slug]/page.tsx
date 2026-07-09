@@ -8,6 +8,7 @@ import {
   fetchStores,
   fetchCategoryTree,
   DEFAULT_PAGE_SIZE,
+  normalizeFacetsResponse,
   type FacetsResponse,
 } from "@/api";
 import { parseFilterParamsFromSearch } from "@/lib/filterParams";
@@ -130,13 +131,7 @@ export default async function BrandDealsPage({ params, searchParams }: Props) {
 
   const deals = dealsResponse.deals ?? [];
   const totalCount = dealsResponse.total_count ?? 0;
-  const facetsBase = facetsResponse ?? {
-    spec_facets: [],
-    brand_facets: [],
-    price_range: { min: 0, max: 0 },
-    total_matching: 0,
-  };
-  const facets = facetsBase;
+  const facets = normalizeFacetsResponse(facetsResponse);
   const seo = getBrandSeo(brand);
 
   const dealsListPath = searchParamsRecordToDealsCategoryListPath(

@@ -100,7 +100,7 @@ export function CategoryBrandLinks({
   brandFacets,
   title = "Popular brands",
 }: CategoryBrandProps) {
-  const top = brandFacets
+  const top = (brandFacets ?? [])
     .filter((b) => b.count >= 3)
     .slice(0, 12);
   if (top.length === 0) return null;

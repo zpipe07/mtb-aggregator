@@ -241,6 +241,27 @@ export interface FacetsResponse {
   total_matching: number;
 }
 
+const EMPTY_FACETS: FacetsResponse = {
+  spec_facets: [],
+  brand_facets: [],
+  price_range: { min: 0, max: 0 },
+  total_matching: 0,
+};
+
+/** Go nil slices serialize as JSON null; coerce to arrays for safe `.filter` / `.map`. */
+export function normalizeFacetsResponse(
+  response: FacetsResponse | null | undefined,
+  brandFacetsOverride?: BrandFacet[] | null,
+): FacetsResponse {
+  const base = response ?? EMPTY_FACETS;
+  return {
+    spec_facets: base.spec_facets ?? [],
+    brand_facets: brandFacetsOverride ?? base.brand_facets ?? [],
+    price_range: base.price_range ?? EMPTY_FACETS.price_range,
+    total_matching: base.total_matching ?? 0,
+  };
+}
+
 export interface FacetsParams {
   store?: string;
   brands?: string[];
