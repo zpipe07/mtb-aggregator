@@ -37,6 +37,7 @@ export const STORE_TYPES = [
   "rideconcepts",
   "leatt",
   "bell",
+  "giro",
 ] as const;
 export type StoreType = (typeof STORE_TYPES)[number];
 

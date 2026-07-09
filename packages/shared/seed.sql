@@ -62,3 +62,7 @@ WHERE NOT EXISTS (SELECT 1 FROM stores WHERE name = 'Leatt');
 INSERT INTO stores (name, base_url, scrape_url, store_type, affiliate_network)
 SELECT 'Bell', 'https://www.bellhelmets.com', 'https://www.bellhelmets.com/legacy-garage/cycling/', 'bell', NULL
 WHERE NOT EXISTS (SELECT 1 FROM stores WHERE name = 'Bell');
+
+INSERT INTO stores (name, base_url, scrape_url, store_type, affiliate_network)
+SELECT 'Giro', 'https://www.giro.com', 'https://www.giro.com/archives/cycling/', 'giro', NULL
+WHERE NOT EXISTS (SELECT 1 FROM stores WHERE name = 'Giro');

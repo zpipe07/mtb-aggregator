@@ -1,4 +1,4 @@
-.PHONY: dev db-up db-down db-migrate db-migrate-docker db-seed db-up-local db-migrate-local db-migrate-remote db-seed-remote backfill-brands backfill-canonical-categories backfill-llm-specs backfill-field-library backfill-variant-options backfill-jenson-variants backfill-cc-variants scrape scrape-now scrape-now-wwc scrape-now-revel scrape-now-competitivecyclist scrape-now-ridebicycles scrape-now-thundermountainbikes scrape-now-canyon scrape-now-specialized scrape-now-mackcycle scrape-now-trek scrape-now-universalcycles scrape-now-n1bikes scrape-now-foxracing scrape-now-rideconcepts scrape-now-leatt scrape-now-bell enrich-now enrich-now-revel enrich-now-competitivecyclist enrich-now-thundermountainbikes enrich-now-canyon enrich-now-specialized enrich-now-mackcycle enrich-now-trek enrich-now-universalcycles enrich-now-n1bikes enrich-now-foxracing enrich-now-rideconcepts enrich-now-leatt enrich-now-bell build-all install impact-catalog-probe
+.PHONY: dev db-up db-down db-migrate db-migrate-docker db-seed db-up-local db-migrate-local db-migrate-remote db-seed-remote backfill-brands backfill-canonical-categories backfill-llm-specs backfill-field-library backfill-variant-options backfill-jenson-variants backfill-cc-variants scrape scrape-now scrape-now-wwc scrape-now-revel scrape-now-competitivecyclist scrape-now-ridebicycles scrape-now-thundermountainbikes scrape-now-canyon scrape-now-specialized scrape-now-mackcycle scrape-now-trek scrape-now-universalcycles scrape-now-n1bikes scrape-now-foxracing scrape-now-rideconcepts scrape-now-leatt scrape-now-bell scrape-now-giro enrich-now enrich-now-revel enrich-now-competitivecyclist enrich-now-thundermountainbikes enrich-now-canyon enrich-now-specialized enrich-now-mackcycle enrich-now-trek enrich-now-universalcycles enrich-now-n1bikes enrich-now-foxracing enrich-now-rideconcepts enrich-now-leatt enrich-now-bell enrich-now-giro build-all install impact-catalog-probe
 
 # Ensure Make can find docker (Docker Desktop CLI locations)
 export PATH := /Applications/Docker.app/Contents/Resources/bin:/usr/local/bin:/opt/homebrew/bin:$(PATH)
@@ -168,6 +168,10 @@ scrape-now-leatt:
 scrape-now-bell:
 	@curl -s -X POST "http://localhost:8080/scrape-now?store=bell"
 
+# Scrape only Giro (requires API running)
+scrape-now-giro:
+	@curl -s -X POST "http://localhost:8080/scrape-now?store=giro"
+
 # Trigger enrichment job manually (requires API and scraper running)
 # Add force=1 to re-enrich all listings: make enrich-now FORCE=1
 enrich-now:
@@ -212,6 +216,9 @@ enrich-now-leatt:
 
 enrich-now-bell:
 	@curl -s -X POST "http://localhost:8080/enrich-now?store=bell$(if $(FORCE),&force=1,)"
+
+enrich-now-giro:
+	@curl -s -X POST "http://localhost:8080/enrich-now?store=giro$(if $(FORCE),&force=1,)"
 
 # Discover Impact catalogs and sample CC catalog items (requires IMPACT_ACCOUNT_SID + IMPACT_AUTH_TOKEN in .env)
 impact-catalog-probe:

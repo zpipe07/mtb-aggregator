@@ -180,7 +180,7 @@ func (s *Scheduler) scrapeStore(ctx context.Context, store db.Store, triggeredBy
 	if storeType == "" {
 		storeType = strings.ToLower(strings.ReplaceAll(store.Name, " ", ""))
 	}
-	if storeType != "jensonusa" && storeType != "backcountry" && storeType != "competitivecyclist" && storeType != "worldwidecyclery" && storeType != "revelbikes" && storeType != "ridebicycles" && storeType != "thundermountainbikes" && storeType != "mackcycle" && storeType != "canyon" && storeType != "specialized" && storeType != "trek" && storeType != "universalcycles" && storeType != "n1bikes" && storeType != "foxracing" && storeType != "rideconcepts" && storeType != "leatt" && storeType != "bell" {
+	if storeType != "jensonusa" && storeType != "backcountry" && storeType != "competitivecyclist" && storeType != "worldwidecyclery" && storeType != "revelbikes" && storeType != "ridebicycles" && storeType != "thundermountainbikes" && storeType != "mackcycle" && storeType != "canyon" && storeType != "specialized" && storeType != "trek" && storeType != "universalcycles" && storeType != "n1bikes" && storeType != "foxracing" && storeType != "rideconcepts" && storeType != "leatt" && storeType != "bell" && storeType != "giro" {
 		storeType = "jensonusa"
 	}
 
@@ -572,6 +572,7 @@ func (s *Scheduler) runEnrichmentLoop(f db.EnrichmentFilter, force bool, trigger
 		seenUCGroups := make(map[string]bool)
 		seenFoxGroups := make(map[string]bool)
 		seenBellGroups := make(map[string]bool)
+		seenGiroGroups := make(map[string]bool)
 		successCount := 0
 		for _, l := range listings {
 			if maxListings > 0 && totalProcessed >= maxListings {
@@ -615,6 +616,9 @@ func (s *Scheduler) runEnrichmentLoop(f db.EnrichmentFilter, force bool, trigger
 			}
 			if err := s.db.ApplyBellPDPVariantFanout(ctx, l.StoreID, l.StoreType, l.ProductURL, enrichVariantsToJenson(result.Variants), seenBellGroups); err != nil {
 				enrichmentLog.Warn("bell variant fan-out failed", "listing_id", l.ID, logutil.ErrAttr(err))
+			}
+			if err := s.db.ApplyGiroPDPVariantFanout(ctx, l.StoreID, l.StoreType, l.ProductURL, enrichVariantsToJenson(result.Variants), seenGiroGroups); err != nil {
+				enrichmentLog.Warn("giro variant fan-out failed", "listing_id", l.ID, logutil.ErrAttr(err))
 			}
 			successCount++
 			totalSuccess++
