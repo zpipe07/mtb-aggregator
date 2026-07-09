@@ -36,6 +36,7 @@ export const STORE_TYPES = [
   "foxracing",
   "rideconcepts",
   "leatt",
+  "bell",
 ] as const;
 export type StoreType = (typeof STORE_TYPES)[number];
 

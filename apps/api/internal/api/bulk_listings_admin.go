@@ -385,6 +385,7 @@ func runBulkEnrichInBackground(h *Handlers, jobID int, ids []int, total int) {
 	ccSeen := make(map[string]bool)
 	ucSeen := make(map[string]bool)
 	foxSeen := make(map[string]bool)
+	bellSeen := make(map[string]bool)
 	for _, id := range ids {
 		if workCtx.Err() != nil {
 			errStrs = append(errStrs, "job timed out: "+workCtx.Err().Error())
@@ -393,7 +394,7 @@ func runBulkEnrichInBackground(h *Handlers, jobID int, ids []int, total int) {
 			}
 			return
 		}
-		if err := h.adminEnrichOneListing(workCtx, id, &errStrs, jensonSeen, ccSeen, ucSeen, foxSeen); err != nil {
+		if err := h.adminEnrichOneListing(workCtx, id, &errStrs, jensonSeen, ccSeen, ucSeen, foxSeen, bellSeen); err != nil {
 			errStrs = append(errStrs, err.Error())
 		} else {
 			enrichedN++
@@ -411,7 +412,8 @@ func runBulkEnrichInBackground(h *Handlers, jobID int, ids []int, total int) {
 // ccSeen dedupes Competitive Cyclist hasVariant fan-out per normalized product_url (optional).
 // ucSeen dedupes Universal Cycles attribute fan-out per product group (optional).
 // foxSeen dedupes Fox Racing color fan-out per base style (optional).
-func (h *Handlers) adminEnrichOneListing(ctx context.Context, id int, errStrs *[]string, jensonSeen, ccSeen, ucSeen, foxSeen map[string]bool) error {
+// bellSeen dedupes Bell color fan-out per master product id (optional).
+func (h *Handlers) adminEnrichOneListing(ctx context.Context, id int, errStrs *[]string, jensonSeen, ccSeen, ucSeen, foxSeen, bellSeen map[string]bool) error {
 	storeID, productURL, storeType, storeSKU, err := h.DB.GetListingEnrichmentInfo(ctx, id)
 	if err != nil {
 		return err
@@ -447,6 +449,9 @@ func (h *Handlers) adminEnrichOneListing(ctx context.Context, id int, errStrs *[
 	}
 	if err := applyFoxRacingPDPAfterEnrich(ctx, h.DB, storeID, storeType, storeSKU, result.Variants, foxSeen); err != nil {
 		log.Printf("[admin] bulk enrich foxracing variant fan-out listing %d: %v", id, err)
+	}
+	if err := applyBellPDPAfterEnrich(ctx, h.DB, storeID, storeType, productURL, result.Variants, bellSeen); err != nil {
+		log.Printf("[admin] bulk enrich bell variant fan-out listing %d: %v", id, err)
 	}
 	if w := h.runLLMCategoryClassification(ctx, id); w != "" && errStrs != nil {
 		*errStrs = append(*errStrs, w)
