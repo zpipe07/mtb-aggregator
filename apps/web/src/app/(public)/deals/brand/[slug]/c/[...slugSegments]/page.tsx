@@ -8,6 +8,7 @@ import {
   fetchStores,
   fetchCategoryTree,
   DEFAULT_PAGE_SIZE,
+  normalizeFacetsResponse,
 } from "@/api";
 import { parseFilterParamsFromSearch } from "@/lib/filterParams";
 import { searchParamsRecordToDealsCategoryListPath } from "@/lib/dealsBackHref";
@@ -158,12 +159,7 @@ export default async function BrandCategoryDealsPage({
 
   const deals = dealsResponse.deals ?? [];
   const totalCount = dealsResponse.total_count ?? 0;
-  const facets = facetsResponse ?? {
-    spec_facets: [],
-    brand_facets: [],
-    price_range: { min: 0, max: 0 },
-    total_matching: 0,
-  };
+  const facets = normalizeFacetsResponse(facetsResponse);
   const seo = getBrandCategorySeo(brand, categoryNode.name);
 
   const dealsListPath = searchParamsRecordToDealsCategoryListPath(

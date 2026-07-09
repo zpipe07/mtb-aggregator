@@ -350,6 +350,12 @@ func (h *Handlers) GetFacets(w http.ResponseWriter, r *http.Request) {
 	if result == nil {
 		result = &db.GetFacetsResult{}
 	}
+	if result.SpecFacets == nil {
+		result.SpecFacets = []db.SpecFacet{}
+	}
+	if result.BrandFacets == nil {
+		result.BrandFacets = []db.BrandFacet{}
+	}
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(result)
