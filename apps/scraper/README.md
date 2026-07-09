@@ -313,6 +313,10 @@ pnpm --filter @mtb-aggregator/scraper run test
 pnpm --filter @mtb-aggregator/scraper run test:watch
 ```
 
+### HTML/JSON fixtures
+
+Fixtures under `src/parsers/__fixtures__/` must be **gitleaks-safe** before commit. Demandware PDP captures often include `yotpoAppKey`; replace any real value with `fixture-yotpo-app-key-not-real` (see `bell/pdp-avenue-mips.html` and `foxracing/pdp-*.html`). CI secret scanning runs on the **full PR commit range** — sanitizing in a follow-up commit is not enough if an earlier commit added the live key. The fixtures path is allowlisted in [`.gitleaks.toml`](../../.gitleaks.toml) for placeholder false positives, but sanitize before the first push. Details: [docs/SCRAPING.md](../../docs/SCRAPING.md#test-fixtures-and-ci-gitleaks).
+
 ## Manual Test (API + scraper running)
 
 ```bash

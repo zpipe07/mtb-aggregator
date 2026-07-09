@@ -86,6 +86,7 @@ make scrape-now-mackcycle      # mackcycle only
 make scrape-now-rideconcepts   # rideconcepts only
 make scrape-now-leatt          # leatt only
 make scrape-now-bell           # bell only
+make scrape-now-giro           # giro only
 make scrape-now-trek           # trek only
 make scrape-now-universalcycles  # universalcycles only
 make enrich-now              # enrich unenriched listings
@@ -98,6 +99,7 @@ make enrich-now-mackcycle      # mackcycle only (optional FORCE=1)
 make enrich-now-rideconcepts   # rideconcepts only (optional FORCE=1)
 make enrich-now-leatt          # leatt only (optional FORCE=1)
 make enrich-now-bell           # bell only (optional FORCE=1)
+make enrich-now-giro           # giro only (optional FORCE=1)
 make enrich-now-trek           # trek only (optional FORCE=1)
 make enrich-now-universalcycles  # universalcycles only (optional FORCE=1)
 make enrich-now FORCE=1      # re-enrich all

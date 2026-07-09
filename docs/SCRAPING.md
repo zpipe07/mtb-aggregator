@@ -15,7 +15,7 @@ When `SCRAPER_SERVICE_SECRET` is set (recommended in production), `POST /scrape`
 ## Parser Structure
 
 - **Location**: `apps/scraper/src/parsers/`
-- **One file per store**: `jensonusa.ts`, `worldwidecyclery.ts`, `revelbikes.ts`, `backcountry.ts`, `ridebicycles.ts`, `thundermountainbikes.ts`, `mackcycle.ts`, `rideconcepts.ts`, `leatt.ts`, `canyon.ts` (+ `canyon-plp.ts`, `canyon-pdp.ts`); `specialized.ts` (+ `specialized-plp.ts`, `specialized-pdp.ts`); `trek.ts` (+ `trek-plp.ts`, `trek-pdp.ts`); `universalcycles.ts` (+ `universalcycles-plp.ts`, `universalcycles-pdp.ts`); `n1bikes.ts` (+ `n1bikes-plp.ts`, `n1bikes-pdp.ts`); `foxracing.ts` (+ `foxracing-plp.ts`, `foxracing-pdp.ts`); `bell.ts` (+ `bell-plp.ts`, `bell-pdp.ts`); shared Backcountry-family sale PLP evaluator: `backcountry-family-plp.ts`, PDP parsers: `backcountry-family-pdp.ts`
+- **One file per store**: `jensonusa.ts`, `worldwidecyclery.ts`, `revelbikes.ts`, `backcountry.ts`, `ridebicycles.ts`, `thundermountainbikes.ts`, `mackcycle.ts`, `rideconcepts.ts`, `leatt.ts`, `canyon.ts` (+ `canyon-plp.ts`, `canyon-pdp.ts`); `specialized.ts` (+ `specialized-plp.ts`, `specialized-pdp.ts`); `trek.ts` (+ `trek-plp.ts`, `trek-pdp.ts`); `universalcycles.ts` (+ `universalcycles-plp.ts`, `universalcycles-pdp.ts`); `n1bikes.ts` (+ `n1bikes-plp.ts`, `n1bikes-pdp.ts`); `foxracing.ts` (+ `foxracing-plp.ts`, `foxracing-pdp.ts`); `bell.ts` (+ `bell-plp.ts`, `bell-pdp.ts`); `giro.ts` (+ `giro-plp.ts`, `giro-pdp.ts`); shared Backcountry-family sale PLP evaluator: `backcountry-family-plp.ts`, PDP parsers: `backcountry-family-pdp.ts`
 - **Registration**: `parsers/index.ts` exports `PARSERS` and `ENRICHERS` maps
 
 ### Adding a New Store
@@ -26,6 +26,28 @@ When `SCRAPER_SERVICE_SECRET` is set (recommended in production), `POST /scrape`
 2. Add store to `STORE_TYPES` in `types.ts`
 3. Register in `parsers/index.ts`: `PARSERS` and optionally `ENRICHERS`
 4. Insert store record in DB (`stores` table) with `store_type` matching the key
+
+### Test fixtures and CI (gitleaks)
+
+Vitest fixtures live under `apps/scraper/src/parsers/__fixtures__/`. When you save captured retailer HTML/JSON:
+
+1. **Sanitize third-party widget keys** before commit. Demandware PDP pages often embed `var yotpoAppKey = '…'` (Yotpo reviews). CI runs **gitleaks** on every PR; a real site key triggers `generic-api-key` and fails the build. Replace with the repo placeholder (same as Bell / Fox Racing):
+
+   ```js
+   var yotpoAppKey = 'fixture-yotpo-app-key-not-real';
+   ```
+
+2. **Prefer trimmed snippets** when possible (accordion + swatches + breadcrumbs) instead of full page dumps — smaller diffs and fewer accidental secrets.
+
+3. **Optional local check** before push (if `gitleaks` is installed):
+
+   ```bash
+   gitleaks detect --source . --verbose --redact
+   ```
+
+   CI uses [`.gitleaks.toml`](../.gitleaks.toml) to allowlist `__fixtures__/` paths (false positives on sanitized captures still happen if a live key lands in an earlier PR commit — gitleaks scans the full PR range). Always sanitize **before** the first push.
+
+This failure has recurred on each new Demandware store (Fox Racing #138, Bell #140, Giro #142) when fixtures were copied verbatim from live PDP HTML.
 
 ### ScrapeResult Schema
 
@@ -84,3 +106,4 @@ curl -X POST http://localhost:3000/scrape \
 - **N+1 Bikes** (`n1bikes`): **fetch** against the public MasterLinq catalog API (`POST https://storefrontapi.masterlinq.io/api/ecom/catalog/search` with `x-account-code: LKY`, paginated via `continuationToken`). Sale filter mirrors the storefront PLP (`discountAtOrAbove` from `?discount=` on the seed URL, default 20%). One listing row per discounted variant (`store_sku` = variant SKU, `product_group_key` = product group id). Sale price uses variant `map` vs `msrp`; **online stock** sums supplier warehouse inventory (`totalInventoryByProduct`, e.g. QBP locations) rather than retail pickup availability shown on the site. **PDP enrichment** fetches HTML and parses embedded `specifications` JSON plus `og:description`. No Playwright or affiliate URL in MVP. `make scrape-now-n1bikes` / `make enrich-now-n1bikes`.
 - **Fox Racing** (`foxracing`): **fetch + Cheerio** against the US MTB legacy-drops Demandware ajax grid (`Search-UpdateGrid` on `cgid=sale-mtb`, `start`/`sz=60` pagination). One listing row per color variant tile (`store_sku` = `data-pid`, `product_group_key` = base style id `VG-#####`). **PDP enrichment** fetches HTML, parses microdata breadcrumbs plus accordion Description / Key Features / Specifications, and returns `variants[]` per color swatch; the API fans out human-readable `Color` labels and `is_in_stock` to sibling listings (`ApplyFoxRacingPDPVariantFanout`). `GET /deals?group_variants=true` collapses color siblings into one card. No Playwright or affiliate URL in MVP. `make scrape-now-foxracing` / `make enrich-now-foxracing`.
 - **Bell** (`bell`): **fetch + Cheerio** against the US cycling legacy-garage Demandware ajax grid (`Search-UpdateGrid` on `Sites-BellUS-Site`, `cgid=legacy-garage-cycling`, `start`/`sz=60` pagination). One listing row per color variant tile (`store_sku` = `BL-#####` `data-pid`, `product_group_key` = master product id from the PDP URL path). **PDP enrichment** fetches HTML, parses microdata breadcrumbs plus accordion Description / Key Features / Specifications, and returns `variants[]` per color swatch (variant `code` = color id); the API fans out human-readable `Color` labels and `is_in_stock` to sibling listings (`ApplyBellPDPVariantFanout`). `GET /deals?group_variants=true` collapses color siblings. No Playwright or affiliate URL in MVP. `make scrape-now-bell` / `make enrich-now-bell`.
+- **Giro** (`giro`): **fetch + Cheerio** against the US cycling archives Demandware ajax grid (`Search-UpdateGrid` on `Sites-GiroUS-Site`, `cgid=archive-cycling`, `start`/`sz=60` pagination). One listing row per color variant tile (`store_sku` = `data-pid`, `product_group_key` = master product id from the PDP URL path). **PDP enrichment** fetches HTML, parses microdata breadcrumbs plus accordion Description / Key Features / Specifications, and returns `variants[]` per color swatch; the API fans out human-readable `Color` labels and `is_in_stock` to sibling listings (`ApplyGiroPDPVariantFanout`). `GET /deals?group_variants=true` collapses color siblings. No Playwright or affiliate URL in MVP. `make scrape-now-giro` / `make enrich-now-giro`.

@@ -386,6 +386,7 @@ func runBulkEnrichInBackground(h *Handlers, jobID int, ids []int, total int) {
 	ucSeen := make(map[string]bool)
 	foxSeen := make(map[string]bool)
 	bellSeen := make(map[string]bool)
+	giroSeen := make(map[string]bool)
 	for _, id := range ids {
 		if workCtx.Err() != nil {
 			errStrs = append(errStrs, "job timed out: "+workCtx.Err().Error())
@@ -394,7 +395,7 @@ func runBulkEnrichInBackground(h *Handlers, jobID int, ids []int, total int) {
 			}
 			return
 		}
-		if err := h.adminEnrichOneListing(workCtx, id, &errStrs, jensonSeen, ccSeen, ucSeen, foxSeen, bellSeen); err != nil {
+		if err := h.adminEnrichOneListing(workCtx, id, &errStrs, jensonSeen, ccSeen, ucSeen, foxSeen, bellSeen, giroSeen); err != nil {
 			errStrs = append(errStrs, err.Error())
 		} else {
 			enrichedN++
@@ -413,7 +414,8 @@ func runBulkEnrichInBackground(h *Handlers, jobID int, ids []int, total int) {
 // ucSeen dedupes Universal Cycles attribute fan-out per product group (optional).
 // foxSeen dedupes Fox Racing color fan-out per base style (optional).
 // bellSeen dedupes Bell color fan-out per master product id (optional).
-func (h *Handlers) adminEnrichOneListing(ctx context.Context, id int, errStrs *[]string, jensonSeen, ccSeen, ucSeen, foxSeen, bellSeen map[string]bool) error {
+// giroSeen dedupes Giro color fan-out per master product id (optional).
+func (h *Handlers) adminEnrichOneListing(ctx context.Context, id int, errStrs *[]string, jensonSeen, ccSeen, ucSeen, foxSeen, bellSeen, giroSeen map[string]bool) error {
 	storeID, productURL, storeType, storeSKU, err := h.DB.GetListingEnrichmentInfo(ctx, id)
 	if err != nil {
 		return err
@@ -452,6 +454,9 @@ func (h *Handlers) adminEnrichOneListing(ctx context.Context, id int, errStrs *[
 	}
 	if err := applyBellPDPAfterEnrich(ctx, h.DB, storeID, storeType, productURL, result.Variants, bellSeen); err != nil {
 		log.Printf("[admin] bulk enrich bell variant fan-out listing %d: %v", id, err)
+	}
+	if err := applyGiroPDPAfterEnrich(ctx, h.DB, storeID, storeType, productURL, result.Variants, giroSeen); err != nil {
+		log.Printf("[admin] bulk enrich giro variant fan-out listing %d: %v", id, err)
 	}
 	if w := h.runLLMCategoryClassification(ctx, id); w != "" && errStrs != nil {
 		*errStrs = append(*errStrs, w)
