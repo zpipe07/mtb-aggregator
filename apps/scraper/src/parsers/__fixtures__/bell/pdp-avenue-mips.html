@@ -1,0 +1,4105 @@
+
+<script>
+(function () {
+    window.dataLayer = window.dataLayer || [];
+    try {
+        if (typeof window.OneTrust !== 'undefined') { return; }
+        var match = document.cookie.match(/(?:^|;\s*)OptanonConsent=([^;]*)/);
+        if (!match) { return; }
+        var raw = decodeURIComponent(match[1]);
+        var groupsMatch = raw.match(/(?:^|&)groups=([^&]*)/);
+        if (!groupsMatch) { return; }
+        var active = groupsMatch[1].split(',').reduce(function (acc, pair) {
+            var parts = pair.split(':');
+            if (parts.length === 2 && parts[1] === '1') { acc.push(parts[0]); }
+            return acc;
+        }, []);
+        if (active.length === 0) { return; }
+        window.dataLayer.push({
+            event: 'OneTrustGroupsUpdated',
+            OnetrustActiveGroups: ',' + active.join(',') + ','
+        });
+    } catch (e) {}
+}());
+</script>
+<script src="/on/demandware.static/Sites-BellUS-Site/-/en_US/v1783495538434/js/gtm/gtm-sdk.min.js"></script>
+<script>
+    window.gtmSdk = new GtmSdk('sfcc');
+    window.gtmSdk.init();
+    window.pageAction = "productshow";
+    window.searchTerm = "5378";
+    window.dataLayerItems = [{"site_id":"BellUS","brand_name":"Bell US","language_code":"en_US","currency":"USD","environment":"production","platform_version":"21.2","region":"US/Pacific","currencyCode":"USD"},{"page_type":"product"},{"debug_mode":false,"gtm_container_id":"GTM-KTJF79F","data_layer_version":"1.0","consent_status":{"analytics":false,"marketing":false,"functional":false},"server_side_enabled":false,"client_id":null,"session_id":"604WSQSlRVLUO2LS4ZnDAyBXvOGCDVE7V0Q="},{"event":"pdp","ecommerce":{"detail":{"actionField":{"list":"pdp"},"products":[{"id":"100000000300000120","name":"Avenue Mips","category":"cycling/road/and/gravel","categoryID":"cycling-road-and-gravel","price":"","ph2":"Bike","ph3":"Unisex","ph5":"Helmets","brand":"Bell","seasonKey":"","onSale":""}]}}},{"event":"view_item","ecommerce":{"currency":"USD","value":0,"items":[{"item_id":"100000000300000120","item_name":"Avenue Mips","item_brand":"Bell","item_category":"Road And Gravel","item_category2":"Technologies","item_category3":"Mips","item_category4":"Cycling","price":63.98,"quantity":1,"onSale":"true"}]}}];
+    
+</script>
+<script>
+(function () {
+    if (!window.gtmSdk || !Array.isArray(window.dataLayerItems)) { return; }
+    var pageAction = window.pageAction || '';
+    var pushItems = function () {
+        window.dataLayerItems.forEach(function (item) {
+            window.gtmSdk.track(item.event, item);
+        });
+    };
+    if (pageAction !== 'orderconfirm') { pushItems(); return; }
+
+    var payload = window.dataLayerPayload || {};
+    var orderId = (payload.ecommerce && payload.ecommerce.purchase
+        && payload.ecommerce.purchase.actionField
+        && payload.ecommerce.purchase.actionField.id) || -1;
+    var pushed = [];
+    try {
+        pushed = JSON.parse(window.localStorage.getItem('ordersPushedToGoogle')) || [];
+    } catch (e) { pushed = []; }
+    if (orderId !== -1 && pushed.indexOf(orderId) > -1) { return; }
+
+    pushItems();
+
+    if (orderId !== -1) {
+        pushed.push(orderId);
+        try {
+            window.localStorage.setItem('ordersPushedToGoogle', JSON.stringify(pushed));
+        } catch (e) {}
+    }
+}());
+</script>
+<script defer="defer" src="/on/demandware.static/Sites-BellUS-Site/-/en_US/v1783495538434/js/adaptors/sfcc/events.js"></script>
+
+    <script>
+        const customerDataLayer = {"user_id":null,"login_status":false,"environment":"production","pageLanguage":"en_US","registered":false,"locale":"en_US"};
+        if(window.gtmSdk) {
+            window.gtmSdk.track(null, customerDataLayer);
+        }
+    </script>
+
+
+
+
+    <script async type="text/javascript" id="sig-api" data-order-session-id="aHR0cHM6Ly93d3cuYmVsbGhlbG1ldHMuY29tLzAxMzAyNDBjMzliZmQyNDAxYTJiYWIwOTVm" src="https://cdn-scripts.signifyd.com/api/script-tag.js"></script>
+
+
+
+
+
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+
+
+
+
+
+
+
+
+
+
+
+<!-- OneTrust Cookies Consent Notice start for www.bellhelmets.com -->
+<script src="https://cdn.cookielaw.org/scripttemplates/otSDKStub.js" charset="UTF-8"
+data-document-language="true"
+data-domain-script="5667f085-28fa-400b-bd0b-6abc3dac42c7">
+</script>
+<script>function OptanonWrapper() { }</script>
+<!-- OneTrust Cookies Consent Notice end for www.bellhelmets.com -->
+
+
+<!--[if gt IE 9]><!-->
+<link rel="stylesheet" href="/on/demandware.static/Sites-BellUS-Site/-/en_US/v1783495538434/css/common.css" />
+
+<script>//common/scripts.isml</script>
+<script defer="defer" src="/on/demandware.static/Sites-BellUS-Site/-/en_US/v1783495538434/js/main.js"></script>
+
+    
+        <script defer="defer" src="/on/demandware.static/Sites-BellUS-Site/-/en_US/v1783495538434/js/pageDesigner.js"></script>
+    
+
+    
+        <script defer="defer" src="/on/demandware.static/Sites-BellUS-Site/-/en_US/v1783495538434/js/productDetail.js"></script>
+    
+
+
+<!--<![endif]-->
+<meta charset=UTF-8>
+
+<meta http-equiv="x-ua-compatible" content="ie=edge">
+
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+
+
+  <title>Avenue Mips</title>
+
+
+
+
+
+<meta name="description" content="Buy Avenue Mips for 53.97 USD | Bell US"/>
+
+    <meta name="keywords" content="Bell Helmets"/>
+
+
+
+
+
+<link rel="icon" type="image/png" href="/on/demandware.static/Sites-BellUS-Site/-/default/dwadd54ed1/images/favicons/favicon-96x96.png" sizes="96x96" />
+<link rel="icon" type="image/png" href="/on/demandware.static/Sites-BellUS-Site/-/default/dw3126f761/images/favicons/favicon-48x48.png" sizes="48x48" />
+<link rel="icon" type="image/png" href="/on/demandware.static/Sites-BellUS-Site/-/default/dwc32d1aca/images/favicons/favicon-32x32.png" sizes="32x32" />
+<link rel="icon" type="image/png" href="/on/demandware.static/Sites-BellUS-Site/-/default/dwc1e95bf2/images/favicons/favicon-16x16.png" sizes="16x16" />
+<link rel="icon" type="image/png" href="/on/demandware.static/Sites-BellUS-Site/-/default/dw2d52635f/images/favicons/favicon-128.png" sizes="128x128" />
+
+<link rel="stylesheet" href="/on/demandware.static/Sites-BellUS-Site/-/en_US/v1783495538434/css/global.css" />
+
+    <link rel="stylesheet" href="/on/demandware.static/Sites-BellUS-Site/-/en_US/v1783495538434/css/product/detail.css"  />
+
+
+
+
+
+
+
+    <script>
+        var yotpoAppKey = 'fixture-yotpo-app-key-not-real';
+        var yotpoStaticContentURL = 'https://cdn-widgetsrepository.yotpo.com/v1/loader/';
+        var yotpoURL = yotpoStaticContentURL + yotpoAppKey;
+        (function e() {
+            var e = document.createElement("script");
+                    e.type = "text/javascript",
+                    e.async = true,
+                    e.src = yotpoURL;
+            var t = document.getElementsByTagName("script")[0];
+            t.parentNode.insertBefore(e, t)
+        })();
+    </script>
+
+
+ 
+
+
+
+
+<link rel="canonical" href="https://www.bellhelmets.com/product/avenue-mips/100000000300000120.html"/>
+
+<script type="text/javascript">//<!--
+/* <![CDATA[ (head-active_data.js) */
+var dw = (window.dw || {});
+dw.ac = {
+    _analytics: null,
+    _events: [],
+    _category: "",
+    _searchData: "",
+    _anact: "",
+    _anact_nohit_tag: "",
+    _analytics_enabled: "true",
+    _timeZone: "US/Pacific",
+    _capture: function(configs) {
+        if (Object.prototype.toString.call(configs) === "[object Array]") {
+            configs.forEach(captureObject);
+            return;
+        }
+        dw.ac._events.push(configs);
+    },
+	capture: function() { 
+		dw.ac._capture(arguments);
+		// send to CQ as well:
+		if (window.CQuotient) {
+			window.CQuotient.trackEventsFromAC(arguments);
+		}
+	},
+    EV_PRD_SEARCHHIT: "searchhit",
+    EV_PRD_DETAIL: "detail",
+    EV_PRD_RECOMMENDATION: "recommendation",
+    EV_PRD_SETPRODUCT: "setproduct",
+    applyContext: function(context) {
+        if (typeof context === "object" && context.hasOwnProperty("category")) {
+        	dw.ac._category = context.category;
+        }
+        if (typeof context === "object" && context.hasOwnProperty("searchData")) {
+        	dw.ac._searchData = context.searchData;
+        }
+    },
+    setDWAnalytics: function(analytics) {
+        dw.ac._analytics = analytics;
+    },
+    eventsIsEmpty: function() {
+        return 0 == dw.ac._events.length;
+    }
+};
+/* ]]> */
+// -->
+</script>
+<script type="text/javascript">//<!--
+/* <![CDATA[ (head-cquotient.js) */
+var CQuotient = window.CQuotient = {};
+CQuotient.clientId = 'bgml-BellUS';
+CQuotient.realm = 'BGML';
+CQuotient.siteId = 'BellUS';
+CQuotient.instanceType = 'prd';
+CQuotient.locale = 'en_US';
+CQuotient.fbPixelId = '__UNKNOWN__';
+CQuotient.activities = [];
+CQuotient.cqcid='';
+CQuotient.cquid='';
+CQuotient.cqeid='';
+CQuotient.cqlid='';
+CQuotient.apiHost='api.cquotient.com';
+/* Turn this on to test against Staging Einstein */
+/* CQuotient.useTest= true; */
+CQuotient.useTest = ('true' === 'false');
+CQuotient.initFromCookies = function () {
+	var ca = document.cookie.split(';');
+	for(var i=0;i < ca.length;i++) {
+	  var c = ca[i];
+	  while (c.charAt(0)==' ') c = c.substring(1,c.length);
+	  if (c.indexOf('cqcid=') == 0) {
+		CQuotient.cqcid=c.substring('cqcid='.length,c.length);
+	  } else if (c.indexOf('cquid=') == 0) {
+		  var value = c.substring('cquid='.length,c.length);
+		  if (value) {
+		  	var split_value = value.split("|", 3);
+		  	if (split_value.length > 0) {
+			  CQuotient.cquid=split_value[0];
+		  	}
+		  	if (split_value.length > 1) {
+			  CQuotient.cqeid=split_value[1];
+		  	}
+		  	if (split_value.length > 2) {
+			  CQuotient.cqlid=split_value[2];
+		  	}
+		  }
+	  }
+	}
+}
+CQuotient.getCQCookieId = function () {
+	if(window.CQuotient.cqcid == '')
+		window.CQuotient.initFromCookies();
+	return window.CQuotient.cqcid;
+};
+CQuotient.getCQUserId = function () {
+	if(window.CQuotient.cquid == '')
+		window.CQuotient.initFromCookies();
+	return window.CQuotient.cquid;
+};
+CQuotient.getCQHashedEmail = function () {
+	if(window.CQuotient.cqeid == '')
+		window.CQuotient.initFromCookies();
+	return window.CQuotient.cqeid;
+};
+CQuotient.getCQHashedLogin = function () {
+	if(window.CQuotient.cqlid == '')
+		window.CQuotient.initFromCookies();
+	return window.CQuotient.cqlid;
+};
+CQuotient.trackEventsFromAC = function (/* Object or Array */ events) {
+try {
+	if (Object.prototype.toString.call(events) === "[object Array]") {
+		events.forEach(_trackASingleCQEvent);
+	} else {
+		CQuotient._trackASingleCQEvent(events);
+	}
+} catch(err) {}
+};
+CQuotient._trackASingleCQEvent = function ( /* Object */ event) {
+	if (event && event.id) {
+		if (event.type === dw.ac.EV_PRD_DETAIL) {
+			CQuotient.trackViewProduct( {id:'', alt_id: event.id, type: 'raw_sku'} );
+		} // not handling the other dw.ac.* events currently
+	}
+};
+CQuotient.trackViewProduct = function(/* Object */ cqParamData){
+	var cq_params = {};
+	cq_params.cookieId = CQuotient.getCQCookieId();
+	cq_params.userId = CQuotient.getCQUserId();
+	cq_params.emailId = CQuotient.getCQHashedEmail();
+	cq_params.loginId = CQuotient.getCQHashedLogin();
+	cq_params.product = cqParamData.product;
+	cq_params.realm = cqParamData.realm;
+	cq_params.siteId = cqParamData.siteId;
+	cq_params.instanceType = cqParamData.instanceType;
+	cq_params.locale = CQuotient.locale;
+	
+	if(CQuotient.sendActivity) {
+		CQuotient.sendActivity(CQuotient.clientId, 'viewProduct', cq_params);
+	} else {
+		CQuotient.activities.push({activityType: 'viewProduct', parameters: cq_params});
+	}
+};
+/* ]]> */
+// -->
+</script>
+
+
+
+</head>
+<body>
+
+
+
+
+
+    
+<!-- Google Tag Manager -->
+<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+'https://www.googletagmanager.com/gtm.js?id='+i+dl+'';f.parentNode.insertBefore(j,f);
+})(window,document,'script','dataLayer','GTM-KTJF79F');</script>
+<!-- End Google Tag Manager -->
+    
+    <noscript>
+    <iframe src="https://www.googletagmanager.com/ns.html?id=GTM-KTJF79F"
+height="0" width="0" style="display:none;visibility:hidden"/></iframe>
+</noscript>
+    
+
+    
+
+
+<div class="page" data-action="Product-Show" data-querystring="dwvar_100000000300000120_color=5378&amp;pid=100000000300000120" >
+
+
+
+
+
+<header class="header-enhanced fixed-header-enhanced" id="top-header">
+    
+    <script async="async" data-environment="production" src="null" data-client-id="null"></script>
+    <a href="#maincontent" class="skip" aria-label="Skip to main content">Skip to main content</a>
+<a href="#footercontent" class="skip" aria-label="Skip to footer content">Skip to footer content</a>
+    <nav class="header-nav" id="header-nav" aria-label="Bell Helmets Main Navigation">
+    <div class="header container">
+        <div class="row header-nav-row no-gutters">
+            
+            <div class="col header-column-1">
+                
+                <button class="navbar-toggler icon-menu" type="button" data-toggle="collapse" aria-controls="sg-navbar-collapse" title="label.header.menu.toggle" aria-expanded="false" aria-label="label.header.menu.toggle" tabindex="0"></button>
+
+                
+                <div class="main-menu navbar-toggleable-md menu-toggleable-left multilevel-dropdown" id="sg-navbar-collapse">
+                    
+                        
+
+
+
+
+
+
+
+
+
+<nav class="navbar navbar-expand-lg bg-inverse col-12 new-navbar" aria-label="Bell Helmets">
+    
+    
+<div class="desktop-category-links">
+    
+    
+        
+            
+            
+                
+                <a href="/powersports/"
+                    class="h6 category nav-link "
+                    data-category="powersports"
+                    tabindex="0"
+                    data-toggle="dropdown"
+                    data-parentname="All"
+                    aria-haspopup="true"
+                    aria-expanded="false">
+                    <div class="category-name">Powersports</div>
+                </a>
+            
+        
+            
+            
+                
+                <a href="/cycling/"
+                    class="h6 category nav-link "
+                    data-category="cycling"
+                    tabindex="0"
+                    data-toggle="dropdown"
+                    data-parentname="All"
+                    aria-haspopup="true"
+                    aria-expanded="false">
+                    <div class="category-name">Cycling</div>
+                </a>
+            
+        
+            
+            
+                
+                <a href="https://www.bellhelmets.com/content-hub"
+                    class="h6 category nav-link "
+                    data-category="explore"
+                    tabindex="0"
+                    data-toggle="dropdown"
+                    data-parentname="All"
+                    aria-haspopup="true"
+                    aria-expanded="false">
+                    <div class="category-name">Explore</div>
+                </a>
+            
+        
+    
+</div>
+
+    
+    
+    <div class="close-menu d-none">
+        <button class="back" role="button" aria-label="Back to previous menu">
+            <span class="icon icon-arrow-left" aria-hidden="true"></span>
+            <span>Back to&nbsp;</span>
+            <span class="back-parent-name"></span>
+        </button>
+    </div>
+    
+    <div class="menu-group">
+        <ul class="nav navbar-nav">
+            
+            
+            
+                <div class="nav-column nav-column-1">
+                    <div class="nav-items">
+                    
+                        
+                        
+                            
+                            
+                            <li class="nav-item custom-dropdown megamenu ">
+                                
+                                
+                                <a href="/powersports/" 
+                                    id="nav-powersports" 
+                                    class="dropdown-toggle h3 justify-content-between d-lg-flex" 
+                                    data-toggle="dropdown" 
+                                    data-parentname="All" 
+                                    data-category="powersports" 
+                                    aria-haspopup="true" 
+                                    aria-expanded="false" 
+                                    tabindex="0">
+                                    Powersports
+                                    <span class="current-category-arrow icon icon-arrow-right" aria-hidden="true"></span>
+                                </a>
+                                
+                                
+                                    
+
+
+
+
+<ul class="dropdown-menu mega-standard second-level-menu-group" role="menu" aria-label="powersports" aria-hidden="true">
+    
+        <ul class="menu-subcategories">
+            <div class="nav-column nav-column-2">
+                
+    <li class="dropdown-item featured-item custom-dropdown col-lg">
+        <a href="/powersports/new-and-featured/" id="powersports-new-and-featured" class="dropdown-toggle dropdown-link" data-toggle="dropdown" data-parentname="Powersports" aria-haspopup="true" aria-expanded="false" tabindex="0">New and Featured</a>
+        <ul class="dropdown-menu" aria-label="powersports-new-and-featured">
+            
+                
+                    <li class="dropdown-item">
+                        <a href="/powersports/new-and-featured/best-sellers/" id="powersports-new-and-featured-best-sellers" class="dropdown-link" tabindex="0">Best Sellers</a>
+                    </li>
+                
+            
+                
+                    <li class="dropdown-item">
+                        <a href="/powersports/new-and-featured/new-arrivals/" id="powersports-new-and-featured-new-arrivals" class="dropdown-link" tabindex="0">New Arrivals</a>
+                    </li>
+                
+            
+                
+                    <li class="dropdown-item">
+                        <a href="https://www.bellhelmets.com/legacy-garage/powersports/" id="powersports-new-and-featured-sale" class="dropdown-link" tabindex="0">Sale</a>
+                    </li>
+                
+            
+        </ul>
+    </li>
+
+
+
+                
+                    
+
+<div class="category-thumbnails">
+    
+        <div class="category-thumbnail" id="powersports-sport-bike-thumbnail">
+            <a href="/powersports/sport-bike/" class="row no-gutters flex-nowrap">
+            
+                <div class="col-auto category-image">
+                    <img src="https://www.bellhelmets.com/on/demandware.static/-/Sites-BellUS-Storefront/default/dwb49d8920/navigation/street.png" alt="Sport Bike"/>
+                </div>
+            
+            <div class="col category-name">
+                Sport Bike
+            </div>
+            </a>
+        </div>
+    
+        <div class="category-thumbnail" id="powersports-off-road-thumbnail">
+            <a href="/powersports/off-road/" class="row no-gutters flex-nowrap">
+            
+                <div class="col-auto category-image">
+                    <img src="https://www.bellhelmets.com/on/demandware.static/-/Sites-BellUS-Storefront/default/dw3cfa8402/navigation/moto-10.png" alt="Off Road"/>
+                </div>
+            
+            <div class="col category-name">
+                Off Road
+            </div>
+            </a>
+        </div>
+    
+        <div class="category-thumbnail" id="powersports-retro-thumbnail">
+            <a href="/powersports/retro/" class="row no-gutters flex-nowrap">
+            
+                <div class="col-auto category-image">
+                    <img src="https://www.bellhelmets.com/on/demandware.static/-/Sites-BellUS-Storefront/default/dwe142ce3e/navigation/retro.png" alt="Retro"/>
+                </div>
+            
+            <div class="col category-name">
+                Retro
+            </div>
+            </a>
+        </div>
+    
+        <div class="category-thumbnail" id="powersports-modular-thumbnail">
+            <a href="/powersports/modular/" class="row no-gutters flex-nowrap">
+            
+                <div class="col-auto category-image">
+                    <img src="https://www.bellhelmets.com/on/demandware.static/-/Sites-BellUS-Storefront/default/dwdff51bd2/navigation/modular.png" alt="Modular"/>
+                </div>
+            
+            <div class="col category-name">
+                Modular
+            </div>
+            </a>
+        </div>
+    
+        <div class="category-thumbnail" id="powersports-cruiser-thumbnail">
+            <a href="/powersports/cruiser/" class="row no-gutters flex-nowrap">
+            
+                <div class="col-auto category-image">
+                    <img src="https://www.bellhelmets.com/on/demandware.static/-/Sites-BellUS-Storefront/default/dw39791b79/navigation/cruiser.png" alt="Cruiser"/>
+                </div>
+            
+            <div class="col category-name">
+                Cruiser
+            </div>
+            </a>
+        </div>
+    
+        <div class="category-thumbnail" id="powersports-adventure-thumbnail">
+            <a href="/powersports/adventure/" class="row no-gutters flex-nowrap">
+            
+                <div class="col-auto category-image">
+                    <img src="https://www.bellhelmets.com/on/demandware.static/-/Sites-BellUS-Storefront/default/dw1c4e82d1/navigation/adventure.png" alt="Adventure"/>
+                </div>
+            
+            <div class="col category-name">
+                Adventure
+            </div>
+            </a>
+        </div>
+    
+        <div class="category-thumbnail" id="powersports-scooter-thumbnail">
+            <a href="/powersports/scooter/" class="row no-gutters flex-nowrap">
+            
+                <div class="col-auto category-image">
+                    <img src="https://www.bellhelmets.com/on/demandware.static/-/Sites-BellUS-Storefront/default/dwb54fc4e3/navigation/scooter.png" alt="Scooter"/>
+                </div>
+            
+            <div class="col category-name">
+                Scooter
+            </div>
+            </a>
+        </div>
+    
+        <div class="category-thumbnail" id="powersports-accessories-thumbnail">
+            <a href="/powersports/accessories/" class="row no-gutters flex-nowrap">
+            
+                <div class="col-auto category-image">
+                    <img src="https://www.bellhelmets.com/on/demandware.static/-/Sites-BellUS-Storefront/default/dwc9559415/navigation/moto-accessories.png" alt="Accessories"/>
+                </div>
+            
+            <div class="col category-name">
+                Accessories
+            </div>
+            </a>
+        </div>
+    
+        <div class="category-thumbnail" id="powersports-shop-all-thumbnail">
+            <a href="https://www.bellhelmets.com/powersports/" class="row no-gutters flex-nowrap">
+            
+                <div class="col-auto category-image">
+                    <img src="/on/demandware.static/Sites-BellUS-Site/-/default/dwaba5ed71/images/nav-placeholder.png" alt="Shop All"/>
+                </div>
+            
+            <div class="col category-name">
+                Shop All
+            </div>
+            </a>
+        </div>
+    
+</div>
+
+
+                
+                
+                
+                
+                
+                
+                
+            </div>
+            
+            
+            
+        </ul>
+    
+</ul>
+
+
+                                
+                            </li>
+                        
+                    
+                        
+                        
+                            
+                            
+                            <li class="nav-item custom-dropdown megamenu ">
+                                
+                                
+                                <a href="/cycling/" 
+                                    id="nav-cycling" 
+                                    class="dropdown-toggle h3 justify-content-between d-lg-flex" 
+                                    data-toggle="dropdown" 
+                                    data-parentname="All" 
+                                    data-category="cycling" 
+                                    aria-haspopup="true" 
+                                    aria-expanded="false" 
+                                    tabindex="0">
+                                    Cycling
+                                    <span class="current-category-arrow icon icon-arrow-right" aria-hidden="true"></span>
+                                </a>
+                                
+                                
+                                    
+
+
+
+
+<ul class="dropdown-menu mega-standard second-level-menu-group" role="menu" aria-label="cycling" aria-hidden="true">
+    
+        <ul class="menu-subcategories">
+            <div class="nav-column nav-column-2">
+                
+    <li class="dropdown-item featured-item custom-dropdown col-lg">
+        <a href="/cycling/new-and-featured/" id="cycling-new-and-featured" class="dropdown-toggle dropdown-link" data-toggle="dropdown" data-parentname="Cycling" aria-haspopup="true" aria-expanded="false" tabindex="0">New and Featured</a>
+        <ul class="dropdown-menu" aria-label="cycling-new-and-featured">
+            
+                
+                    <li class="dropdown-item">
+                        <a href="/cycling/new-and-featured/new-arrivals/" id="cycling-new_and_featured-new_arrivals" class="dropdown-link" tabindex="0">New Arrivals</a>
+                    </li>
+                
+            
+                
+                    <li class="dropdown-item">
+                        <a href="/cycling/new-and-featured/best-sellers/" id="cycling-new_and_featured-best_sellers" class="dropdown-link" tabindex="0">Best Sellers</a>
+                    </li>
+                
+            
+                
+                    <li class="dropdown-item">
+                        <a href="https://www.bellhelmets.com/legacy-garage/cycling/" id="cycling-new_and_featured-sale" class="dropdown-link" tabindex="0">Sale</a>
+                    </li>
+                
+            
+                
+                    <li class="dropdown-item">
+                        <a href="https://www.bellhelmets.com/cycling.html" id="mirror-cycling-new-and-featured--shop-all" class="dropdown-link" tabindex="0">Shop All</a>
+                    </li>
+                
+            
+        </ul>
+    </li>
+
+
+
+                
+                    
+
+<div class="category-thumbnails">
+    
+        <div class="category-thumbnail" id="cycling-mtb-thumbnail">
+            <a href="/cycling/mtb/" class="row no-gutters flex-nowrap">
+            
+                <div class="col-auto category-image">
+                    <img src="https://www.bellhelmets.com/on/demandware.static/-/Sites-BellUS-Storefront/default/dw2532b25d/navigation/mtb.png" alt="MTB"/>
+                </div>
+            
+            <div class="col category-name">
+                MTB
+            </div>
+            </a>
+        </div>
+    
+        <div class="category-thumbnail" id="cycling-road-and-gravel-thumbnail">
+            <a href="/cycling/road-and-gravel/" class="row no-gutters flex-nowrap">
+            
+                <div class="col-auto category-image">
+                    <img src="https://www.bellhelmets.com/on/demandware.static/-/Sites-BellUS-Storefront/default/dw730933f0/navigation/roadgravel.png" alt="Road And Gravel"/>
+                </div>
+            
+            <div class="col category-name">
+                Road And Gravel
+            </div>
+            </a>
+        </div>
+    
+        <div class="category-thumbnail" id="cycling-bmx-thumbnail">
+            <a href="/cycling/bmx/" class="row no-gutters flex-nowrap">
+            
+                <div class="col-auto category-image">
+                    <img src="https://www.bellhelmets.com/on/demandware.static/-/Sites-BellUS-Storefront/default/dw65fb9b09/navigation/bmx.png" alt="BMX"/>
+                </div>
+            
+            <div class="col category-name">
+                BMX
+            </div>
+            </a>
+        </div>
+    
+        <div class="category-thumbnail" id="cycling-kids-and-youth-thumbnail">
+            <a href="/cycling/kids-and-youth/" class="row no-gutters flex-nowrap">
+            
+                <div class="col-auto category-image">
+                    <img src="https://www.bellhelmets.com/on/demandware.static/-/Sites-BellUS-Storefront/default/dw6d535d8d/navigation/youth.png" alt="Kids and Youth"/>
+                </div>
+            
+            <div class="col category-name">
+                Kids and Youth
+            </div>
+            </a>
+        </div>
+    
+        <div class="category-thumbnail" id="cycling-bike-accessories-thumbnail">
+            <a href="/cycling/blackburn-bike-accessories/" class="row no-gutters flex-nowrap">
+            
+                <div class="col-auto category-image">
+                    <img src="https://www.bellhelmets.com/on/demandware.static/-/Sites-BellUS-Storefront/default/dw87b50ad9/navigation/bike-accessories.png" alt="Blackburn Bike Accessories"/>
+                </div>
+            
+            <div class="col category-name">
+                Blackburn Bike Accessories
+            </div>
+            </a>
+        </div>
+    
+        <div class="category-thumbnail" id="cycling-replacement-parts-thumbnail">
+            <a href="/cycling/replacement-parts/" class="row no-gutters flex-nowrap">
+            
+                <div class="col-auto category-image">
+                    <img src="https://www.bellhelmets.com/on/demandware.static/-/Sites-BellUS-Storefront/default/dw7297ef3a/navigation/parts.png" alt="Replacement Parts"/>
+                </div>
+            
+            <div class="col category-name">
+                Replacement Parts
+            </div>
+            </a>
+        </div>
+    
+</div>
+
+
+                
+                
+                
+                
+                
+                
+                
+            </div>
+            
+            
+            
+        </ul>
+    
+</ul>
+
+
+                                
+                            </li>
+                        
+                    
+                        
+                        
+                            
+                            
+                            <li class="nav-item custom-dropdown megamenu ">
+                                
+                                
+                                <a href="/lifestyle/" 
+                                    id="nav-lifestyle" 
+                                    class="dropdown-toggle h3 justify-content-between d-lg-flex" 
+                                    data-toggle="dropdown" 
+                                    data-parentname="All" 
+                                    data-category="lifestyle" 
+                                    aria-haspopup="true" 
+                                    aria-expanded="false" 
+                                    tabindex="0">
+                                    Lifestyle
+                                    <span class="current-category-arrow icon icon-arrow-right" aria-hidden="true"></span>
+                                </a>
+                                
+                                
+                                    
+
+
+
+
+<ul class="dropdown-menu mega-standard second-level-menu-group" role="menu" aria-label="lifestyle" aria-hidden="true">
+    
+        <ul class="menu-subcategories">
+            <div class="nav-column nav-column-2">
+                
+
+
+                
+                    
+    
+    
+        <li class="dropdown-item col-lg direct-category-link">
+            <a href="/lifestyle/tees-and-fleece/" id="lifestyle-tees-and-fleece" class="dropdown-link">Tees and Fleece</a>
+        </li>
+    
+
+    
+    
+        <li class="dropdown-item col-lg direct-category-link">
+            <a href="/lifestyle/hats/" id="lifestyle-hats" class="dropdown-link">Hats</a>
+        </li>
+    
+
+    
+    
+        <li class="dropdown-item col-lg direct-category-link">
+            <a href="/lifestyle/accessories/" id="lifestyle-accessories" class="dropdown-link">Accessories</a>
+        </li>
+    
+
+
+
+                
+                
+                
+                
+                
+                
+                
+            </div>
+            
+            
+            
+        </ul>
+    
+</ul>
+
+
+                                
+                            </li>
+                        
+                    
+                        
+                        
+                            
+                            
+                            <li class="nav-item custom-dropdown megamenu ">
+                                
+                                
+                                <a href="https://www.bellhelmets.com/content-hub" 
+                                    id="nav-explore" 
+                                    class="dropdown-toggle h3 justify-content-between d-lg-flex" 
+                                    data-toggle="dropdown" 
+                                    data-parentname="All" 
+                                    data-category="explore" 
+                                    aria-haspopup="true" 
+                                    aria-expanded="false" 
+                                    tabindex="0">
+                                    Explore
+                                    <span class="current-category-arrow icon icon-arrow-right" aria-hidden="true"></span>
+                                </a>
+                                
+                                
+                                    
+
+
+
+
+<ul class="dropdown-menu mega-standard second-level-menu-group" role="menu" aria-label="explore" aria-hidden="true">
+    
+        <ul class="menu-subcategories">
+            <div class="nav-column nav-column-2">
+                
+
+
+                
+                    
+    
+    
+        <li class="dropdown-item col-lg direct-category-link">
+            <a href="https://www.bellhelmets.com/content-hub?q=athletes" id="explore-athletes" class="dropdown-link">Athletes</a>
+        </li>
+    
+
+    
+    
+        <li class="dropdown-item col-lg direct-category-link">
+            <a href="https://www.bellhelmets.com/content-hub?q=contentHub_guides" id="explore-guides" class="dropdown-link">Guides</a>
+        </li>
+    
+
+    
+    
+        <li class="dropdown-item col-lg direct-category-link">
+            <a href="https://www.bellhelmets.com/content-hub?q=news" id="explore-news" class="dropdown-link">News</a>
+        </li>
+    
+
+    
+    
+        <li class="dropdown-item col-lg direct-category-link">
+            <a href="https://www.bellhelmets.com/content-hub?q=contentHub_technology" id="explore-technologies" class="dropdown-link">Technologies</a>
+        </li>
+    
+
+    
+    
+        <li class="dropdown-item col-lg direct-category-link">
+            <a href="https://www.bellhelmets.com/collaborations.html" id="explore-collaborations" class="dropdown-link">Collaborations</a>
+        </li>
+    
+
+
+
+                
+                
+                
+                
+                
+                
+                
+            </div>
+            
+            
+            
+        </ul>
+    
+</ul>
+
+
+                                
+                            </li>
+                        
+                    
+                    </div>
+                    
+                    <div class="extra-links">
+                        <li class="nav-item mobile-nav-content-wrapper">
+                            
+
+
+                            <div class="header-utility-mobile">
+                                <div class="header-account-mobile">
+                                    
+
+
+
+
+
+
+
+
+
+<div class="mobile-menu-additional-links">
+
+    
+        
+
+        <div class="additional-link">
+            <button type="button" class="js-login btn-unstyled" data-drawer-target="auth-drawer" aria-label="Login" aria-controls="auth-drawer" data-account-url="https://www.bellhelmets.com/my-account" data-logout-url="/logout" data-my-account-label="My Account" data-logout-label="Logout">
+                Login
+            </button>
+        </div>
+    
+</div>
+                                </div>
+                                
+    
+    <div class="content-asset" data-asset-id="header-utility-links"><!-- dwMarker="content" dwContentID="f273e16fc37fe6490e4467bf63" dwContentBMID="header-utility-links" -->
+        <div class="header-utility-links">
+	<div class="utility-link">
+		<a href="https://www.bellhelmets.com/join.html" title="Email Signup">Email Signup</a>
+	</div>
+		<div class="utility-link">
+		<a href="https://www.bellhelmets.com/help" title="Help Center">Help Center</a>
+	</div>
+</div>
+    </div> <!-- End content-asset -->
+
+
+                            </div>
+                        </li>
+                    </div>
+                    
+                    <div class="header-country-selector">
+                        <button class="js-country-selector country-selector-box" data-url="https://www.bellhelmets.com/on/demandware.store/Sites-BellUS-Site/en_US/Home-ShowCountrySelector" role="button" tabindex="0">
+    <div class="flag-icon flag-icon-us"></div>
+    <span class="current-country">
+        United States
+    </span>
+    <span class="icon-arrow-right"></span>
+</button>
+                    </div>
+                </div>
+
+                
+            
+        </ul>
+    </div>
+</nav>
+
+
+                    
+                </div>
+            </div>
+
+            
+            <div class="col header-column-2">
+                <div class="brand">
+                    <a class="logo-home d-block" href="https://www.bellhelmets.com/" title="Bell Helmets Home" aria-label="Bell Helmets">
+                    </a>
+                </div>
+            </div>
+
+            <div class="col header-column-3">
+                
+                <div class="search hidden-md-down">
+                    
+<button class="search-toggle d-block w-100" type="button" data-drawer-target="search-drawer" aria-label="What are you looking for?" id="search-drawer-trigger" aria-controls="search-drawer" aria-expanded="false">
+    <div class="search-toggle-inner d-flex align-items-center justify-content-between">
+        <span class="search-toggle-text">What are you looking for?</span>
+        <span class="fa fa-search" aria-hidden="true"></span>
+    </div>
+</button>
+                </div>
+                
+                
+                    
+    <div class="account-link user">
+        <span class="sr-only">Login</span>
+        <button type="button" class="js-login header-account-link btn-unstyled" data-drawer-target="auth-drawer" aria-label="Login" aria-controls="auth-drawer" data-account-url="https://www.bellhelmets.com/my-account">
+            <div class="icon icon-account"></div>
+        </button>
+    </div>
+
+                
+                
+                <div class="minicart" data-action-url="/on/demandware.store/Sites-BellUS-Site/en_US/Cart-MiniCartShow" data-cart-url="/cart">
+                    
+                        <div class="minicart-total">
+    <div class="minicart-link" role="link" title="Cart 0 Items" aria-label="Cart 0 Items" aria-haspopup="true" tabindex="0">
+        <i class="minicart-icon fa fa-shopping-bag" aria-hidden="true"></i>
+        <span class="minicart-quantity" data-minicart-quantity="0.0">
+            0
+        </span>
+    </div>
+</div>
+<div class="popover popover-bottom minicart-pd" id="minicart-pd" tabindex="-1"
+     role="dialog" aria-modal="true"
+     aria-label="Your Cart"></div>
+
+                    
+                </div>
+            </div>
+        </div>
+    </div>
+
+    
+    <div class="sticky-search d-lg-none search-expanded">
+        <div class="search-mobile w-100">
+                    
+<button class="search-toggle d-block w-100" type="button" data-drawer-target="search-drawer" aria-label="What are you looking for?" id="search-drawer-trigger" aria-controls="search-drawer" aria-expanded="false">
+    <div class="search-toggle-inner d-flex align-items-center justify-content-between">
+        <span class="search-toggle-text">What are you looking for?</span>
+        <span class="fa fa-search" aria-hidden="true"></span>
+    </div>
+</button>
+        </div>
+    </div>
+</nav>
+</header>
+
+
+<div class="header-banner slide-up d-none">
+    <div class="fluid-container">
+        <div class="row no-gutters">
+            <div class="col header-banner-column-2 d-flex justify-content-between align-items-center">
+                <div class="content">
+                    
+
+<div class="page-designer chromeless " id="US_header-banner-promotion">
+<div class="experience-region experience-main"><div class="experience-component experience-commerce_assets-html">
+
+
+
+
+
+
+
+
+
+
+    <strong>
+
+<span class="p">Powersports New Arrivals <a href="/powersports/new-and-featured/">Shop Now</a></span>
+
+</strong>
+
+
+
+    
+
+
+</div></div>
+
+</div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<div role="main" id="maincontent">
+
+<div class="pdp page-designer " id="pdp-recommender">
+<div class="experience-region experience-main"><div class="experience-component experience-commerce_layouts-productDetails">
+
+
+
+
+
+
+<!-- CQuotient Activity Tracking (viewProduct-cquotient.js) -->
+<script type="text/javascript">//<!--
+/* <![CDATA[ */
+(function(){
+	try {
+		if(window.CQuotient) {
+			var cq_params = {};
+			cq_params.product = {
+					id: '100000000300000120',
+					sku: '',
+					type: '',
+					alt_id: ''
+				};
+			cq_params.realm = "BGML";
+			cq_params.siteId = "BellUS";
+			cq_params.instanceType = "prd";
+			window.CQuotient.trackViewProduct(cq_params);
+		}
+	} catch(err) {}
+})();
+/* ]]> */
+// -->
+</script>
+<script type="text/javascript">//<!--
+/* <![CDATA[ (viewProduct-active_data.js) */
+dw.ac._capture({id: "100000000300000120", type: "detail"});
+/* ]]> */
+// -->
+</script>
+    <div class="container">
+        <!--Breadcrumbs-->
+        <div class="product-breadcrumb">
+            
+    <div class="breadcrumb-wrapper">
+        <nav aria-label="Breadcrumb">
+            <ol class="breadcrumb" itemscope itemtype="https://schema.org/BreadcrumbList">
+                
+                    <li class="breadcrumb-item" itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+                        
+                            <a href="/cycling/" itemprop="item">
+                                <span itemprop="name">Cycling</span>
+                            </a>
+                            <meta itemprop="position" content="1" />
+                        
+                    </li>
+                
+                    <li class="breadcrumb-item" itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+                        
+                            <a href="/cycling/road-and-gravel/" itemprop="item">
+                                <span itemprop="name">Road And Gravel</span>
+                            </a>
+                            <meta itemprop="position" content="2" />
+                        
+                    </li>
+                
+                    <li class="breadcrumb-item" itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+                        
+                            <a href="https://www.bellhelmets.com/product/avenue-mips/100000000300000120.html" itemprop="item" aria-current="page">
+                                <span itemprop="name">Avenue Mips</span>
+                            </a>
+                            <meta itemprop="position" content="3" />
+                            
+                    </li>
+                
+            </ol>
+        </nav>
+    </div>
+
+
+        </div>
+    </div>
+
+    <div class="container product-detail product-wrapper" data-pid="100000000300000120">
+        
+        
+            <div class="d-md-none">
+                <div class="badge-product-container">
+                    
+                    
+                        <div class="badge-product badge_light">Bike</div>
+                    
+                </div>
+            </div>
+        
+
+        
+
+        <!-- Product Images -->
+        <div class="primary-images-container">
+            
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="primary-images">
+    
+
+    
+
+    <div class='primary-images-main image-count-1'>
+        
+            
+
+            
+                <link rel="preload" as="image" imagesrcset="https://vault.widen.net/content/rwjyknj09x?w=1500&amp;h=1500"/>
+            
+            <img src="https://vault.widen.net/content/rwjyknj09x?w=1500&amp;h=1500" class="d-block img-fluid" alt="Avenue Mips" itemprop="image" />
+
+            
+
+            
+        
+
+        
+        
+    </div>
+</div>
+
+        </div>
+
+        <div class="product-data">
+            
+            
+                <div class="d-none d-md-block">
+                    <div class="badge-product-container">
+                        
+                        
+                            <div class="badge-product badge_light">Bike</div>
+                        
+                    </div>
+                </div>
+            
+
+            <!-- Product Rating -->
+            
+
+            
+            <h1 class="product-name h4">Avenue Mips</h1>
+
+            <div class="product-number-rating clearfix">
+    <!-- Product Number -->
+    <div class="product-number pull-left ">
+        STYLE #:
+
+    <span class="product-id">100000000300000120</span>
+
+    </div>
+</div>
+
+
+            
+            <div class="prices">
+                
+                
+    <div class="price">
+        
+        <span>
+    
+
+    
+
+    
+    <span class="sales">
+        
+        
+        
+            <span class="value" content="79.95"></span>
+        
+        $79.95
+
+
+    </span>
+</span>
+
+
+
+
+
+    </div>
+
+
+            </div>
+
+            
+
+            
+                <div class="product-headline-description">
+                    
+                </div>
+            
+
+            <div class="attributes">
+                
+                <div class="row">
+    <div class="col">
+        
+    </div>
+</div>
+
+
+                
+                
+                    <div class="row" data-attr="color">
+                        <div class="col-12">
+                            
+
+<div class="attribute">
+    
+
+        <!-- Select <Attribute> Label -->
+        <div class="attribute-label-container color-label-container d-flex justify-content-between">
+            <span class="color non-input-label">
+                Color - 
+                
+                    
+                    
+                        
+                    
+                        
+                    
+                        
+                    
+                        
+                            
+                            
+                    <span class="selected-value">Matte/Gloss Black-20</span>
+                
+            </span>
+
+            
+        </div>
+
+        <!-- Swatch Button Attribute Values -->
+        <div class="attribute-values-container color-values-container">
+            
+                
+                    <button class="color-attribute"
+                            aria-label="Select Color Matte Gray"
+                            aria-describedby="4846"
+                            aria-pressed="false"
+                            data-url="https://www.bellhelmets.com/on/demandware.store/Sites-BellUS-Site/en_US/Product-Variation?dwvar_100000000300000120_color=4846&amp;pid=100000000300000120&amp;quantity=1" 
+                    >
+                        
+                            <span data-attr-value="4846"
+                                class="
+                                    color-value
+                                    swatch-square
+                                    swatch-value
+                                    
+                                    selectable
+                                "
+                                style="background-image: url(https://vault.widen.net/content/lh4e9fhowt?w=250&amp;h=250)"
+                            >
+                            </span>
+                        
+                        <span id="4846" class="sr-only selected-assistive-text">
+                            
+                        </span>
+                    </button>
+                
+            
+                
+                    <button class="color-attribute"
+                            aria-label="Select Color Matte Green"
+                            aria-describedby="4032"
+                            aria-pressed="false"
+                            data-url="https://www.bellhelmets.com/on/demandware.store/Sites-BellUS-Site/en_US/Product-Variation?dwvar_100000000300000120_color=4032&amp;pid=100000000300000120&amp;quantity=1" 
+                    >
+                        
+                            <span data-attr-value="4032"
+                                class="
+                                    color-value
+                                    swatch-square
+                                    swatch-value
+                                    
+                                    selectable
+                                "
+                                style="background-image: url(https://vault.widen.net/content/d1qomzywld?w=250&amp;h=250)"
+                            >
+                            </span>
+                        
+                        <span id="4032" class="sr-only selected-assistive-text">
+                            
+                        </span>
+                    </button>
+                
+            
+                
+                    <button class="color-attribute"
+                            aria-label="Select Color Matte/Gloss Black"
+                            aria-describedby="1623"
+                            aria-pressed="false"
+                            data-url="https://www.bellhelmets.com/on/demandware.store/Sites-BellUS-Site/en_US/Product-Variation?dwvar_100000000300000120_color=1623&amp;pid=100000000300000120&amp;quantity=1" 
+                    >
+                        
+                            <span data-attr-value="1623"
+                                class="
+                                    color-value
+                                    swatch-square
+                                    swatch-value
+                                    
+                                    selectable
+                                "
+                                style="background-image: url(https://vault.widen.net/content/rwjyknj09x?w=250&amp;h=250)"
+                            >
+                            </span>
+                        
+                        <span id="1623" class="sr-only selected-assistive-text">
+                            
+                        </span>
+                    </button>
+                
+            
+                
+                    <button class="color-attribute"
+                            aria-label="Select Color Matte/Gloss Black-20"
+                            aria-describedby="5378"
+                            aria-pressed="true"
+                            data-url="https://www.bellhelmets.com/on/demandware.store/Sites-BellUS-Site/en_US/Product-Variation?dwvar_100000000300000120_color=&amp;pid=100000000300000120&amp;quantity=1" 
+                    >
+                        
+                            <span data-attr-value="5378"
+                                class="
+                                    color-value
+                                    swatch-square
+                                    swatch-value
+                                    selected
+                                    selectable
+                                "
+                                style="background-image: url(https://vault.widen.net/content/rwjyknj09x?w=250&amp;h=250)"
+                            >
+                            </span>
+                        
+                        <span id="5378" class="sr-only selected-assistive-text">
+                            selected
+                        </span>
+                    </button>
+                
+            
+                
+                    <button class="color-attribute"
+                            aria-label="Select Color Matte/Gloss White/Gray"
+                            aria-describedby="4870"
+                            aria-pressed="false"
+                            data-url="https://www.bellhelmets.com/on/demandware.store/Sites-BellUS-Site/en_US/Product-Variation?dwvar_100000000300000120_color=4870&amp;pid=100000000300000120&amp;quantity=1" 
+                    >
+                        
+                            <span data-attr-value="4870"
+                                class="
+                                    color-value
+                                    swatch-square
+                                    swatch-value
+                                    
+                                    selectable
+                                "
+                                style="background-image: url(https://vault.widen.net/content/q6kuad8w6b?w=250&amp;h=250)"
+                            >
+                            </span>
+                        
+                        <span id="4870" class="sr-only selected-assistive-text">
+                            
+                        </span>
+                    </button>
+                
+            
+        </div>
+
+    
+</div>
+
+                        </div>
+                    </div>
+                
+                    <div class="row" data-attr="size">
+                        <div class="col-12">
+                            
+
+<div class="attribute">
+    
+
+        <!-- Select <Attribute> Label -->
+        <div class="attribute-label-container size-label-container d-flex justify-content-between">
+            <span class="size non-input-label">
+                Size
+                
+            </span>
+
+            
+                
+                    <span>
+                        <i class="icon icon-ruler"></i><a class="size-chart-link" href="#static-size-chart">Size Guide</a>
+                    </span>
+                
+            
+        </div>
+
+        <!-- Swatch Button Attribute Values -->
+        <div class="attribute-values-container size-values-container">
+            
+                
+                    <button class="size-attribute"
+                            aria-label="Select Size S/M"
+                            aria-describedby="S/M"
+                            aria-pressed="false"
+                            data-url="null" 
+                    >
+                        
+                            <span data-attr-value="S/M"
+                                class="
+                                    size-value
+                                    swatch-square
+                                    swatch-value
+                                    
+                                    unselectable
+                                    
+                                "
+                            >
+                                S/M
+                            </span>
+                        
+                        <span id="S/M" class="sr-only selected-assistive-text">
+                            
+                        </span>
+                    </button>
+                
+            
+                
+                    <button class="size-attribute"
+                            aria-label="Select Size M/L"
+                            aria-describedby="M/L"
+                            aria-pressed="false"
+                            data-url="null" 
+                    >
+                        
+                            <span data-attr-value="M/L"
+                                class="
+                                    size-value
+                                    swatch-square
+                                    swatch-value
+                                    
+                                    unselectable
+                                    
+                                "
+                            >
+                                M/L
+                            </span>
+                        
+                        <span id="M/L" class="sr-only selected-assistive-text">
+                            
+                        </span>
+                    </button>
+                
+            
+                
+                    <button class="size-attribute"
+                            aria-label="Select Size UA"
+                            aria-describedby="UA"
+                            aria-pressed="false"
+                            data-url="null" 
+                    >
+                        
+                            <span data-attr-value="UA"
+                                class="
+                                    size-value
+                                    swatch-square
+                                    swatch-value
+                                    
+                                    unselectable
+                                    
+                                "
+                            >
+                                UA
+                            </span>
+                        
+                        <span id="UA" class="sr-only selected-assistive-text">
+                            
+                        </span>
+                    </button>
+                
+            
+                
+                    <button class="size-attribute"
+                            aria-label="Select Size UXL"
+                            aria-describedby="UXL"
+                            aria-pressed="false"
+                            data-url="https://www.bellhelmets.com/on/demandware.store/Sites-BellUS-Site/en_US/Product-Variation?dwvar_100000000300000120_color=5378&amp;dwvar_100000000300000120_size=UXL&amp;pid=100000000300000120&amp;quantity=1" 
+                    >
+                        
+                            <span data-attr-value="UXL"
+                                class="
+                                    size-value
+                                    swatch-square
+                                    swatch-value
+                                    
+                                    selectable
+                                    
+                                "
+                            >
+                                UXL
+                            </span>
+                        
+                        <span id="UXL" class="sr-only selected-assistive-text">
+                            
+                        </span>
+                    </button>
+                
+            
+        </div>
+
+    
+</div>
+
+                        </div>
+                    </div>
+                
+
+                <div class="vlt-wrapper">
+                    
+
+
+
+
+
+
+
+
+
+
+
+
+                </div>
+
+                <div class="product-options">
+                    
+                </div>
+
+                
+                
+
+    
+
+    <div class="stock-indicator  low-stock">
+        <i class="fa icon-hurry" aria-hidden="true"></i>
+        <span class="stock-message"></span>
+    </div>
+
+
+
+                
+
+                <div class="add-to-cart-actions">
+                    
+                    <div class="cart-and-ipay">
+    
+        <input type="hidden" class="add-to-cart-url" value="/on/demandware.store/Sites-BellUS-Site/en_US/Cart-AddProduct">
+        <button class="add-to-cart btn btn-addtocart"
+                data-toggle="modal"
+                data-target="#chooseBonusProductModal"
+                data-gtmdata="null"
+                data-pid="100000000300000120"
+                disabled>
+            Add to Cart
+        </button>
+    
+
+    
+        <div class="bis-container js-bis-container d-none" data-url="/on/demandware.store/Sites-BellUS-Site/en_US/Klaviyo-GetBackInStockArea">
+            <form role="form" class="bis-signup-form mt-0" action="null"  method="POST" id="backInStockForm" name="backInStockForm">
+    <input type="hidden" name="pid" value="null" pattern="*"/>
+    <input type="hidden" name="null" value="null" pattern="*"/>
+
+    <div class="bis-headline h5">
+        
+            Sold Out
+        
+    </div>
+
+    <div class="email-description bis-msg">
+        Sign up below to be notified.
+    </div>
+
+    <div class="email-input">
+        <div class="form-group">
+            <input
+                type="email"
+                required
+                class="form-control bis-email-input"
+                placeholder="Your email"
+                aria-label="Email"
+                value=""
+                
+            />
+            <input type="hidden" id="fallback-fail-msg" value="Something went wrong please refresh and try again."/>
+
+            
+        </div>
+
+        <button
+            class="notify-back-in-stock btn-primary"
+            aria-label="Subscribe"
+            type="submit" name="submit" value="submit"
+        >
+            Notify When Available
+        </button>
+    </div>
+    <span class="small">
+        
+
+
+    </span>
+</form>
+
+<div class="bis-signup-success bis-msg d-none">
+    
+        <i class="icon-check-circle"></i> Thank you, we will email you when the item is in stock.
+    
+</div>
+        </div>
+    
+</div>
+                </div>
+
+                <div class="klarna-placement-wrapper">
+                    
+                    
+                    <klarna-placement
+                    data-key="credit-promotion-auto-size"
+                    data-locale="en-US"
+                    data-purchase-amount="7995"
+                    ></klarna-placement>
+                </div>
+            </div>
+
+            
+
+
+
+            
+
+
+    <div class="shipping-return-callout-wrapper ">
+         
+            <div class="callout-shipping-wrapper ">
+                <div class="callout-icon-wrapper"> 
+                    <img class="product-image" alt="shipping icon" src="/on/demandware.static/Sites-BellUS-Site/-/default/dw44e9244e/images/pdp/shipping-icon.svg"/>
+                </div>
+                <div class="callout-message-wrapper"> 
+                    <span class="callout-text">
+
+<div class="page-designer chromeless " id="pdp-callout_shipping">
+<div class="experience-region experience-main"><div class="experience-component experience-commerce_assets-html">
+
+
+
+
+
+
+
+
+
+
+    Shipping Info <span data-toggle="tooltip" title="Standard: 8€ (Delivery within 3 - 5 Business days) &#10; Express: 15€ (Delivery within 1 - 2 Business days)" class="tooltip-icon"></span>
+
+
+
+    
+
+
+</div></div>
+
+</div>
+</span>
+                </div>
+            </div>
+        
+        
+            <div class="callout-returns-wrapper">
+                <div class="callout-icon-wrapper"> 
+                    <img class="product-image" alt="returns icon" src="/on/demandware.static/Sites-BellUS-Site/-/default/dw7ab1826f/images/pdp/returns-icon.svg"/>
+                </div>
+                <div class="callout-message-wrapper"> 
+                        <span class="callout-text">
+
+<div class="page-designer chromeless " id="pdp-callout_returns">
+<div class="experience-region experience-main"><div class="experience-component experience-commerce_assets-html">
+
+
+
+
+
+
+
+
+
+
+    <a href="/on/demandware.store/Sites-BellUS-Site/en_US/HelpCenter-ShowContent?folderid=helpCenterReturnsPage" title="Returns" target="_blank">30-Day Returns</a>
+
+
+
+    
+
+
+</div></div>
+
+</div>
+</span>
+                </div>
+            </div>
+        
+    </div>
+
+
+            <!-- Applicable Promotions -->
+            <div class="promotions d-none">
+                
+                
+
+
+
+
+            </div>
+
+            
+
+            <div class="accordion">
+                
+                    <div class="accordion-item">
+                        <div class="accordion-header h6 tab-icon-null">
+                            <a href="#" class="" data-toggle="collapse"
+                                data-target="#collapse1" aria-expanded="false"
+                                aria-controls="collapse1">
+                                Description
+                            </a>
+                        </div>
+                        <div id="collapse1" class="collapse show">
+                            <div class="accordion-content">
+                                Designed with a friendly price tag, yet leaving no cards on the table, the Avenue Mips is tough, refined, and easy to adjust on the fly.
+                            </div>
+                        </div>
+                    </div>
+                
+                    <div class="accordion-item">
+                        <div class="accordion-header h6 tab-icon-null">
+                            <a href="#" class="collapsed" data-toggle="collapse"
+                                data-target="#collapse2" aria-expanded="false"
+                                aria-controls="collapse2">
+                                Details
+                            </a>
+                        </div>
+                        <div id="collapse2" class="collapse">
+                            <div class="accordion-content">
+                                Usually, when it comes to value, there's going to be some sort of compromise. With the Avenue, we took a hard line against that. We gave it carefully sculpted vents and a graceful shape. We packed it with the same features and careful touches that define our flagship helmets, such as our Sweat Guide liner and No-Twist Tri-Glides for ease of adjustment. Equipped with our easy-to-use Ergo Fit system, fully integrated with the MIPS layer, we proudly sent it out into the world &mdash; now it's up to you to decide where to go. [Availability, certification, color, and pricing may vary per region. If outside of the USA, please check with your authorized local dealer for more information.]
+                            </div>
+                        </div>
+                    </div>
+                
+                    <div class="accordion-item">
+                        <div class="accordion-header h6 tab-icon-null">
+                            <a href="#" class="collapsed" data-toggle="collapse"
+                                data-target="#collapse3" aria-expanded="false"
+                                aria-controls="collapse3">
+                                Key Features
+                            </a>
+                        </div>
+                        <div id="collapse3" class="collapse">
+                            <div class="accordion-content">
+                                <ul><li>MIPS® EVOLVE — Mips Evolve is designed to reduce rotational forces that can result from certain impacts. By integrating the Mips slip plane into the retention system, we are able to reduce complexity and weight for a compact, better ventilated helmet that fits more closely to the head.</li>
+<li>ERGO FIT™ — A lightweight fit system with an easy-to-turn rubber overmolded dial for adjustments (integrated with Mips®).</li>
+<li>NO-TWIST TRI-GLIDES™ — Quick-adjust fasteners that help keep straps flat and properly positioned</li>
+<li>SWEAT GUIDE™ — Sweat Guide pad design pulls moisture away from the brow pad and away from eyewear.</li></ul>
+                            </div>
+                        </div>
+                    </div>
+                
+                    <div class="accordion-item">
+                        <div class="accordion-header h6 tab-icon-null">
+                            <a href="#" class="collapsed" data-toggle="collapse"
+                                data-target="#collapse4" aria-expanded="false"
+                                aria-controls="collapse4">
+                                Certifications & Weight
+                            </a>
+                        </div>
+                        <div id="collapse4" class="collapse">
+                            <div class="accordion-content">
+                                Complies with the US CPSC Safety Standard for Bicycle Helmet for Persons Age 5 and Older,340g (Size M/L)
+                            </div>
+                        </div>
+                    </div>
+                
+            </div>
+
+            
+
+            
+        </div>
+    </div>
+
+    
+
+    
+        <div class="container">
+            <div class="row">
+                <div id="static-size-chart" class="size-chart sizechart-content col-12">
+                    
+    
+    <div class="content-asset" data-asset-id="sc_avenue"><!-- dwMarker="content" dwContentID="0a45c54e38505fd1a92348e1d2" dwContentBMID="sc_avenue" -->
+        <div class="size-chart--tables">
+        <div class="table-responsive">
+            <table class="table table-striped table-max-width adult-superfit">
+                <thead>
+                    <tr class="chartAreaHead">
+                        <th>SIZE</th>
+                        <th>CM</th>
+                        <th>IN</th>
+                        <th>HAT SIZE (IN)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr class="chartSection">
+                        <td>S/M</td>
+                        <td>50-57</td>
+                        <td>19 5/8"– 22 1/2"</td>
+                        <td>6 1/4"– 7 1/8"</td>
+                    </tr>
+                    <tr class="chartSection">
+                        <td>M/L</td>
+                        <td>53-60</td>
+                        <td>20 7/8"–23 5/8"</td>
+                        <td>6 5/8"–7 1/2"</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+<style>
+    .size-chart--container {
+        max-width: 1024px;
+        padding-top: 48px;
+        padding-bottom: 48px;
+    }
+
+    .size-chart--title {
+        margin-bottom: 48px;
+    }
+
+    .size-chart--title img {
+        width: 100%;
+        max-width: 400px;
+    }
+
+    .table {
+        margin-bottom: 48px;
+        table-layout: auto; /* AUTO para que se adapte al contenido */
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .table thead th {
+        vertical-align: bottom;
+        border-bottom: 1px solid #D6D6D6;
+        padding: 12px;
+    }
+
+    .table th, .table td {
+        padding: 12px;
+        border: 1px solid #D6D6D6;
+        text-align: left;
+        white-space: nowrap; /* para que el contenido no se parta en móvil */
+    }
+
+    .table-responsive {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .table-responsive table {
+        min-width: 800px; /* Ajusta este valor si agregas más columnas */
+    }
+
+    @media screen and (min-width: 769px) {
+        .size-chart--title {
+            display: flex;
+        }
+
+        .size-chart--title > div {
+            margin-right: 96px;
+        }
+
+        .size-chart--tables {
+            display: block;
+            width: 100%;
+        }
+
+        .table-responsive table {
+            min-width: 100%;
+        }
+    }
+</style>
+    </div> <!-- End content-asset -->
+
+
+                </div>
+            </div>
+        </div>
+    
+
+
+</div><div class="experience-component experience-commerce_layouts-productReviews">
+<!-- CQuotient Activity Tracking (viewProduct-cquotient.js) -->
+<script type="text/javascript">//<!--
+/* <![CDATA[ */
+(function(){
+	try {
+		if(window.CQuotient) {
+			var cq_params = {};
+			cq_params.product = {
+					id: '100000000300000120',
+					sku: '',
+					type: '',
+					alt_id: ''
+				};
+			cq_params.realm = "BGML";
+			cq_params.siteId = "BellUS";
+			cq_params.instanceType = "prd";
+			window.CQuotient.trackViewProduct(cq_params);
+		}
+	} catch(err) {}
+})();
+/* ]]> */
+// -->
+</script>
+<script type="text/javascript">//<!--
+/* <![CDATA[ (viewProduct-active_data.js) */
+dw.ac._capture({id: "100000000300000120", type: "detail"});
+/* ]]> */
+// -->
+</script>
+    
+    <div class="container">
+        <div class="row">
+            <div class="col-12">
+                
+
+    
+    <div
+        class="yotpo-widget-instance"
+        data-yotpo-instance-id="546062"
+        data-yotpo-product-id="100000000300000120"
+        data-yotpo-name="null"
+        data-yotpo-url="null"
+        data-yotpo-image-url="null"
+        data-yotpo-price="[object Object]"
+        data-yotpo-currency="null"
+        data-yotpo-description="null">
+    </div>
+    
+ 
+            </div>
+        </div>
+    </div>
+
+
+</div><div class="experience-component experience-commerce_layouts-recommendationSlider"><div
+    class="enhanced-slider-container d-none 0054489ae28e2093536c89f218 "
+    style="margin-top: 0; margin-bottom: 0;"
+    data-desktop-slides="4.0"
+    data-tablet-slides="3.0"
+    >
+    
+        <div class="enhanced-slider-title">
+            <div class="h3">Recommended for you</div>
+        </div>
+    
+    <div class="enhanced-slider-navigation">
+        <div class="btn btn-slider-left d-none"></div>
+        <div class="btn btn-slider-right d-none"></div>
+    </div>
+    <div class="enhanced-slider-slides-container ">
+        <div class="experience-slides einstein-data"
+            data-recommender="product-to-product"
+            data-url="/on/demandware.store/Sites-BellUS-Site/en_US/Tile-Show?pview=tile&amp;ratings=false&amp;swatches=false&amp;showQuickView=false&amp;recommendation=true&amp;showQuickAdd=true"
+            data-uuid="5ee6cec402aa1b552e4991380b"
+            data-anchors='[{"id":"100000000300000120","sku":"BL-7138471"}]'
+        >
+            
+                <div data-position="1" class="slide">
+                    
+    
+    
+    <div class="product"
+        data-pid="placeholder"
+        data-currency="USD"
+        data-gtmdata="null">
+        <div class="product-tile always-show" data-pid="placeholder">
+    <!-- dwMarker="product" dwContentID="null" -->
+    
+
+
+
+    
+
+
+
+    
+    
+
+    <div class="product-tile-image-container image-container no-secondary-image">
+        <a href="" class="product-tile-image-link" draggable="false">
+            <img class="product-tile-image tile-image lazyload"
+                src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="
+                data-src="/on/demandware.static/Sites-BellUS-Site/-/default/dwf776a6f1/images/noimage-hi-res.png"
+                alt=""
+                title="Placeholder"
+                draggable="false"
+                />
+            
+        </a>
+    </div>
+
+
+
+
+    <div class="tile-body">
+
+        <div class="pdp-link">
+    <a class="link" href=""></a>
+</div>
+
+
+        
+        
+            
+    <div class="price">
+        
+        <span>
+    
+
+    
+
+    
+    <span class="sales">
+        
+        
+        
+            <span class="value" content=""></span>
+        
+        
+
+
+    </span>
+</span>
+
+
+
+
+
+    </div>
+
+
+        
+
+        
+
+        
+
+        
+
+        
+
+        
+<div class="quickview-btn">
+
+</div>
+
+
+        
+            
+
+
+
+    <div class="promotions-wrapper">
+        
+    </div>
+
+
+        
+    </div>
+    <!-- END_dwmarker -->
+</div>
+
+    </div>
+
+
+                </div>
+            
+                <div data-position="2" class="slide">
+                    
+    
+    
+    <div class="product"
+        data-pid="placeholder"
+        data-currency="USD"
+        data-gtmdata="null">
+        <div class="product-tile always-show" data-pid="placeholder">
+    <!-- dwMarker="product" dwContentID="null" -->
+    
+
+
+
+    
+
+
+
+    
+    
+
+    <div class="product-tile-image-container image-container no-secondary-image">
+        <a href="" class="product-tile-image-link" draggable="false">
+            <img class="product-tile-image tile-image lazyload"
+                src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="
+                data-src="/on/demandware.static/Sites-BellUS-Site/-/default/dwf776a6f1/images/noimage-hi-res.png"
+                alt=""
+                title="Placeholder"
+                draggable="false"
+                />
+            
+        </a>
+    </div>
+
+
+
+
+    <div class="tile-body">
+
+        <div class="pdp-link">
+    <a class="link" href=""></a>
+</div>
+
+
+        
+        
+            
+    <div class="price">
+        
+        <span>
+    
+
+    
+
+    
+    <span class="sales">
+        
+        
+        
+            <span class="value" content=""></span>
+        
+        
+
+
+    </span>
+</span>
+
+
+
+
+
+    </div>
+
+
+        
+
+        
+
+        
+
+        
+
+        
+
+        
+<div class="quickview-btn">
+
+</div>
+
+
+        
+            
+
+
+
+    <div class="promotions-wrapper">
+        
+    </div>
+
+
+        
+    </div>
+    <!-- END_dwmarker -->
+</div>
+
+    </div>
+
+
+                </div>
+            
+                <div data-position="3" class="slide">
+                    
+    
+    
+    <div class="product"
+        data-pid="placeholder"
+        data-currency="USD"
+        data-gtmdata="null">
+        <div class="product-tile always-show" data-pid="placeholder">
+    <!-- dwMarker="product" dwContentID="null" -->
+    
+
+
+
+    
+
+
+
+    
+    
+
+    <div class="product-tile-image-container image-container no-secondary-image">
+        <a href="" class="product-tile-image-link" draggable="false">
+            <img class="product-tile-image tile-image lazyload"
+                src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="
+                data-src="/on/demandware.static/Sites-BellUS-Site/-/default/dwf776a6f1/images/noimage-hi-res.png"
+                alt=""
+                title="Placeholder"
+                draggable="false"
+                />
+            
+        </a>
+    </div>
+
+
+
+
+    <div class="tile-body">
+
+        <div class="pdp-link">
+    <a class="link" href=""></a>
+</div>
+
+
+        
+        
+            
+    <div class="price">
+        
+        <span>
+    
+
+    
+
+    
+    <span class="sales">
+        
+        
+        
+            <span class="value" content=""></span>
+        
+        
+
+
+    </span>
+</span>
+
+
+
+
+
+    </div>
+
+
+        
+
+        
+
+        
+
+        
+
+        
+
+        
+<div class="quickview-btn">
+
+</div>
+
+
+        
+            
+
+
+
+    <div class="promotions-wrapper">
+        
+    </div>
+
+
+        
+    </div>
+    <!-- END_dwmarker -->
+</div>
+
+    </div>
+
+
+                </div>
+            
+                <div data-position="4" class="slide">
+                    
+    
+    
+    <div class="product"
+        data-pid="placeholder"
+        data-currency="USD"
+        data-gtmdata="null">
+        <div class="product-tile always-show" data-pid="placeholder">
+    <!-- dwMarker="product" dwContentID="null" -->
+    
+
+
+
+    
+
+
+
+    
+    
+
+    <div class="product-tile-image-container image-container no-secondary-image">
+        <a href="" class="product-tile-image-link" draggable="false">
+            <img class="product-tile-image tile-image lazyload"
+                src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="
+                data-src="/on/demandware.static/Sites-BellUS-Site/-/default/dwf776a6f1/images/noimage-hi-res.png"
+                alt=""
+                title="Placeholder"
+                draggable="false"
+                />
+            
+        </a>
+    </div>
+
+
+
+
+    <div class="tile-body">
+
+        <div class="pdp-link">
+    <a class="link" href=""></a>
+</div>
+
+
+        
+        
+            
+    <div class="price">
+        
+        <span>
+    
+
+    
+
+    
+    <span class="sales">
+        
+        
+        
+            <span class="value" content=""></span>
+        
+        
+
+
+    </span>
+</span>
+
+
+
+
+
+    </div>
+
+
+        
+
+        
+
+        
+
+        
+
+        
+
+        
+<div class="quickview-btn">
+
+</div>
+
+
+        
+            
+
+
+
+    <div class="promotions-wrapper">
+        
+    </div>
+
+
+        
+    </div>
+    <!-- END_dwmarker -->
+</div>
+
+    </div>
+
+
+                </div>
+            
+                <div data-position="5" class="slide">
+                    
+    
+    
+    <div class="product"
+        data-pid="placeholder"
+        data-currency="USD"
+        data-gtmdata="null">
+        <div class="product-tile always-show" data-pid="placeholder">
+    <!-- dwMarker="product" dwContentID="null" -->
+    
+
+
+
+    
+
+
+
+    
+    
+
+    <div class="product-tile-image-container image-container no-secondary-image">
+        <a href="" class="product-tile-image-link" draggable="false">
+            <img class="product-tile-image tile-image lazyload"
+                src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="
+                data-src="/on/demandware.static/Sites-BellUS-Site/-/default/dwf776a6f1/images/noimage-hi-res.png"
+                alt=""
+                title="Placeholder"
+                draggable="false"
+                />
+            
+        </a>
+    </div>
+
+
+
+
+    <div class="tile-body">
+
+        <div class="pdp-link">
+    <a class="link" href=""></a>
+</div>
+
+
+        
+        
+            
+    <div class="price">
+        
+        <span>
+    
+
+    
+
+    
+    <span class="sales">
+        
+        
+        
+            <span class="value" content=""></span>
+        
+        
+
+
+    </span>
+</span>
+
+
+
+
+
+    </div>
+
+
+        
+
+        
+
+        
+
+        
+
+        
+
+        
+<div class="quickview-btn">
+
+</div>
+
+
+        
+            
+
+
+
+    <div class="promotions-wrapper">
+        
+    </div>
+
+
+        
+    </div>
+    <!-- END_dwmarker -->
+</div>
+
+    </div>
+
+
+                </div>
+            
+                <div data-position="6" class="slide">
+                    
+    
+    
+    <div class="product"
+        data-pid="placeholder"
+        data-currency="USD"
+        data-gtmdata="null">
+        <div class="product-tile always-show" data-pid="placeholder">
+    <!-- dwMarker="product" dwContentID="null" -->
+    
+
+
+
+    
+
+
+
+    
+    
+
+    <div class="product-tile-image-container image-container no-secondary-image">
+        <a href="" class="product-tile-image-link" draggable="false">
+            <img class="product-tile-image tile-image lazyload"
+                src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="
+                data-src="/on/demandware.static/Sites-BellUS-Site/-/default/dwf776a6f1/images/noimage-hi-res.png"
+                alt=""
+                title="Placeholder"
+                draggable="false"
+                />
+            
+        </a>
+    </div>
+
+
+
+
+    <div class="tile-body">
+
+        <div class="pdp-link">
+    <a class="link" href=""></a>
+</div>
+
+
+        
+        
+            
+    <div class="price">
+        
+        <span>
+    
+
+    
+
+    
+    <span class="sales">
+        
+        
+        
+            <span class="value" content=""></span>
+        
+        
+
+
+    </span>
+</span>
+
+
+
+
+
+    </div>
+
+
+        
+
+        
+
+        
+
+        
+
+        
+
+        
+<div class="quickview-btn">
+
+</div>
+
+
+        
+            
+
+
+
+    <div class="promotions-wrapper">
+        
+    </div>
+
+
+        
+    </div>
+    <!-- END_dwmarker -->
+</div>
+
+    </div>
+
+
+                </div>
+            
+                <div data-position="7" class="slide">
+                    
+    
+    
+    <div class="product"
+        data-pid="placeholder"
+        data-currency="USD"
+        data-gtmdata="null">
+        <div class="product-tile always-show" data-pid="placeholder">
+    <!-- dwMarker="product" dwContentID="null" -->
+    
+
+
+
+    
+
+
+
+    
+    
+
+    <div class="product-tile-image-container image-container no-secondary-image">
+        <a href="" class="product-tile-image-link" draggable="false">
+            <img class="product-tile-image tile-image lazyload"
+                src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="
+                data-src="/on/demandware.static/Sites-BellUS-Site/-/default/dwf776a6f1/images/noimage-hi-res.png"
+                alt=""
+                title="Placeholder"
+                draggable="false"
+                />
+            
+        </a>
+    </div>
+
+
+
+
+    <div class="tile-body">
+
+        <div class="pdp-link">
+    <a class="link" href=""></a>
+</div>
+
+
+        
+        
+            
+    <div class="price">
+        
+        <span>
+    
+
+    
+
+    
+    <span class="sales">
+        
+        
+        
+            <span class="value" content=""></span>
+        
+        
+
+
+    </span>
+</span>
+
+
+
+
+
+    </div>
+
+
+        
+
+        
+
+        
+
+        
+
+        
+
+        
+<div class="quickview-btn">
+
+</div>
+
+
+        
+            
+
+
+
+    <div class="promotions-wrapper">
+        
+    </div>
+
+
+        
+    </div>
+    <!-- END_dwmarker -->
+</div>
+
+    </div>
+
+
+                </div>
+            
+                <div data-position="8" class="slide">
+                    
+    
+    
+    <div class="product"
+        data-pid="placeholder"
+        data-currency="USD"
+        data-gtmdata="null">
+        <div class="product-tile always-show" data-pid="placeholder">
+    <!-- dwMarker="product" dwContentID="null" -->
+    
+
+
+
+    
+
+
+
+    
+    
+
+    <div class="product-tile-image-container image-container no-secondary-image">
+        <a href="" class="product-tile-image-link" draggable="false">
+            <img class="product-tile-image tile-image lazyload"
+                src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="
+                data-src="/on/demandware.static/Sites-BellUS-Site/-/default/dwf776a6f1/images/noimage-hi-res.png"
+                alt=""
+                title="Placeholder"
+                draggable="false"
+                />
+            
+        </a>
+    </div>
+
+
+
+
+    <div class="tile-body">
+
+        <div class="pdp-link">
+    <a class="link" href=""></a>
+</div>
+
+
+        
+        
+            
+    <div class="price">
+        
+        <span>
+    
+
+    
+
+    
+    <span class="sales">
+        
+        
+        
+            <span class="value" content=""></span>
+        
+        
+
+
+    </span>
+</span>
+
+
+
+
+
+    </div>
+
+
+        
+
+        
+
+        
+
+        
+
+        
+
+        
+<div class="quickview-btn">
+
+</div>
+
+
+        
+            
+
+
+
+    <div class="promotions-wrapper">
+        
+    </div>
+
+
+        
+    </div>
+    <!-- END_dwmarker -->
+</div>
+
+    </div>
+
+
+                </div>
+            
+        </div>
+    </div>
+</div></div></div>
+
+</div>
+
+</div>
+
+
+
+
+<footer id="footercontent" >
+    <div class="container mobile-country-selector-container d-block d-md-none">
+        <button class="js-country-selector country-selector-box" data-url="https://www.bellhelmets.com/on/demandware.store/Sites-BellUS-Site/en_US/Home-ShowCountrySelector" role="button" tabindex="0">
+    <div class="flag-icon flag-icon-us"></div>
+    <span class="current-country">
+        United States
+    </span>
+    <span class="icon-arrow-right"></span>
+</button>
+    </div>
+    <div class="footer-top-row container">
+        <div class="row d-flex mx-0">
+            <div class="footer-email-signup footer-item col-md-4">
+                <!-- email signup-->
+                <div class="title">Newsletter</div>
+                <div class="email-signup-form">
+                    <form action="/on/demandware.store/Sites-BellUS-Site/en_US/Klaviyo-Subscribe" method="post">
+                        
+
+<div class="page-designer chromeless " id="footerSignUp">
+<div class="experience-region experience-main"><div class="experience-component experience-commerce_assets-html">
+
+
+
+
+
+
+
+
+
+
+    <div class="email-title subtitle-light">Connect with Bell</div>
+<div class="email-description">Sign up and get 15% off on your first order.</div>
+
+
+
+    
+
+
+</div></div>
+
+</div>
+
+                        <div class="email-input">
+                            <div class="input-group inline-btn d-flex">
+                                <input type="text" class="form-control" name="emailsignup" placeholder="Email address" aria-label="Email">
+                                <input type="hidden" name="source" value="Footer">
+                                <button type="submit" class="btn subscribe-email" data-href="/on/demandware.store/Sites-BellUS-Site/en_US/Klaviyo-Subscribe" aria-label="Subscribe">
+                                    Submit
+                                </button>
+                            </div>
+                        </div>
+                        
+                            <div class="gdpr-consent-error text--red d-none">
+                                Please accept policy below
+                            </div>
+                            <div class="gdpr-checkbox form-group custom-control custom-checkbox">
+                                <input type="checkbox" class="custom-control-input" id="gdpr-consent" name="gdprconsent" value="false" required>
+                                <label class="custom-control-label gdpr-label" for="gdpr-consent">
+                                    
+    
+    <div class="content-asset" data-asset-id="marketing-consent-message"><!-- dwMarker="content" dwContentID="7465ea621c4a1d36abde382d35" dwContentBMID="marketing-consent-message" -->
+        <p class="p--class">I have read and accept the <a class="p--class" href="https://www.bellhelmets.com/privacy-policy.html">privacy policy</a> about data protection as a newsletter subscriber. To access your benefits, you'll receive an email to confirm your subscription.</p>
+    </div> <!-- End content-asset -->
+
+
+                                </label>
+                            </div>
+                        
+                    </form>
+                </div>
+                <!-- social section-->
+                <div class="footer-social-wrapper footer-item">
+                    <div class="social-back-to-top">
+                        
+    
+    <div class="content-asset" data-asset-id="footerSocial"><!-- dwMarker="content" dwContentID="b3111f9e6c9c677b6520d70c05" dwContentBMID="footerSocial" -->
+        <div class="footer-social-icons pt-3 d-flex">
+    <div class="footer-social-icon">
+        <a target="_blank" href="https://www.instagram.com/bellhelmets">
+            <span class="footer-social-icon icon-instagram text--white"></span>
+        </a>
+    </div>
+
+    <div class="footer-social-icon">
+        <a target="_blank"  href="https://www.facebook.com/BellHelmetsOfficial/">
+            <span class="icon-facebook text--white"></span>
+        </a>
+    </div>
+
+    <div class="footer-social-icon">
+        <a target="_blank" href="https://twitter.com/BellRacingHQ">
+            <span class="footer-social-icon icon-twitter text--white"></span>
+        </a>
+    </div>
+
+    <div class="footer-social-icon">
+        <a target="_blank" href="https://www.youtube.com/@BellHelmetsOfficial">
+            <span class="footer-social-icon icon-youtube text--white"></span>
+        </a>
+    </div>
+</div>
+    </div> <!-- End content-asset -->
+
+
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-2"></div>
+            <!-- about section -->
+            <div class="col-md-3 footer-about footer-item collapsible-sm">
+                
+    
+    <div class="content-asset" data-asset-id="footerColumn1"><!-- dwMarker="content" dwContentID="21ae34fa0f954f6b0b2aa26d31" dwContentBMID="footerColumn1" -->
+        <!-- BEGIN: footer-about -->
+<div class="title">About</div>
+<ul id="collapsible-account" class="menu-footer content">
+	<li><a href="https://www.bellhelmets.com/about.html" title="Go to About Bell">About</a></li>
+	<li><a href="https://www.bellhelmets.com/careers.html" title="Careers">Careers</a></li>
+	<li><a href="https://www.bellhelmets.com/content-hub" title="Go to the Explore Bell">Explore Bell</a></li>
+	<li><a href="https://www.bellhelmets.com/become-a-dealer.html" title="Become a Dealer">Become a Dealer</a></li>
+	<li><a href="https://www.bellhelmets.com/recalls.html" title="Recalls">Recalls</a></li>
+</ul>
+<!-- END: footer-about -->
+    </div> <!-- End content-asset -->
+
+
+            </div>
+            <!-- contact section -->
+            <div class="col-md-3 footer-contact footer-item collapsible-sm">
+                
+    
+    <div class="content-asset" data-asset-id="footerColumn2"><!-- dwMarker="content" dwContentID="9ba0e90dec5f820a3335109bcf" dwContentBMID="footerColumn2" -->
+        <!-- BEGIN: footer_contact -->
+<div class="title">Support</div>
+<ul id="collapsible-contact" class="menu-footer content">
+	<li><a href="https://www.bellhelmets.com/help" title="Help Center">Help Center</a></li>
+	<li><a href="https://www.bellhelmets.com/on/demandware.store/Sites-BellUS-Site/en_US/HelpCenter-ShowContent?folderid=helpCenterContactUsPage" title="Contact">Contact Us</a></li>
+	<li><a href="https://www.bellhelmets.com/on/demandware.store/Sites-BellUS-Site/en_US/HelpCenter-ShowContent?folderid=helpCenterShippingPage" title="Shipping">Shipping Information</a></li>
+	<li><a href="https://www.bellhelmets.com/on/demandware.store/Sites-BellUS-Site/en_US/HelpCenter-ShowContent?folderid=helpCenterReturnsPage" title="Returns">Returns</a></li>
+	<li><a href="https://www.bellhelmets.com/on/demandware.store/Sites-BellUS-Site/en_US/HelpCenter-ShowContent?folderid=helpCenterFaqPage" title="FAQ">FAQ</a></li>
+	<li><a href="https://www.bellhelmets.com/size-chart.html" title="Size Chart">Size Charts</a></li>
+</ul>
+<!-- END: footer_contact -->
+    </div> <!-- End content-asset -->
+
+
+            </div>
+        </div>
+    </div>
+    <div class="row footer-bottom-row mx-0">
+        <div class="container d-md-flex">
+            <div class="footer-legal-section">
+                <div class="desktop-country-selector-container d-none d-md-block">
+                    <button class="js-country-selector country-selector-box" data-url="https://www.bellhelmets.com/on/demandware.store/Sites-BellUS-Site/en_US/Home-ShowCountrySelector" role="button" tabindex="0">
+    <div class="flag-icon flag-icon-us"></div>
+    <span class="current-country">
+        United States
+    </span>
+    <span class="icon-arrow-right"></span>
+</button>
+                </div>
+                <div class="text-left text-md-right postscript">
+                    
+    
+    <div class="content-asset" data-asset-id="footerBottomRight"><!-- dwMarker="content" dwContentID="1d095844240a03a9b1144bbb31" dwContentBMID="footerBottomRight" -->
+        <div class="footer-legal-links-wrapper">
+    <div class="footer-legal-links">
+        <a href="https://www.bellhelmets.com/privacy-policy.html" title="Privacy Policy">Privacy Policy</a>
+        <a href="https://www.bellhelmets.com/legal-terms.html" title="Legal Terms">Legal Terms</a>
+        <a href="https://www.bellhelmets.com/trademark-attribution-statement.html" title="Trademark Attribution Statement">Trademark Attribution Statement</a>
+        <a class="footer-one-trust" href="https://privacyportal.onetrust.com/webform/0de74cf5-0b10-4050-859f-706ee2bd2d4d/d363df5d-1524-4167-ae2d-80d55c9dae1b">Do Not Sell or Share My Personal Information</a>
+    </div>
+</div>
+
+
+<style>
+#lb_paypal p {
+    display: none !important;
+}
+</style>
+    </div> <!-- End content-asset -->
+
+
+                </div>
+            </div>
+            <div class="footer-logo-section">
+                <img class="footer-logo" src="/on/demandware.static/Sites-BellUS-Site/-/default/dw03ef73dd/images/logo-light.svg" alt="Bell Helmets"/>
+                <div class="copyright">
+                    
+    
+    <div class="content-asset" data-asset-id="footerCopyright"><!-- dwMarker="content" dwContentID="05677772460243f8700971846f" dwContentBMID="footerCopyright" -->
+        ©2026 BELL SPORTS LLC - All Rights Reserved
+    </div> <!-- End content-asset -->
+
+
+                </div>
+            </div>
+        </div>
+    </div>
+</footer>
+
+
+<div class="d-none">
+    
+    
+    <div class="content-asset" data-asset-id="footerCopy"><!-- dwMarker="content" dwContentID="4163d668b2ea1b7a933b4a1bd4" dwContentBMID="footerCopy" -->
+        <style>
+
+
+/*Hide Shipping Callout PDP*/
+.shipping-return-callout-wrapper .callout-shipping-wrapper {
+    display: none !important;
+}
+
+
+/* US FAQ Hide */
+
+#headingcustomer-service,
+#headingaccount,
+#headingpayments,
+#headingproduct,
+#headingfaq-returns,
+#headingorders,
+#headingshipping,
+#headingshopping,
+#headingtechnology,
+#headinggift-cards{
+    display: none;
+    visibility: hidden;
+}
+
+/* Hide Warranty Form*/
+#warranty-form { display: none; visibility: hidden; }
+
+/* Checkbox outline issue for launch */
+.email-signup-form .gdpr-checkbox.form-group.custom-checkbox .custom-control-label:before  { border: 1px solid #FFF; }
+
+/*Reducing image on enhanced slider*/
+.category-slider-wrapper .display-type-0 .enhanced-category-image {width: 100px;}
+.category-slider-wrapper { gap:12px;}
+
+/*GDI-1714 patch while code is implemented - hides discount callout on explicit recommendations*/
+.product-explicit-recommendations .price-discount {display:none;visibility: hidden;}
+
+.product-wrapper.product-detail .shipping-return-callout-wrapper,
+.product-wrapper.product-detail .shipping-returns-callout-bottom {border: none;}
+
+/*Cart mobile cleanup*/
+.product-info .product-card-footer {
+    padding-top: 12px;
+}
+
+@media (max-width: 767px ) {
+    .cart-page .card.totals {border-top: 1px solid #D6D6D6;}
+}
+
+@media (max-width: 1023px ) {
+    .cart-page .line-item-divider {display:none;}
+}
+
+
+.swatch-value.unselectable.unavailable{
+    opacity: 0.5;
+}
+.swatch-value.unselectable.unavailable::before,
+.swatch-value.unselectable.unavailable::after {
+    display: inline-block;
+    content: '';
+    border-top: 1px solid #D6D6D6;
+    width: calc(((100vw / 5) - 18px) * 1.44);
+    position: absolute;
+}
+.swatch-value.unselectable.unavailable:not(.bis-enabled)::before {
+    transform: rotate(45deg);
+    width: 90.04px;
+}
+.swatch-value.unselectable.unavailable:not(.bis-enabled)::after {
+    transform: rotate(-45deg);
+    width: 90.04px;
+}
+</style>
+    </div> <!-- End content-asset -->
+
+
+</div>
+
+
+    
+
+
+
+    <script async src="//static.klaviyo.com/onsite/js/klaviyo.js?company_id=RjGiHD"></script>
+    <script>
+        // klaviyo object loader - provided by klaviyo
+        !function(){if(!window.klaviyo){window._klOnsite=window._klOnsite||[];try{window.klaviyo=new Proxy({},{get:function(n,i){return"push"===i?function(){var n;(n=window._klOnsite).push.apply(n,arguments)}:function(){for(var n=arguments.length,o=new Array(n),w=0;w<n;w++)o[w]=arguments[w];var t="function"==typeof o[o.length-1]?o.pop():void 0,e=new Promise((function(n){window._klOnsite.push([i].concat(o,[function(i){t&&t(i),n(i)}]))}));return e}}})}catch(n){window.klaviyo=window.klaviyo||[],window.klaviyo.push=function(){var n;(n=window._klOnsite).push.apply(n,arguments)}}}}();
+    </script>
+    
+    
+    
+   
+
+
+
+
+
+
+
+<script>
+    var klaviyoJS = {};
+    klaviyoJS.sfccEmailRegex = new RegExp(/^[\w.%+-]+@[\w.-]+\.[\w]{2,6}$/);
+    klaviyoJS.e164PhoneRegex = new RegExp(/^\+[1-9]\d{1,14}$/);
+
+
+</script>
+
+
+
+
+    <script>
+        klaviyoJS.subscribe = function(data) {
+            $.ajax({
+                url: "https://www.bellhelmets.com/on/demandware.store/Sites-BellUS-Site/en_US/Klaviyo-Subscribe",
+                type: 'post',
+                data: data,
+                error: function (err) {
+                    console.warn('Klaviyo Subscribe failure: ' + err.statusText);
+                }
+            });
+        }
+
+        window.addEventListener('DOMContentLoaded', (event) => {
+            klaviyoJS.emailSubscribe = document.getElementById('KLEmailSubscribe');
+            if (klaviyoJS.emailSubscribe) {
+                if (klaviyoJS.emailSubscribe.checked) {
+                    klaviyoJS.subscribe({ e: true });
+                }
+                klaviyoJS.emailSubscribe.addEventListener('click', function(){
+                    klaviyoJS.subscribe({ e: klaviyoJS.emailSubscribe.checked });
+                });
+            }
+
+            klaviyoJS.smsSubscribe = document.getElementById('KLSmsSubscribe');
+            if (klaviyoJS.smsSubscribe) {
+                if (klaviyoJS.smsSubscribe.checked) {
+                    klaviyoJS.subscribe({ s: true });
+                }
+                klaviyoJS.smsSubscribe.addEventListener('click', function(){
+                    klaviyoJS.subscribe({ s: klaviyoJS.smsSubscribe.checked });
+                });
+            }
+        });
+    </script>
+
+
+
+
+
+
+<div class="modal fade" id="removeProductModal" tabindex="-1" role="dialog" aria-labelledby="removeProductLineItemModal">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header delete-confirmation-header">
+                <h2 class="modal-title" id="removeProductLineItemModal">Remove Product?</h2>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            </div>
+            <div class="modal-body delete-confirmation-body">
+                Are you sure you want to remove the following product from the cart?
+                <p class="product-to-remove"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-primary" data-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary cart-delete-confirmation-btn"
+                        data-dismiss="modal">
+                    Yes
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<div
+    class="geo-redirect-container modal"
+    id="geoRedirectModal"
+    tabindex="-1"
+    role="dialog"
+    aria-modal="true"
+    aria-hidden="true"
+    aria-labelledby="geoRedirectModalTitle"
+    aria-describedby="geoRedirectModalDescription"
+    data-href="/on/demandware.store/Sites-BellUS-Site/en_US/GeoRedirect-Modal"></div>
+
+
+    
+    <div class="content-asset" data-asset-id="lazySizesEmbedScript"><!-- dwMarker="content" dwContentID="238e1b3502cfacbef872cda0ac" dwContentBMID="lazySizesEmbedScript" -->
+        <div class="lazy-configs" data-lazysizes-url="https://cdnjs.cloudflare.com/ajax/libs/lazysizes/5.1.2/lazysizes.min.js"></div>
+    </div> <!-- End content-asset -->
+
+
+
+
+
+<script>
+    Object.defineProperty(window, 'paypalConstants', {
+        value: Object.freeze(
+            JSON.parse('\u007b\"ACCESS\u005fTOKEN\"\u003a\"access\u005ftoken\"\u002c\"PAYMENT\u005fAUTHORIZATION\u005fVOIDED\"\u003a\"PAYMENT\u002eAUTHORIZATION\u002eVOIDED\"\u002c\"PAYMENT\u005fCAPTURE\u005fREFUNDED\"\u003a\"PAYMENT\u002eCAPTURE\u002eREFUNDED\"\u002c\"PAYMENT\u005fCAPTURE\u005fCOMPLETED\"\u003a\"PAYMENT\u002eCAPTURE\u002eCOMPLETED\"\u002c\"VAULT\u005fPAYMENT\u005fTOKEN\u005fCREATED\"\u003a\"VAULT\u002ePAYMENT\u002dTOKEN\u002eCREATED\"\u002c\"VAULT\u005fPAYMENT\u005fTOKEN\u005fDELETED\"\u003a\"VAULT\u002ePAYMENT\u002dTOKEN\u002eDELETED\"\u002c\"CUSTOMER\u005fDISPUTE\u005fCREATED\"\u003a\"CUSTOMER\u002eDISPUTE\u002eCREATED\"\u002c\"CUSTOMER\u005fDISPUTE\u005fUPDATED\"\u003a\"CUSTOMER\u002eDISPUTE\u002eUPDATED\"\u002c\"CUSTOMER\u005fDISPUTE\u005fRESOLVED\"\u003a\"CUSTOMER\u002eDISPUTE\u002eRESOLVED\"\u002c\"INTENT\u005fCAPTURE\"\u003a\"CAPTURE\"\u002c\"INTENT\u005fAUTHORIZE\"\u003a\"AUTHORIZE\"\u002c\"STATUS\u005fSUCCESS\"\u003a\"SUCCESS\"\u002c\"PAYMENT\u005fSTATUS\u005fPARTIALLY\u005fREFUNDED\"\u003a\"PARTIALLY\u005fREFUNDED\"\u002c\"PAYPAL\u005fCARD\u005fERROR\u005fSTATUSES\"\u003a\u005b\"DENIED\"\u002c\"DECLINED\"\u005d\u002c\"METHOD\u005fPOST\"\u003a\"POST\"\u002c\"METHOD\u005fGET\"\u003a\"GET\"\u002c\"PAGE\u005fFLOW\u005fBILLING\"\u003a\"billing\"\u002c\"PAGE\u005fFLOW\u005fLOGIN\"\u003a\"login\"\u002c\"PAGE\u005fFLOW\u005fCART\"\u003a\"cart\"\u002c\"PAGE\u005fFLOW\u005fPDP\"\u003a\"pdp\"\u002c\"PAGE\u005fFLOW\u005fPVP\"\u003a\"pvp\"\u002c\"PAGE\u005fFLOW\u005fMINICART\"\u003a\"minicart\"\u002c\"PAGE\u005fFLOW\u005fCATEGORY\"\u003a\"category\"\u002c\"PAYPAL\u005fBUTTON\"\u003a\"paypalButton\"\u002c\"PAYPAL\u005fBUTTON\u005fMESSAGE\"\u003a\"paypalButtonMessage\"\u002c\"PAYMENT\u005fSTATUS\u005fREFUNDED\"\u003a\"REFUNDED\"\u002c\"CONNECT\u005fWITH\u005fPAYPAL\u005fCONSENT\u005fDENIED\"\u003a\"Consent\u0020denied\"\u002c\"ENDPOINT\u005fHOME\u005fSHOW\"\u003a\"Home\u002dShow\"\u002c\"ENDPOINT\u005fACCOUNT\u005fSHOW\"\u003a\"Account\u002dShow\"\u002c\"ENDPOINT\u005fCHECKOUT\u005fLOGIN\"\u003a\"Checkout\u002dLogin\"\u002c\"ENDPOINT\u005fAPMA\u005fSHOW\"\u003a\"AutomaticPaymentMethodAdding\u002dShow\"\u002c\"PAYMENT\u005fMETHOD\u005fID\u005fPAYPAL\"\u003a\"PayPal\"\u002c\"PAYMENT\u005fMETHOD\u005fID\u005fVENMO\"\u003a\"Venmo\"\u002c\"PAYMENT\u005fMETHOD\u005fID\u005fDebit\u005fCredit\u005fCard\"\u003a\"PayPal\u0020Debit\/Credit\u0020Card\"\u002c\"PAYMENT\u005fMETHOD\u005fID\u005fPAYPAL\u005fCREDIT\u005fCARD\"\u003a\"PAYPAL\u005fCREDIT\u005fCARD\"\u002c\"PAYMENT\u005fMETHOD\u005fID\u005fAPPLE\u005fPAY\"\u003a\"ApplePay\"\u002c\"PAYMENT\u005fMETHOD\u005fID\u005fGOOGLE\u005fPAY\"\u003a\"GooglePay\"\u002c\"AVAILABLE\u005fPM\u005fIDS\"\u003a\u005b\"ApplePay\"\u002c\"PAYPAL\u005fCREDIT\u005fCARD\"\u002c\"PayPal\"\u002c\"Venmo\"\u002c\"GooglePay\"\u005d\u002c\"DIGITAL\u005fGOODS\u005fSUPPORTED\u005fPAYMENT\u005fMETHODS\u005fLIST\"\u003a\u005b\"PayPal\"\u002c\"Venmo\"\u002c\"PAYPAL\u005fCREDIT\u005fCARD\"\u002c\"mybank\"\u002c\"bancontact\"\u002c\"eps\"\u002c\"ideal\"\u002c\"p24\"\u005d\u002c\"ALLOWED\u005fPROCESSORS\u005fIDS\"\u003a\u005b\"PAYPAL\"\u002c\"PAYPAL\u005fLOCAL\"\u005d\u002c\"PAYPAL\u005fORDER\u005fINDICATOR\"\u003a\"express\"\u002c\"PP\u005fFUNDING\u005fSOURCE\u005fCARD\"\u003a\"card\"\u002c\"PP\u005fDEBIT\u005fCREDIT\u005fPAYMENT\u005fTYPE\"\u003a\"PayPal\u0020Debit\/Credit\u0020Card\"\u002c\"LOGIN\u005fPAYPAL\"\u003a\"login\u002dPayPal\"\u002c\"APMA\u005fSTAGE\u005fCOMPLETE\"\u003a\"complete\"\u002c\"APMA\u005fSTAGE\u005fADDRESS\"\u003a\"address\"\u002c\"APMA\u005fSTAGE\u005fACCOUNT\"\u003a\"account\"\u002c\"FLASH\u005fMESSAGE\u005fSUCCESS\"\u003a\"success\"\u002c\"FLASH\u005fMESSAGE\u005fINFO\"\u003a\"info\"\u002c\"FLASH\u005fMESSAGE\u005fDANGER\"\u003a\"danger\"\u002c\"FLASH\u005fMESSAGE\u005fWARNING\"\u003a\"warning\"\u002c\"POPUP\u005fCLOSE\u005fDETECT\u005fMESSAGE\"\u003a\"Detected\u0020popup\u0020close\"\u002c\"POPUP\u005fGOOGLE\u005fPAY\u005fCLOSE\u005fDETECT\u005fCODE\"\u003a20\u002c\"ZERO\u005fAMOUNT\"\u003a\"ZERO\u005fAMOUNT\"\u002c\"AUTHENTICATION\u005fPAYPAL\u005fPROVIDER\u005fID\"\u003a\"PayPal\"\u002c\"NO\u005fINSTRUCTION\"\u003a\"NO\u005fINSTRUCTION\"\u002c\"BILLING\u005fADDRESS\u005fID\"\u003a\"Billing\u0020address\"\u002c\"SHIPPING\u005fADDRESS\u005fID\"\u003a\"Shipping\u0020address\"\u002c\"CREDIT\u005fCARD\u005fTAB\"\u003a\"credit\u002dcard\"\u002c\"PAYPAL\u005fTAB\"\u003a\"payPal\"\u002c\"ACTIVE\u005fTAB\"\u003a\"active\u002dtab\"\u002c\"UNKNOWN\"\u003a\"Unknown\"\u002c\"SAVE\u005fLIMIT\u005fUNLIMITED\"\u003a\u002d1\u002c\"PAYPAL\u005fFILE\u005fNAME\u005fPREFIX\"\u003a\"PayPal\"\u002c\"PAYPAL\u005fCATEGORY\"\u003a\"PayPal\u005fGeneral\"\u002c\"SESSION\u005fPAYMENTS\u005fAVAILABILITY\u005fLOGGEDIN\"\u003a\"LoggedIn\"\u002c\"SESSION\u005fPAYMENTS\u005fAVAILABILITY\u005fALL\"\u003a\"All\"\u002c\"CREDIT\u005fCARD\u005fCOMPLEX\u005fBRAND\u005fCODE\"\u003a\u005b\"American\u0020Express\"\u002c\"UnionPay\"\u002c\"JCB\"\u002c\"Debit\u0020networks\"\u005d\u002c\"CREDIT\u005fCARD\u005fSAVE\u005fSTATUS\u005fVAULTED\"\u003a\"VAULTED\"\u002c\"PAYPAL\u005fORDER\u005fSTATUS\u005fCOMPLETED\"\u003a\"COMPLETED\"\u002c\"CC\u005fNUMBER\u005fLIMIT\u005fNUMBER\u005fSTART\"\u003a0\u002c\"CC\u005fNUMBER\u005fLIMIT\u005fNUMBER\u005fEND\"\u003a10\u002c\"CC\u005fSAVE\u005fLIMIT\u005fUNLIMITED\"\u003a\u002d1\u002c\"CC\u005f3DS\u005fAUTHENTICATION\u005fREASON\u005fSKIPPED\u005fBY\u005fBUYER\"\u003a\"SKIPPED\u005fBY\u005fBUYER\"\u002c\"CC\u005f3DS\u005fLIABILITY\u005fSHIFT\u005fSTATUS\u005fNO\"\u003a\"NO\"\u002c\"CC\u005f3DS\u005fLIABILITY\u005fSHIFT\u005fSTATUS\u005fUNKNOWN\"\u003a\"UNKNOWN\"\u002c\"CC\u005f3DS\u005fALLOWED\u005fENROLLMENT\u005fSTATUS\u005fYES\"\u003a\"Y\"\u002c\"CC\u005f3DS\u005fALLOWED\u005fENROLLMENT\u005fSTATUS\u005fUNAVAILABLE\"\u003a\"U\"\u002c\"DISABLED\"\u003a\"DISABLED\"\u002c\"SCA\u005fWHEN\u005fREQUIRED\"\u003a\"SCA\u005fWHEN\u005fREQUIRED\"\u002c\"SCA\u005fALWAYS\"\u003a\"SCA\u005fALWAYS\"\u002c\"PAYER\u005fACTION\u005fREQUIRED\"\u003a\"PAYER\u005fACTION\u005fREQUIRED\"\u002c\"APPLE\u005fPAY\u005fTOTAL\u005fTYPE\u005fFINAL\"\u003a\"final\"\u002c\"APPLE\u005fPAY\u005fTAB\u005fIMAGE\u005fALT\"\u003a\"Apple\u0020Pay\"\u002c\"INITIATOR\u005fCUSTOMER\"\u003a\"CUSTOMER\"\u002c\"PAYMENT\u005fTYPE\u005fONE\u005fTIME\"\u003a\"ONE\u005fTIME\"\u002c\"PAYMENT\u005fTYPE\u005fUNSCHEDULED\"\u003a\"UNSCHEDULED\"\u002c\"USAGE\u005fDERIVED\"\u003a\"DERIVED\"\u002c\"USAGE\u005fFIRST\"\u003a\"FIRST\"\u002c\"USAGE\u005fSUBSEQUENT\"\u003a\"SUBSEQUENT\"\u002c\"VAULT\u005fINDICATOR\u005fON\u005fSUCCESS\"\u003a\"ON\u005fSUCCESS\"\u002c\"SOFT\u005fDESCRIPTOR\"\u003a\"\"\u002c\"CREDIT\u005fCARD\u005fTYPE\u005fVISA\"\u003a\"visa\"\u002c\"SETUP\u005fTOKEN\u005fTYPE\"\u003a\"SETUP\u005fTOKEN\"\u002c\"BA\u005fTOKEN\u005fTYPE\"\u003a\"BILLING\u005fAGREEMENT\"\u002c\"ADDRESS\u005fFORM\u005fFIELD\u005fCOUNTRY\"\u003a\"country\"\u002c\"ADDRESS\u005fFORM\u005fFIELD\u005fSTATE\"\u003a\"stateCode\"\u002c\"ADDRESS\u005fFORM\u005fFIELD\u005fPOSTAL\u005fCODE\"\u003a\"postalCode\"\u002c\"PAYPAL\u005fSHIPPING\u005fADDRESS\u005fERROR\u005fCODE\"\u003a\"ADDRESS\u005fERROR\"\u002c\"PAYPAL\u005fSHIPPING\u005fCOUNTRY\u005fERROR\u005fCODE\"\u003a\"COUNTRY\u005fERROR\"\u002c\"PAYPAL\u005fSHIPPING\u005fSTATE\u005fERROR\u005fCODE\"\u003a\"STATE\u005fERROR\"\u002c\"PAYPAL\u005fSHIPPING\u005fZIP\u005fERROR\u005fCODE\"\u003a\"ZIP\u005fERROR\"\u002c\"VAULT\u005fMODE\u005fENABLED\"\u003a\"Enabled\"\u002c\"VAULT\u005fMODE\u005fPARTIALLY\u005fDISABLED\"\u003a\"Partially\u0020Disabled\"\u002c\"VAULT\u005fMODE\u005fDISABLED\"\u003a\"Disabled\"\u002c\"PAY\u005fLATER\u005fMESSAGING\u005fBANNER\"\u003a\"payLaterMessagingBanner\"\u002c\"PAYPAL\u005fBUTTON\u005fLOCATION\"\u003a\"paypal\"\u002c\"APPLE\u005fPAY\u005fBUTTON\u005fLOCATION\"\u003a\"applePay\"\u002c\"GOOGLE\u005fPAY\u005fBUTTON\u005fLOCATION\"\u003a\"googlePay\"\u002c\"PRODUCTION\u005fSYSTEM\u005fTYPE\"\u003a\"PRODUCTION\"\u002c\"DEVELOPMENT\u005fSYSTEM\u005fTYPE\"\u003a\"TEST\"\u002c\"GOOGLE\u005fPAY\u005fORDER\u005fSTATUS\u005fAPPROVED\"\u003a\"APPROVED\"\u002c\"GOOGLE\u005fPAY\u005fORDER\u005fSTATUS\u005fPAYER\u005fACTION\u005fREQUIRED\"\u003a\"PAYER\u005fACTION\u005fREQUIRED\"\u002c\"THREE\u005fDOMAIN\u005fSECURE\u005fLEABILITY\u005fSTATUS\u005fPOSSIBLE\"\u003a\"POSSIBLE\"\u002c\"BILLING\u005fADDRESS\u005fSElECTOR\u005fOPTION\u005fEXISTING\u005fSHIPMENTS\"\u003a\"\u002d\u0020Existing\u0020Shipments\u0020\u002d\"\u002c\"BILLING\u005fADDRESS\u005fSElECTOR\u005fOPTION\u005fNEW\"\u003a\"new\"\u002c\"BILLING\u005fADDRESS\u005fSElECTOR\u005fOPTION\u005fMANUAL\u005fENTRY\"\u003a\"manual\u002dentry\"\u002c\"INTENT\u005fINITIALIZE\"\u003a\"INITIALIZE\"\u002c\"INTENT\u005fSHIPPING\u005fADDRESS\"\u003a\"SHIPPING\u005fADDRESS\"\u002c\"INTENT\u005fSHIPPING\u005fOPTION\"\u003a\"SHIPPING\u005fOPTION\"\u002c\"REASON\u005fSHIPPING\u005fADDRESS\u005fUNSERVICEABLE\"\u003a\"SHIPPING\u005fADDRESS\u005fUNSERVICEABLE\"\u002c\"REASON\u005fSHIPPING\u005fOPTION\u005fINVALID\"\u003a\"SHIPPING\u005fOPTION\u005fINVALID\"\u002c\"GOOGLEPAY\u005fPHONE\u005fNUMBER\u005fINVALID\"\u003a\"GOOGLEPAY\u005fPHONE\u005fNUMBER\u005fINVALID\"\u002c\"SESSION\u005fCARD\"\u003a\"sessioncard\"\u002c\"NEW\u005fCARD\"\u003a\"newcard\"\u007d')
+        ),
+        writable: false
+    });
+</script>
+
+<script>
+    Object.defineProperty(window, 'paypalUrls', {
+        value: Object.freeze(
+            JSON.parse('\u007b\"getPurchaseUnit\"\u003a\"https\u003a\/\/www\u002ebellhelmets\u002ecom\/on\/demandware\u002estore\/Sites\u002dBellUS\u002dSite\/en\u005fUS\/Paypal\u002dGetPurchaseUnit\"\u002c\"getCartPurchaseUnit\"\u003a\"https\u003a\/\/www\u002ebellhelmets\u002ecom\/on\/demandware\u002estore\/Sites\u002dBellUS\u002dSite\/en\u005fUS\/Paypal\u002dGetPurchaseUnit\u003fisCartFlow\u003dtrue\"\u002c\"returnFromCart\"\u003a\"https\u003a\/\/www\u002ebellhelmets\u002ecom\/on\/demandware\u002estore\/Sites\u002dBellUS\u002dSite\/en\u005fUS\/Paypal\u002dReturnFromCart\"\u002c\"cartPage\"\u003a\"https\u003a\/\/www\u002ebellhelmets\u002ecom\/cart\"\u002c\"placeOrderStage\"\u003a\"https\u003a\/\/www\u002ebellhelmets\u002ecom\/checkout\u003fstage\u003dplaceOrder\"\u002c\"deletePaypalAccount\"\u003a\"\/on\/demandware\u002estore\/Sites\u002dBellUS\u002dSite\/en\u005fUS\/Paypal\u002dDeletePaypalAccount\"\u002c\"paymentStage\"\u003a\"https\u003a\/\/www\u002ebellhelmets\u002ecom\/checkout\u003fstage\u003dpayment\"\u002c\"finishLpmOrder\"\u003a\"\/on\/demandware\u002estore\/Sites\u002dBellUS\u002dSite\/en\u005fUS\/Paypal\u002dFinishLpmOrder\"\u002c\"savePaypalDefaultAddress\"\u003a\"\/on\/demandware\u002estore\/Sites\u002dBellUS\u002dSite\/en\u005fUS\/AutomaticPaymentMethodAdding\u002dSavePaypalDefaultAddress\"\u002c\"getPaypalOrderId\"\u003a\"https\u003a\/\/www\u002ebellhelmets\u002ecom\/on\/demandware\u002estore\/Sites\u002dBellUS\u002dSite\/en\u005fUS\/Paypal\u002dGetPaypalOrderId\"\u002c\"finishLpm\"\u003a\"\/on\/demandware\u002estore\/Sites\u002dBellUS\u002dSite\/en\u005fUS\/Paypal\u002dFinishLPM\"\u002c\"cwppUrl\"\u003a\"https\u003a\/\/www\u002ebellhelmets\u002ecom\/on\/demandware\u002estore\/Sites\u002dBellUS\u002dSite\/en\u005fUS\/CWPP\u002dConnect\"\u002c\"removeAllProductsFromCart\"\u003a\"https\u003a\/\/www\u002ebellhelmets\u002ecom\/on\/demandware\u002estore\/Sites\u002dBellUS\u002dSite\/en\u005fUS\/Cart\u002dRemoveAllProductsFromCart\"\u002c\"unlinkCwppUrl\"\u003a\"https\u003a\/\/www\u002ebellhelmets\u002ecom\/on\/demandware\u002estore\/Sites\u002dBellUS\u002dSite\/en\u005fUS\/CWPP\u002dUnlink\"\u002c\"deleteCreditCardUrl\"\u003a\"\/on\/demandware\u002estore\/Sites\u002dBellUS\u002dSite\/en\u005fUS\/CreditCard\u002dDelete\"\u002c\"renderAccountsUrl\"\u003a\"https\u003a\/\/www\u002ebellhelmets\u002ecom\/on\/demandware\u002estore\/Sites\u002dBellUS\u002dSite\/en\u005fUS\/CreditCard\u002dRenderAccountsList\"\u002c\"renderPayPalAccountsUrl\"\u003a\"https\u003a\/\/www\u002ebellhelmets\u002ecom\/on\/demandware\u002estore\/Sites\u002dBellUS\u002dSite\/en\u005fUS\/Paypal\u002dRenderAccountsList\"\u002c\"myAccountUrl\"\u003a\"https\u003a\/\/www\u002ebellhelmets\u002ecom\/my\u002daccount\u003fregistration\u003dfalse\"\u002c\"validatePayPalShippingAddress\"\u003a\"https\u003a\/\/www\u002ebellhelmets\u002ecom\/on\/demandware\u002estore\/Sites\u002dBellUS\u002dSite\/en\u005fUS\/Paypal\u002dValidatePayPalShippingAddress\"\u002c\"updateShipment\"\u003a\"https\u003a\/\/www\u002ebellhelmets\u002ecom\/on\/demandware\u002estore\/Sites\u002dBellUS\u002dSite\/en\u005fUS\/Paypal\u002dUpdateShipment\"\u002c\"chooseShippingUrl\"\u003a\"\/checkout\u003fstage\u003dshipping\"\u002c\"makeCreditCardDefaultUrl\"\u003a\"https\u003a\/\/www\u002ebellhelmets\u002ecom\/on\/demandware\u002estore\/Sites\u002dBellUS\u002dSite\/en\u005fUS\/CreditCard\u002dMakeDefault\"\u002c\"createApplePayOrder\"\u003a\"https\u003a\/\/www\u002ebellhelmets\u002ecom\/on\/demandware\u002estore\/Sites\u002dBellUS\u002dSite\/en\u005fUS\/ApplePay\u002dCreateOrder\"\u002c\"getBasketData\"\u003a\"https\u003a\/\/www\u002ebellhelmets\u002ecom\/on\/demandware\u002estore\/Sites\u002dBellUS\u002dSite\/en\u005fUS\/Paypal\u002dGetBasketData\"\u002c\"getOrderBillingAddress\"\u003a\"https\u003a\/\/www\u002ebellhelmets\u002ecom\/on\/demandware\u002estore\/Sites\u002dBellUS\u002dSite\/en\u005fUS\/Paypal\u002dOrderBillingAddress\"\u002c\"createSetupToken\"\u003a\"https\u003a\/\/www\u002ebellhelmets\u002ecom\/on\/demandware\u002estore\/Sites\u002dBellUS\u002dSite\/en\u005fUS\/CreditCard\u002dCreateSetupToken\"\u002c\"createSetupTokenForPaypal\"\u003a\"https\u003a\/\/www\u002ebellhelmets\u002ecom\/on\/demandware\u002estore\/Sites\u002dBellUS\u002dSite\/en\u005fUS\/Paypal\u002dCreateSetupTokenForPaypal\"\u002c\"accountAddPaypalHandler\"\u003a\"https\u003a\/\/www\u002ebellhelmets\u002ecom\/on\/demandware\u002estore\/Sites\u002dBellUS\u002dSite\/en\u005fUS\/Paypal\u002dAccountAddPaypalHandler\"\u002c\"getApplicableShippingOptions\"\u003a\"https\u003a\/\/www\u002ebellhelmets\u002ecom\/on\/demandware\u002estore\/Sites\u002dBellUS\u002dSite\/en\u005fUS\/Paypal\u002dGetApplicableShippingOptions\"\u002c\"getAmountForShippingOption\"\u003a\"https\u003a\/\/www\u002ebellhelmets\u002ecom\/on\/demandware\u002estore\/Sites\u002dBellUS\u002dSite\/en\u005fUS\/Paypal\u002dGetAmountForShippingOption\"\u002c\"setInitialShippingOption\"\u003a\"https\u003a\/\/www\u002ebellhelmets\u002ecom\/on\/demandware\u002estore\/Sites\u002dBellUS\u002dSite\/en\u005fUS\/Paypal\u002dSetInitialShippingOption\"\u002c\"removeSessionPayment\"\u003a\"https\u003a\/\/www\u002ebellhelmets\u002ecom\/on\/demandware\u002estore\/Sites\u002dBellUS\u002dSite\/en\u005fUS\/Fastlane\u002dRemoveSessionPayment\"\u007d')
+        ),
+        writable: false
+    });
+</script>
+
+<script>
+    Object.defineProperty(window, 'paypalSDK', {
+        value: Object.freeze(
+            JSON.parse('\u007b\"accountSDKUrl\"\u003a\"https\u003a\/\/www\u002epaypal\u002ecom\/sdk\/js\u003fclient\u002did\u003dAcdze30xntcHHxE3y6OVFhOcV3Kqi0Dj\u002dJfLXQk6c6Ip0qLDe2YJcsKczA5YSPEix9d67ZrzJGhB5adt\u0026commit\u003dfalse\u0026disable\u002dfunding\u003dcard\u002ccredit\"\u002c\"billingSdkUrl\"\u003a\u007b\"baseSdkUrl\"\u003a\"https\u003a\/\/www\u002epaypal\u002ecom\/sdk\/js\u003fclient\u002did\u003dAcdze30xntcHHxE3y6OVFhOcV3Kqi0Dj\u002dJfLXQk6c6Ip0qLDe2YJcsKczA5YSPEix9d67ZrzJGhB5adt\u0026components\u003dapplepay\u002cgooglepay\u002cbuttons\u002cmarks\u002cpayment\u002dfields\u002cfunding\u002deligibility\u0026currency\u003dUSD\u0026disable\u002dfunding\u003dsepa\u002cbancontact\u002ceps\u002cideal\u002cmybank\u002cp24\u002cblik\u002ctrustly\u002cmultibanco\u002ccard\u002cpaylater\u002cvenmo\u0026intent\u003dauthorize\u0026commit\u003dfalse\"\u002c\"lpmSdk\"\u003anull\u007d\u002c\"cartSdkUrl\"\u003a\"https\u003a\/\/www\u002epaypal\u002ecom\/sdk\/js\u003fclient\u002did\u003dAcdze30xntcHHxE3y6OVFhOcV3Kqi0Dj\u002dJfLXQk6c6Ip0qLDe2YJcsKczA5YSPEix9d67ZrzJGhB5adt\u0026commit\u003dfalse\u0026components\u003dapplepay\u002cgooglepay\u002cbuttons\u002cmessages\u002cfunding\u002deligibility\u0026intent\u003dauthorize\u0026currency\u003dUSD\u0026disable\u002dfunding\u003dsepa\u002cbancontact\u002ceps\u002cideal\u002cmybank\u002cp24\u002cblik\u002ctrustly\u002cmultibanco\u002ccard\u002cpaylater\u002cvenmo\"\u002c\"applePaySDK\"\u003a\"https\u003a\/\/applepay\u002ecdn\u002dapple\u002ecom\/jsapi\/v1\/apple\u002dpay\u002dsdk\u002ejs\"\u002c\"googlePaySDK\"\u003a\"https\u003a\/\/pay\u002egoogle\u002ecom\/gp\/p\/js\/pay\u002ejs\"\u007d')
+        ),
+        writable: false
+    });
+</script>
+
+<script>
+    Object.defineProperty(window, 'paypalPreferences', {
+        value: Object.freeze(
+            JSON.parse('\u007b\"partnerAttributionId\"\u003a\"SFCC\u005fEC\u005fB2C\u005f25\u005f1\u005f0\"\u002c\"isDigitalGoodsFlowEnabled\"\u003afalse\u002c\"isCWPPEnabled\"\u003afalse\u002c\"merchantName\"\u003a\"Store\"\u002c\"isFastlaneEnabled\"\u003afalse\u002c\"instanceType\"\u003a\"production\"\u002c\"isFastlanePaymentUiEnabled\"\u003afalse\u002c\"fastlaneCardholderName\"\u003atrue\u007d')
+        ),
+        writable: false
+    });
+</script>
+
+<script>
+    Object.defineProperty(window, 'i18nMessages', {
+        value: Object.freeze(
+            JSON.parse('\u007b\"ZERO\u005fAMOUNT\"\u003a\"Order\u0020total\u00200\u0020is\u0020not\u0020allowed\u002e\"\u002c\"INTERNAL\u005fSERVER\u005fERROR\"\u003a\"An\u0020internal\u0020server\u0020error\u0020has\u0020occurred\u002e\u0020\\r\\nRetry\u0020the\u0020request\u0020later\u002e\"\u002c\"INVALID\u005fBILLING\u005fADDRESS\"\u003a\"Provided\u0020billing\u0020address\u0020is\u0020invalid\u0020or\u0020unsupported\u002e\"\u007d')
+        ),
+        writable: false
+    });
+</script>
+
+
+<div class="flash-messages-container js-flash-messages-container">
+    <div class="alert alert-dismissible js-alert-template fade d-none" role="alert">
+        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+        </button>
+    </div>
+    
+</div>
+
+
+
+
+<div class="veil d-none">
+    <div class="underlay"></div>
+    <div class="asg-preloader">
+        
+            <div class="bell-preloader-frame"></div>
+        
+    </div>
+</div>
+</div>
+<div class="error-messaging"></div>
+<div class="modal-background"></div>
+
+
+
+<!--[if lt IE 10]>
+<link rel="stylesheet" href="/on/demandware.static/Sites-BellUS-Site/-/en_US/v1783495538434/css/common.css" />
+
+<script>//common/scripts.isml</script>
+<script defer="defer" src="/on/demandware.static/Sites-BellUS-Site/-/en_US/v1783495538434/js/main.js"></script>
+
+    
+        <script defer="defer" src="/on/demandware.static/Sites-BellUS-Site/-/en_US/v1783495538434/js/pageDesigner.js"></script>
+    
+
+    
+        <script defer="defer" src="/on/demandware.static/Sites-BellUS-Site/-/en_US/v1783495538434/js/productDetail.js"></script>
+    
+
+
+<![endif]-->
+
+
+<wainclude url="/on/demandware.store/Sites-BellUS-Site/en_US/ConsentTracking-Check">
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="drawer drawer--right js-drawer-body auth-drawer" id="auth-drawer" role="dialog" aria-modal="true" aria-hidden="true">
+
+<header class="drawer-header">
+    <div class="drawer-header-content d-flex align-items-center justify-content-between h-100">
+        <h2 class="drawer-title m-0">Login</h2>
+        <button type="button" class="btn drawer-close-button" aria-controls="auth-drawer" aria-label="Close" data-drawer-close="auth-drawer">
+            <img src="/on/demandware.static/Sites-BellUS-Site/-/default/dw0b0b1a5e/images/icons/icon-close.svg" alt="close" width="24" height="24" />
+            <span class="sr-only">Close</span>
+        </button>
+    </div>
+</header>
+
+
+<div class="drawer-content">
+    
+
+
+
+
+
+
+
+
+
+<div class="auth-drawer-forms"
+    data-title-login="Login"
+    data-title-register="Create Account"
+    data-title-forgot="Forgot your Password"
+    data-password-reset="Request to Reset Your Password Received"
+    data-password-reset-text="Thanks for submitting your email address. We've sent you an email with the information needed to reset your password. The email might take a couple of minutes to reach your account. Please check your junk mail to ensure you receive it."
+    >
+    <div class="auth-drawer-error-messaging" role="alert" aria-live="polite"></div>
+    <section class="auth-drawer-section auth-drawer-login" id="auth-drawer-login" aria-labelledby="auth-drawer-login-heading">
+        <h3 id="auth-drawer-login-heading" class="sr-only">Login</h3>
+        <div class="auth-drawer-intro drawer-section">
+            
+    
+    <div class="content-asset" data-asset-id="account-sign-in-copy"><!-- dwMarker="content" dwContentID="2f2535f91c92854a2a70ae529e" dwContentBMID="account-sign-in-copy" -->
+        <p>Sign in for your personalized shopping experience. Enjoy a faster checkout, easy returns, track your order, and check your order history, all in one place.</p>
+    </div> <!-- End content-asset -->
+
+
+        </div>
+        <section class="drawer-section">
+            
+<form action="/on/demandware.store/Sites-BellUS-Site/en_US/Account-Login?rurl=1" class="login" method="POST" name="login-form">
+   <div class="js-failure">
+    <p class="js-failure-message"></p>
+   </div>
+
+    <div class="form-group required">
+        <label class="form-control-label" for="login-form-email">
+            Email
+        </label>
+        <input type="email" id="login-form-email" required aria-required="true" class="form-control required" aria-describedby="form-email-error" name="loginEmail"
+         value="" placeholder="Email"
+         data-missing-error="Please fill out this field." />
+        <div class="invalid-feedback" id="form-email-error"></div>
+    </div>
+
+    <div class="form-group required">
+        <label class="form-control-label" for="login-form-password">
+                Password
+        </label>
+        <input type="password" id="login-form-password" required aria-required="true" class="form-control required" aria-describedby="form-password-error" name="loginPassword"
+         placeholder="Password"
+         data-missing-error="Please fill out this field." />
+        <div class="invalid-feedback" id="form-password-error"></div>
+    </div>
+
+    <input type="hidden" name="csrf_token" value="XpbPRJ7llDaqYB4ngAt5OAJdWJrbK8x438WXzN-IgeEXVxwmEiI-0NSOJeEEZEB_LoEVIiAKzUD0x0QGQbdZkLTtdQsXIu0EpReRMTHoOFyWWICm-4nfUetO6Nof5Vg5qnxkwKlpNykFdB-jfPRYRyss5ZOwHhPG2H3o5vTqKILQA5IaaWg="/>
+
+    <button type="submit" class="btn btn-block btn-primary">
+    Sign In
+      <div class="spinner-border spinner-border-sm ml-3 d-none" role="status">
+                <span class="sr-only">Loading...</span>
+            </div>
+    </button>
+    <button type="button" class="btn btn-block btn-secondary" data-auth-drawer-show="register">Create Account</button>
+    <button type="button" class="btn-block text-link" data-auth-drawer-show="forgot">forgot password?
+     </button>
+</form>
+
+
+        </section>
+    </section>
+    <section class="auth-drawer-section auth-drawer-register d-none" id="auth-drawer-register" aria-labelledby="auth-drawer-register-heading" aria-hidden="true">
+        <h3 id="auth-drawer-register-heading" class="sr-only">Create Account</h3>
+        <div class="auth-drawer-intro drawer-section">
+            
+    
+    <div class="content-asset" data-asset-id="account-sign-up-copy"><!-- dwMarker="content" dwContentID="3cf6dfc49700e4ccd4cccbbc5a" dwContentBMID="account-sign-up-copy" -->
+        <p>Enjoy an even more personalized shopping experience! Including faster checkout, track your order, check your order history, and benefit from easier returns - all in one place.</p>
+    </div> <!-- End content-asset -->
+
+
+            <p class="text-left text--green success-message d-none">
+                Success! Please check your email for verification!
+            </p>
+        </div>
+        <section class="drawer-section">
+            
+
+
+
+
+
+
+
+
+
+<form
+    action="/on/demandware.store/Sites-BellUS-Site/en_US/Account-SubmitRegistration?rurl=1"
+    class="registration"
+    method="POST"
+    autocomplete="off"
+    name="dwfrm_profile">
+        <div class="js-failure">
+        <p class="js-failure-message"></p>
+    </div>
+
+
+    <div class="form-group">
+        <label for="registerFormFirstName">First Name</label>
+        <input
+            type="text"
+            class="form-control"
+            id="registerFormFirstName"
+            name="dwfrm_profile_customer_firstname" required aria-required="true" value="" maxLength="50"
+            placeholder="First Name"
+            required
+            aria-required="true"
+            autocomplete="off"
+            data-gtm-form-interact-field-id="2"
+            data-missing-error="Please fill out this field."
+        />
+        <div class="invalid-feedback"></div>
+    </div>
+
+
+
+    <div class="form-group">
+        <label for="registerFormLastName">Last Name</label>
+        <input
+            type="text"
+            class="form-control"
+            id="registerFormLastName"
+            name="dwfrm_profile_customer_lastname" required aria-required="true" value="" maxLength="50"
+            placeholder="Last Name"
+            required
+            aria-required="true"
+            autocomplete="off"
+            data-gtm-form-interact-field-id="3"
+            data-missing-error="Please fill out this field."
+        />
+        <div class="invalid-feedback"></div>
+    </div>
+
+
+    <div class="form-group">
+        <label for="registerFormEmail">Email</label>
+        <input
+            type="email"
+            class="form-control"
+            id="registerFormEmail"
+            name="dwfrm_profile_customer_email" required aria-required="true" value="" maxLength="50" pattern="^(?!.*\.\.)[\w.%+\-]+@[\w.\-]+\.[a-zA-Z]{2,6}$"
+            placeholder="Email"
+            required
+            aria-required="true"
+            autocomplete="off"
+            data-gtm-form-interact-field-id="4"
+            data-missing-error="Please fill out this field."
+        >
+        <div class="invalid-feedback"></div>
+    </div>
+
+    <div class="form-group
+        required">
+        <label class="form-control-label" for="registration-form-password">
+            Password
+        </label>
+        <input
+            type="password"
+            class="form-control password-validate"
+            id="registerFormPassword"
+            name="dwfrm_profile_login_password" required aria-required="true" value="" maxLength="255" minLength="8"
+            placeholder="Password"
+            required
+            aria-required="true"
+            autocomplete="new-password"
+            data-gtm-form-interact-field-id="5"
+            data-missing-error="Please fill out this field."
+        />
+        <div class="invalid-feedback" id="form-password-error"></div>
+        <span class="p--small mt-3 d-inline-block password-helper-text">
+            Passwords must include eight or more characters, uppercase, lowercase, and a special character.
+        </span>
+         <div class="password-requirements d-none">
+<p class="mb-0">Password Must Contain:</p>
+<ul>
+         <li data-rule="length">At least 8 characters</li>
+          <li data-rule="upper">At least one uppercase letter</li>
+          <li data-rule="lower">At least one lowercase letter</li>
+          <li data-rule="number">At least one number</li>
+          <li data-rule="special">At least one special character</li>
+</ul>
+</div>
+    </div>
+
+      <div class="form-group">
+        <label for="registerFormPasswordConfirm">Confirm Password</label>
+        <input
+            type="password"
+            class="form-control"
+            id="registerFormPasswordConfirm"
+            name="dwfrm_profile_login_passwordconfirm" required aria-required="true" value="" maxLength="255" minLength="8"
+            placeholder="Confirm Password"
+            required
+            aria-required="true"
+            autocomplete="new-password"
+            data-gtm-form-interact-field-id="6"
+            data-mismatch-error="Does not match password"
+            data-missing-error="Please fill out this field."
+        />
+        <div class="invalid-feedback"></div>
+    </div>
+
+      <div class="form-group custom-control custom-checkbox">
+        <input
+            type="checkbox"
+            class="custom-control-input" id="add-to-email-list"
+            name="dwfrm_profile_customer_addtoemaillist" value="true"
+        />
+        <label class="custom-control-label" for="add-to-email-list">
+            
+    
+    <div class="content-asset" data-asset-id="marketing-consent-message"><!-- dwMarker="content" dwContentID="7465ea621c4a1d36abde382d35" dwContentBMID="marketing-consent-message" -->
+        <p class="p--class">I have read and accept the <a class="p--class" href="https://www.bellhelmets.com/privacy-policy.html">privacy policy</a> about data protection as a newsletter subscriber. To access your benefits, you'll receive an email to confirm your subscription.</p>
+    </div> <!-- End content-asset -->
+
+
+        </label>
+    </div>
+
+        
+
+
+    
+    
+
+    <input type="hidden" name="csrf_token" value="XpbPRJ7llDaqYB4ngAt5OAJdWJrbK8x438WXzN-IgeEXVxwmEiI-0NSOJeEEZEB_LoEVIiAKzUD0x0QGQbdZkLTtdQsXIu0EpReRMTHoOFyWWICm-4nfUetO6Nof5Vg5qnxkwKlpNykFdB-jfPRYRyss5ZOwHhPG2H3o5vTqKILQA5IaaWg="/>
+
+    <div class="form-group email-confirm" data-redirect-url="/">
+    <label for="registerFormEmailVerify">Confirm Email</label>
+<input
+type="text"
+class="form-control"
+id="registerFormEmailVerify"
+name="dwfrm_profile_customer_emailverify"
+tabindex="-1"
+autocomplete="email-confirm-new"/>
+</div>
+
+    <div class="form-group">
+       <button type="submit" class="btn btn-block btn-primary">
+        Create Account
+          <div class="spinner-border spinner-border-sm ml-3 d-none" role="status">
+                <span class="sr-only">Loading...</span>
+            </div>
+    </button>
+    </div>
+    <div class="form-group">
+        <p class="text-center">
+            Already a member? <a href="#" class="js-auth-drawer-show-login" data-auth-drawer-show="login">Login</a>
+        </p>
+    </div>
+</form>
+
+        </section>
+    </section>
+    <section class="auth-drawer-section auth-drawer-forgot d-none" id="auth-drawer-forgot" aria-labelledby="auth-drawer-forgot-heading" aria-hidden="true">
+        <h3 id="auth-drawer-forgot-heading" class="sr-only">Forgot your Password</h3>
+        <div class="auth-drawer-intro drawer-section drawer-section-password-reset">
+            <p class="m-0">Provide your account email address to receive an email to reset your password.</p>
+        </div>
+        <section class="drawer-section">
+            
+<form class="reset-password-form"
+data-return-text="Thanks for submitting your email address. We've sent you an email with the information needed to reset your password. The email might take a couple of minutes to reach your account. Please check your junk mail to ensure you receive it."
+action="/on/demandware.store/Sites-BellUS-Site/en_US/Account-PasswordResetDialogForm?mobile=" method="POST" name="drawer-email-form" id="drawer-email-form">
+    <div class="request-password-body">
+        <div class="form-group required">
+            <label class="form-control-label" for="drawer-reset-password-email">
+                Email
+            </label>
+            <input
+                id="drawer-reset-password-email"
+                type="email"
+                class="form-control"
+                name="loginEmail"
+                required
+                aria-required="true"
+                aria-describedby="drawer-emailHelp"
+                placeholder="Email"
+                data-missing-error="Please fill out this field.">
+            <div class="invalid-feedback" role="alert" id="drawer-emailHelp"></div>
+        </div>
+    </div>
+    <div class="send-email-btn">
+        <button
+            type="submit"
+            id="drawer-submitEmailButton"
+            class="btn btn-primary btn-block">
+            Send
+        </button>
+    </div>
+</form>
+
+        </section>
+    </section>
+    <section class="auth-drawer-section auth-drawer-password-reset d-none" id="auth-drawer-password-reset" aria-labelledby="auth-drawer-password-reset-heading" aria-hidden="true">
+        <h3 id="auth-drawer-password-reset-heading" class="sr-only">Request to Reset Your Password Received</h3>
+            <p class="text-left text--green password-reset-message">Thanks for submitting your email address. We've sent you an email with the information needed to reset your password. The email might take a couple of minutes to reach your account. Please check your junk mail to ensure you receive it.</p>
+            <div class="auth-drawer-intro py-4 drawer-section-password-reset-message">
+            <button type="button" class="btn btn-primary btn-block" data-auth-drawer-show="login">Login</button>
+        </div>
+    </section>
+</div>
+
+</div>
+</div>
+
+
+
+
+<div class="drawer drawer--right drawer--search-drawer" id="search-drawer" role="dialog" aria-modal="true" aria-hidden="true">
+
+<header class="drawer-header">
+    <div class="drawer-header-content d-flex align-items-center justify-content-between h-100">
+        <h2 class="drawer-title m-0">Search</h2>
+        <button type="button" class="btn drawer-close-button" aria-controls="search-drawer" aria-label="Close" data-drawer-close="search-drawer">
+            <img src="/on/demandware.static/Sites-BellUS-Site/-/default/dw0b0b1a5e/images/icons/icon-close.svg" alt="close" width="24" height="24" />
+            <span class="sr-only">Close</span>
+        </button>
+    </div>
+</header>
+
+
+<div class="drawer-content">
+    
+
+
+
+
+
+
+
+
+
+
+
+
+<section class="drawer-section drawer-section-form-container">
+        <form action="/search" class="search-drawer-form mb-0" name="simpleSearch" method="get">
+        <div class="search-drawer-input-wrapper">
+            <input
+            type="text"
+            placeholder="What are you looking for?"
+            name="q"
+            value=""
+            class="search-drawer-input"
+            aria-label="What are you looking for?" />
+            <button type="submit" class="search-drawer-submit-button">
+                <span class="sr-only">label.button.search</span>
+            </button>
+        </div>
+    </form>
+</section>
+
+
+
+<section class="drawer-section drawer-section-trending search-trending">
+    <header class="drawer-section-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <h5 class="drawer-title">Trending</h5>
+        </div>
+    </header>
+
+    
+      
+    
+    <div class="content-asset" data-asset-id="search-trending-override_NA"><!-- dwMarker="content" dwContentID="443cd5f5b9dc01927cbb865983" dwContentBMID="search-trending-override_NA" -->
+        <div class="suggestions-items suggestions-gap">
+
+    <a class="name" href="https://www.bellhelmets.com/collaborations/slayco-collection/">
+          <div class="suggestions-item pill" role="option">
+               SlayCo
+          </div>
+    </a>
+
+    <a class="name" href="https://www.bellhelmets.com/powersports/retro/">
+          <div class="suggestions-item pill" role="option">
+               Retro
+          </div>
+    </a>
+
+    <a class="name" href="https://www.bellhelmets.com/product/magnum/250070001800000001.html">
+        <div class="suggestions-item pill" role="option">
+                Magnum
+        </div>
+    </a>   
+
+    <a class="name" href="https://www.bellhelmets.com/powersports/off-road/">
+          <div class="suggestions-item pill" role="option">	
+                Off Road
+          </div>
+    </a>
+
+<a class="name" href="https://www.bellhelmets.com/powersports/modular/">
+          <div class="suggestions-item pill" role="option">
+                Modular
+          </div>
+    </a>
+
+<a class="name" href="https://www.bellhelmets.com/cycling/mtb/">
+          <div class="suggestions-item pill" role="option">
+                MTB
+          </div>
+    </a>
+
+<a class="name" href="https://www.bellhelmets.com/cycling/road-and-gravel/">
+          <div class="suggestions-item pill" role="option">
+                Road & Gravel
+          </div>
+    </a>
+
+<a class="name" href="https://www.bellhelmets.com/powersports/new-and-featured/new-arrivals/">
+          <div class="suggestions-item pill" role="option">
+                Powersports New Arrivals
+          </div>
+    </a> 
+
+</div>
+    </div> <!-- End content-asset -->
+
+
+</section>
+
+
+
+<section class="drawer-section-suggestions" data-url="/on/demandware.store/Sites-BellUS-Site/en_US/SearchServices-GetSuggestions"></section>
+
+
+<section class="drawer-section drawer-section-no-results d-none">
+
+    
+    
+    
+    <div class="content-asset" data-asset-id="no-search-suggestions_NA"><!-- dwMarker="content" dwContentID="0488584f3e5aa7942446b5b91a" dwContentBMID="no-search-suggestions_NA" -->
+        <p>We're sorry, we did not find results for your search term.</p>
+<p>Modify your search query or view <a href="https://www.bellhelmets.com/cycling/new-and-featured/">Bike New Arrivals</a> or <a href="https://www.bellhelmets.com/powersports/new-and-featured/">Powersports New Arrivals</a></p>
+    </div> <!-- End content-asset -->
+
+
+
+</section>
+</div>
+</div>
+
+
+
+<div class="drawer drawer--right drawer--bonus-product-drawer" id="bonus-product-drawer" role="dialog" aria-modal="true" aria-hidden="true">
+
+<header class="drawer-header">
+    <div class="drawer-header-content d-flex align-items-center justify-content-between h-100">
+        <h2 class="drawer-title m-0">of {0} Bonus Products Selected:</h2>
+        <button type="button" class="btn drawer-close-button" aria-controls="bonus-product-drawer" aria-label="Close" data-drawer-close="bonus-product-drawer">
+            <img src="/on/demandware.static/Sites-BellUS-Site/-/default/dw0b0b1a5e/images/icons/icon-close.svg" alt="close" width="24" height="24" />
+            <span class="sr-only">Close</span>
+        </button>
+    </div>
+</header>
+
+
+<div class="drawer-content">
+    
+<div class="bonus-product-drawer-container quick-view-dialog">
+<div class="drawer-body"></div>
+<div class="drawer-footer"></div>
+</div>
+
+</div>
+</div>
+
+<!-- Demandware Analytics code 1.0 (body_end-analytics-tracking-asynch.js) -->
+<script type="text/javascript">//<!--
+/* <![CDATA[ */
+function trackPage() {
+    try{
+        var trackingUrl = "https://www.bellhelmets.com/on/demandware.store/Sites-BellUS-Site/en_US/__Analytics-Start";
+        var dwAnalytics = dw.__dwAnalytics.getTracker(trackingUrl);
+        if (typeof dw.ac == "undefined") {
+            dwAnalytics.trackPageView();
+        } else {
+            dw.ac.setDWAnalytics(dwAnalytics);
+        }
+    }catch(err) {};
+}
+/* ]]> */
+// -->
+</script>
+<script type="text/javascript" src="/on/demandware.static/Sites-BellUS-Site/-/en_US/v1783495538434/internal/jscript/dwanalytics-22.2.js" async="async" onload="trackPage()"></script>
+<!-- Demandware Active Data (body_end-active_data.js) -->
+<script src="/on/demandware.static/Sites-BellUS-Site/-/en_US/v1783495538434/internal/jscript/dwac-21.7.js" type="text/javascript" async="async"></script><!-- CQuotient Activity Tracking (body_end-cquotient.js) -->
+<script src="https://cdn.cquotient.com/js/v2/gretel.min.js" type="text/javascript" async="async"></script>
+</body>
+</html>
+
