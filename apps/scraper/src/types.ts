@@ -36,6 +36,7 @@ export const STORE_TYPES = [
   "foxracing",
   "rideconcepts",
   "leatt",
+  "chromag",
   "bell",
   "giro",
 ] as const;

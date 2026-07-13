@@ -85,6 +85,7 @@ make scrape-now-specialized    # specialized only
 make scrape-now-mackcycle      # mackcycle only
 make scrape-now-rideconcepts   # rideconcepts only
 make scrape-now-leatt          # leatt only
+make scrape-now-chromag        # chromag only
 make scrape-now-bell           # bell only
 make scrape-now-giro           # giro only
 make scrape-now-trek           # trek only
@@ -98,6 +99,7 @@ make enrich-now-specialized    # specialized only (optional FORCE=1)
 make enrich-now-mackcycle      # mackcycle only (optional FORCE=1)
 make enrich-now-rideconcepts   # rideconcepts only (optional FORCE=1)
 make enrich-now-leatt          # leatt only (optional FORCE=1)
+make enrich-now-chromag        # chromag only (optional FORCE=1)
 make enrich-now-bell           # bell only (optional FORCE=1)
 make enrich-now-giro           # giro only (optional FORCE=1)
 make enrich-now-trek           # trek only (optional FORCE=1)
