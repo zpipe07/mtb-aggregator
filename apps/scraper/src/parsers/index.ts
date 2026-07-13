@@ -18,6 +18,7 @@ import { scrapeN1Bikes, enrichN1Bikes } from "./n1bikes.js";
 import { scrapeFoxRacing, enrichFoxRacing } from "./foxracing.js";
 import { scrapeRideConcepts, enrichRideConcepts } from "./rideconcepts.js";
 import { scrapeLeatt, enrichLeatt } from "./leatt.js";
+import { scrapeChromag, enrichChromag } from "./chromag.js";
 import { scrapeBell, enrichBell } from "./bell.js";
 import { scrapeGiro, enrichGiro } from "./giro.js";
 import { enrichCompetitiveCyclist } from "./competitivecyclist.js";
@@ -41,6 +42,7 @@ export const PARSERS: Record<string, ParserFn> = {
   foxracing: scrapeFoxRacing,
   rideconcepts: scrapeRideConcepts,
   leatt: scrapeLeatt,
+  chromag: scrapeChromag,
   bell: scrapeBell,
   giro: scrapeGiro,
 };
@@ -61,6 +63,7 @@ export const ENRICHERS: Record<string, EnrichFn> = {
   foxracing: enrichFoxRacing,
   rideconcepts: enrichRideConcepts,
   leatt: enrichLeatt,
+  chromag: enrichChromag,
   bell: enrichBell,
   giro: enrichGiro,
   competitivecyclist: enrichCompetitiveCyclist,
