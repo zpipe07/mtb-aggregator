@@ -88,6 +88,7 @@ make scrape-now-leatt          # leatt only
 make scrape-now-chromag        # chromag only
 make scrape-now-bell           # bell only
 make scrape-now-giro           # giro only
+make scrape-now-bikesonline    # bikesonline only
 make scrape-now-trek           # trek only
 make scrape-now-universalcycles  # universalcycles only
 make enrich-now              # enrich unenriched listings
@@ -102,6 +103,7 @@ make enrich-now-leatt          # leatt only (optional FORCE=1)
 make enrich-now-chromag        # chromag only (optional FORCE=1)
 make enrich-now-bell           # bell only (optional FORCE=1)
 make enrich-now-giro           # giro only (optional FORCE=1)
+make enrich-now-bikesonline    # bikesonline only (optional FORCE=1)
 make enrich-now-trek           # trek only (optional FORCE=1)
 make enrich-now-universalcycles  # universalcycles only (optional FORCE=1)
 make enrich-now FORCE=1      # re-enrich all
