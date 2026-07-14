@@ -199,10 +199,6 @@ function DealDetailContentInner({
                 <h1 className="mt-1 text-2xl font-semibold leading-snug tracking-tight text-foreground">
                   {deal.product_name}
                 </h1>
-                <p className={cn(monoMicro, "mt-2 text-muted-foreground")}>
-                  {"// "}
-                  {deal.store_name.toUpperCase()}
-                </p>
 
                 <div className="mt-4 flex flex-wrap items-center gap-2">
                   {discountPct != null && discountPct > 0 && (
