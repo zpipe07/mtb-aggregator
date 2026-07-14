@@ -12,7 +12,7 @@ export default function DealDetailLoading() {
       <div className="relative pt-3">
         <Skeleton
           className={cn(
-            "absolute right-4 top-0 z-10 h-6 w-28 max-w-[10rem]",
+            "absolute right-4 top-0 z-10 h-6 w-36 max-w-[14rem]",
             "rounded-t-sm rounded-b-none border border-b-0 border-foreground bg-primary/35",
           )}
         />
@@ -32,7 +32,6 @@ export default function DealDetailLoading() {
                 <Skeleton className="h-2.5 w-28" />
                 <Skeleton className="h-4 w-full max-w-xl" />
                 <Skeleton className="h-4 w-[94%] max-w-lg" />
-                <Skeleton className="h-2.5 w-36" />
                 <div className="flex flex-wrap gap-2 pt-1">
                   <Skeleton className="h-8 w-16 rounded-sm" />
                   <Skeleton className="h-7 w-28 rounded-sm border border-foreground/40" />

@@ -288,7 +288,7 @@ export function DealCard({
     <div className={cn("relative pt-3 rounded-sm", focusRingWithin)}>
       <span
         className={cn(
-          "absolute right-4 top-0 z-10 max-w-[8.5rem] truncate rounded-t-sm border border-foreground border-b-0 bg-primary px-2 py-0.5",
+          "absolute right-4 top-0 z-10 max-w-[14rem] truncate rounded-t-sm border border-foreground border-b-0 bg-primary px-2 py-0.5",
           monoMicro,
           "tabular-nums text-foreground",
         )}
