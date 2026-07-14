@@ -44,7 +44,7 @@ func (db *DB) BackfillVariantOptions(ctx context.Context) (int, error) {
 		SELECT l.id, l.store_id, l.store_sku, l.product_url, s.scrape_url, s.base_url
 		FROM store_listings l
 		JOIN stores s ON s.id = l.store_id
-		WHERE s.store_type IN ('ridebicycles', 'worldwidecyclery', 'revelbikes', 'thundermountainbikes', 'mackcycle', 'rideconcepts', 'leatt', 'chromag', 'gravitycartel')
+		WHERE s.store_type IN ('ridebicycles', 'worldwidecyclery', 'revelbikes', 'thundermountainbikes', 'mackcycle', 'rideconcepts', 'leatt', 'chromag', 'gravitycartel', 'bikesonline')
 		  AND l.hidden = false
 		  AND (
 		    l.variant_options IS NULL

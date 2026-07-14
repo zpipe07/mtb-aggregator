@@ -12,7 +12,7 @@ import (
 const adminPasswordEnv = "ADMIN_PASSWORD"
 
 // AllowedStoreTypes are store_type values that have a registered scraper parser. Update when adding parsers.
-var AllowedStoreTypes = []string{"jensonusa", "worldwidecyclery", "revelbikes", "backcountry", "competitivecyclist", "ridebicycles", "thundermountainbikes", "mackcycle", "canyon", "specialized", "trek", "universalcycles", "n1bikes", "foxracing", "rideconcepts", "leatt", "chromag", "gravitycartel", "bell", "giro"}
+var AllowedStoreTypes = []string{"jensonusa", "worldwidecyclery", "revelbikes", "backcountry", "competitivecyclist", "ridebicycles", "thundermountainbikes", "mackcycle", "canyon", "specialized", "trek", "universalcycles", "n1bikes", "foxracing", "rideconcepts", "leatt", "chromag", "gravitycartel", "bell", "giro", "bikesonline"}
 
 // constantTimeEqual compares two strings in constant time when lengths match.
 func constantTimeEqual(a, b string) bool {

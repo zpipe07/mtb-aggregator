@@ -22,6 +22,7 @@ import { scrapeChromag, enrichChromag } from "./chromag.js";
 import { scrapeGravityCartel, enrichGravityCartel } from "./gravitycartel.js";
 import { scrapeBell, enrichBell } from "./bell.js";
 import { scrapeGiro, enrichGiro } from "./giro.js";
+import { scrapeBikesOnline, enrichBikesOnline } from "./bikesonline.js";
 import { enrichCompetitiveCyclist } from "./competitivecyclist.js";
 
 export type ParserFn = (url: string) => Promise<ScrapeResult[]>;
@@ -47,6 +48,7 @@ export const PARSERS: Record<string, ParserFn> = {
   gravitycartel: scrapeGravityCartel,
   bell: scrapeBell,
   giro: scrapeGiro,
+  bikesonline: scrapeBikesOnline,
 };
 
 export const ENRICHERS: Record<string, EnrichFn> = {
@@ -69,6 +71,7 @@ export const ENRICHERS: Record<string, EnrichFn> = {
   gravitycartel: enrichGravityCartel,
   bell: enrichBell,
   giro: enrichGiro,
+  bikesonline: enrichBikesOnline,
   competitivecyclist: enrichCompetitiveCyclist,
 };
 
