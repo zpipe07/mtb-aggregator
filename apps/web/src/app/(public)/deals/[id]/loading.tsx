@@ -12,7 +12,7 @@ export default function DealDetailLoading() {
       <div className="relative pt-3">
         <Skeleton
           className={cn(
-            "absolute right-4 top-0 z-10 h-6 w-28 max-w-[10rem]",
+            "absolute right-4 top-0 z-10 h-6 w-36 max-w-[14rem]",
             "rounded-t-sm rounded-b-none border border-b-0 border-foreground bg-primary/35",
           )}
         />

@@ -48,12 +48,6 @@ function formatAxisDate(iso: string) {
   }
 }
 
-function skuForTab(deal: Deal) {
-  const raw = deal.store_sku?.trim();
-  if (!raw) return `#${deal.id}`;
-  return raw.length <= 18 ? raw : `${raw.slice(0, 16)}…`;
-}
-
 function CardCropMarks() {
   return (
     <>
@@ -163,13 +157,14 @@ function DealDetailContentInner({
       <div className="relative pt-3">
         <span
           className={cn(
-            "absolute right-4 top-0 z-10 max-w-[10rem] truncate rounded-t-sm border border-foreground border-b-0 bg-primary px-2 py-0.5 tabular-nums text-foreground",
+            "absolute right-4 top-0 z-10 max-w-[14rem] truncate rounded-t-sm border border-foreground border-b-0 bg-primary px-2 py-0.5",
             monoMicro,
+            "tabular-nums text-foreground",
           )}
-          title={deal.store_sku || undefined}
+          title={deal.store_name}
         >
           {"// "}
-          {skuForTab(deal)}
+          {deal.store_name.toUpperCase()}
         </span>
 
         <article
