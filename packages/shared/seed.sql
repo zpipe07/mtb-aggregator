@@ -72,5 +72,9 @@ SELECT 'Chromag', 'https://us.chromagbikes.com', 'https://us.chromagbikes.com/co
 WHERE NOT EXISTS (SELECT 1 FROM stores WHERE name = 'Chromag');
 
 INSERT INTO stores (name, base_url, scrape_url, store_type, affiliate_network)
+SELECT 'The Gravity Cartel', 'https://thegravitycartel.com', 'https://thegravitycartel.com/collections/sale', 'gravitycartel', NULL
+WHERE NOT EXISTS (SELECT 1 FROM stores WHERE name = 'The Gravity Cartel');
+
+INSERT INTO stores (name, base_url, scrape_url, store_type, affiliate_network)
 SELECT 'Bikes Online', 'https://www.bikesonline.com', 'https://www.bikesonline.com/collections/sale', 'bikesonline', NULL
 WHERE NOT EXISTS (SELECT 1 FROM stores WHERE name = 'Bikes Online');

@@ -181,6 +181,17 @@ make scrape-now-leatt
 make enrich-now-leatt
 ```
 
+### The Gravity Cartel
+
+**Listing scrape** (`gravitycartel` in `PARSERS`) uses **fetch** against Shopify collection `products.json` on `/collections/sale` (`limit=250`, paginated). **In-stock variants only** — the sale page lists many sold-out SKUs. Emits one row per available variant; `product_group_key` is the product handle; `variant_options` from `shopify-helpers`. Seed `scrape_url`: `https://thegravitycartel.com/collections/sale`.
+
+**PDP enrichment** (`enrichGravityCartel`) mirrors Mack Cycle / Leatt: parallel `GET /products/{handle}.json` (specs from `body_html` tables/dl) and PDP HTML (breadcrumbs). No affiliate URL in MVP.
+
+```bash
+make scrape-now-gravitycartel
+make enrich-now-gravitycartel
+```
+
 ### Bikes Online
 
 **Listing scrape** (`bikesonline` in `PARSERS`) uses **fetch** against Shopify collection `products.json` on `/collections/sale` (`limit=250`, paginated). Filters package-protection add-ons from the sale feed. Emits one row per variant; `product_group_key` is the product handle; `variant_options` from `shopify-helpers`. Seed `scrape_url`: `https://www.bikesonline.com/collections/sale`.
@@ -270,6 +281,8 @@ Parsers live in `src/parsers/` — one file per store:
 - `mackcycle.ts` — Mack Cycle (Shopify collection JSON + PDP enrich like Worldwide Cyclery)
 - `rideconcepts.ts` — Ride Concepts (Shopify collection JSON + PDP enrich like Mack Cycle)
 - `leatt.ts` — Leatt (Shopify collection JSON + PDP enrich like Mack Cycle)
+- `chromag.ts` — Chromag (Shopify collection JSON + PDP enrich like Mack Cycle)
+- `gravitycartel.ts` — The Gravity Cartel (Shopify collection JSON + PDP enrich; **in-stock variants only**)
 - `bikesonline.ts` — Bikes Online (Shopify collection JSON + PDP enrich like Mack Cycle)
 - `canyon.ts` / `canyon-plp.ts` / `canyon-pdp.ts` — Canyon US sale (Demandware ajax PLP + fetch PDP enrich)
 - `specialized.ts` / `specialized-plp.ts` / `specialized-pdp.ts` — Specialized US sale (GraphQL PLP + fetch PDP enrich)
@@ -309,7 +322,7 @@ Parsers live in `src/parsers/` — one file per store:
 
 **JensonUSA** (`jensonusa.ts`): clearance cards expose `variants[]` inside `data-product-result-dto` (after page hydration). The parser emits **one row per variant** with `store_sku` = `variant.code`, `product_group_key` = parent `dto.code`, and `variant_options` from whatever facet fields exist on the **listing** DTO (often **Color only**; Size and other axes may be missing). **PDP enrichment** (`enrichJensonUSA`) parses `serverSideViewModel.variants` from the product page HTML and returns a `variants` array (`code`, `dimensions`, `is_orderable`); the API fans that out to every sibling row with the same `product_group_key` (one PDP fetch per parent). Parser modules: `jensonusa-dto.ts`, `jensonusa-pdp.ts`, tests `jensonusa-dto*.test.ts`, `jensonusa-pdp-variants.test.ts`.
 
-Shopify parsers (`ridebicycles`, `worldwidecyclery`, `revelbikes`, `thundermountainbikes`, `mackcycle`, `rideconcepts`, `leatt`, `chromag`, `bikesonline`) emit one row per variant; the API stores `product_group_key` as `{store_id}:{handle}` and `variant_options` as JSON for deduplication and filters. Shared helpers: `parsers/shopify-helpers.ts`.
+Shopify parsers (`ridebicycles`, `worldwidecyclery`, `revelbikes`, `thundermountainbikes`, `mackcycle`, `rideconcepts`, `leatt`, `chromag`, `gravitycartel`, `bikesonline`) emit one row per variant; the API stores `product_group_key` as `{store_id}:{handle}` and `variant_options` as JSON for deduplication and filters. Shared helpers: `parsers/shopify-helpers.ts`.
 
 ## Running
 
