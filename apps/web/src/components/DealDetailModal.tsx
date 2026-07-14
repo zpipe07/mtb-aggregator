@@ -338,7 +338,7 @@ export function DealDetailModal({ dealId, onClose }: DealDetailModalProps) {
                               dataKey="price"
                               stroke="var(--color-primary)"
                               strokeWidth={2}
-                              dot={{ fill: "var(--color-primary)", r: 3 }}
+                              dot={false}
                               activeDot={{ r: 5, fill: "var(--color-foreground)" }}
                             />
                           </LineChart>
