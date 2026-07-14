@@ -337,7 +337,9 @@ export interface Status {
 }
 
 export async function fetchStatus(): Promise<Status> {
-  const res = await fetch(`${getApiBase()}/status`);
+  const res = await fetch(`${getApiBase()}/status`, {
+    next: { revalidate: PUBLIC_ISR_REVALIDATE_SECONDS },
+  });
   if (!res.ok) throw new Error("Failed to fetch status");
   return res.json();
 }

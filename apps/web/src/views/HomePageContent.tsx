@@ -7,6 +7,7 @@ import Link from "next/link";
 import { SearchBar, SEARCH_FRAME_MIN_H } from "../components/SearchBar";
 import { DealCarousel } from "../components/DealCarousel";
 import { CategoryCard } from "../components/CategoryCard";
+import { StatTicker } from "../components/StatTicker";
 import { CategoryTreeNode } from "../api";
 import { categoryHasDeals } from "../lib/categoryTree";
 import { CATEGORY_IMAGES } from "../lib/categoryImages";
@@ -59,9 +60,18 @@ function buildCategoryCards(categoryTree: CategoryTreeNode[]): {
 type Props = {
   categoryTree: CategoryTreeNode[];
   dealSections: HomeDealSection[];
+  storeCount: number;
+  dealCount: number;
+  lastUpdated: string;
 };
 
-export function HomePageContent({ categoryTree, dealSections }: Props) {
+export function HomePageContent({
+  categoryTree,
+  dealSections,
+  storeCount,
+  dealCount,
+  lastUpdated,
+}: Props) {
   const router = useRouter();
   const [searchValue, setSearchValue] = useState("");
   const [isPending, startTransition] = useTransition();
@@ -91,10 +101,6 @@ export function HomePageContent({ categoryTree, dealSections }: Props) {
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:py-12">
       {/* Hero */}
       <section className="mb-12 text-center lg:mb-16">
-        <p className="mb-3 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-          {"// "}
-          {new Date().toLocaleDateString("en-CA")} · LIVE
-        </p>
         <div className="inline-block text-left">
           <h1 className="text-5xl font-semibold leading-[0.95] tracking-[-0.025em] text-foreground md:text-6xl">
             <span className="block">Stop searching.</span>
@@ -108,8 +114,8 @@ export function HomePageContent({ categoryTree, dealSections }: Props) {
           </h1>
         </div>
         <p className="mx-auto mt-4 max-w-md text-base text-muted-foreground">
-          Live deals across 50+ mountain bike shops, scanned on a tight loop. One
-          screen. No spreadsheets.
+          We scan the sale pages from top MTB retailers so you&apos;re not
+          bouncing between sites.
         </p>
         <form
           onSubmit={handleSearchSubmit}
@@ -135,6 +141,11 @@ export function HomePageContent({ categoryTree, dealSections }: Props) {
             </Button>
           </div>
         </form>
+        <StatTicker
+          storeCount={storeCount}
+          dealCount={dealCount}
+          lastUpdated={lastUpdated}
+        />
       </section>
 
       {/* Quick-access category cards */}
