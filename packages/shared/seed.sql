@@ -70,3 +70,7 @@ WHERE NOT EXISTS (SELECT 1 FROM stores WHERE name = 'Giro');
 INSERT INTO stores (name, base_url, scrape_url, store_type, affiliate_network)
 SELECT 'Chromag', 'https://us.chromagbikes.com', 'https://us.chromagbikes.com/collections/sale', 'chromag', NULL
 WHERE NOT EXISTS (SELECT 1 FROM stores WHERE name = 'Chromag');
+
+INSERT INTO stores (name, base_url, scrape_url, store_type, affiliate_network)
+SELECT 'Bikes Online', 'https://www.bikesonline.com', 'https://www.bikesonline.com/collections/sale', 'bikesonline', NULL
+WHERE NOT EXISTS (SELECT 1 FROM stores WHERE name = 'Bikes Online');
