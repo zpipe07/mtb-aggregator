@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { fetchCategoryTree, fetchDeals } from "@/api";
+import { fetchCategoryTree, fetchDeals, fetchStatus } from "@/api";
 import { JsonLd } from "@/components/JsonLd";
 import { buildItemListJsonLd, buildWebSiteSearchJsonLd } from "@/lib/jsonLd";
 import {
@@ -7,6 +7,7 @@ import {
   HOME_DEAL_SECTIONS,
   type HomeDealSection,
 } from "@/lib/homeDealSections";
+import { deriveHeroStats } from "@/lib/heroStats";
 import { absoluteUrl } from "@/lib/siteUrl";
 import { HomePageContent } from "@/views/HomePageContent";
 
@@ -60,8 +61,9 @@ export const metadata: Metadata = {
 };
 
 export default async function Home() {
-  const [categoryTree, ...sectionResponses] = await Promise.all([
+  const [categoryTree, status, ...sectionResponses] = await Promise.all([
     fetchCategoryTree(),
+    fetchStatus(),
     ...HOME_DEAL_SECTIONS.map((section) =>
       fetchDeals({
         sort: "value",
@@ -72,6 +74,8 @@ export default async function Home() {
       }),
     ),
   ]);
+
+  const heroStats = deriveHeroStats(status);
 
   const dealSections: HomeDealSection[] = HOME_DEAL_SECTIONS.map(
     (section, index) => ({
@@ -110,6 +114,9 @@ export default async function Home() {
       <HomePageContent
         categoryTree={categoryTree}
         dealSections={dealSections}
+        storeCount={heroStats.storeCount}
+        dealCount={heroStats.dealCount}
+        lastUpdated={heroStats.lastUpdated}
       />
     </>
   );
