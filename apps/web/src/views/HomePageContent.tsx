@@ -117,14 +117,9 @@ export function HomePageContent({
           We scan the sale pages from top MTB retailers so you&apos;re not
           bouncing between sites.
         </p>
-        <StatTicker
-          storeCount={storeCount}
-          dealCount={dealCount}
-          lastUpdated={lastUpdated}
-        />
         <form
           onSubmit={handleSearchSubmit}
-          className="mx-auto mt-6 flex max-w-2xl flex-col gap-3 sm:flex-row sm:items-end"
+          className="mx-auto mt-8 flex max-w-2xl flex-col gap-3 sm:flex-row sm:items-end"
         >
           <div className="min-w-0 flex-1">
             <SearchBar
@@ -146,6 +141,11 @@ export function HomePageContent({
             </Button>
           </div>
         </form>
+        <StatTicker
+          storeCount={storeCount}
+          dealCount={dealCount}
+          lastUpdated={lastUpdated}
+        />
       </section>
 
       {/* Quick-access category cards */}
