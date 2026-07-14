@@ -37,6 +37,7 @@ export const STORE_TYPES = [
   "rideconcepts",
   "leatt",
   "chromag",
+  "gravitycartel",
   "bell",
   "giro",
 ] as const;
