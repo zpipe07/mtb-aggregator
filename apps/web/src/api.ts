@@ -64,7 +64,16 @@ export interface DealListResponse {
 
 const DEFAULT_PAGE_SIZE = 24;
 
-export async function fetchDeals(params?: {
+/** Skip Next.js data cache (bulk SEO fetches that exceed the 2MB cache limit). */
+type FetchCacheOptions = { noStore?: boolean };
+
+function publicFetchInit(options?: FetchCacheOptions): RequestInit {
+  if (options?.noStore) return { cache: "no-store" };
+  return { next: { revalidate: PUBLIC_ISR_REVALIDATE_SECONDS } };
+}
+
+export async function fetchDeals(
+  params?: {
   store?: string;
   /** Repeated `brand` query params (OR). */
   brands?: string[];
@@ -85,7 +94,8 @@ export async function fetchDeals(params?: {
   specFilters?: Record<string, string[]>;
   /** Default true: collapse Shopify variants into one card */
   group_variants?: boolean;
-}): Promise<DealListResponse> {
+} & FetchCacheOptions,
+): Promise<DealListResponse> {
   const search = new URLSearchParams();
   if (params?.store) search.set("store", params.store);
   if (params?.brands?.length) {
@@ -122,9 +132,7 @@ export async function fetchDeals(params?: {
   }
   const qs = search.toString();
   const url = `${getApiBase()}/deals${qs ? `?${qs}` : ""}`;
-  const res = await fetch(url, {
-    next: { revalidate: PUBLIC_ISR_REVALIDATE_SECONDS },
-  });
+  const res = await fetch(url, publicFetchInit({ noStore: params?.noStore }));
   if (!res.ok) throw new Error("Failed to fetch deals");
   const data = await res.json();
   return {
@@ -277,7 +285,7 @@ export interface FacetsParams {
 }
 
 export async function fetchFacets(
-  params?: FacetsParams,
+  params?: FacetsParams & FetchCacheOptions,
 ): Promise<FacetsResponse> {
   const search = new URLSearchParams();
   if (params?.store) search.set("store", params.store);
@@ -308,9 +316,7 @@ export async function fetchFacets(
     }
   }
   const qs = search.toString();
-  const res = await fetch(`${getApiBase()}/facets${qs ? `?${qs}` : ""}`, {
-    next: { revalidate: PUBLIC_ISR_REVALIDATE_SECONDS },
-  });
+  const res = await fetch(`${getApiBase()}/facets${qs ? `?${qs}` : ""}`, publicFetchInit({ noStore: params?.noStore }));
   if (!res.ok) throw new Error("Failed to fetch facets");
   return res.json();
 }
