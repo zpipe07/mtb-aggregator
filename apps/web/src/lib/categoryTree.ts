@@ -51,6 +51,20 @@ export function categoryHasDeals(node: CategoryTreeNode): boolean {
 }
 
 /**
+ * API leaf nodes omit `children` (`json:"children,omitempty"`). Ensure every node has
+ * `children: []` so tree walkers can safely read `.length` without optional chaining.
+ */
+export function normalizeCategoryTree(
+  tree: CategoryTreeNode[] | null | undefined,
+): CategoryTreeNode[] {
+  if (!tree?.length) return [];
+  return tree.map((node) => ({
+    ...node,
+    children: normalizeCategoryTree(node.children),
+  }));
+}
+
+/**
  * Keep only categories with `deal_count > 0`, recursively. Used for sitemap and
  * other “only show categories that have inventory” cases. Navigation still uses the
  * full tree when resolving the current slug (including empty category pages).

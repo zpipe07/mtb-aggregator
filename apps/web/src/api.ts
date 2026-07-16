@@ -1,4 +1,5 @@
 import { getApiBase } from "@/lib/api";
+import { normalizeCategoryTree } from "@/lib/categoryTree";
 import { PUBLIC_ISR_REVALIDATE_SECONDS } from "@/lib/revalidate";
 
 /** One SKU variant when deals are grouped (Shopify). */
@@ -214,7 +215,7 @@ export async function fetchCategoryTree(): Promise<CategoryTreeNode[]> {
   });
   if (!res.ok) throw new Error("Failed to fetch category tree");
   const data = await res.json();
-  return Array.isArray(data) ? data : [];
+  return normalizeCategoryTree(Array.isArray(data) ? data : []);
 }
 
 export interface SpecFacetValue {

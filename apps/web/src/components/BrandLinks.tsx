@@ -36,7 +36,7 @@ function collectCategoriesWithDeals(
 ): CategoryTreeNode[] {
   for (const n of nodes) {
     if (categoryHasDeals(n)) out.push(n);
-    if (n.children.length > 0) collectCategoriesWithDeals(n.children, out);
+    if (n.children?.length) collectCategoriesWithDeals(n.children, out);
   }
   return out;
 }
