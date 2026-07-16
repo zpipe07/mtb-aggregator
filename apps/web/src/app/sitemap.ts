@@ -1,5 +1,5 @@
 import type { MetadataRoute } from "next";
-import { fetchCategoryTree, fetchDeals, fetchBrands } from "@/api";
+import { fetchCategoryTree, fetchDeals, fetchFacets } from "@/api";
 import { filterCategoryTreeWithDeals } from "@/lib/categoryTree";
 import { allDealsCategoryPathsFromTree } from "@/lib/dealsCategoryPath";
 import { absoluteUrl } from "@/lib/siteUrl";
@@ -19,9 +19,66 @@ import {
 /** 4h — must match {@link PUBLIC_ISR_REVALIDATE_SECONDS} in @/lib/revalidate. */
 export const revalidate = 14400;
 
-const DEAL_PAGE_SIZE = 5000;
+/**
+ * Generate at request time so production builds do not time out while paginating
+ * thousands of deal URLs against the live API.
+ */
+export const dynamic = "force-dynamic";
+
+/** Keep each deals page under Next.js's ~2MB data-cache limit (~3KB/deal). */
+const DEAL_PAGE_SIZE = 500;
+/** Parallel deal pages per batch during sitemap generation. */
+const DEAL_FETCH_BATCH = 4;
 /** Google’s per-sitemap URL limit; leave headroom for static + category URLs. */
 const MAX_DEAL_URLS_IN_SITEMAP = 48_000;
+
+async function appendDealDetailUrls(
+  entries: MetadataRoute.Sitemap,
+): Promise<void> {
+  const probe = await fetchDeals({
+    limit: 1,
+    offset: 0,
+    sort: "newest",
+    group_variants: true,
+    noStore: true,
+  });
+  const cappedTotal = Math.min(
+    probe.total_count ?? 0,
+    MAX_DEAL_URLS_IN_SITEMAP,
+  );
+  if (cappedTotal === 0) return;
+
+  const totalPages = Math.ceil(cappedTotal / DEAL_PAGE_SIZE);
+  let dealUrls = 0;
+
+  for (let batchStart = 0; batchStart < totalPages; batchStart += DEAL_FETCH_BATCH) {
+    const batchSize = Math.min(DEAL_FETCH_BATCH, totalPages - batchStart);
+    const responses = await Promise.all(
+      Array.from({ length: batchSize }, (_, i) =>
+        fetchDeals({
+          limit: DEAL_PAGE_SIZE,
+          offset: (batchStart + i) * DEAL_PAGE_SIZE,
+          sort: "newest",
+          group_variants: true,
+          noStore: true,
+        }),
+      ),
+    );
+
+    for (const res of responses) {
+      for (const d of res.deals ?? []) {
+        if (dealUrls >= MAX_DEAL_URLS_IN_SITEMAP) return;
+        entries.push({
+          url: absoluteUrl(`/deals/${d.id}`),
+          lastModified: d.last_scraped ? new Date(d.last_scraped) : undefined,
+          changeFrequency: "weekly",
+          priority: 0.5,
+        });
+        dealUrls += 1;
+      }
+    }
+  }
+}
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const entries: MetadataRoute.Sitemap = [
@@ -78,6 +135,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
           ),
           limit: 1,
           offset: 0,
+          noStore: true,
         });
         const total = res.total_count ?? 0;
         if (!hubMeetsIndexThreshold(total)) return null;
@@ -97,48 +155,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }
 
   try {
-    let offset = 0;
-    let dealUrls = 0;
-    for (;;) {
-      const res = await fetchDeals({
-        limit: DEAL_PAGE_SIZE,
-        offset,
-        sort: "newest",
-        group_variants: true,
-      });
-      const deals = res.deals ?? [];
-      if (deals.length === 0) break;
-      for (const d of deals) {
-        if (dealUrls >= MAX_DEAL_URLS_IN_SITEMAP) break;
-        entries.push({
-          url: absoluteUrl(`/deals/${d.id}`),
-          lastModified: d.last_scraped ? new Date(d.last_scraped) : undefined,
-          changeFrequency: "weekly",
-          priority: 0.5,
-        });
-        dealUrls += 1;
-      }
-      if (dealUrls >= MAX_DEAL_URLS_IN_SITEMAP) break;
-      if (deals.length < DEAL_PAGE_SIZE) break;
-      offset += DEAL_PAGE_SIZE;
-    }
+    await appendDealDetailUrls(entries);
   } catch {
     // Skip deal URLs if API is down
   }
 
   try {
-    const brands = await fetchBrands();
-    for (const brand of brands) {
-      const slug = brandToSlug(brand);
-      const res = await fetchDeals({
-        brands: [brand],
-        limit: 1,
-        offset: 0,
-        group_variants: true,
-      });
-      if (!brandMeetsIndexThreshold(res.total_count ?? 0)) continue;
+    const facets = await fetchFacets({ noStore: true });
+    for (const b of facets.brand_facets ?? []) {
+      if (!brandMeetsIndexThreshold(b.count)) continue;
       entries.push({
-        url: absoluteUrl(buildBrandDealsPath(slug)),
+        url: absoluteUrl(buildBrandDealsPath(brandToSlug(b.value))),
         changeFrequency: "daily",
         priority: 0.7,
       });
