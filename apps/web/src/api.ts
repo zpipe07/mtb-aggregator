@@ -72,6 +72,46 @@ function publicFetchInit(options?: FetchCacheOptions): RequestInit {
   return { next: { revalidate: PUBLIC_ISR_REVALIDATE_SECONDS } };
 }
 
+const RETRYABLE_STATUS = new Set([408, 429, 500, 502, 503, 504]);
+const DEFAULT_RETRY_DELAYS_MS = [500, 1000];
+
+async function sleep(ms: number): Promise<void> {
+  await new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function isRetryableResponse(res: Response): boolean {
+  return RETRYABLE_STATUS.has(res.status);
+}
+
+export async function fetchWithRetry(
+  url: string,
+  init?: RequestInit,
+  options?: { retries?: number; delaysMs?: number[] },
+): Promise<Response> {
+  const retries = options?.retries ?? 2;
+  const delaysMs = options?.delaysMs ?? DEFAULT_RETRY_DELAYS_MS;
+  let lastError: unknown;
+
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const res = await fetch(url, init);
+      if (res.ok || attempt >= retries || !isRetryableResponse(res)) {
+        return res;
+      }
+      lastError = new Error(`HTTP ${res.status} for ${url}`);
+    } catch (err) {
+      lastError = err;
+      if (attempt >= retries) throw err;
+    }
+
+    await sleep(delaysMs[attempt] ?? delaysMs[delaysMs.length - 1] ?? 1000);
+  }
+
+  throw lastError instanceof Error
+    ? lastError
+    : new Error("Fetch failed after retries");
+}
+
 export async function fetchDeals(
   params?: {
   store?: string;
@@ -132,7 +172,10 @@ export async function fetchDeals(
   }
   const qs = search.toString();
   const url = `${getApiBase()}/deals${qs ? `?${qs}` : ""}`;
-  const res = await fetch(url, publicFetchInit({ noStore: params?.noStore }));
+  const res = await fetchWithRetry(
+    url,
+    publicFetchInit({ noStore: params?.noStore }),
+  );
   if (!res.ok) throw new Error("Failed to fetch deals");
   const data = await res.json();
   return {
@@ -316,7 +359,10 @@ export async function fetchFacets(
     }
   }
   const qs = search.toString();
-  const res = await fetch(`${getApiBase()}/facets${qs ? `?${qs}` : ""}`, publicFetchInit({ noStore: params?.noStore }));
+  const res = await fetchWithRetry(
+    `${getApiBase()}/facets${qs ? `?${qs}` : ""}`,
+    publicFetchInit({ noStore: params?.noStore }),
+  );
   if (!res.ok) throw new Error("Failed to fetch facets");
   return res.json();
 }

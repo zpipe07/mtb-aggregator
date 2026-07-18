@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, type ReactNode } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import posthog from "posthog-js";
 import { DEFAULT_PAGE_SIZE } from "../api";
 import type {
@@ -12,10 +12,12 @@ import type {
   BrandFacet,
 } from "../api";
 import { useFilterParams } from "../hooks/useFilterParams";
+import { usePendingTimeout } from "../hooks/usePendingTimeout";
 import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { buildDealDetailHref } from "@/lib/dealsBackHref";
 import { storeDealDetailBackHref } from "@/lib/dealDetailBackStorage";
+import { Button } from "@/components/ui/button";
 import {
   Toolbar,
   FilterSidebar,
@@ -55,6 +57,9 @@ export function DealsPageContent({
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
 
   const pathname = usePathname();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const searchParamsString = searchParams.toString();
   const filterParams = useFilterParams({ categoryTree });
   const {
     isPending: isFilterPending,
@@ -77,7 +82,18 @@ export function DealsPageContent({
     clearAllFilters,
   } = filterParams;
 
-  const resultsPending = isFilterPending;
+  const { isPending: resultsPending, timedOut, clearTimeoutState } =
+    usePendingTimeout(isFilterPending, 15_000, {
+      pathname,
+      searchParams: searchParamsString,
+      sort,
+      offset,
+    });
+
+  const handleRetryResults = () => {
+    clearTimeoutState();
+    router.refresh();
+  };
 
   const activeFilterCount =
     [storeFilter, minDiscount].filter(Boolean).length +
@@ -248,6 +264,26 @@ export function DealsPageContent({
             filters={activeFilters}
             onClearAll={handleClearAllFilters}
           />
+
+          {timedOut ? (
+            <div
+              className="mb-4 flex flex-col gap-3 rounded-[var(--radius)] border border-destructive/40 bg-destructive/10 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+              role="alert"
+            >
+              <p className="text-sm text-muted-foreground">
+                Results couldn&apos;t be updated. Your filters are still applied.
+              </p>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="shrink-0"
+                onClick={handleRetryResults}
+              >
+                Try again
+              </Button>
+            </div>
+          ) : null}
 
           <div className="relative" aria-busy={resultsPending}>
             {resultsPending && (
