@@ -19,6 +19,15 @@ func priceDropWithinDays(params GetDealsParams) int {
 	return defaultPriceDropWithinDays
 }
 
+// groupedFilteredCTEPrefix returns the leading "WITH …" fragment for getDealsGrouped.
+// Must always include WITH so the filtered CTE is valid SQL even when no price-drop CTE is present.
+func groupedFilteredCTEPrefix(priceDropFilter bool) string {
+	if priceDropFilter {
+		return `WITH ` + recentPriceDropsCTE(1) + `,`
+	}
+	return `WITH `
+}
+
 // recentPriceDropsCTE returns SQL for a CTE named recent_price_drops. daysArg is the
 // 1-based placeholder index for the within-days interval parameter.
 func recentPriceDropsCTE(daysArg int) string {

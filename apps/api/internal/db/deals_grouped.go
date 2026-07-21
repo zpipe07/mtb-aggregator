@@ -43,12 +43,7 @@ func (db *DB) getDealsGrouped(ctx context.Context, params GetDealsParams) (*GetD
 `
 	}
 
-	ctePrefix := ""
-	if priceDropFilter {
-		ctePrefix = `WITH ` + recentPriceDropsCTE(1) + `,`
-	}
-
-	filteredCTE := ctePrefix + `
+	filteredCTE := groupedFilteredCTEPrefix(priceDropFilter) + `
 filtered AS (
   SELECT l.id, l.store_id, s.name AS store_name, l.store_sku, l.product_name, l.current_price, l.original_price,
     l.product_url, l.affiliate_url, l.image_url, l.brand, COALESCE(l.category_path, '{}') AS category_path,

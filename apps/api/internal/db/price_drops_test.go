@@ -32,3 +32,19 @@ func TestPriceDropWithinDaysDefault(t *testing.T) {
 		t.Fatalf("custom days = %d, want 3", got)
 	}
 }
+
+// Regression: omitting WITH when price-drop filtering is off caused production
+// 500s: syntax error at or near "filtered" (SQLSTATE 42601).
+func TestGroupedFilteredCTEPrefix(t *testing.T) {
+	got := groupedFilteredCTEPrefix(false)
+	if got != `WITH ` {
+		t.Fatalf("no price-drop filter: got %q, want %q", got, `WITH `)
+	}
+	got = groupedFilteredCTEPrefix(true)
+	if len(got) < 4 || got[:4] != "WITH" {
+		t.Fatalf("price-drop filter: must start with WITH, got %q", got)
+	}
+	if got[len(got)-1] != ',' {
+		t.Fatalf("price-drop filter: must end with comma before filtered CTE, got %q", got)
+	}
+}
