@@ -17,7 +17,7 @@ Visual identity and language guidelines for the MTB Deal Aggregator. Use this wh
 | **Imagery** | High-contrast, "action" photography. Avoid stock photos of smiling people on bikes. Use close-ups of gritty components: a muddy derailleur, a clean carbon weave, or a tire biting into loam. |
 | **The Vibe** | **"Dialed-in."** The site shouldn't feel like a mall; it should feel like a specialized tool. |
 
-**Logo:** Primary mark is the **trail-drop logo** — a wooden MTB drop feature (platform, support post, diagonal brace) with a rider-trajectory arrow curving off the edge, and a "THE DROPPER" wordmark set in **Bebas Neue** (outlined to paths; no font dependency). Inspired by "drop ahead" trail warning signs. Assets:
+**Logo:** Primary mark is the **compact trail-drop logo** — "THE" above a planked wooden platform, "DROPPER" tucked below, support post, diagonal brace, and rider-trajectory arrow. Inspired by "drop ahead" trail warning signs. Assets:
 
 - [`apps/web/src/components/TheDropperLogo.tsx`](../apps/web/src/components/TheDropperLogo.tsx) — inline SVG React component used in the public nav (`NavHeader`). Fills with `currentColor`, so it adapts to theme/context automatically. Storybook: `Components/TheDropperLogo`.
 - [`apps/web/public/the-dropper-logo.svg`](../apps/web/public/the-dropper-logo.svg) — standalone SVG (same artwork) for exports and one-off use.
