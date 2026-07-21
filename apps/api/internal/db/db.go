@@ -1090,14 +1090,24 @@ type DashboardStats struct {
 	EnrichedListings int `json:"enriched_listings"` // canonical_category set
 }
 
+// storeVisibleProductGroupKey groups in-stock, visible listings into distinct deals
+// (matches GET /deals?group_variants=true).
+const storeVisibleProductGroupKey = `COALESCE(product_group_key, 'single:' || id::text)`
+
 func (db *DB) GetStoresWithCounts(ctx context.Context) ([]StoreWithCount, error) {
 	rows, err := db.pool.Query(ctx, `
 		SELECT s.id, s.name, s.base_url,
-			COUNT(l.id) as deal_count,
-			MAX(l.last_scraped)::text as last_scraped
+			COALESCE(v.deal_count, 0) AS deal_count,
+			COALESCE(v.last_scraped, '') AS last_scraped
 		FROM stores s
-		LEFT JOIN store_listings l ON l.store_id = s.id
-		GROUP BY s.id, s.name, s.base_url
+		LEFT JOIN (
+			SELECT store_id,
+				COUNT(DISTINCT `+storeVisibleProductGroupKey+`)::int AS deal_count,
+				MAX(last_scraped)::text AS last_scraped
+			FROM store_listings
+			WHERE is_in_stock = true AND hidden = false
+			GROUP BY store_id
+		) v ON v.store_id = s.id
 		ORDER BY s.name
 	`)
 	if err != nil {

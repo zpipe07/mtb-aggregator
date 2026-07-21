@@ -53,6 +53,7 @@ export interface Store {
   id: number;
   name: string;
   base_url: string;
+  /** Distinct in-stock, visible product groups for this store (matches grouped deals list). */
   deal_count: number;
   last_scraped: string;
 }
