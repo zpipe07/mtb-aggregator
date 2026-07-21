@@ -310,64 +310,66 @@ export function DealsMegaMenuPanel({
   }, []);
 
   return (
-    <div className={cn("bg-card", className)}>
-      <div className="px-4 py-5 sm:px-6 sm:py-6">
-        <div className="mb-4 flex items-start justify-between gap-3">
-          <p className={cn(monoMicro, "pt-1 text-muted-foreground")}>
-            {"// browse by category"}
-          </p>
-          {onClose ? (
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className={cn(
-                "size-8 shrink-0 rounded-sm text-muted-foreground hover:text-foreground",
-                focusRing,
-              )}
-              aria-label="Close categories menu"
-              onClick={onClose}
-            >
-              <X className="size-4" aria-hidden />
-            </Button>
-          ) : null}
-        </div>
-        {categoryTree.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            Categories are unavailable right now.{" "}
-            <Link
-              href="/deals"
-              onClick={onNavigate}
-              className={cn(
-                "font-medium text-foreground underline underline-offset-4",
-                focusRing,
-              )}
-            >
-              Browse all deals
-            </Link>
-          </p>
-        ) : (
-          <div
-            className={cn(
-              "grid gap-6 lg:gap-8",
-              categoryGridClass(categoryTree.length),
-            )}
-          >
-            {categoryTree.map((root) => (
-              <RootCategoryColumn
-                key={root.slug}
-                root={root}
-                categoryTree={categoryTree}
-                activeCategorySlug={activeCategorySlug}
-                expandedSecondLevels={expandedSecondLevels}
-                onToggleSecondLevel={toggleSecondLevel}
-                onNavigate={onNavigate}
-              />
-            ))}
+    <div className={cn("flex h-full min-h-0 flex-col bg-card", className)}>
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        <div className="px-4 py-5 sm:px-6 sm:py-6">
+          <div className="mb-4 flex items-start justify-between gap-3">
+            <p className={cn(monoMicro, "pt-1 text-muted-foreground")}>
+              {"// browse by category"}
+            </p>
+            {onClose ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className={cn(
+                  "size-8 shrink-0 rounded-sm text-muted-foreground hover:text-foreground",
+                  focusRing,
+                )}
+                aria-label="Close categories menu"
+                onClick={onClose}
+              >
+                <X className="size-4" aria-hidden />
+              </Button>
+            ) : null}
           </div>
-        )}
+          {categoryTree.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              Categories are unavailable right now.{" "}
+              <Link
+                href="/deals"
+                onClick={onNavigate}
+                className={cn(
+                  "font-medium text-foreground underline underline-offset-4",
+                  focusRing,
+                )}
+              >
+                Browse all deals
+              </Link>
+            </p>
+          ) : (
+            <div
+              className={cn(
+                "grid gap-6 lg:gap-8",
+                categoryGridClass(categoryTree.length),
+              )}
+            >
+              {categoryTree.map((root) => (
+                <RootCategoryColumn
+                  key={root.slug}
+                  root={root}
+                  categoryTree={categoryTree}
+                  activeCategorySlug={activeCategorySlug}
+                  expandedSecondLevels={expandedSecondLevels}
+                  onToggleSecondLevel={toggleSecondLevel}
+                  onNavigate={onNavigate}
+                />
+              ))}
+            </div>
+          )}
+        </div>
       </div>
-      <div className="border-t border-border bg-muted/40">
+      <div className="shrink-0 border-t border-border bg-muted/40">
         <div className="flex items-center justify-between gap-4 px-4 py-3 sm:px-6">
           <Link
             href="/deals"
@@ -415,11 +417,14 @@ export function DealsMegaMenuDesktopTrigger({
   menuId,
   onHoverIntent,
 }: DealsMegaMenuDesktopProps) {
+  const closeMenu = useCallback(() => onOpenChange(false), [onOpenChange]);
+
   return (
     <div className="relative" onMouseEnter={onHoverIntent}>
       <div className="flex items-center gap-0.5">
         <Link
           href="/deals"
+          onClick={closeMenu}
           className={cn(
             "rounded-sm border-b-2 pb-1 transition-colors",
             mainNavLinkTypography,
@@ -487,11 +492,11 @@ export function DealsMegaMenuDesktopPanel({
         id={menuId}
         role="region"
         aria-label="Deals categories"
-        className="absolute inset-x-0 top-full z-50 hidden lg:block"
+        className="pointer-events-none absolute inset-x-0 top-full z-40 hidden lg:block"
       >
         <div className="relative px-4 pb-6 pt-3 sm:px-6">
           <div
-            className="mx-auto max-w-5xl overflow-hidden rounded-lg border border-border bg-card shadow-2xl"
+            className="pointer-events-auto mx-auto flex max-h-[min(calc(100vh-5.5rem),40rem)] max-w-5xl flex-col overflow-hidden rounded-lg border border-border bg-card shadow-2xl"
             onClick={(event) => event.stopPropagation()}
             onMouseDown={(event) => event.stopPropagation()}
           >
@@ -601,14 +606,14 @@ export function DealsMegaMenuMobile({
       {isExpanded ? (
         <div
           id={panelId}
-          className="max-h-[min(60vh,28rem)] overflow-y-auto rounded-sm border border-border bg-card"
+          className="flex max-h-[min(60vh,28rem)] flex-col overflow-hidden rounded-sm border border-border bg-card"
         >
           <DealsMegaMenuPanel
             categoryTree={categoryTree}
             activeCategorySlug={activeCategorySlug}
             onNavigate={onNavigate}
             onClose={onClose}
-            className="bg-transparent"
+            className="min-h-0 flex-1 bg-transparent"
           />
         </div>
       ) : null}

@@ -89,7 +89,7 @@ export function NavHeader({ categoryTree = [] }: NavHeaderProps) {
       className="relative z-40 border-b border-border bg-background text-foreground"
       onMouseLeave={handleHeaderMouseLeave}
     >
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-2 sm:px-6 sm:py-3">
+      <div className="relative z-50 mx-auto flex max-w-6xl items-center justify-between px-4 py-2 sm:px-6 sm:py-3">
         <Link
           href="/"
           className={cn(
