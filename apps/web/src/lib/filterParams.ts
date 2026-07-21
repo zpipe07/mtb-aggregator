@@ -4,6 +4,7 @@ const VALID_SORTS = [
   "value",
   "price_asc",
   "price_desc",
+  "price_drop",
   "relevance",
 ] as const;
 export type SortOption = (typeof VALID_SORTS)[number];

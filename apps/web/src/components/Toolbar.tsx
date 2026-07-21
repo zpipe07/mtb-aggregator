@@ -13,6 +13,7 @@ const monoMicro =
 const BASE_SORT_OPTIONS: { value: SortOption; label: string }[] = [
   { value: "newest", label: "Newest" },
   { value: "discount", label: "Highest discount" },
+  { value: "price_drop", label: "Recent price drops" },
   { value: "price_asc", label: "Price: low to high" },
   { value: "price_desc", label: "Price: high to low" },
 ];

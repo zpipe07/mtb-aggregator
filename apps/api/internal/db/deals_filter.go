@@ -9,11 +9,11 @@ import (
 )
 
 // dealsFilterSQL returns AND ... fragments for GetDeals-style filters (after base WHERE).
-// nextArg is the next placeholder index to use for ORDER BY / LIMIT.
-func (db *DB) dealsFilterSQL(ctx context.Context, params GetDealsParams) (string, []interface{}, int, error) {
+// startArg is the first placeholder index (1-based). nextArg is the next placeholder index after the fragment.
+func (db *DB) dealsFilterSQL(ctx context.Context, params GetDealsParams, startArg int) (string, []interface{}, int, error) {
 	var sb strings.Builder
 	args := []interface{}{}
-	argNum := 1
+	argNum := startArg
 
 	if params.StoreID != nil {
 		sb.WriteString(fmt.Sprintf(" AND l.store_id = $%d", argNum))

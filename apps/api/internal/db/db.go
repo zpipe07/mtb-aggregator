@@ -780,7 +780,9 @@ type GetDealsParams struct {
 	MinPrice              *float64 // minimum current_price (inclusive)
 	MaxPrice              *float64 // maximum current_price (inclusive)
 	Search                string // full-text search query (q)
-	Sort                  string // newest, discount, value, price_asc, price_desc, relevance
+	Sort                  string // newest, discount, value, price_asc, price_desc, relevance, price_drop
+	PriceDropped          *bool  // when true, only listings whose latest scrape price is below the previous history point
+	PriceDropWithinDays   int    // recency window for price_dropped / sort=price_drop (default 7)
 	Limit             int
 	Offset            int
 	SpecFilters   map[string][]string // spec key -> values; OR within key, AND across keys
@@ -809,6 +811,14 @@ func (db *DB) GetDeals(ctx context.Context, params GetDealsParams) (*GetDealsRes
 		sort = "discount"
 	}
 
+	priceDropFilter := wantsPriceDropFilter(params)
+	args := []interface{}{}
+	argNum := 1
+	if priceDropFilter {
+		args = append(args, priceDropWithinDays(params))
+		argNum++
+	}
+
 	query := `
 		SELECT l.id, l.store_id, s.name, l.store_sku, l.product_name, l.current_price, l.original_price,
 			l.product_url, l.affiliate_url, l.image_url, l.brand, COALESCE(l.category_path, '{}'), COALESCE(l.canonical_category, '{}'), l.metadata, l.is_in_stock, l.last_scraped::text,
@@ -816,12 +826,17 @@ func (db *DB) GetDeals(ctx context.Context, params GetDealsParams) (*GetDealsRes
 			COUNT(*) OVER() AS total_count
 		FROM store_listings l
 		JOIN stores s ON s.id = l.store_id
+	`
+	if priceDropFilter {
+		query = `WITH ` + recentPriceDropsCTE(1) + query + `
+		JOIN recent_price_drops rpd ON rpd.listing_id = l.id
+		`
+	}
+	query += `
 		WHERE 1=1 AND l.is_in_stock = true AND l.hidden = false
 	`
-	args := []interface{}{}
-	argNum := 1
 
-	frag, fragArgs, nextArg, err := db.dealsFilterSQL(ctx, params)
+	frag, fragArgs, nextArg, err := db.dealsFilterSQL(ctx, params, argNum)
 	if err != nil {
 		return nil, err
 	}
@@ -843,6 +858,8 @@ func (db *DB) GetDeals(ctx context.Context, params GetDealsParams) (*GetDealsRes
 		query += " ORDER BY l.current_price ASC"
 	case "price_desc":
 		query += " ORDER BY l.current_price DESC"
+	case "price_drop":
+		query += " ORDER BY rpd.drop_amount DESC NULLS LAST, rpd.dropped_at DESC"
 	default:
 		query += " ORDER BY l.last_scraped DESC"
 	}

@@ -91,6 +91,15 @@ func (h *Handlers) GetDeals(w http.ResponseWriter, r *http.Request) {
 	if s := r.URL.Query().Get("sort"); s != "" {
 		params.Sort = s
 	}
+	if s := r.URL.Query().Get("price_dropped"); s == "1" || s == "true" {
+		v := true
+		params.PriceDropped = &v
+	}
+	if s := r.URL.Query().Get("price_drop_within_days"); s != "" {
+		if n, err := strconv.Atoi(s); err == nil && n > 0 {
+			params.PriceDropWithinDays = n
+		}
+	}
 	if s := r.URL.Query().Get("limit"); s != "" {
 		if n, err := strconv.Atoi(s); err == nil && n > 0 {
 			params.Limit = n
