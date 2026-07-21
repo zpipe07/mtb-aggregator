@@ -781,7 +781,7 @@ type GetDealsParams struct {
 	MaxPrice              *float64 // maximum current_price (inclusive)
 	Search                string // full-text search query (q)
 	Sort                  string // newest, discount, value, price_asc, price_desc, relevance, price_drop
-	PriceDropped          *bool  // when true, only listings whose latest scrape price is below the previous history point
+	PriceDropped          *bool  // when true, only listings with a scrape-to-scrape price decrease within PriceDropWithinDays
 	PriceDropWithinDays   int    // recency window for price_dropped / sort=price_drop (default 7)
 	Limit             int
 	Offset            int
@@ -1052,11 +1052,7 @@ func (db *DB) GetPriceHistory(ctx context.Context, listingID int) (*PriceHistory
 	if n > 0 {
 		avg = sum / n
 	}
-	priceDropped := false
-	if len(points) >= 2 {
-		last, prev := points[len(points)-1].Price, points[len(points)-2].Price
-		priceDropped = last < prev
-	}
+	priceDropped := hasPriceDropWithinDays(points, defaultPriceDropWithinDays)
 
 	return &PriceHistoryResult{
 		Points:       points,
