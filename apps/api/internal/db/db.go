@@ -812,9 +812,10 @@ func (db *DB) GetDeals(ctx context.Context, params GetDealsParams) (*GetDealsRes
 	}
 
 	priceDropFilter := wantsPriceDropFilter(params)
+	priceDropData := needsPriceDropData(params)
 	args := []interface{}{}
 	argNum := 1
-	if priceDropFilter {
+	if priceDropData {
 		args = append(args, priceDropWithinDays(params))
 		argNum++
 	}
@@ -827,10 +828,17 @@ func (db *DB) GetDeals(ctx context.Context, params GetDealsParams) (*GetDealsRes
 		FROM store_listings l
 		JOIN stores s ON s.id = l.store_id
 	`
-	if priceDropFilter {
-		query = `WITH ` + recentPriceDropsCTE(1) + query + `
+	if priceDropData {
+		query = `WITH ` + recentPriceDropsCTE(1) + query
+		if priceDropFilter {
+			query += `
 		JOIN recent_price_drops rpd ON rpd.listing_id = l.id
 		`
+		} else {
+			query += `
+		LEFT JOIN recent_price_drops rpd ON rpd.listing_id = l.id
+		`
+		}
 	}
 	query += `
 		WHERE 1=1 AND l.is_in_stock = true AND l.hidden = false
