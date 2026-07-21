@@ -12,7 +12,9 @@ import { CategoryTreeNode } from "../api";
 import { categoryHasDeals } from "../lib/categoryTree";
 import { CATEGORY_IMAGES } from "../lib/categoryImages";
 import { buildDealsCategoryPath } from "../lib/dealsCategoryPath";
+import type { Deal } from "../api";
 import type { HomeDealSection } from "../lib/homeDealSections";
+import { HOME_PRICE_DROPS_SECTION_ID } from "../lib/homeDealSections";
 import { Button } from "../components/ui/button";
 import { cn, focusRing } from "@/lib/utils";
 
@@ -59,6 +61,7 @@ function buildCategoryCards(categoryTree: CategoryTreeNode[]): {
 
 type Props = {
   categoryTree: CategoryTreeNode[];
+  priceDropDeals: Deal[];
   dealSections: HomeDealSection[];
   storeCount: number;
   dealCount: number;
@@ -67,6 +70,7 @@ type Props = {
 
 export function HomePageContent({
   categoryTree,
+  priceDropDeals,
   dealSections,
   storeCount,
   dealCount,
@@ -80,7 +84,9 @@ export function HomePageContent({
   const visibleDealSections = dealSections.filter(
     (section) => section.deals.length > 0,
   );
+  const showPriceDrops = priceDropDeals.length > 0;
   const dealDetailHref = (dealId: number) => `/deals/${dealId}`;
+  const sectionOffset = showPriceDrops ? 2 : 1;
 
   const handleSearchSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -148,11 +154,42 @@ export function HomePageContent({
         />
       </section>
 
+      {showPriceDrops ? (
+        <section className="mb-12 lg:mb-16">
+          <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+            <div className="flex flex-wrap items-end gap-4">
+              <span className="pb-0.5 font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                {"// 01"}
+              </span>
+              <h2 className="text-2xl font-semibold tracking-[-0.02em] text-foreground">
+                Recent price drops
+              </h2>
+              <span className="mb-0.5 hidden h-px min-w-8 max-w-xs flex-1 bg-border sm:block" />
+            </div>
+            <Link
+              href="/deals?sort=price_drop"
+              className={cn(
+                "rounded-sm font-mono text-xs font-semibold tracking-wide text-muted-foreground hover:text-foreground",
+                focusRing,
+              )}
+            >
+              View all →
+            </Link>
+          </div>
+          <DealCarousel
+            deals={priceDropDeals}
+            getHref={(deal) => dealDetailHref(deal.id)}
+            homeSection={HOME_PRICE_DROPS_SECTION_ID}
+            ariaLabel="Recent price drops"
+          />
+        </section>
+      ) : null}
+
       {/* Quick-access category cards */}
       <section className="mb-12 lg:mb-16">
         <div className="mb-6 flex flex-wrap items-end gap-4">
           <span className="pb-0.5 font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-            {"// 01"}
+            {showPriceDrops ? "// 02" : "// 01"}
           </span>
           <h2 className="text-2xl font-semibold tracking-[-0.02em] text-foreground">
             Shop by category
@@ -180,7 +217,7 @@ export function HomePageContent({
               <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
                 <div className="flex flex-wrap items-end gap-4">
                   <span className="pb-0.5 font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                    {`// ${String(index + 2).padStart(2, "0")}`}
+                    {`// ${String(index + sectionOffset + 1).padStart(2, "0")}`}
                   </span>
                   <h2 className="text-2xl font-semibold tracking-[-0.02em] text-foreground">
                     {section.title}
@@ -213,7 +250,7 @@ export function HomePageContent({
         <section>
           <div className="mb-6 flex flex-wrap items-end gap-4">
             <span className="pb-0.5 font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-              {"// 02"}
+              {showPriceDrops ? "// 03" : "// 02"}
             </span>
             <h2 className="text-2xl font-semibold tracking-[-0.02em] text-foreground">
               Top deals of the day

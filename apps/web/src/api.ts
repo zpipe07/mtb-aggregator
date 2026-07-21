@@ -129,6 +129,10 @@ export async function fetchDeals(
   exclude_category_slug?: string;
   q?: string;
   sort?: string;
+  /** When true, only listings whose latest scrape price is below the previous history point. */
+  price_dropped?: boolean;
+  /** Recency window in days for price_dropped / sort=price_drop (default 7). */
+  price_drop_within_days?: number;
   limit?: number;
   offset?: number;
   specFilters?: Record<string, string[]>;
@@ -158,6 +162,9 @@ export async function fetchDeals(
     search.set("exclude_category_slug", params.exclude_category_slug);
   if (params?.q) search.set("q", params.q);
   if (params?.sort) search.set("sort", params.sort);
+  if (params?.price_dropped) search.set("price_dropped", "true");
+  if (params?.price_drop_within_days != null)
+    search.set("price_drop_within_days", String(params.price_drop_within_days));
   if (params?.limit != null) search.set("limit", String(params.limit));
   if (params?.offset != null) search.set("offset", String(params.offset));
   if (params?.group_variants !== false) search.set("group_variants", "true");

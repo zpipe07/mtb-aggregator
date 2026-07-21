@@ -22,19 +22,46 @@ func (db *DB) getDealsGrouped(ctx context.Context, params GetDealsParams) (*GetD
 		sort = "discount"
 	}
 
-	frag, fragArgs, nextArg, err := db.dealsFilterSQL(ctx, params)
+	priceDropFilter := wantsPriceDropFilter(params)
+	argNum := 1
+	fragArgs := []interface{}{}
+	if priceDropFilter {
+		fragArgs = append(fragArgs, priceDropWithinDays(params))
+		argNum = 2
+	}
+
+	frag, filterArgs, nextArg, err := db.dealsFilterSQL(ctx, params, argNum)
 	if err != nil {
 		return nil, err
 	}
+	fragArgs = append(fragArgs, filterArgs...)
 
-	filteredCTE := `
-WITH filtered AS (
+	priceDropJoin := ""
+	if priceDropFilter {
+		priceDropJoin = `
+  JOIN recent_price_drops rpd ON rpd.listing_id = l.id
+`
+	}
+
+	ctePrefix := ""
+	if priceDropFilter {
+		ctePrefix = `WITH ` + recentPriceDropsCTE(1) + `,`
+	}
+
+	filteredCTE := ctePrefix + `
+filtered AS (
   SELECT l.id, l.store_id, s.name AS store_name, l.store_sku, l.product_name, l.current_price, l.original_price,
     l.product_url, l.affiliate_url, l.image_url, l.brand, COALESCE(l.category_path, '{}') AS category_path,
     COALESCE(l.canonical_category, '{}') AS canonical_category, l.metadata, l.is_in_stock, l.last_scraped,
-    l.product_group_key, l.variant_options, l.search_vector
+    l.product_group_key, l.variant_options, l.search_vector` +
+		func() string {
+			if priceDropFilter {
+				return `, rpd.drop_amount, rpd.dropped_at`
+			}
+			return ""
+		}() + `
   FROM store_listings l
-  JOIN stores s ON s.id = l.store_id
+  JOIN stores s ON s.id = l.store_id` + priceDropJoin + `
   WHERE 1=1 AND l.is_in_stock = true AND l.hidden = false
 ` + frag + `
 ),
@@ -50,7 +77,7 @@ fk AS (
 	}
 
 	args := append([]interface{}{}, fragArgs...)
-	orderSQL := groupedRepsOrderSQL(sort, params.Search, nextArg, &args)
+	orderSQL := groupedRepsOrderSQL(sort, params.Search, nextArg, &args, priceDropFilter)
 
 	limitArg := len(args) + 1
 	offsetArg := len(args) + 2
@@ -159,10 +186,13 @@ LEFT JOIN LATERAL (
 
 // groupedRepsOrderSQL builds ORDER BY for the representative row subquery. nextArg is the next
 // free placeholder index (1-based). Appends to args when relevance sort adds a search parameter.
-func groupedRepsOrderSQL(sort, search string, nextArg int, args *[]interface{}) string {
+func groupedRepsOrderSQL(sort, search string, nextArg int, args *[]interface{}, priceDropFilter bool) string {
 	switch sort {
 	case "relevance":
 		if search == "" {
+			if priceDropFilter {
+				return "r.drop_amount DESC NULLS LAST, r.dropped_at DESC"
+			}
 			return "r.last_scraped DESC"
 		}
 		*args = append(*args, search)
@@ -175,7 +205,12 @@ func groupedRepsOrderSQL(sort, search string, nextArg int, args *[]interface{}) 
 		return "r.current_price ASC"
 	case "price_desc":
 		return "r.current_price DESC"
+	case "price_drop":
+		return "r.drop_amount DESC NULLS LAST, r.dropped_at DESC"
 	default:
+		if priceDropFilter {
+			return "r.drop_amount DESC NULLS LAST, r.dropped_at DESC"
+		}
 		return "r.last_scraped DESC"
 	}
 }

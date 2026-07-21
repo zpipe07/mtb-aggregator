@@ -5,6 +5,7 @@ import { buildItemListJsonLd, buildWebSiteSearchJsonLd } from "@/lib/jsonLd";
 import {
   HOME_DEAL_SECTION_LIMIT,
   HOME_DEAL_SECTIONS,
+  HOME_PRICE_DROPS_LIMIT,
   type HomeDealSection,
 } from "@/lib/homeDealSections";
 import { deriveHeroStats } from "@/lib/heroStats";
@@ -61,9 +62,15 @@ export const metadata: Metadata = {
 };
 
 export default async function Home() {
-  const [categoryTree, status, ...sectionResponses] = await Promise.all([
+  const [categoryTree, status, priceDropsResponse, ...sectionResponses] =
+    await Promise.all([
     fetchCategoryTree(),
     fetchStatus(),
+    fetchDeals({
+      sort: "price_drop",
+      limit: HOME_PRICE_DROPS_LIMIT,
+      offset: 0,
+    }),
     ...HOME_DEAL_SECTIONS.map((section) =>
       fetchDeals({
         sort: "value",
@@ -77,6 +84,8 @@ export default async function Home() {
 
   const heroStats = deriveHeroStats(status);
 
+  const priceDropDeals = priceDropsResponse?.deals ?? [];
+
   const dealSections: HomeDealSection[] = HOME_DEAL_SECTIONS.map(
     (section, index) => ({
       ...section,
@@ -84,7 +93,10 @@ export default async function Home() {
     }),
   );
 
-  const featuredDeals = dealSections.flatMap((section) => section.deals);
+  const featuredDeals = [
+    ...priceDropDeals,
+    ...dealSections.flatMap((section) => section.deals),
+  ];
 
   const avantlinkMarkup = avantlinkVerificationScriptMarkup(
     process.env.NEXT_PUBLIC_AVANTLINK_VERIFY_SCRIPT_SRC ?? "",
@@ -113,6 +125,7 @@ export default async function Home() {
       />
       <HomePageContent
         categoryTree={categoryTree}
+        priceDropDeals={priceDropDeals}
         dealSections={dealSections}
         storeCount={heroStats.storeCount}
         dealCount={heroStats.dealCount}

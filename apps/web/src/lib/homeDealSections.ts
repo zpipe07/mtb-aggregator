@@ -42,3 +42,5 @@ export const HOME_DEAL_SECTIONS: HomeDealSectionConfig[] = [
 ];
 
 export const HOME_DEAL_SECTION_LIMIT = 6;
+export const HOME_PRICE_DROPS_LIMIT = 6;
+export const HOME_PRICE_DROPS_SECTION_ID = "price_drops" as const;
