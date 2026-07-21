@@ -101,7 +101,7 @@ export function CategoryBrandLinks({
   title = "Popular brands",
 }: CategoryBrandProps) {
   const top = (brandFacets ?? [])
-    .filter((b) => b.count >= 3)
+    .filter((b) => brandMeetsIndexThreshold(b.count))
     .slice(0, 12);
   if (top.length === 0) return null;
 
@@ -135,17 +135,20 @@ export function CategoryBrandLinks({
 }
 
 type GlobalBrandProps = {
-  brands: string[];
+  brandFacets: { value: string; count: number }[];
   title?: string;
 };
 
 /** Global brand index links (e.g. /deals). */
 export function BrandLinksGlobal({
-  brands,
+  brandFacets,
   title = "Shop by brand",
 }: GlobalBrandProps) {
-  if (brands.length === 0) return null;
-  const sorted = [...brands].sort((a, b) => a.localeCompare(b)).slice(0, 24);
+  const top = (brandFacets ?? [])
+    .filter((b) => brandMeetsIndexThreshold(b.count))
+    .sort((a, b) => a.value.localeCompare(b.value))
+    .slice(0, 24);
+  if (top.length === 0) return null;
 
   return (
     <section aria-labelledby="brand-links-global">
@@ -156,13 +159,13 @@ export function BrandLinksGlobal({
         {title}
       </h2>
       <ul className="flex flex-wrap gap-2">
-        {sorted.map((brand) => (
-          <li key={brand}>
+        {top.map((b) => (
+          <li key={b.value}>
             <Link
-              href={`/deals/brand/${brandToSlug(brand)}`}
+              href={`/deals/brand/${brandToSlug(b.value)}`}
               className="inline-flex rounded-sm border border-border bg-card px-3 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-muted/60"
             >
-              {brand}
+              {b.value}
             </Link>
           </li>
         ))}

@@ -5,7 +5,6 @@ import {
   fetchFacets,
   fetchStores,
   fetchCategoryTree,
-  fetchBrands,
   DEFAULT_PAGE_SIZE,
   normalizeFacetsResponse,
   type FacetsResponse,
@@ -99,14 +98,13 @@ export default async function DealsPage({ searchParams }: Props) {
       ? fetchFacets({ ...facetsParams, brands: undefined })
       : Promise.resolve(null);
 
-  const [dealsResponse, facetsResponse, facetsForBrandOptions, stores, categoryTree, brands] =
+  const [dealsResponse, facetsResponse, facetsForBrandOptions, stores, categoryTree] =
     await Promise.all([
       fetchDeals(dealsParams),
       fetchFacets(facetsParams),
       facetsForBrandOptionsPromise,
       fetchStores(),
       fetchCategoryTree(),
-      fetchBrands().catch(() => []),
     ]);
 
   const deals = dealsResponse.deals ?? [];
@@ -149,7 +147,7 @@ export default async function DealsPage({ searchParams }: Props) {
           dealsListPath={dealsListPath}
         >
           <SeoHubLinksGlobal title="Popular deal searches" />
-          <BrandLinksGlobal brands={brands} />
+          <BrandLinksGlobal brandFacets={facets.brand_facets} />
         </DealsPageContent>
       </Suspense>
     </>
