@@ -14,7 +14,7 @@ func TestWantsPriceDropFilter(t *testing.T) {
 		params GetDealsParams
 		want   bool
 	}{
-		{"sort price_drop", GetDealsParams{Sort: "price_drop"}, true},
+		{"sort price_drop", GetDealsParams{Sort: "price_drop"}, false},
 		{"price_dropped true", GetDealsParams{PriceDropped: &yes}, true},
 		{"price_dropped false", GetDealsParams{PriceDropped: &no}, false},
 		{"default", GetDealsParams{Sort: "discount"}, false},
@@ -23,6 +23,26 @@ func TestWantsPriceDropFilter(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			if got := wantsPriceDropFilter(tc.params); got != tc.want {
 				t.Fatalf("wantsPriceDropFilter() = %v, want %v", got, tc.want)
+			}
+		})
+	}
+}
+
+func TestNeedsPriceDropData(t *testing.T) {
+	yes := true
+	cases := []struct {
+		name   string
+		params GetDealsParams
+		want   bool
+	}{
+		{"sort price_drop", GetDealsParams{Sort: "price_drop"}, true},
+		{"price_dropped true", GetDealsParams{PriceDropped: &yes}, true},
+		{"default", GetDealsParams{Sort: "discount"}, false},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := needsPriceDropData(tc.params); got != tc.want {
+				t.Fatalf("needsPriceDropData() = %v, want %v", got, tc.want)
 			}
 		})
 	}

@@ -7,12 +7,17 @@ import (
 
 const defaultPriceDropWithinDays = 7
 
-// wantsPriceDropFilter is true when the caller requests recent price-drop listings.
+// wantsPriceDropFilter is true when the caller requests only recent price-drop listings.
 func wantsPriceDropFilter(params GetDealsParams) bool {
-	if params.Sort == "price_drop" {
+	return params.PriceDropped != nil && *params.PriceDropped
+}
+
+// needsPriceDropData is true when recent price-drop CTE columns are required for sort or filter.
+func needsPriceDropData(params GetDealsParams) bool {
+	if wantsPriceDropFilter(params) {
 		return true
 	}
-	return params.PriceDropped != nil && *params.PriceDropped
+	return params.Sort == "price_drop"
 }
 
 func priceDropWithinDays(params GetDealsParams) int {
@@ -24,8 +29,8 @@ func priceDropWithinDays(params GetDealsParams) int {
 
 // groupedFilteredCTEPrefix returns the leading "WITH …" fragment for getDealsGrouped.
 // Must always include WITH so the filtered CTE is valid SQL even when no price-drop CTE is present.
-func groupedFilteredCTEPrefix(priceDropFilter bool) string {
-	if priceDropFilter {
+func groupedFilteredCTEPrefix(needsPriceDropData bool) string {
+	if needsPriceDropData {
 		return `WITH ` + recentPriceDropsCTE(1) + `,`
 	}
 	return `WITH `
