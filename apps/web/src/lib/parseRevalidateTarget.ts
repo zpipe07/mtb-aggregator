@@ -1,14 +1,25 @@
+export type ParsedRevalidateTarget = {
+  /** Pathname only — this is what Next.js `revalidatePath` uses. */
+  pathname: string;
+  /** Query string including `?`, or empty when absent. For display only. */
+  search: string;
+};
+
 /**
- * Normalize a user-entered path or full site URL into a site-relative path
- * suitable for `revalidatePath` (pathname + optional search).
+ * Normalize a user-entered path or full site URL.
+ *
+ * Next.js `revalidatePath` matches route segments only — query strings are
+ * ignored and must not be passed through or the wrong cache tag is invalidated.
  */
-export function parseRevalidateTarget(input: string): string {
+export function parseRevalidateTarget(input: string): ParsedRevalidateTarget {
   const trimmed = input.trim();
   if (!trimmed) {
     throw new Error("Path is required");
   }
 
-  let path: string;
+  let pathname: string;
+  let search = "";
+
   if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
     let url: URL;
     try {
@@ -16,17 +27,25 @@ export function parseRevalidateTarget(input: string): string {
     } catch {
       throw new Error("Invalid URL");
     }
-    path = url.pathname + url.search;
+    pathname = url.pathname;
+    search = url.search;
   } else {
-    path = trimmed.startsWith("/") ? trimmed : `/${trimmed}`;
+    const path = trimmed.startsWith("/") ? trimmed : `/${trimmed}`;
+    const qIndex = path.indexOf("?");
+    if (qIndex === -1) {
+      pathname = path;
+    } else {
+      pathname = path.slice(0, qIndex) || "/";
+      search = path.slice(qIndex);
+    }
   }
 
-  if (path.includes("://") || path.startsWith("//")) {
+  if (pathname.includes("://") || pathname.startsWith("//")) {
     throw new Error("Only site-relative paths are allowed");
   }
-  if (path.includes("..")) {
+  if (pathname.includes("..")) {
     throw new Error("Path must not contain '..'");
   }
 
-  return path;
+  return { pathname, search };
 }
