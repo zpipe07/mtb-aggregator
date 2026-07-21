@@ -95,11 +95,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: message }, { status: 400 });
   }
 
-  if (
-    targets.length === 0 &&
-    tags.length === 0 &&
-    !body.purge_all
-  ) {
+  if (targets.length === 0 && tags.length === 0 && !body.purge_all) {
     return NextResponse.json(
       { error: "Provide at least one path or tag" },
       { status: 400 },
