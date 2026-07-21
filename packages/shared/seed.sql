@@ -78,3 +78,7 @@ WHERE NOT EXISTS (SELECT 1 FROM stores WHERE name = 'The Gravity Cartel');
 INSERT INTO stores (name, base_url, scrape_url, store_type, affiliate_network)
 SELECT 'Bikes Online', 'https://www.bikesonline.com', 'https://www.bikesonline.com/collections/sale', 'bikesonline', NULL
 WHERE NOT EXISTS (SELECT 1 FROM stores WHERE name = 'Bikes Online');
+
+INSERT INTO stores (name, base_url, scrape_url, store_type, affiliate_network)
+SELECT 'Evo', 'https://www.evo.com', 'https://www.evo.com/collections/bike-sale', 'evo', NULL
+WHERE NOT EXISTS (SELECT 1 FROM stores WHERE name = 'Evo');
