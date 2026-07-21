@@ -1,6 +1,9 @@
 package db
 
-import "fmt"
+import (
+	"fmt"
+	"time"
+)
 
 const defaultPriceDropWithinDays = 7
 
@@ -30,20 +33,67 @@ func groupedFilteredCTEPrefix(priceDropFilter bool) string {
 
 // recentPriceDropsCTE returns SQL for a CTE named recent_price_drops. daysArg is the
 // 1-based placeholder index for the within-days interval parameter.
+// A listing qualifies when any consecutive scrape pair within the window shows a lower price;
+// drop_amount is the largest such decrease in the window.
 func recentPriceDropsCTE(daysArg int) string {
 	return fmt.Sprintf(`
 recent_price_drops AS (
-  SELECT
+  SELECT DISTINCT ON (listing_id)
     listing_id,
-    (ARRAY_AGG(price ORDER BY recorded_at DESC))[2]
-      - (ARRAY_AGG(price ORDER BY recorded_at DESC))[1] AS drop_amount,
-    (ARRAY_AGG(recorded_at ORDER BY recorded_at DESC))[1] AS dropped_at
-  FROM price_history
-  GROUP BY listing_id
-  HAVING COUNT(*) >= 2
-    AND (ARRAY_AGG(price ORDER BY recorded_at DESC))[1]
-      < (ARRAY_AGG(price ORDER BY recorded_at DESC))[2]
-    AND (ARRAY_AGG(recorded_at ORDER BY recorded_at DESC))[1]
-      >= NOW() - ($%d::int * INTERVAL '1 day')
+    prev_price - price AS drop_amount,
+    recorded_at AS dropped_at
+  FROM (
+    SELECT
+      listing_id,
+      price,
+      recorded_at,
+      LAG(price) OVER (PARTITION BY listing_id ORDER BY recorded_at) AS prev_price
+    FROM price_history
+    WHERE recorded_at >= NOW() - ($%d::int * INTERVAL '1 day')
+  ) price_deltas
+  WHERE prev_price IS NOT NULL
+    AND price < prev_price
+  ORDER BY listing_id, (prev_price - price) DESC, recorded_at DESC
 )`, daysArg)
+}
+
+// hasPriceDropWithinDays reports whether any consecutive price_history points within
+// withinDays show a decrease on the later point.
+func hasPriceDropWithinDays(points []PriceHistoryPoint, withinDays int) bool {
+	if len(points) < 2 || withinDays <= 0 {
+		return false
+	}
+	cutoff := time.Now().Add(-time.Duration(withinDays) * 24 * time.Hour)
+	for i := 1; i < len(points); i++ {
+		curr, prev := points[i], points[i-1]
+		recordedAt, err := parseRecordedAt(curr.RecordedAt)
+		if err != nil || recordedAt.Before(cutoff) {
+			continue
+		}
+		if curr.Price < prev.Price {
+			return true
+		}
+	}
+	return false
+}
+
+func parseRecordedAt(s string) (time.Time, error) {
+	layouts := []string{
+		time.RFC3339Nano,
+		time.RFC3339,
+		"2006-01-02 15:04:05.999999-07",
+		"2006-01-02 15:04:05.999999-07:00",
+		"2006-01-02 15:04:05-07",
+		"2006-01-02 15:04:05-07:00",
+		"2006-01-02 15:04:05.999999Z07:00",
+	}
+	var lastErr error
+	for _, layout := range layouts {
+		t, err := time.Parse(layout, s)
+		if err == nil {
+			return t, nil
+		}
+		lastErr = err
+	}
+	return time.Time{}, lastErr
 }

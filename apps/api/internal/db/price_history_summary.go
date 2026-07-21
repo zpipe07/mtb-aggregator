@@ -22,20 +22,31 @@ func (db *DB) attachPriceHistorySummaries(ctx context.Context, deals []Deal) err
 	}
 
 	rows, err := db.pool.Query(ctx, `
+		WITH deltas AS (
+			SELECT
+				listing_id,
+				price,
+				recorded_at,
+				LAG(price) OVER (PARTITION BY listing_id ORDER BY recorded_at) AS prev_price
+			FROM price_history
+			WHERE listing_id = ANY($1)
+		)
 		SELECT listing_id,
 			COUNT(*)::int,
 			MIN(price),
 			MAX(price),
 			COALESCE(
-				(ARRAY_AGG(price ORDER BY recorded_at DESC))[1]
-					< (ARRAY_AGG(price ORDER BY recorded_at DESC))[2],
+				BOOL_OR(
+					prev_price IS NOT NULL
+					AND price < prev_price
+					AND recorded_at >= NOW() - ($2::int * INTERVAL '1 day')
+				),
 				false
 			)
-		FROM price_history
-		WHERE listing_id = ANY($1)
+		FROM deltas
 		GROUP BY listing_id
 		HAVING COUNT(*) >= 2
-	`, ids)
+	`, ids, defaultPriceDropWithinDays)
 	if err != nil {
 		return err
 	}

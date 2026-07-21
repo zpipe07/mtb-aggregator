@@ -129,7 +129,7 @@ export async function fetchDeals(
   exclude_category_slug?: string;
   q?: string;
   sort?: string;
-  /** When true, only listings whose latest scrape price is below the previous history point. */
+  /** When true, only listings with a scrape-to-scrape price decrease within the recency window. */
   price_dropped?: boolean;
   /** Recency window in days for price_dropped / sort=price_drop (default 7). */
   price_drop_within_days?: number;
