@@ -17,7 +17,15 @@ Visual identity and language guidelines for the MTB Deal Aggregator. Use this wh
 | **Imagery** | High-contrast, "action" photography. Avoid stock photos of smiling people on bikes. Use close-ups of gritty components: a muddy derailleur, a clean carbon weave, or a tire biting into loam. |
 | **The Vibe** | **"Dialed-in."** The site shouldn't feel like a mall; it should feel like a specialized tool. |
 
-**Logo:** Primary mark is [`apps/web/public/logo.png`](../apps/web/public/logo.png) (vertical icon). [`logo-light.png`](../apps/web/public/logo-light.png) is the same mark tuned for dark backgrounds—used in the public nav when dark mode is active. **Favicon:** [`favicon.png`](../apps/web/public/favicon.png) when the OS/browser prefers light chrome, [`favicon-light.png`](../apps/web/public/favicon-light.png) when it prefers dark (`metadata.icons` in `layout.tsx`). Admin chrome uses `logo.png`. Additional wordmark assets may live in `public/` for one-off use (e.g. exports).
+**Logo:** Primary mark is the **compact trail-drop logo** — "THE" above a planked wooden platform, "DROPPER" tucked below, support post, diagonal brace, and rider-trajectory arrow. Inspired by "drop ahead" trail warning signs. Assets:
+
+- [`apps/web/src/components/TheDropperLogo.tsx`](../apps/web/src/components/TheDropperLogo.tsx) — inline SVG React component used in the public nav (`NavHeader`). Fills with `currentColor`, so it adapts to theme/context automatically. Storybook: `Components/TheDropperLogo`.
+- [`apps/web/public/the-dropper-logo.svg`](../apps/web/public/the-dropper-logo.svg) — standalone SVG (same artwork) for exports and one-off use.
+- [`apps/web/public/the-dropper-icon.svg`](../apps/web/public/the-dropper-icon.svg) — square icon variant (drop + arrow, no text) used to generate favicons.
+
+**Favicon:** [`favicon.png`](../apps/web/public/favicon.png) (near-black ink) when the OS/browser prefers light chrome, [`favicon-light.png`](../apps/web/public/favicon-light.png) (near-white) when it prefers dark (`metadata.icons` in `layout.tsx`). Both are 512×512 renders of `the-dropper-icon.svg` on transparent backgrounds.
+
+Legacy raster marks (`logo.png`, `logo-light.png`, `the-dropper-logo.png`, `the-dropper-logo-horizontal.png`) remain in `public/` — admin chrome and Open Graph images still reference them.
 
 ---
 

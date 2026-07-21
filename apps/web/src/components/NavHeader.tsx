@@ -13,6 +13,7 @@ import {
 } from "@/components/DealsMegaMenu";
 import { cn, focusRing, focusRingInset } from "@/lib/utils";
 import { mainNavLinkTypography } from "@/lib/mainNavStyles";
+import { TheDropperLogo } from "@/components/TheDropperLogo";
 
 type NavHeaderProps = {
   categoryTree?: CategoryTreeNode[];
@@ -88,25 +89,16 @@ export function NavHeader({ categoryTree = [] }: NavHeaderProps) {
       className="relative z-40 border-b border-border bg-background text-foreground"
       onMouseLeave={handleHeaderMouseLeave}
     >
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
+      <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-2 sm:px-6 sm:py-3">
         <Link
           href="/"
           className={cn(
-            "flex items-center gap-3 rounded-sm transition-opacity hover:opacity-90",
+            "flex items-center rounded-sm transition-opacity hover:opacity-90",
             focusRing,
           )}
           aria-label="The Dropper - Home"
         >
-          <img
-            src="/logo.png"
-            alt=""
-            className="h-9 w-auto sm:h-10"
-            width={120}
-            height={36}
-          />
-          <span className="font-mono text-[11px] font-bold tracking-[0.2em] sm:text-xs">
-            THE DROPPER //
-          </span>
+          <TheDropperLogo variant="nav" className="h-15 w-auto sm:h-20" />
         </Link>
 
         {/* Desktop nav */}
@@ -192,7 +184,9 @@ export function NavHeader({ categoryTree = [] }: NavHeaderProps) {
         id="mobile-nav"
         className={cn(
           "overflow-hidden transition-all duration-200 ease-out lg:hidden",
-          mobileMenuOpen ? "max-h-[min(85vh,40rem)] opacity-100" : "max-h-0 opacity-0",
+          mobileMenuOpen
+            ? "max-h-[min(85vh,40rem)] opacity-100"
+            : "max-h-0 opacity-0",
         )}
         aria-hidden={!mobileMenuOpen}
       >
