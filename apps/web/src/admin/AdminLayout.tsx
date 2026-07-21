@@ -15,6 +15,7 @@ const navItems = [
   { to: "/admin/llm-profiles", end: false, label: "LLM Profiles" },
   { to: "/admin/category-classifier", end: false, label: "Category Classifier" },
   { to: "/admin/operations", end: false, label: "Operations" },
+  { to: "/admin/cache", end: false, label: "Cache" },
 ];
 
 export function AdminLayout({ children }: { children: React.ReactNode }) {

@@ -52,6 +52,7 @@ import {
   deleteAdminCategory,
   runDBMigrate,
   runDBSeed,
+  revalidateCache,
   type StoreFormBody,
 } from "../api";
 import {
@@ -730,5 +731,11 @@ export function useDeleteAdminCategory() {
       queryClient.invalidateQueries({ queryKey: adminCategoryKeys.all });
       queryClient.invalidateQueries({ queryKey: dealKeys.all });
     },
+  });
+}
+
+export function useRevalidateCache() {
+  return useMutation({
+    mutationFn: revalidateCache,
   });
 }

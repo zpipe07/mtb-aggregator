@@ -1,6 +1,6 @@
 import { getApiBase } from "@/lib/api";
 import { normalizeCategoryTree } from "@/lib/categoryTree";
-import { PUBLIC_ISR_REVALIDATE_SECONDS } from "@/lib/revalidate";
+import { PUBLIC_DATA_CACHE_TAG, PUBLIC_ISR_REVALIDATE_SECONDS } from "@/lib/revalidate";
 
 /** One SKU variant when deals are grouped (Shopify). */
 export interface DealVariantRow {
@@ -68,9 +68,16 @@ const DEFAULT_PAGE_SIZE = 24;
 /** Skip Next.js data cache (bulk SEO fetches that exceed the 2MB cache limit). */
 type FetchCacheOptions = { noStore?: boolean };
 
+const PUBLIC_FETCH_CACHE: RequestInit = {
+  next: {
+    revalidate: PUBLIC_ISR_REVALIDATE_SECONDS,
+    tags: [PUBLIC_DATA_CACHE_TAG],
+  },
+};
+
 function publicFetchInit(options?: FetchCacheOptions): RequestInit {
   if (options?.noStore) return { cache: "no-store" };
-  return { next: { revalidate: PUBLIC_ISR_REVALIDATE_SECONDS } };
+  return PUBLIC_FETCH_CACHE;
 }
 
 const RETRYABLE_STATUS = new Set([408, 429, 500, 502, 503, 504]);
@@ -195,9 +202,7 @@ export async function fetchDeals(
 export { DEFAULT_PAGE_SIZE };
 
 export async function fetchDeal(id: number): Promise<Deal> {
-  const res = await fetch(`${getApiBase()}/deals/${id}`, {
-    next: { revalidate: PUBLIC_ISR_REVALIDATE_SECONDS },
-  });
+  const res = await fetch(`${getApiBase()}/deals/${id}`, PUBLIC_FETCH_CACHE);
   if (!res.ok) throw new Error("Failed to fetch deal");
   return res.json();
 }
@@ -218,26 +223,20 @@ export interface PriceHistoryResponse {
 export async function fetchPriceHistory(
   dealId: number,
 ): Promise<PriceHistoryResponse> {
-  const res = await fetch(`${getApiBase()}/deals/${dealId}/price-history`, {
-    next: { revalidate: PUBLIC_ISR_REVALIDATE_SECONDS },
-  });
+  const res = await fetch(`${getApiBase()}/deals/${dealId}/price-history`, PUBLIC_FETCH_CACHE);
   if (!res.ok) throw new Error("Failed to fetch price history");
   return res.json();
 }
 
 export async function fetchStores(): Promise<Store[]> {
-  const res = await fetch(`${getApiBase()}/stores`, {
-    next: { revalidate: PUBLIC_ISR_REVALIDATE_SECONDS },
-  });
+  const res = await fetch(`${getApiBase()}/stores`, PUBLIC_FETCH_CACHE);
   if (!res.ok) throw new Error("Failed to fetch stores");
   const data = await res.json();
   return Array.isArray(data) ? data : [];
 }
 
 export async function fetchBrands(): Promise<string[]> {
-  const res = await fetch(`${getApiBase()}/brands`, {
-    next: { revalidate: PUBLIC_ISR_REVALIDATE_SECONDS },
-  });
+  const res = await fetch(`${getApiBase()}/brands`, PUBLIC_FETCH_CACHE);
   if (!res.ok) throw new Error("Failed to fetch brands");
   const data = await res.json();
   return Array.isArray(data) ? data : [];
@@ -269,9 +268,7 @@ export interface CategoryTreeNode {
 }
 
 export async function fetchCategoryTree(): Promise<CategoryTreeNode[]> {
-  const res = await fetch(`${getApiBase()}/categories/tree`, {
-    next: { revalidate: PUBLIC_ISR_REVALIDATE_SECONDS },
-  });
+  const res = await fetch(`${getApiBase()}/categories/tree`, PUBLIC_FETCH_CACHE);
   if (!res.ok) throw new Error("Failed to fetch category tree");
   const data = await res.json();
   return normalizeCategoryTree(Array.isArray(data) ? data : []);
@@ -398,9 +395,7 @@ export interface Status {
 }
 
 export async function fetchStatus(): Promise<Status> {
-  const res = await fetch(`${getApiBase()}/status`, {
-    next: { revalidate: PUBLIC_ISR_REVALIDATE_SECONDS },
-  });
+  const res = await fetch(`${getApiBase()}/status`, PUBLIC_FETCH_CACHE);
   if (!res.ok) throw new Error("Failed to fetch status");
   return res.json();
 }

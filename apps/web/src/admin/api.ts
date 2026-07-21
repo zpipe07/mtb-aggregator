@@ -1709,3 +1709,45 @@ export async function postAdminListingsBulkLLMSpecs(
   }
   return data as BulkListingsResult;
 }
+
+export interface RevalidateCacheRequest {
+  path?: string;
+  paths?: string[];
+  tag?: string;
+  tags?: string[];
+  type?: "page" | "layout";
+}
+
+export interface RevalidateCacheResponse {
+  ok: boolean;
+  revalidated_paths: string[];
+  revalidated_tags: string[];
+  type: "page" | "layout";
+  default_public_tag: string;
+}
+
+/** On-demand ISR / fetch cache purge (Next.js route, not Go API). */
+export async function revalidateCache(
+  body: RevalidateCacheRequest,
+): Promise<RevalidateCacheResponse> {
+  const res = await fetch("/admin/api/revalidate", {
+    method: "POST",
+    headers: adminHeaders(),
+    body: JSON.stringify(body),
+  });
+  const data = (await res.json().catch(() => ({}))) as RevalidateCacheResponse & {
+    error?: string;
+  };
+  if (!res.ok) {
+    const msg =
+      typeof data?.error === "string"
+        ? data.error
+        : res.status === 401
+          ? "Unauthorized"
+          : res.status === 503
+            ? "Cache purge unavailable (set ADMIN_PASSWORD on the web app)"
+            : "Cache revalidation failed";
+    throw new Error(msg);
+  }
+  return data;
+}
