@@ -1,4 +1,4 @@
-.PHONY: dev db-up db-down db-migrate db-migrate-docker db-seed db-up-local db-migrate-local db-migrate-remote db-seed-remote backfill-brands backfill-canonical-categories backfill-llm-specs backfill-field-library backfill-variant-options backfill-jenson-variants backfill-cc-variants scrape scrape-now scrape-now-wwc scrape-now-revel scrape-now-competitivecyclist scrape-now-ridebicycles scrape-now-thundermountainbikes scrape-now-canyon scrape-now-specialized scrape-now-mackcycle scrape-now-trek scrape-now-universalcycles scrape-now-n1bikes scrape-now-foxracing scrape-now-rideconcepts scrape-now-leatt scrape-now-chromag scrape-now-gravitycartel scrape-now-bell scrape-now-giro scrape-now-bikesonline enrich-now enrich-now-revel enrich-now-competitivecyclist enrich-now-thundermountainbikes enrich-now-canyon enrich-now-specialized enrich-now-mackcycle enrich-now-trek enrich-now-universalcycles enrich-now-n1bikes enrich-now-foxracing enrich-now-rideconcepts enrich-now-leatt enrich-now-chromag enrich-now-gravitycartel enrich-now-bell enrich-now-giro enrich-now-bikesonline build-all install impact-catalog-probe
+.PHONY: dev db-up db-down db-migrate db-migrate-docker db-seed db-up-local db-migrate-local db-migrate-remote db-seed-remote backfill-brands backfill-canonical-categories backfill-llm-specs backfill-field-library backfill-variant-options backfill-jenson-variants backfill-cc-variants scrape scrape-now scrape-now-wwc scrape-now-revel scrape-now-competitivecyclist scrape-now-ridebicycles scrape-now-thundermountainbikes scrape-now-canyon scrape-now-specialized scrape-now-mackcycle scrape-now-trek scrape-now-universalcycles scrape-now-n1bikes scrape-now-foxracing scrape-now-rideconcepts scrape-now-leatt scrape-now-chromag scrape-now-gravitycartel scrape-now-bell scrape-now-giro scrape-now-bikesonline scrape-now-evo enrich-now enrich-now-revel enrich-now-competitivecyclist enrich-now-thundermountainbikes enrich-now-canyon enrich-now-specialized enrich-now-mackcycle enrich-now-trek enrich-now-universalcycles enrich-now-n1bikes enrich-now-foxracing enrich-now-rideconcepts enrich-now-leatt enrich-now-chromag enrich-now-gravitycartel enrich-now-bell enrich-now-giro enrich-now-bikesonline enrich-now-evo build-all install impact-catalog-probe
 
 # Ensure Make can find docker (Docker Desktop CLI locations)
 export PATH := /Applications/Docker.app/Contents/Resources/bin:/usr/local/bin:/opt/homebrew/bin:$(PATH)
@@ -184,6 +184,10 @@ scrape-now-giro:
 scrape-now-bikesonline:
 	@curl -s -X POST "http://localhost:8080/scrape-now?store=bikesonline"
 
+# Scrape only Evo (requires API running)
+scrape-now-evo:
+	@curl -s -X POST "http://localhost:8080/scrape-now?store=evo"
+
 # Trigger enrichment job manually (requires API and scraper running)
 # Add force=1 to re-enrich all listings: make enrich-now FORCE=1
 enrich-now:
@@ -240,6 +244,9 @@ enrich-now-giro:
 
 enrich-now-bikesonline:
 	@curl -s -X POST "http://localhost:8080/enrich-now?store=bikesonline$(if $(FORCE),&force=1,)"
+
+enrich-now-evo:
+	@curl -s -X POST "http://localhost:8080/enrich-now?store=evo$(if $(FORCE),&force=1,)"
 
 # Discover Impact catalogs and sample CC catalog items (requires IMPACT_ACCOUNT_SID + IMPACT_AUTH_TOKEN in .env)
 impact-catalog-probe:
