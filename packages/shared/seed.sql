@@ -82,3 +82,7 @@ WHERE NOT EXISTS (SELECT 1 FROM stores WHERE name = 'Bikes Online');
 INSERT INTO stores (name, base_url, scrape_url, store_type, affiliate_network)
 SELECT 'Evo', 'https://www.evo.com', 'https://www.evo.com/collections/bike-sale', 'evo', NULL
 WHERE NOT EXISTS (SELECT 1 FROM stores WHERE name = 'Evo');
+
+INSERT INTO stores (name, base_url, scrape_url, store_type, affiliate_network)
+SELECT 'Cambria Bikes', 'https://cambriabike.com', 'https://cambriabike.com/collections/all-sale-products', 'cambriabikes', NULL
+WHERE NOT EXISTS (SELECT 1 FROM stores WHERE name = 'Cambria Bikes');

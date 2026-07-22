@@ -42,6 +42,7 @@ export const STORE_TYPES = [
   "giro",
   "bikesonline",
   "evo",
+  "cambriabikes",
 ] as const;
 export type StoreType = (typeof STORE_TYPES)[number];
 

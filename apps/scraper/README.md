@@ -214,6 +214,17 @@ make scrape-now-evo
 make enrich-now-evo
 ```
 
+### Cambria Bikes
+
+**Listing scrape** (`cambriabikes` in `PARSERS`) uses **fetch** against Shopify collection `products.json` on `/collections/all-sale-products` (`limit=250`, paginated). Browser-like User-Agent, Referer, paced pagination (`CAMBRIABIKES_PAGE_DELAY_MS`, default 500ms), and retries on 403/429/503. Emits one row per variant; `product_group_key` is the product handle; `variant_options` from `shopify-helpers`. Seed `scrape_url`: `https://cambriabike.com/collections/all-sale-products`.
+
+**PDP enrichment** (`enrichCambriaBikes`) mirrors Mack Cycle / Chromag: parallel product JSON (specs from `body_html` tables/dl) and PDP HTML (breadcrumbs).
+
+```bash
+make scrape-now-cambriabikes
+make enrich-now-cambriabikes
+```
+
 ### Trek
 
 **Listing scrape** (`trek` in `PARSERS`) uses **fetch** against SAP Commerce OCC (`api.trekbikes.com/occ/v2/us/categories/B300/products?query=:relevance:saleFlag:true`), paginated with `currentPage` / `pageSize=24`. In parallel, fetches the seed PLP HTML and parses Vue `:product` blocks for `wasPriceRange` (MSRP). Emits one row per product code; `store_sku` and `product_group_key` are the OCC `code`. Seed `scrape_url`: MTB category B300 with `saleFlag:true`.
@@ -296,6 +307,7 @@ Parsers live in `src/parsers/` — one file per store:
 - `gravitycartel.ts` — The Gravity Cartel (Shopify collection JSON + PDP enrich; **in-stock variants only**)
 - `bikesonline.ts` — Bikes Online (Shopify collection JSON + PDP enrich like Mack Cycle)
 - `evo.ts` — Evo (Shopify collection JSON via Playwright + PDP enrich; Cloudflare-protected)
+- `cambriabikes.ts` — Cambria Bikes (Shopify collection JSON + PDP enrich like Chromag)
 - `canyon.ts` / `canyon-plp.ts` / `canyon-pdp.ts` — Canyon US sale (Demandware ajax PLP + fetch PDP enrich)
 - `specialized.ts` / `specialized-plp.ts` / `specialized-pdp.ts` — Specialized US sale (GraphQL PLP + fetch PDP enrich)
 - `trek.ts` / `trek-plp.ts` / `trek-pdp.ts` — Trek US MTB sale (OCC PLP + HTML MSRP merge + fetch PDP enrich)
@@ -334,7 +346,7 @@ Parsers live in `src/parsers/` — one file per store:
 
 **JensonUSA** (`jensonusa.ts`): clearance cards expose `variants[]` inside `data-product-result-dto` (after page hydration). The parser emits **one row per variant** with `store_sku` = `variant.code`, `product_group_key` = parent `dto.code`, and `variant_options` from whatever facet fields exist on the **listing** DTO (often **Color only**; Size and other axes may be missing). **PDP enrichment** (`enrichJensonUSA`) parses `serverSideViewModel.variants` from the product page HTML and returns a `variants` array (`code`, `dimensions`, `is_orderable`); the API fans that out to every sibling row with the same `product_group_key` (one PDP fetch per parent). Parser modules: `jensonusa-dto.ts`, `jensonusa-pdp.ts`, tests `jensonusa-dto*.test.ts`, `jensonusa-pdp-variants.test.ts`.
 
-Shopify parsers (`ridebicycles`, `worldwidecyclery`, `revelbikes`, `thundermountainbikes`, `mackcycle`, `rideconcepts`, `leatt`, `chromag`, `gravitycartel`, `bikesonline`, `evo`) emit one row per variant; the API stores `product_group_key` as `{store_id}:{handle}` and `variant_options` as JSON for deduplication and filters. Shared helpers: `parsers/shopify-helpers.ts`. Evo uses Playwright for JSON/HTML because Cloudflare blocks plain fetch.
+Shopify parsers (`ridebicycles`, `worldwidecyclery`, `revelbikes`, `thundermountainbikes`, `mackcycle`, `rideconcepts`, `leatt`, `chromag`, `gravitycartel`, `bikesonline`, `evo`, `cambriabikes`) emit one row per variant; the API stores `product_group_key` as `{store_id}:{handle}` and `variant_options` as JSON for deduplication and filters. Shared helpers: `parsers/shopify-helpers.ts`. Evo uses Playwright for JSON/HTML because Cloudflare blocks plain fetch.
 
 ## Running
 
