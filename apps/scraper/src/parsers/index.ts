@@ -25,6 +25,7 @@ import { scrapeGiro, enrichGiro } from "./giro.js";
 import { scrapeBikesOnline, enrichBikesOnline } from "./bikesonline.js";
 import { scrapeEvo, enrichEvo } from "./evo.js";
 import { scrapeCambriaBikes, enrichCambriaBikes } from "./cambriabikes.js";
+import { scrape365Cycles, enrich365Cycles } from "./365cycles.js";
 import { enrichCompetitiveCyclist } from "./competitivecyclist.js";
 
 export type ParserFn = (url: string) => Promise<ScrapeResult[]>;
@@ -53,6 +54,7 @@ export const PARSERS: Record<string, ParserFn> = {
   bikesonline: scrapeBikesOnline,
   evo: scrapeEvo,
   cambriabikes: scrapeCambriaBikes,
+  "365cycles": scrape365Cycles,
 };
 
 export const ENRICHERS: Record<string, EnrichFn> = {
@@ -78,6 +80,7 @@ export const ENRICHERS: Record<string, EnrichFn> = {
   bikesonline: enrichBikesOnline,
   evo: enrichEvo,
   cambriabikes: enrichCambriaBikes,
+  "365cycles": enrich365Cycles,
   competitivecyclist: enrichCompetitiveCyclist,
 };
 

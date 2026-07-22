@@ -86,3 +86,7 @@ WHERE NOT EXISTS (SELECT 1 FROM stores WHERE name = 'Evo');
 INSERT INTO stores (name, base_url, scrape_url, store_type, affiliate_network)
 SELECT 'Cambria Bikes', 'https://cambriabike.com', 'https://cambriabike.com/collections/all-sale-products', 'cambriabikes', NULL
 WHERE NOT EXISTS (SELECT 1 FROM stores WHERE name = 'Cambria Bikes');
+
+INSERT INTO stores (name, base_url, scrape_url, store_type, affiliate_network)
+SELECT '365 Cycles', 'https://365cycles.com', 'https://365cycles.com/collections/shopify-sale', '365cycles', NULL
+WHERE NOT EXISTS (SELECT 1 FROM stores WHERE name = '365 Cycles');
