@@ -229,7 +229,7 @@ const HAND_TUNED: Partial<Record<string, Partial<CategorySeoMeta>>> = {
   },
   gear: {
     description:
-      "Compare deals on MTB gear: helmets, protection, clothing, and shoes.",
+      "Compare deals on MTB gear: helmets, eyewear, protection, clothing, and shoes.",
     intro:
       "Browse gear sale prices and compare retailers in one place.",
   },
@@ -238,6 +238,24 @@ const HAND_TUNED: Partial<Record<string, Partial<CategorySeoMeta>>> = {
       "Find the best deals on mountain bike helmets. Compare prices across brands and retailers.",
     intro:
       "Shop helmet discounts and compare prices across top retailers.",
+  },
+  "gear-eyewear": {
+    description:
+      "Compare deals on MTB sunglasses and bike goggles. Find sale prices across retailers.",
+    intro:
+      "Shop eyewear deals for trail, enduro, and downhill riding.",
+  },
+  "gear-eyewear-sunglasses": {
+    description:
+      "Find the best deals on cycling sunglasses and MTB glasses. Compare prices across brands.",
+    intro:
+      "Browse sunglass deals for trail and gravel riding.",
+  },
+  "gear-eyewear-goggles": {
+    description:
+      "Compare mountain bike goggle deals. Find discounts on DH and enduro goggles.",
+    intro:
+      "Shop goggle deals for full-face and gravity riding.",
   },
   "gear-protection": {
     description:
