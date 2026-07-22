@@ -130,6 +130,31 @@
     },
     { "raw": ["helmet", "helmets"], "canonical": ["Gear", "Helmets"] },
     {
+      "raw": [
+        "goggle",
+        "goggles",
+        "mtb goggle",
+        "bike goggle",
+        "bike goggles",
+        "mtb goggles"
+      ],
+      "canonical": ["Gear", "Eyewear", "Goggles"]
+    },
+    {
+      "raw": [
+        "sunglass",
+        "sunglasses",
+        "cycling glasses",
+        "bike glasses",
+        "riding glasses"
+      ],
+      "canonical": ["Gear", "Eyewear", "Sunglasses"]
+    },
+    {
+      "raw": ["eyewear", "cycling eyewear", "bike eyewear"],
+      "canonical": ["Gear", "Eyewear"]
+    },
+    {
       "raw": ["protection", "pad", "guard", "knee", "elbow"],
       "canonical": ["Gear", "Protection"]
     },

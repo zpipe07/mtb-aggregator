@@ -21,8 +21,12 @@ How MTB categories are structured and mapped from store-specific paths to a cano
 ### 3. LLM-Driven Classification
 
 - **Profiles**: `llm_prompt_profiles` define extraction schema (label, sort_order, filterable fields). Use `multi_enum` in `llm_extraction_field_defs` / profile fields when a spec should store multiple values (JSON array in `metadata.llm_specs`); filters still use a single selected value and match if it equals the scalar or appears in the array.
-- **Classifier**: `llm_category_classifier` — optional LLM that picks a canonical path from the **structured `categories` tree** (not limited to “when no mapping exists”; it runs after enrichment and can override path-derived `canonical_category` when confidence ≥ `confidence_threshold`).
+- **Classifier**: `llm_category_classifier` — optional LLM that picks a canonical path from the **structured `categories` tree** (valid paths are derived at runtime via `GetAllCategoryPaths`; new category rows are picked up automatically after migrate). Runs after enrichment and can override path-derived `canonical_category` when confidence ≥ `confidence_threshold`.
 - **Spec filters**: LLM-driven per category; legacy `spec_filter_config` is deprecated
+
+## Gear branch (wear / protect)
+
+Under **Gear**, first-level children include Helmets, Shoes, **Eyewear** (Sunglasses, Goggles), Gloves, Protection, and Clothing. Migration `027` added Eyewear with high-priority mappings for store paths containing goggle/sunglass/eyewear keywords, plus a product-name backfill for misfiled listings.
 
 ## Data Flow
 
