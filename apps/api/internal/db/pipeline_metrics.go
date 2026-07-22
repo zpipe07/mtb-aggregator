@@ -72,7 +72,7 @@ func (db *DB) GetPipelineMetrics(ctx context.Context, days int) (PipelineMetrics
 		return PipelineMetrics{}, err
 	}
 
-	rows, err := db.pool.Query(ctx, fmt.Sprintf(`
+	rows, err := db.pool.Query(ctx, `
 		SELECT s.id, s.name, COALESCE(s.store_type, ''), COUNT(l.id)::int
 		FROM stores s
 		LEFT JOIN store_listings l ON l.store_id = s.id
@@ -80,7 +80,7 @@ func (db *DB) GetPipelineMetrics(ctx context.Context, days int) (PipelineMetrics
 			AND (l.last_enriched_at IS NULL OR l.last_scraped > l.last_enriched_at)
 		GROUP BY s.id, s.name, s.store_type
 		ORDER BY COUNT(l.id) DESC, s.name
-	`))
+	`)
 	if err != nil {
 		return PipelineMetrics{}, err
 	}
