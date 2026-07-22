@@ -15,6 +15,12 @@ export const adminDashboardKeys = {
   all: ["admin", "dashboard"] as const,
 };
 
+export const adminPipelineMetricsKeys = {
+  all: ["admin", "pipelineMetrics"] as const,
+  detail: (days: number) =>
+    [...adminPipelineMetricsKeys.all, days] as const,
+};
+
 export const adminScrapeJobKeys = {
   all: ["admin", "scrapeJobs"] as const,
   list: (params: { limit?: number; offset?: number; store_id?: number }) =>

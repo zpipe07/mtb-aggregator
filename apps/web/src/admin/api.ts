@@ -69,6 +69,52 @@ export async function fetchDashboard(): Promise<DashboardResponse> {
   return res.json();
 }
 
+export interface PipelineStoreBacklog {
+  store_id: number;
+  name: string;
+  store_type: string;
+  count: number;
+}
+
+export interface PipelineBacklog {
+  total: number;
+  stale_since_scrape: number;
+  never_enriched: number;
+  by_store: PipelineStoreBacklog[];
+}
+
+export interface PipelineFreshness {
+  in_stock_total: number;
+  never_enriched: number;
+  lt_24h: number;
+  d1_7: number;
+  d7_30: number;
+  gt_30d: number;
+}
+
+export interface PipelineMetricsResponse {
+  backlog: PipelineBacklog;
+  freshness: PipelineFreshness;
+  recent_scrape_jobs: ScrapeJob[];
+  recent_enrich_jobs: EnrichJob[];
+  days: number;
+}
+
+export async function fetchPipelineMetrics(
+  days = 30,
+): Promise<PipelineMetricsResponse> {
+  const res = await fetch(
+    `${getApiBase()}/admin/metrics/pipeline?days=${days}`,
+    { headers: adminHeaders() },
+  );
+  if (!res.ok) {
+    throw new Error(
+      res.status === 401 ? "Unauthorized" : "Failed to fetch pipeline metrics",
+    );
+  }
+  return res.json();
+}
+
 /** Trigger scrape; pass store type (e.g. "worldwidecyclery") to scrape one store, or omit for all. */
 export async function triggerScrape(store?: string): Promise<void> {
   const url = store

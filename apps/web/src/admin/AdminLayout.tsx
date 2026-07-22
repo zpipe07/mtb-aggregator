@@ -8,6 +8,7 @@ const navItems = [
   { to: "/admin", end: true, label: "Dashboard" },
   { to: "/admin/stores", end: false, label: "Stores" },
   { to: "/admin/data", end: false, label: "Data" },
+  { to: "/admin/insights", end: false, label: "Insights" },
   { to: "/admin/taxonomy", end: false, label: "Taxonomy" },
   { to: "/admin/categories", end: false, label: "Categories" },
   { to: "/admin/spec-filters", end: false, label: "Spec Filters" },

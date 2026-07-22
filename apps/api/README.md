@@ -47,6 +47,7 @@ Go HTTP server that orchestrates scraping, enrichment, and serves the REST API. 
 
 - `POST /admin/auth` — Validate password (`{"password":"..."}`); use same value as `Authorization: Bearer` on other `/admin/*` routes
 - `GET/POST/PUT/PATCH/DELETE /admin/*` — Dashboard, stores, taxonomy, profiles, etc.
+- **`GET /admin/metrics/pipeline`** — Scrape/enrich pipeline health for the admin Insights page. Query: optional `days` (default 30, max 90). Returns enrichment backlog (in-stock visible listings where `last_enriched_at` is null or `last_scraped` is newer), freshness buckets by `last_enriched_at` age, per-store backlog, and scrape/enrich job history in the window (for charts).
 - **`GET /admin/db/migrations`** — List incremental migration files and applied status (`schema_migrations` tracking; same logic as `go run ./cmd/migrate`)
 - **`POST /admin/db/migrate`** — Apply pending migrations from `MIGRATIONS_DIR` (default `packages/shared/migrations`; Docker image sets `/app/packages/shared/migrations`)
 - **`POST /admin/db/seed`** — Run idempotent `packages/shared/seed.sql` (store rows)

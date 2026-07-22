@@ -504,6 +504,8 @@ func main() {
 	http.HandleFunc("/admin/auth", api.PostAuthHandler)
 	// Admin: GET /admin/dashboard — aggregate stats, store health, scraper status (admin auth required)
 	http.HandleFunc("/admin/dashboard", api.AdminRequired(handlers.GetAdminDashboard))
+	// Admin: GET /admin/metrics/pipeline — scrape/enrich backlog, freshness, job history (admin auth required)
+	http.HandleFunc("/admin/metrics/pipeline", api.AdminRequired(handlers.GetAdminPipelineMetrics))
 	// Admin: GET /admin/store-types — allowed store types for dropdown
 	http.HandleFunc("/admin/store-types", api.AdminRequired(api.GetStoreTypes))
 	// Admin: GET /admin/store-types-with-enrichers — store types that support enrichment (for Enrich button)
