@@ -1564,6 +1564,18 @@ type ListingForEnrichment struct {
 	StoreSKU   string
 }
 
+// enrichmentStalenessFilter limits scheduled PDP enrich to never-enriched rows or those
+// enriched more than 7 days ago (unless force mode skips this filter).
+const enrichmentStalenessFilter = ` AND (l.last_enriched_at IS NULL OR l.last_enriched_at < NOW() - INTERVAL '7 days')`
+
+// enrichmentSelectionOrder puts never-enriched listings first, then oldest enrichment,
+// then newest scrape within each tier.
+const enrichmentSelectionOrder = `
+		ORDER BY l.last_enriched_at NULLS FIRST, l.last_scraped DESC`
+
+// GetListingsNeedingEnrichment returns in-stock visible listings for PDP enrichment.
+// Priority: never-enriched (last_enriched_at IS NULL) first, then oldest enrichment,
+// then newest scrape within each tier. Unless force is true, skips listings enriched within 7 days.
 func (db *DB) GetListingsNeedingEnrichment(ctx context.Context, limit int, force bool) ([]ListingForEnrichment, error) {
 	if limit <= 0 {
 		limit = 50
@@ -1579,10 +1591,9 @@ func (db *DB) GetListingsNeedingEnrichment(ctx context.Context, limit int, force
 		  AND s.store_type = ANY($2)
 	`
 	if !force {
-		query += ` AND (l.last_enriched_at IS NULL OR l.last_enriched_at < NOW() - INTERVAL '7 days')`
+		query += enrichmentStalenessFilter
 	}
-	query += `
-		ORDER BY l.last_enriched_at NULLS FIRST, l.last_scraped DESC
+	query += enrichmentSelectionOrder + `
 		LIMIT $1
 	`
 	rows, err := db.pool.Query(ctx, query, limit, pq.Array(StoreTypesWithEnrichers))
@@ -1619,10 +1630,9 @@ func (db *DB) GetListingsNeedingEnrichmentForStore(ctx context.Context, storeTyp
 		  AND s.store_type = $2
 	`
 	if !force {
-		query += ` AND (l.last_enriched_at IS NULL OR l.last_enriched_at < NOW() - INTERVAL '7 days')`
+		query += enrichmentStalenessFilter
 	}
-	query += `
-		ORDER BY l.last_enriched_at NULLS FIRST, l.last_scraped DESC
+	query += enrichmentSelectionOrder + `
 		LIMIT $1
 	`
 	rows, err := db.pool.Query(ctx, query, limit, storeType)
@@ -1688,9 +1698,9 @@ func (db *DB) GetListingsNeedingEnrichmentForFilter(ctx context.Context, f Enric
 		argNum++
 	}
 	if !force {
-		query += ` AND (l.last_enriched_at IS NULL OR l.last_enriched_at < NOW() - INTERVAL '7 days')`
+		query += enrichmentStalenessFilter
 	}
-	query += fmt.Sprintf(" ORDER BY l.last_enriched_at NULLS FIRST, l.last_scraped DESC LIMIT $%d", argNum)
+	query += enrichmentSelectionOrder + fmt.Sprintf(" LIMIT $%d", argNum)
 	args = append(args, limit)
 
 	rows, err := db.pool.Query(ctx, query, args...)

@@ -27,3 +27,18 @@ func TestEnrichmentQueriesIncludeVisibilityGate(t *testing.T) {
 		}
 	}
 }
+
+// enrichmentSelectionOrder and enrichmentStalenessFilter document the scheduled PDP enrich
+// queue contract (GetListingsNeedingEnrichment*). Never-enriched rows must sort ahead of stale.
+func TestEnrichmentSelectionPrioritizesNeverEnriched(t *testing.T) {
+	t.Parallel()
+	if !strings.Contains(enrichmentSelectionOrder, "NULLS FIRST") {
+		t.Fatalf("expected never-enriched first in order clause: %q", enrichmentSelectionOrder)
+	}
+	if strings.Contains(enrichmentSelectionOrder, "NULLS LAST") {
+		t.Fatalf("never-enriched must not be deprioritized: %q", enrichmentSelectionOrder)
+	}
+	if !strings.Contains(enrichmentStalenessFilter, "last_enriched_at IS NULL") {
+		t.Fatalf("staleness filter should include never-enriched: %q", enrichmentStalenessFilter)
+	}
+}
