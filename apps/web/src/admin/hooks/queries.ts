@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import {
   fetchDashboard,
+  fetchPipelineMetrics,
   fetchAdminStores,
   fetchStoreTypes,
   fetchStoreTypesWithEnrichers,
@@ -28,6 +29,7 @@ import {
 } from "../api";
 import {
   adminDashboardKeys,
+  adminPipelineMetricsKeys,
   adminStoreKeys,
   adminStoreTypeKeys,
   adminStoreTypesWithEnrichersKeys,
@@ -49,6 +51,14 @@ export function useAdminDashboard() {
     queryKey: adminDashboardKeys.all,
     queryFn: fetchDashboard,
     staleTime: 30 * 1000,
+  });
+}
+
+export function usePipelineMetrics(days = 30) {
+  return useQuery({
+    queryKey: adminPipelineMetricsKeys.detail(days),
+    queryFn: () => fetchPipelineMetrics(days),
+    staleTime: 60 * 1000,
   });
 }
 

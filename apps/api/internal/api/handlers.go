@@ -480,6 +480,31 @@ func (h *Handlers) GetAdminDashboard(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// GetAdminPipelineMetrics returns scrape/enrich pipeline health for admin insights.
+// Query: days (default 30, max 90) — window for recent job history charts.
+func (h *Handlers) GetAdminPipelineMetrics(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	days := 30
+	if s := r.URL.Query().Get("days"); s != "" {
+		if n, err := strconv.Atoi(s); err == nil && n > 0 {
+			days = n
+		}
+	}
+
+	metrics, err := h.DB.GetPipelineMetrics(r.Context(), days)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(metrics)
+}
+
 // GetStoreTypesWithEnrichers returns store_type values that support PDP enrichment (for showing Enrich button in UI).
 func (h *Handlers) GetStoreTypesWithEnrichers(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
