@@ -1715,14 +1715,18 @@ export interface RevalidateCacheRequest {
   paths?: string[];
   tag?: string;
   tags?: string[];
+  purge_all?: boolean;
   type?: "page" | "layout";
 }
 
 export interface RevalidateCacheResponse {
   ok: boolean;
   revalidated_paths: string[];
+  revalidated_queries?: string[];
   revalidated_tags: string[];
+  purged_all?: boolean;
   type: "page" | "layout";
+  note?: string;
   default_public_tag: string;
 }
 

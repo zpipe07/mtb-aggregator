@@ -26,20 +26,29 @@ export function CacheManager() {
     paths?: string[];
     tags?: string[];
     type?: "page" | "layout";
+    purge_all?: boolean;
   }) {
     setLastResult(null);
     revalidateMutation.mutate(opts, {
       onSuccess: (data) => {
         const parts: string[] = [];
+        if (data.purged_all) {
+          parts.push("entire site");
+        }
         if (data.revalidated_paths.length > 0) {
           parts.push(`paths: ${data.revalidated_paths.join(", ")}`);
+        }
+        if (data.revalidated_queries && data.revalidated_queries.length > 0) {
+          parts.push(
+            `requested URLs: ${data.revalidated_queries.join(", ")} (revalidated by pathname)`,
+          );
         }
         if (data.revalidated_tags.length > 0) {
           parts.push(`tags: ${data.revalidated_tags.join(", ")}`);
         }
         setLastResult(
           parts.length > 0
-            ? `Cache cleared (${parts.join("; ")}). The next visit will rebuild fresh data.`
+            ? `Cache cleared (${parts.join("; ")}). Hard-refresh the page (or open in a private window) to verify.`
             : "Cache cleared.",
         );
       },
@@ -61,9 +70,12 @@ export function CacheManager() {
       <h2 className="text-xl font-semibold text-stone-800 mb-1">Cache</h2>
       <p className="text-sm text-stone-600 mb-6 max-w-2xl">
         Public pages use {HOURS}-hour ISR. After a deploy, stale HTML or API fetch
-        cache can hide new behavior until the next scheduled revalidation. Clear
-        cache for a specific URL (include query params when relevant) or purge all
-        public API fetch cache at once.
+        cache can hide new behavior until the next scheduled revalidation. Enter a
+        path or full URL — query params (e.g.{" "}
+        <code className="text-stone-700">?sort=price_drop</code>) are accepted for
+        reference, but Next.js clears cache by <strong>pathname</strong> only (all
+        filter/sort variants of <code className="text-stone-700">/deals</code>{" "}
+        share one route cache).
       </p>
 
       {(revalidateMutation.isError || lastResult) && (
@@ -101,8 +113,9 @@ export function CacheManager() {
               className="w-full rounded border border-stone-300 px-3 py-2 text-sm text-stone-900 font-mono"
             />
             <p className="mt-1 text-xs text-stone-500">
-              Paste a path like <code className="text-stone-600">/deals?sort=price_drop</code>{" "}
-              or a full URL from production.
+              Example: <code className="text-stone-600">/deals?sort=price_drop</code>{" "}
+              clears the <code className="text-stone-600">/deals</code> route (all
+              sort/filter variants).
             </p>
           </div>
           <div className="flex flex-col gap-2 text-sm text-stone-700">
@@ -181,6 +194,29 @@ export function CacheManager() {
           className="rounded bg-stone-800 px-3 py-2 text-sm font-medium text-white hover:bg-stone-700 disabled:opacity-50"
         >
           {revalidateMutation.isPending ? "Clearing…" : `Purge tag: ${PUBLIC_DATA_CACHE_TAG}`}
+        </button>
+      </div>
+
+      <div className="mt-6 rounded-lg border border-amber-200 bg-amber-50 p-4 shadow-sm max-w-2xl">
+        <h3 className="text-sm font-medium text-amber-900 mb-1">
+          Purge entire site
+        </h3>
+        <p className="text-xs text-amber-800 mb-3">
+          Nuclear option: invalidates all public page caches. Use when a deploy
+          changed shared layout or many routes at once.
+        </p>
+        <button
+          type="button"
+          onClick={() =>
+            runRevalidate({
+              tags: [PUBLIC_DATA_CACHE_TAG],
+              purge_all: true,
+            })
+          }
+          disabled={revalidateMutation.isPending}
+          className="rounded border border-amber-400 bg-white px-3 py-2 text-sm font-medium text-amber-900 hover:bg-amber-100 disabled:opacity-50"
+        >
+          {revalidateMutation.isPending ? "Clearing…" : "Purge all pages + API cache"}
         </button>
       </div>
     </div>
