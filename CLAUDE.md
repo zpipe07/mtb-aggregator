@@ -93,6 +93,7 @@ make scrape-now-bikesonline    # bikesonline only
 make scrape-now-evo            # evo only
 make scrape-now-cambriabikes   # cambriabikes only
 make scrape-now-365cycles      # 365cycles only
+make scrape-now-thelostco      # thelostco only
 make scrape-now-trek           # trek only
 make scrape-now-universalcycles  # universalcycles only
 make enrich-now              # enrich unenriched listings
@@ -112,6 +113,7 @@ make enrich-now-bikesonline    # bikesonline only (optional FORCE=1)
 make enrich-now-evo            # evo only (optional FORCE=1)
 make enrich-now-cambriabikes   # cambriabikes only (optional FORCE=1)
 make enrich-now-365cycles      # 365cycles only (optional FORCE=1)
+make enrich-now-thelostco      # thelostco only (optional FORCE=1)
 make enrich-now-trek           # trek only (optional FORCE=1)
 make enrich-now-universalcycles  # universalcycles only (optional FORCE=1)
 make enrich-now FORCE=1      # re-enrich all
