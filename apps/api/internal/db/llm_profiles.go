@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -18,12 +19,13 @@ type LLMPromptProfile struct {
 	SystemPrompt      string
 	ExtractionSchema  json.RawMessage
 	Enabled           bool
+	UpdatedAt         time.Time
 }
 
 // ListLLMPromptProfiles returns all prompt profiles, ordered by name.
 func (db *DB) ListLLMPromptProfiles(ctx context.Context) ([]LLMPromptProfile, error) {
 	rows, err := db.pool.Query(ctx, `
-		SELECT id, canonical_category, name, system_prompt, extraction_schema, enabled
+		SELECT id, canonical_category, name, system_prompt, extraction_schema, enabled, updated_at
 		FROM llm_prompt_profiles
 		ORDER BY name
 	`)
@@ -36,7 +38,7 @@ func (db *DB) ListLLMPromptProfiles(ctx context.Context) ([]LLMPromptProfile, er
 	for rows.Next() {
 		var p LLMPromptProfile
 		var cat pgtype.FlatArray[string]
-		if err := rows.Scan(&p.ID, &cat, &p.Name, &p.SystemPrompt, &p.ExtractionSchema, &p.Enabled); err != nil {
+		if err := rows.Scan(&p.ID, &cat, &p.Name, &p.SystemPrompt, &p.ExtractionSchema, &p.Enabled, &p.UpdatedAt); err != nil {
 			return nil, err
 		}
 		p.CanonicalCategory = cat
@@ -50,10 +52,10 @@ func (db *DB) GetLLMPromptProfileByID(ctx context.Context, id int) (*LLMPromptPr
 	var p LLMPromptProfile
 	var cat pgtype.FlatArray[string]
 	err := db.pool.QueryRow(ctx, `
-		SELECT id, canonical_category, name, system_prompt, extraction_schema, enabled
+		SELECT id, canonical_category, name, system_prompt, extraction_schema, enabled, updated_at
 		FROM llm_prompt_profiles
 		WHERE id = $1
-	`, id).Scan(&p.ID, &cat, &p.Name, &p.SystemPrompt, &p.ExtractionSchema, &p.Enabled)
+	`, id).Scan(&p.ID, &cat, &p.Name, &p.SystemPrompt, &p.ExtractionSchema, &p.Enabled, &p.UpdatedAt)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil
@@ -89,10 +91,10 @@ func (db *DB) GetLLMPromptProfileForCategory(ctx context.Context, canonicalCateg
 	var p LLMPromptProfile
 	var cat pgtype.FlatArray[string]
 	err := db.pool.QueryRow(ctx, `
-		SELECT id, canonical_category, name, system_prompt, extraction_schema, enabled
+		SELECT id, canonical_category, name, system_prompt, extraction_schema, enabled, updated_at
 		FROM llm_prompt_profiles
 		WHERE canonical_category = $1 AND enabled = true
-	`, pq.Array(canonicalCategory)).Scan(&p.ID, &cat, &p.Name, &p.SystemPrompt, &p.ExtractionSchema, &p.Enabled)
+	`, pq.Array(canonicalCategory)).Scan(&p.ID, &cat, &p.Name, &p.SystemPrompt, &p.ExtractionSchema, &p.Enabled, &p.UpdatedAt)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil

@@ -506,6 +506,8 @@ func main() {
 	http.HandleFunc("/admin/dashboard", api.AdminRequired(handlers.GetAdminDashboard))
 	// Admin: GET /admin/metrics/pipeline — scrape/enrich backlog, freshness, job history (admin auth required)
 	http.HandleFunc("/admin/metrics/pipeline", api.AdminRequired(handlers.GetAdminPipelineMetrics))
+	// Admin: GET /admin/metrics/enrichment-steps — per-step backlog, success rates, confidence
+	http.HandleFunc("/admin/metrics/enrichment-steps", api.AdminRequired(handlers.GetAdminEnrichmentStepMetrics))
 	// Admin: GET /admin/store-types — allowed store types for dropdown
 	http.HandleFunc("/admin/store-types", api.AdminRequired(api.GetStoreTypes))
 	// Admin: GET /admin/store-types-with-enrichers — store types that support enrichment (for Enrich button)
@@ -658,6 +660,14 @@ func main() {
 		id, err := strconv.Atoi(parts[0])
 		if err != nil {
 			http.Error(w, "invalid id", http.StatusBadRequest)
+			return
+		}
+		if len(parts) > 1 && parts[1] == "enrichment/retry" {
+			if r.Method != http.MethodPost {
+				http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+				return
+			}
+			handlers.PostAdminListingEnrichmentRetry(w, r, id)
 			return
 		}
 		if len(parts) > 1 && parts[1] == "llm-specs" {

@@ -13,7 +13,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { usePipelineMetrics, useStoreTypesWithEnrichers } from "./hooks/queries";
+import { usePipelineMetrics, useEnrichmentStepMetrics, useStoreTypesWithEnrichers } from "./hooks/queries";
 
 const DAY_OPTIONS = [14, 30, 90] as const;
 
@@ -93,6 +93,7 @@ function aggregateScrapeJobsByDay(
 export function Insights() {
   const [days, setDays] = useState<number>(30);
   const { data, isPending, isError, error, refetch } = usePipelineMetrics(days);
+  const { data: stepMetrics } = useEnrichmentStepMetrics(Math.min(days, 30));
   const { data: enricherTypes = [] } = useStoreTypesWithEnrichers();
   const enricherSet = useMemo(
     () => new Set(enricherTypes.map((t) => t.toLowerCase())),
@@ -192,6 +193,57 @@ export function Insights() {
           <p className="text-xs text-stone-400">Visible deals in catalog</p>
         </div>
       </div>
+
+      {stepMetrics && stepMetrics.steps.length > 0 ? (
+        <section className="rounded-lg border border-stone-200 bg-white p-4 shadow-sm">
+          <h3 className="text-sm font-medium text-stone-800 mb-1">
+            Enrichment steps (durable pipeline)
+          </h3>
+          <p className="text-xs text-stone-500 mb-4">
+            Per-step backlog and success rates over the last {stepMetrics.days} days. Low-confidence
+            classifications: {stepMetrics.low_confidence_count.toLocaleString()}.
+          </p>
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-sm">
+              <thead>
+                <tr className="text-left text-stone-500 border-b border-stone-200">
+                  <th className="py-2 pr-4 font-medium">Step</th>
+                  <th className="py-2 pr-4 font-medium">Backlog</th>
+                  <th className="py-2 pr-4 font-medium">Dead</th>
+                  <th className="py-2 pr-4 font-medium">Success rate</th>
+                  <th className="py-2 pr-4 font-medium">Failures</th>
+                  <th className="py-2 font-medium">Skipped</th>
+                </tr>
+              </thead>
+              <tbody>
+                {stepMetrics.steps.map((s) => (
+                  <tr key={s.step} className="border-b border-stone-100">
+                    <td className="py-2 pr-4 capitalize">{s.step}</td>
+                    <td className="py-2 pr-4">{s.backlog.toLocaleString()}</td>
+                    <td className="py-2 pr-4">{s.dead.toLocaleString()}</td>
+                    <td className="py-2 pr-4">
+                      {s.success_count + s.failure_count > 0
+                        ? `${s.success_rate_pct.toFixed(1)}%`
+                        : "—"}
+                    </td>
+                    <td className="py-2 pr-4">{s.failure_count.toLocaleString()}</td>
+                    <td className="py-2">{s.skipped_count.toLocaleString()}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {stepMetrics.confidence_histogram.length > 0 ? (
+            <ul className="mt-4 flex flex-wrap gap-3 text-xs text-stone-600">
+              {stepMetrics.confidence_histogram.map((b) => (
+                <li key={b.label}>
+                  {b.label}: {b.count.toLocaleString()}
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </section>
+      ) : null}
 
       <div className="grid gap-6 lg:grid-cols-2">
         <section className="rounded-lg border border-stone-200 bg-white p-4 shadow-sm">

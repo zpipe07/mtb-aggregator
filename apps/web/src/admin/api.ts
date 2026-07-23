@@ -115,6 +115,45 @@ export async function fetchPipelineMetrics(
   return res.json();
 }
 
+export interface EnrichmentStepStat {
+  step: string;
+  backlog: number;
+  dead: number;
+  success_count: number;
+  failure_count: number;
+  skipped_count: number;
+  success_rate_pct: number;
+}
+
+export interface ConfidenceBucket {
+  label: string;
+  count: number;
+}
+
+export interface EnrichmentStepMetricsResponse {
+  steps: EnrichmentStepStat[];
+  confidence_histogram: ConfidenceBucket[];
+  low_confidence_count: number;
+  days: number;
+}
+
+export async function fetchEnrichmentStepMetrics(
+  days = 7,
+): Promise<EnrichmentStepMetricsResponse> {
+  const res = await fetch(
+    `${getApiBase()}/admin/metrics/enrichment-steps?days=${days}`,
+    { headers: adminHeaders() },
+  );
+  if (!res.ok) {
+    throw new Error(
+      res.status === 401
+        ? "Unauthorized"
+        : "Failed to fetch enrichment step metrics",
+    );
+  }
+  return res.json();
+}
+
 /** Trigger scrape; pass store type (e.g. "worldwidecyclery") to scrape one store, or omit for all. */
 export async function triggerScrape(store?: string): Promise<void> {
   const url = store

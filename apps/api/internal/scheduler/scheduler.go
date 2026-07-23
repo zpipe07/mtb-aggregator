@@ -541,104 +541,30 @@ func (s *Scheduler) runEnrichmentLoop(f db.EnrichmentFilter, force bool, trigger
 	batchSize := getEnrichBatchSize()
 	maxListings := getEnrichMaxListings()
 	var llmState llmlisting.QuotaJobState
-	for {
-		if ctx.Err() != nil {
-			enrichmentLog.Warn("enrichment job timeout; saving partial progress", "scope", scope, "processed", totalProcessed, "enriched", totalSuccess)
-			sentryutil.CaptureError(
-				fmt.Errorf("enrichment job timed out for scope=%s (%d processed, %d enriched)", scope, totalProcessed, totalSuccess),
-				map[string]string{"component": "scheduler", "job": "enrich", "store_type": scope},
-			)
-			if jobID != 0 {
-				errStrs = append(errStrs, "job timed out")
-				s.finalizeEnrichJob(jobID, "timed_out", &totalProcessed, &totalSuccess, errStrs, scope)
-			}
-			return
-		}
-		listings, err := s.db.GetListingsNeedingEnrichmentForFilter(ctx, f, batchSize, force)
-		if err != nil {
-			enrichmentLog.Error("failed to get listings for scope", "scope", scope, logutil.ErrAttr(err))
-			sentryutil.CaptureError(err, map[string]string{"component": "scheduler", "job": "enrich", "phase": "list_listings", "store_type": scope})
-			if jobID != 0 {
-				s.finalizeEnrichJob(jobID, "failed", nil, nil, []string{err.Error()}, scope)
-			}
-			return
-		}
-		if len(listings) == 0 {
-			break
-		}
-		enrichmentLog.Info("enriching batch", "scope", scope, "count", len(listings))
-		seenJensonGroups := make(map[string]bool)
-		seenCCGroups := make(map[string]bool)
-		seenUCGroups := make(map[string]bool)
-		seenFoxGroups := make(map[string]bool)
-		seenBellGroups := make(map[string]bool)
-		seenGiroGroups := make(map[string]bool)
-		successCount := 0
-		for _, l := range listings {
-			if maxListings > 0 && totalProcessed >= maxListings {
-				break
-			}
-			if ctx.Err() != nil {
-				enrichmentLog.Warn("enrichment job timeout; saving partial progress", "scope", scope, "processed", totalProcessed, "enriched", totalSuccess)
-				sentryutil.CaptureError(
-					fmt.Errorf("enrichment job timed out for scope=%s (%d processed, %d enriched)", scope, totalProcessed, totalSuccess),
-					map[string]string{"component": "scheduler", "job": "enrich", "store_type": scope},
-				)
-				if jobID != 0 {
-					errStrs = append(errStrs, "job timed out")
-					s.finalizeEnrichJob(jobID, "timed_out", &totalProcessed, &totalSuccess, errStrs, scope)
-				}
-				return
-			}
-			totalProcessed++
-			result, err := s.scraper.Enrich(ctx, l.ProductURL, l.StoreType)
-			if err != nil {
-				enrichmentLog.Error("enrichment failed for listing", "listing_id", l.ID, logutil.ErrAttr(err))
-				errStrs = append(errStrs, fmt.Sprintf("listing %d: %v", l.ID, err))
-				continue
-			}
-			if err := s.db.UpdateListingEnrichment(ctx, l.ID, result.CategoryPath, result.RawSpecs, result.Unavailable, result.Description); err != nil {
-				enrichmentLog.Error("failed to update listing enrichment", "listing_id", l.ID, logutil.ErrAttr(err))
-				errStrs = append(errStrs, fmt.Sprintf("listing %d update: %v", l.ID, err))
-				continue
-			}
-			if err := s.db.ApplyJensonPDPVariantFanout(ctx, l.StoreID, l.StoreType, l.StoreSKU, enrichVariantsToJenson(result.Variants), seenJensonGroups); err != nil {
-				enrichmentLog.Warn("jenson variant fan-out failed", "listing_id", l.ID, logutil.ErrAttr(err))
-			}
-			if err := applyCompetitiveCyclistVariantFanout(ctx, s.db, l.ID, l.StoreID, l.StoreType, l.StoreSKU, l.ProductURL, result.Variants, seenCCGroups); err != nil {
-				enrichmentLog.Warn("competitivecyclist variant fan-out failed", "listing_id", l.ID, logutil.ErrAttr(err))
-			}
-			if err := applyUniversalCyclesVariantFanout(ctx, s.db, l.ID, l.StoreType, result.Variants, seenUCGroups); err != nil {
-				enrichmentLog.Warn("universalcycles variant fan-out failed", "listing_id", l.ID, logutil.ErrAttr(err))
-			}
-			if err := s.db.ApplyFoxRacingPDPVariantFanout(ctx, l.StoreID, l.StoreType, l.StoreSKU, enrichVariantsToJenson(result.Variants), seenFoxGroups); err != nil {
-				enrichmentLog.Warn("foxracing variant fan-out failed", "listing_id", l.ID, logutil.ErrAttr(err))
-			}
-			if err := s.db.ApplyBellPDPVariantFanout(ctx, l.StoreID, l.StoreType, l.ProductURL, enrichVariantsToJenson(result.Variants), seenBellGroups); err != nil {
-				enrichmentLog.Warn("bell variant fan-out failed", "listing_id", l.ID, logutil.ErrAttr(err))
-			}
-			if err := s.db.ApplyGiroPDPVariantFanout(ctx, l.StoreID, l.StoreType, l.ProductURL, enrichVariantsToJenson(result.Variants), seenGiroGroups); err != nil {
-				enrichmentLog.Warn("giro variant fan-out failed", "listing_id", l.ID, logutil.ErrAttr(err))
-			}
-			successCount++
-			totalSuccess++
-			if result.Unavailable {
-				enrichmentLog.Debug("listing marked unavailable", "listing_id", l.ID)
-			}
-			if len(result.CategoryPath) > 0 {
-				enrichmentLog.Debug("listing category path updated", "listing_id", l.ID, "category_path", result.CategoryPath)
-			}
-			llmlisting.RunSpecDetermination(ctx, s.db, s.llm, l.ID, &llmState, &errStrs)
-		}
-		enrichmentLog.Info("enrichment batch done", "scope", scope, "enriched", successCount, "batch_size", len(listings))
-		if maxListings > 0 && totalProcessed >= maxListings {
-			enrichmentLog.Info("reached per-job listing cap", "scope", scope, "cap", maxListings, "processed", totalProcessed)
-			break
-		}
-		if len(listings) < batchSize {
-			break
-		}
+	fanoutState := newVariantFanoutState()
+	pipeline := s.buildEnrichmentPipeline(&llmState, &errStrs, fanoutState)
+	claimFilter := enrichmentFilterToClaim(f)
+
+	var jobIDPtr *int
+	if jobID != 0 {
+		jobIDPtr = &jobID
 	}
+	totalProcessed, totalSuccess, runErrs := pipeline.RunJob(ctx, claimFilter, force, batchSize, maxListings, jobIDPtr)
+	errStrs = append(errStrs, runErrs...)
+
+	if ctx.Err() != nil {
+		enrichmentLog.Warn("enrichment job timeout; saving partial progress", "scope", scope, "processed", totalProcessed, "enriched", totalSuccess)
+		sentryutil.CaptureError(
+			fmt.Errorf("enrichment job timed out for scope=%s (%d processed, %d enriched)", scope, totalProcessed, totalSuccess),
+			map[string]string{"component": "scheduler", "job": "enrich", "store_type": scope},
+		)
+		if jobID != 0 {
+			errStrs = append(errStrs, "job timed out")
+			s.finalizeEnrichJob(jobID, "timed_out", &totalProcessed, &totalSuccess, errStrs, scope)
+		}
+		return
+	}
+
 	if jobID != 0 {
 		s.finalizeEnrichJob(jobID, "completed", &totalProcessed, &totalSuccess, errStrs, scope)
 		captureEnrichJobListingErrorsAggregate(scope, totalProcessed, totalSuccess, errStrs)
