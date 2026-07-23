@@ -66,10 +66,10 @@ func (db *DB) fetchExactEnabledLLMPromptProfileForCategoryID(ctx context.Context
 	var p LLMPromptProfile
 	var catFlat pgtype.FlatArray[string]
 	err := db.pool.QueryRow(ctx, `
-		SELECT id, canonical_category, name, system_prompt, extraction_schema, enabled
+		SELECT id, canonical_category, name, system_prompt, extraction_schema, enabled, updated_at
 		FROM llm_prompt_profiles
 		WHERE category_id = $1 AND enabled = true
-	`, categoryID).Scan(&p.ID, &catFlat, &p.Name, &p.SystemPrompt, &p.ExtractionSchema, &p.Enabled)
+	`, categoryID).Scan(&p.ID, &catFlat, &p.Name, &p.SystemPrompt, &p.ExtractionSchema, &p.Enabled, &p.UpdatedAt)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil

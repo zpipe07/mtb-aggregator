@@ -65,7 +65,7 @@ flowchart LR
 ### 2. Enrich Job (nightly, 2am)
 
 1. Scheduler triggers `POST /enrich-now` (async; returns 202 immediately)
-2. API fetches unenriched listings in batches until timeout, backlog drained, or **`ENRICH_MAX_LISTINGS`** cap (if set). Only **in-stock, non-hidden** rows are eligible (same visibility as `GET /deals`).
+2. API runs three **durable passes** per job (PDP fetch → LLM classify → LLM spec extract), each selecting eligible listings from `listing_enrichment` step state. PDP snapshots (`pdp_snapshots`) persist parsed scraper payloads so classify/extract can retry without refetching; unchanged snapshot hash + prompt profile version skips redundant LLM work. Failures record per-step backoff and append to `enrichment_events`. Only **in-stock, non-hidden** rows are eligible (same visibility as `GET /deals`).
 3. For each store with an enricher in `StoreTypesWithEnrichers` (excludes **Competitive Cyclist** — CC ingest is Impact catalog only; scheduled PDP enrich is skipped because WAF blocks automated scraper access): Scraper visits PDP URLs. CC variant fan-out (`internal/db/cc_pdp_variants.go`) still applies when CC listings are enriched via admin/manual paths or backfill.
 4. Parsers extract retailer category hints (e.g. breadcrumbs or Shopify `product_type`) and specs (tables, definition lists, or—for **Revel Bikes**—`<strong>KEY:</strong><br>value` paragraphs in `body_html` from `/products/{handle}.json`)
 5. API merges PDP specs into `metadata`, then maps `category_path` through `taxonomy.Map` to set `canonical_category` and `category_id` **unless** the listing already has a confident `metadata.llm_category` (same threshold as the classifier, overridable via `LLM_CATEGORY_PRESERVE_THRESHOLD`) — in that case only `category_path` and `metadata` refresh so a failed LLM step cannot revert a good prior classification.
@@ -93,6 +93,7 @@ Hot paths (`GetLLMPromptProfileForCategory*`, `GetLLMPromptProfileByID`) hydrate
 | Path                            | Purpose                                                                        |
 | ------------------------------- | ------------------------------------------------------------------------------ |
 | `apps/api/internal/scheduler/`  | Cron jobs, scrape/enrich orchestration                                         |
+| `apps/api/internal/enrichstate/` | Durable per-step enrichment pipeline (state, snapshots, events)             |
 | `apps/api/internal/llmlisting/` | LLM classify + spec extraction pipeline shared by enrichment and LLM-only jobs |
 | `apps/api/internal/db/`         | All pgx queries                                                                |
 | `apps/api/internal/brand/`      | Brand aliases normalization                                                    |
