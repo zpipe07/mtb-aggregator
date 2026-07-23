@@ -29,7 +29,7 @@ func (s EnrichmentStateStore) EnsureRow(ctx context.Context, listingID int) erro
 func (s EnrichmentStateStore) GetState(ctx context.Context, listingID int) (*enrichstate.ListingState, error) {
 	row := s.DB.pool.QueryRow(ctx, `
 		SELECT listing_id,
-			pdp_fetched_at, pdp_hash, pdp_attempts, COALESCE(pdp_error, ''), next_pdp_attempt_at, pdp_dead,
+			pdp_fetched_at, COALESCE(pdp_hash, ''), pdp_attempts, COALESCE(pdp_error, ''), next_pdp_attempt_at, pdp_dead,
 			classified_at, classify_attempts, COALESCE(classify_error, ''), next_classify_attempt_at, classify_dead,
 			llm_confidence, prompt_profile_version,
 			extracted_at, extract_attempts, COALESCE(extract_error, ''), next_extract_attempt_at, extract_dead
@@ -385,10 +385,10 @@ func (r EnrichmentEventRecorder) Record(ctx context.Context, ev enrichstate.Even
 
 // EnrichmentStepMetrics is per-step pipeline health for admin.
 type EnrichmentStepMetrics struct {
-	Steps              []EnrichmentStepStat `json:"steps"`
-	ConfidenceHistogram []ConfidenceBucket  `json:"confidence_histogram"`
-	LowConfidenceCount int                  `json:"low_confidence_count"`
-	Days               int                  `json:"days"`
+	Steps               []EnrichmentStepStat `json:"steps"`
+	ConfidenceHistogram []ConfidenceBucket   `json:"confidence_histogram"`
+	LowConfidenceCount  int                  `json:"low_confidence_count"`
+	Days                int                  `json:"days"`
 }
 
 type EnrichmentStepStat struct {
