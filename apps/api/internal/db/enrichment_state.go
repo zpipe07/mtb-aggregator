@@ -509,11 +509,6 @@ func (db *DB) GetEnrichmentStepMetrics(ctx context.Context, days int) (Enrichmen
 }
 
 func (db *DB) enrichmentStepBacklog(ctx context.Context) ([]EnrichmentStepStat, error) {
-	type row struct {
-		step    string
-		backlog int
-		dead    int
-	}
 	var stats []EnrichmentStepStat
 	queries := []struct {
 		step  string
