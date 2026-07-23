@@ -38,6 +38,8 @@ type Pipeline struct {
 }
 
 // RunJob executes PDP, classify, and extract passes until batch limits or timeout.
+// maxListings caps each step independently: a large PDP backlog must not starve
+// the classify/extract passes of their budget.
 func (p *Pipeline) RunJob(ctx context.Context, filter ClaimFilter, force bool, batchSize, maxListings int, jobID *int) (processed, succeeded int, errStrs []string) {
 	cfg := p.Config
 	if cfg.BackoffBase == 0 {
@@ -45,19 +47,17 @@ func (p *Pipeline) RunJob(ctx context.Context, filter ClaimFilter, force bool, b
 	}
 
 	for _, step := range []Step{StepPDP, StepClassify, StepExtract} {
-		if ctx.Err() != nil {
-			return processed, succeeded, errStrs
-		}
+		stepProcessed := 0
 		for {
 			if ctx.Err() != nil {
 				return processed, succeeded, errStrs
 			}
-			if maxListings > 0 && processed >= maxListings {
-				return processed, succeeded, errStrs
+			if maxListings > 0 && stepProcessed >= maxListings {
+				break
 			}
 			limit := batchSize
-			if maxListings > 0 && maxListings-processed < limit {
-				limit = maxListings - processed
+			if maxListings > 0 && maxListings-stepProcessed < limit {
+				limit = maxListings - stepProcessed
 			}
 			if p.BeforeClaimBatch != nil {
 				p.BeforeClaimBatch(step)
@@ -75,9 +75,7 @@ func (p *Pipeline) RunJob(ctx context.Context, filter ClaimFilter, force bool, b
 				if ctx.Err() != nil {
 					return processed, succeeded, errStrs
 				}
-				if maxListings > 0 && processed >= maxListings {
-					return processed, succeeded, errStrs
-				}
+				stepProcessed++
 				processed++
 				ok, stepErr := p.runOne(ctx, step, item, force, jobID, now, cfg)
 				if stepErr != nil {
@@ -184,8 +182,11 @@ func (p *Pipeline) runPDP(ctx context.Context, item WorkItem, jobID *int, start 
 			log.Printf("[enrichstate] variant fan-out listing %d: %v", item.ListingID, err)
 		}
 	}
-	meta := StepSuccessMeta{PDPHash: hash}
-	if err := p.State.RecordStepSuccess(ctx, item.ListingID, StepPDP, meta, now); err != nil {
+	// No PDPHash here: pdp_hash tracks the content hash last processed by the
+	// LLM steps (written on classify/extract success). The fresh fetch hash
+	// lives on the snapshot; overwriting pdp_hash would erase the "content
+	// changed since classification" signal.
+	if err := p.State.RecordStepSuccess(ctx, item.ListingID, StepPDP, StepSuccessMeta{}, now); err != nil {
 		return false, err
 	}
 	p.recordEvent(ctx, item.ListingID, StepPDP, StatusSuccess, "", nil, jobID, start)

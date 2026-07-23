@@ -9,6 +9,8 @@ import (
 	"os"
 	"testing"
 	"time"
+
+	"github.com/mtb-aggregator/api/internal/enrichstate"
 )
 
 func testDB(t *testing.T) *DB {
@@ -85,6 +87,43 @@ func TestEnrichmentStateStore_GetState_nullPDPHashFromBackfill(t *testing.T) {
 	}
 	if st.PDP.CompletedAt == nil {
 		t.Fatal("expected pdp_fetched_at to be set")
+	}
+}
+
+// pdp_hash tracks the content hash last processed by the LLM steps (written on
+// classify/extract success). A PDP fetch success must leave it untouched —
+// overwriting it with the fresh fetch hash would make the "content changed since
+// classification" invalidation impossible to trigger.
+func TestEnrichmentStateStore_RecordStepSuccess_PDPPreservesLLMProcessedHash(t *testing.T) {
+	d := testDB(t)
+	ctx := context.Background()
+	listingID := createEnrichmentTestListing(t, d)
+
+	_, err := d.pool.Exec(ctx, `
+		INSERT INTO listing_enrichment (listing_id, pdp_fetched_at, pdp_hash, classified_at)
+		VALUES ($1, NOW() - INTERVAL '8 days', 'hash-processed-by-llm', NOW() - INTERVAL '8 days')
+	`, listingID)
+	if err != nil {
+		t.Fatalf("insert row: %v", err)
+	}
+
+	store := EnrichmentStateStore{DB: d}
+	// PDP re-fetch succeeds; the pipeline passes no hash for the PDP step, and
+	// even a populated meta hash must not clobber the LLM-processed marker.
+	for _, meta := range []enrichstate.StepSuccessMeta{{}, {PDPHash: "fresh-fetch-hash"}} {
+		if err := store.RecordStepSuccess(ctx, listingID, enrichstate.StepPDP, meta, time.Now()); err != nil {
+			t.Fatalf("RecordStepSuccess(pdp): %v", err)
+		}
+		st, err := store.GetState(ctx, listingID)
+		if err != nil {
+			t.Fatalf("GetState: %v", err)
+		}
+		if st.PDPHash != "hash-processed-by-llm" {
+			t.Fatalf("pdp_hash = %q, want unchanged %q (meta=%+v)", st.PDPHash, "hash-processed-by-llm", meta)
+		}
+		if st.PDP.CompletedAt == nil {
+			t.Fatal("expected pdp_fetched_at updated")
+		}
 	}
 }
 

@@ -72,9 +72,9 @@ func TestStepDue_extractRequiresCanonicalAndProfile(t *testing.T) {
 	t.Parallel()
 	completed := time.Now()
 	base := StepDueInput{
-		Now:    time.Now(),
-		Config: DefaultConfig(),
-		State:  ListingState{PDP: StepState{CompletedAt: &completed}},
+		Now:      time.Now(),
+		Config:   DefaultConfig(),
+		State:    ListingState{PDP: StepState{CompletedAt: &completed}},
 		Snapshot: &Snapshot{Payload: SnapshotPayload{}},
 	}
 	if StepDue(StepExtract, base) {

@@ -187,17 +187,20 @@ func (s EnrichmentStateStore) ClaimForStep(ctx context.Context, step enrichstate
 func (s EnrichmentStateStore) RecordStepSuccess(ctx context.Context, listingID int, step enrichstate.Step, meta enrichstate.StepSuccessMeta, completedAt time.Time) error {
 	switch step {
 	case enrichstate.StepPDP:
+		// pdp_hash intentionally untouched: it records the content hash last
+		// processed by the LLM steps (set on classify/extract success). The
+		// fresh fetch hash lives on pdp_snapshots.content_hash; the claim
+		// queries compare the two to detect content changes.
 		_, err := s.DB.pool.Exec(ctx, `
 			UPDATE listing_enrichment SET
 				pdp_fetched_at = $2,
-				pdp_hash = $3,
 				pdp_attempts = 0,
 				pdp_error = NULL,
 				next_pdp_attempt_at = NULL,
 				pdp_dead = false,
 				updated_at = NOW()
 			WHERE listing_id = $1
-		`, listingID, completedAt, nullIfEmpty(meta.PDPHash))
+		`, listingID, completedAt)
 		return err
 	case enrichstate.StepClassify:
 		_, err := s.DB.pool.Exec(ctx, `

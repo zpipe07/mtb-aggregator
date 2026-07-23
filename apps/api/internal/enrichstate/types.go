@@ -11,9 +11,9 @@ import (
 type Step string
 
 const (
-	StepPDP       Step = "pdp"
-	StepClassify  Step = "classify"
-	StepExtract   Step = "extract"
+	StepPDP      Step = "pdp"
+	StepClassify Step = "classify"
+	StepExtract  Step = "extract"
 )
 
 // ValidStep reports whether s is a known enrichment step.
@@ -73,11 +73,11 @@ type SnapshotPayload struct {
 
 // SnapshotVariant is a lightweight variant row from PDP enrich.
 type SnapshotVariant struct {
-	SKU           string            `json:"sku,omitempty"`
+	SKU            string            `json:"sku,omitempty"`
 	VariantOptions map[string]string `json:"variant_options,omitempty"`
-	IsOrderable   bool              `json:"is_orderable"`
-	CurrentPrice  *float64          `json:"current_price,omitempty"`
-	OriginalPrice *float64          `json:"original_price,omitempty"`
+	IsOrderable    bool              `json:"is_orderable"`
+	CurrentPrice   *float64          `json:"current_price,omitempty"`
+	OriginalPrice  *float64          `json:"original_price,omitempty"`
 }
 
 // Snapshot is the latest PDP snapshot for a listing.
@@ -111,13 +111,16 @@ type WorkItem struct {
 
 // ClaimFilter scopes which listings can be claimed (mirrors db.EnrichmentFilter).
 type ClaimFilter struct {
-	StoreType            string
-	CanonicalCategory    []string
-	LlmConfidenceBelow   *float64
+	StoreType          string
+	CanonicalCategory  []string
+	LlmConfidenceBelow *float64
 }
 
 // StepSuccessMeta carries step-specific fields written on success.
 type StepSuccessMeta struct {
+	// PDPHash is the snapshot content hash the LLM step just processed.
+	// Set on classify/extract success only; PDP success must leave the stored
+	// hash untouched so "content changed since classification" stays detectable.
 	PDPHash              string
 	LLMConfidence        *float64
 	PromptProfileVersion *time.Time
@@ -125,12 +128,12 @@ type StepSuccessMeta struct {
 
 // Config holds backoff and attempt-cap settings for the pipeline.
 type Config struct {
-	MaxPDPAttempts       int
-	MaxClassifyAttempts  int
-	MaxExtractAttempts   int
-	BackoffBase          time.Duration
-	BackoffMax           time.Duration
-	PDPStaleAfter        time.Duration
+	MaxPDPAttempts      int
+	MaxClassifyAttempts int
+	MaxExtractAttempts  int
+	BackoffBase         time.Duration
+	BackoffMax          time.Duration
+	PDPStaleAfter       time.Duration
 }
 
 // DefaultConfig returns production defaults matching existing 7-day staleness.
