@@ -54,7 +54,7 @@
     "eslint": "^9",
     "eslint-config-next": "^15",
     "eslint-plugin-security": "^4.0.0",
-    "postcss": "^8.4.49",
+    "postcss": "^8.5.12",
     "storybook": "^8.6",
     "tailwindcss": "^4.2.1",
     "tsx": "^4.19.3",
