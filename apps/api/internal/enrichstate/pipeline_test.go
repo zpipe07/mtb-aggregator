@@ -3,6 +3,7 @@ package enrichstate
 import (
 	"context"
 	"errors"
+	"strconv"
 	"sync"
 	"testing"
 	"time"
@@ -64,10 +65,11 @@ func (f *fakeStateStore) RecordStepSuccess(_ context.Context, listingID int, ste
 	}
 	switch step {
 	case StepPDP:
+		// Mirrors the DB store contract: PDP success never touches PDPHash
+		// (it tracks the hash last processed by the LLM steps).
 		st.PDP.CompletedAt = &completedAt
 		st.PDP.Attempts = 0
 		st.PDP.Error = ""
-		st.PDPHash = meta.PDPHash
 	case StepClassify:
 		st.Classify.CompletedAt = &completedAt
 		st.LLMConfidence = meta.LLMConfidence
@@ -98,7 +100,7 @@ func (f *fakeStateStore) RecordStepFailure(_ context.Context, listingID int, ste
 func (f *fakeStateStore) ResetStep(context.Context, int, Step) error { return nil }
 
 type fakeSnapshots struct {
-	mu   sync.Mutex
+	mu    sync.Mutex
 	snaps map[int]*Snapshot
 }
 
@@ -150,6 +152,147 @@ type fakeLLM struct {
 
 func (f fakeLLM) ClassificationStep(context.Context, int) error { return f.classifyErr }
 func (f fakeLLM) SpecExtractionStep(context.Context, int) error { return nil }
+
+type fakeListings struct {
+	canonicalCategory []string
+}
+
+func (f fakeListings) UpdateListingEnrichment(context.Context, int, []string, map[string]string, bool, *string) error {
+	return nil
+}
+
+func (f fakeListings) GetListingForLLM(context.Context, int) (*ListingLLMView, error) {
+	return &ListingLLMView{CanonicalCategory: f.canonicalCategory}, nil
+}
+
+func (f fakeListings) GetListingForCategoryClassification(context.Context, int) (*ListingClassifyView, error) {
+	return &ListingClassifyView{Metadata: []byte(`{}`)}, nil
+}
+
+func (f fakeListings) GetPromptProfileUpdatedAt(context.Context, []string) (*time.Time, error) {
+	return nil, nil
+}
+
+func countEvents(events []Event, step Step, status EventStatus) int {
+	n := 0
+	for _, ev := range events {
+		if ev.Step == step && ev.Status == status {
+			n++
+		}
+	}
+	return n
+}
+
+// Reproduces the production starvation bug: ENRICH_MAX_LISTINGS was applied as a
+// global budget across all passes, so a PDP backlog >= the cap meant classify and
+// extract never ran. maxListings must cap each step independently.
+func TestPipeline_MaxListingsBudgetsEachStepSoPDPBacklogCannotStarveLLMSteps(t *testing.T) {
+	t.Parallel()
+	now := time.Now()
+	completed := now.Add(-time.Hour)
+
+	// PDP backlog (3 items) exceeds the per-job cap (2).
+	pdpItems := []WorkItem{
+		{ListingID: 1, ProductURL: "http://x/1"},
+		{ListingID: 2, ProductURL: "http://x/2"},
+		{ListingID: 3, ProductURL: "http://x/3"},
+	}
+	// Two listings already fetched, awaiting classification.
+	classifyItems := []WorkItem{
+		{ListingID: 10, ProductURL: "http://x/10"},
+		{ListingID: 11, ProductURL: "http://x/11"},
+	}
+	state := newFakeStateStore(map[Step][]WorkItem{
+		StepPDP:      pdpItems,
+		StepClassify: classifyItems,
+	})
+	snaps := &fakeSnapshots{snaps: map[int]*Snapshot{}}
+	for _, id := range []int{10, 11} {
+		state.states[id] = &ListingState{
+			ListingID: id,
+			PDP:       StepState{CompletedAt: &completed},
+		}
+		snaps.snaps[id] = &Snapshot{ListingID: id, ContentHash: "hash-" + strconv.Itoa(id)}
+	}
+
+	events := &fakeEvents{}
+	p := &Pipeline{
+		State:     state,
+		Snapshots: snaps,
+		Events:    events,
+		Scraper:   fakeScraper{},
+		LLM:       fakeLLM{},
+		Listings:  fakeListings{},
+		Config:    DefaultConfig(),
+	}
+	processed, succeeded, errStrs := p.RunJob(context.Background(), ClaimFilter{}, false, 10, 2, nil)
+	if len(errStrs) != 0 {
+		t.Fatalf("unexpected errors: %v", errStrs)
+	}
+
+	if got := countEvents(events.events, StepPDP, StatusSuccess); got != 2 {
+		t.Errorf("pdp successes = %d, want 2 (capped per step)", got)
+	}
+	if got := countEvents(events.events, StepClassify, StatusSuccess); got != 2 {
+		t.Errorf("classify successes = %d, want 2 (must not be starved by PDP backlog)", got)
+	}
+	if processed != 4 {
+		t.Errorf("processed = %d, want 4 (2 pdp + 2 classify)", processed)
+	}
+	if succeeded != 4 {
+		t.Errorf("succeeded = %d, want 4", succeeded)
+	}
+}
+
+// A PDP re-fetch that returns changed content must invalidate the previous LLM
+// classification: the classify pass runs again instead of skipping. This guards
+// against PDP success overwriting the "hash last processed by LLM" marker.
+func TestPipeline_PDPRefetchWithChangedContentTriggersReclassify(t *testing.T) {
+	t.Parallel()
+	now := time.Now()
+	classifiedAt := now.Add(-8 * 24 * time.Hour)
+	item := WorkItem{ListingID: 5, ProductURL: "http://x/5"}
+
+	state := newFakeStateStore(map[Step][]WorkItem{
+		StepPDP:      {item},
+		StepClassify: {item},
+	})
+	// Previously fetched and classified against old content ("old-content-hash").
+	state.states[5] = &ListingState{
+		ListingID: 5,
+		PDP:       StepState{CompletedAt: &classifiedAt},
+		Classify:  StepState{CompletedAt: &classifiedAt},
+		PDPHash:   "old-content-hash",
+	}
+	snaps := &fakeSnapshots{snaps: map[int]*Snapshot{
+		5: {ListingID: 5, ContentHash: "old-content-hash"},
+	}}
+
+	events := &fakeEvents{}
+	p := &Pipeline{
+		State:     state,
+		Snapshots: snaps,
+		Events:    events,
+		Scraper:   fakeScraper{}, // returns new content whose hash differs from "old-content-hash"
+		LLM:       fakeLLM{},
+		Listings:  fakeListings{},
+		Config:    DefaultConfig(),
+	}
+	_, _, errStrs := p.RunJob(context.Background(), ClaimFilter{}, false, 10, 0, nil)
+	if len(errStrs) != 0 {
+		t.Fatalf("unexpected errors: %v", errStrs)
+	}
+
+	if got := countEvents(events.events, StepPDP, StatusSuccess); got != 1 {
+		t.Fatalf("pdp successes = %d, want 1", got)
+	}
+	if got := countEvents(events.events, StepClassify, StatusSkipped); got != 0 {
+		t.Errorf("classify skipped = %d, want 0 (content changed, must re-run)", got)
+	}
+	if got := countEvents(events.events, StepClassify, StatusSuccess); got != 1 {
+		t.Errorf("classify successes = %d, want 1 (re-run after content change)", got)
+	}
+}
 
 func TestPipeline_PDPFailureDoesNotRunLLM(t *testing.T) {
 	t.Parallel()
