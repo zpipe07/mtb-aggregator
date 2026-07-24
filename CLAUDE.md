@@ -97,6 +97,7 @@ make scrape-now-thelostco      # thelostco only
 make scrape-now-hayes          # hayes only
 make scrape-now-raceface       # raceface only
 make scrape-now-ion            # ion only
+make scrape-now-coloradocyclist  # coloradocyclist only
 make scrape-now-trek           # trek only
 make scrape-now-universalcycles  # universalcycles only
 make enrich-now              # enrich unenriched listings
@@ -120,6 +121,7 @@ make enrich-now-thelostco      # thelostco only (optional FORCE=1)
 make enrich-now-hayes          # hayes only (optional FORCE=1)
 make enrich-now-raceface       # raceface only (optional FORCE=1)
 make enrich-now-ion            # ion only (optional FORCE=1)
+make enrich-now-coloradocyclist  # coloradocyclist only (optional FORCE=1)
 make enrich-now-trek           # trek only (optional FORCE=1)
 make enrich-now-universalcycles  # universalcycles only (optional FORCE=1)
 make enrich-now FORCE=1      # re-enrich all

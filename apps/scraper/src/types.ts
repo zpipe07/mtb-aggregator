@@ -48,6 +48,7 @@ export const STORE_TYPES = [
   "hayes",
   "raceface",
   "ion",
+  "coloradocyclist",
 ] as const;
 export type StoreType = (typeof STORE_TYPES)[number];
 
