@@ -45,6 +45,7 @@ export const STORE_TYPES = [
   "cambriabikes",
   "365cycles",
   "thelostco",
+  "hayes",
 ] as const;
 export type StoreType = (typeof STORE_TYPES)[number];
 
