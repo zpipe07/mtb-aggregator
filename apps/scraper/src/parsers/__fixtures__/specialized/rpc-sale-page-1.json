@@ -1,0 +1,3229 @@
+{
+  "success": true,
+  "data": {
+    "rid": "c6854ecf-cf2d-477f-989b-1d06c6bedc95",
+    "facets": [
+      {
+        "field": "group",
+        "id": "16",
+        "label": "Group",
+        "hidden": false,
+        "order": null,
+        "values": [
+          {
+            "active": false,
+            "count": 55,
+            "id": "762",
+            "label": "Bikes",
+            "type": "value",
+            "value": "Bikes"
+          },
+          {
+            "active": false,
+            "count": 36,
+            "id": "1660",
+            "label": "E-Bikes",
+            "type": "value",
+            "value": "E-Bikes"
+          },
+          {
+            "active": false,
+            "count": 280,
+            "id": "520",
+            "label": "Apparel",
+            "type": "value",
+            "value": "Apparel"
+          },
+          {
+            "active": false,
+            "count": 30,
+            "id": "531",
+            "label": "Tires",
+            "type": "value",
+            "value": "Tires"
+          },
+          {
+            "active": false,
+            "count": 23,
+            "id": "522",
+            "label": "Shoes",
+            "type": "value",
+            "value": "Shoes"
+          },
+          {
+            "active": false,
+            "count": 21,
+            "id": "521",
+            "label": "Gloves",
+            "type": "value",
+            "value": "Gloves"
+          },
+          {
+            "active": false,
+            "count": 21,
+            "id": "538",
+            "label": "Helmets",
+            "type": "value",
+            "value": "Helmets"
+          },
+          {
+            "active": false,
+            "count": 19,
+            "id": "91020201750",
+            "label": "Head & Neckwear",
+            "type": "value",
+            "value": "Head & Neckwear"
+          },
+          {
+            "active": false,
+            "count": 13,
+            "id": "763",
+            "label": "Framesets",
+            "type": "value",
+            "value": "Framesets"
+          },
+          {
+            "active": false,
+            "count": 10,
+            "id": "1120",
+            "label": "Shoe Covers",
+            "type": "value",
+            "value": "Shoe Covers"
+          },
+          {
+            "active": false,
+            "count": 5,
+            "id": "532",
+            "label": "Wheels",
+            "type": "value",
+            "value": "Wheels"
+          },
+          {
+            "active": false,
+            "count": 4,
+            "id": "1300",
+            "label": "Tubes",
+            "type": "value",
+            "value": "Tubes"
+          },
+          {
+            "active": false,
+            "count": 4,
+            "id": "1322734733",
+            "label": "Helmet Accessories",
+            "type": "value",
+            "value": "Helmet Accessories"
+          },
+          {
+            "active": false,
+            "count": 4,
+            "id": "537",
+            "label": "Grips & Tape",
+            "type": "value",
+            "value": "Grips & Tape"
+          },
+          {
+            "active": false,
+            "count": 3,
+            "id": "1322586284",
+            "label": "Parts & Accessories",
+            "type": "value",
+            "value": "Parts & Accessories"
+          },
+          {
+            "active": false,
+            "count": 3,
+            "id": "533",
+            "label": "Bags & Storage",
+            "type": "value",
+            "value": "Bags & Storage"
+          },
+          {
+            "active": false,
+            "count": 3,
+            "id": "534",
+            "label": "Bottle Cages",
+            "type": "value",
+            "value": "Bottle Cages"
+          },
+          {
+            "active": false,
+            "count": 3,
+            "id": "542",
+            "label": "Tools",
+            "type": "value",
+            "value": "Tools"
+          },
+          {
+            "active": false,
+            "count": 2,
+            "id": "528",
+            "label": "Bike Seatposts",
+            "type": "value",
+            "value": "Bike Seatposts"
+          },
+          {
+            "active": false,
+            "count": 2,
+            "id": "529",
+            "label": "Stems",
+            "type": "value",
+            "value": "Stems"
+          },
+          {
+            "active": false,
+            "count": 2,
+            "id": "543",
+            "label": "Turbo Extras",
+            "type": "value",
+            "value": "Turbo Extras"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "524",
+            "label": "Chainrings & Crankarms",
+            "type": "value",
+            "value": "Chainrings & Crankarms"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "526",
+            "label": "Pedals",
+            "type": "value",
+            "value": "Pedals"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "527",
+            "label": "Saddles",
+            "type": "value",
+            "value": "Saddles"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "530",
+            "label": "Suspension",
+            "type": "value",
+            "value": "Suspension"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "535",
+            "label": "Bottles & Hydration",
+            "type": "value",
+            "value": "Bottles & Hydration"
+          }
+        ]
+      },
+      {
+        "field": "categoryproperty",
+        "id": "1",
+        "label": "Category",
+        "hidden": false,
+        "order": null,
+        "values": [
+          {
+            "active": false,
+            "count": 300,
+            "id": "109",
+            "label": "Mountain",
+            "type": "value",
+            "value": "Mountain"
+          },
+          {
+            "active": false,
+            "count": 230,
+            "id": "110",
+            "label": "Road",
+            "type": "value",
+            "value": "Road"
+          },
+          {
+            "active": false,
+            "count": 120,
+            "id": "107",
+            "label": "Active",
+            "type": "value",
+            "value": "Active"
+          },
+          {
+            "active": false,
+            "count": 73,
+            "id": "1322745546",
+            "label": "Gravel",
+            "type": "value",
+            "value": "Gravel"
+          },
+          {
+            "active": false,
+            "count": 25,
+            "id": "108",
+            "label": "Kids",
+            "type": "value",
+            "value": "Kids"
+          },
+          {
+            "active": false,
+            "count": 5,
+            "id": "104",
+            "label": "Casual",
+            "type": "value",
+            "value": "Casual"
+          }
+        ]
+      },
+      {
+        "field": "size",
+        "id": "5123",
+        "label": "Size",
+        "hidden": false,
+        "order": null,
+        "values": [
+          {
+            "active": false,
+            "count": 229,
+            "id": "_s",
+            "label": "XS",
+            "type": "value",
+            "value": "XS"
+          },
+          {
+            "active": false,
+            "count": 329,
+            "id": "s",
+            "label": "S",
+            "type": "value",
+            "value": "S"
+          },
+          {
+            "active": false,
+            "count": 328,
+            "id": "m",
+            "label": "M",
+            "type": "value",
+            "value": "M"
+          },
+          {
+            "active": false,
+            "count": 329,
+            "id": "l",
+            "label": "L",
+            "type": "value",
+            "value": "L"
+          },
+          {
+            "active": false,
+            "count": 269,
+            "id": "_l",
+            "label": "XL",
+            "type": "value",
+            "value": "XL"
+          },
+          {
+            "active": false,
+            "count": 46,
+            "id": "44",
+            "label": "44",
+            "type": "value",
+            "value": "44"
+          },
+          {
+            "active": false,
+            "count": 26,
+            "id": "49",
+            "label": "49",
+            "type": "value",
+            "value": "49"
+          },
+          {
+            "active": false,
+            "count": 3,
+            "id": "52",
+            "label": "52",
+            "type": "value",
+            "value": "52"
+          },
+          {
+            "active": false,
+            "count": 3,
+            "id": "54",
+            "label": "54",
+            "type": "value",
+            "value": "54"
+          },
+          {
+            "active": false,
+            "count": 3,
+            "id": "56",
+            "label": "56",
+            "type": "value",
+            "value": "56"
+          },
+          {
+            "active": false,
+            "count": 3,
+            "id": "58",
+            "label": "58",
+            "type": "value",
+            "value": "58"
+          },
+          {
+            "active": false,
+            "count": 3,
+            "id": "61",
+            "label": "61",
+            "type": "value",
+            "value": "61"
+          },
+          {
+            "active": false,
+            "count": 38,
+            "id": "s1",
+            "label": "S1",
+            "type": "value",
+            "value": "S1"
+          },
+          {
+            "active": false,
+            "count": 46,
+            "id": "s2",
+            "label": "S2",
+            "type": "value",
+            "value": "S2"
+          },
+          {
+            "active": false,
+            "count": 47,
+            "id": "s3",
+            "label": "S3",
+            "type": "value",
+            "value": "S3"
+          },
+          {
+            "active": false,
+            "count": 47,
+            "id": "s4",
+            "label": "S4",
+            "type": "value",
+            "value": "S4"
+          },
+          {
+            "active": false,
+            "count": 47,
+            "id": "s5",
+            "label": "S5",
+            "type": "value",
+            "value": "S5"
+          },
+          {
+            "active": false,
+            "count": 36,
+            "id": "s6",
+            "label": "S6",
+            "type": "value",
+            "value": "S6"
+          },
+          {
+            "active": false,
+            "count": 3,
+            "id": "0",
+            "label": "0",
+            "type": "value",
+            "value": "0"
+          },
+          {
+            "active": false,
+            "count": 3,
+            "id": "10",
+            "label": "10",
+            "type": "value",
+            "value": "10"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "110bcd",
+            "label": "110BCD",
+            "type": "value",
+            "value": "110BCD"
+          },
+          {
+            "active": false,
+            "count": 3,
+            "id": "12",
+            "label": "12",
+            "type": "value",
+            "value": "12"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "125_ml___4_2_o__each",
+            "label": "125 ml - 4.2 oz EACH",
+            "type": "value",
+            "value": "125 ml - 4.2 oz EACH"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "12___2_0",
+            "label": "12 x 2.0",
+            "type": "value",
+            "value": "12 x 2.0"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "12___2_3",
+            "label": "12 x 2.3",
+            "type": "value",
+            "value": "12 x 2.3"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "130bcd",
+            "label": "130BCD",
+            "type": "value",
+            "value": "130BCD"
+          },
+          {
+            "active": false,
+            "count": 3,
+            "id": "14",
+            "label": "14",
+            "type": "value",
+            "value": "14"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "16___2_3",
+            "label": "16 x 2.3",
+            "type": "value",
+            "value": "16 x 2.3"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "18___2_0",
+            "label": "18 x 2.0",
+            "type": "value",
+            "value": "18 x 2.0"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "1_pack",
+            "label": "1 Pack",
+            "type": "value",
+            "value": "1 Pack"
+          },
+          {
+            "active": false,
+            "count": 3,
+            "id": "2",
+            "label": "2",
+            "type": "value",
+            "value": "2"
+          },
+          {
+            "active": false,
+            "count": 2,
+            "id": "20_",
+            "label": "20\"",
+            "type": "value",
+            "value": "20\""
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "20___1_0_1_5",
+            "label": "20 x 1.0-1.5",
+            "type": "value",
+            "value": "20 x 1.0-1.5"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "20___1_1_8_1_3_8",
+            "label": "20 x 1 1/8-1 3/8",
+            "type": "value",
+            "value": "20 x 1 1/8-1 3/8"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "20___2_0",
+            "label": "20 x 2.0",
+            "type": "value",
+            "value": "20 x 2.0"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "20___2_3",
+            "label": "20 x 2.3",
+            "type": "value",
+            "value": "20 x 2.3"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "20___2_8",
+            "label": "20 x 2.8",
+            "type": "value",
+            "value": "20 x 2.8"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "20___3_5_4_5",
+            "label": "20 x 3.5-4.5",
+            "type": "value",
+            "value": "20 x 3.5-4.5"
+          },
+          {
+            "active": false,
+            "count": 3,
+            "id": "24",
+            "label": "24",
+            "type": "value",
+            "value": "24"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "24___1_1_8_1_3_8",
+            "label": "24 x 1 1/8-1 3/8",
+            "type": "value",
+            "value": "24 x 1 1/8-1 3/8"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "24___1_5",
+            "label": "24 x 1.5",
+            "type": "value",
+            "value": "24 x 1.5"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "24___2_1",
+            "label": "24 x 2.1",
+            "type": "value",
+            "value": "24 x 2.1"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "24___2_2",
+            "label": "24 x 2.2",
+            "type": "value",
+            "value": "24 x 2.2"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "24___2_4_3_0",
+            "label": "24 x 2.4-3.0",
+            "type": "value",
+            "value": "24 x 2.4-3.0"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "24___2_8",
+            "label": "24 x 2.8",
+            "type": "value",
+            "value": "24 x 2.8"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "24___3_5_4_5",
+            "label": "24 x 3.5-4.5",
+            "type": "value",
+            "value": "24 x 3.5-4.5"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "24_o_",
+            "label": "24 oz",
+            "type": "value",
+            "value": "24 oz"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "25mm",
+            "label": "25mm",
+            "type": "value",
+            "value": "25mm"
+          },
+          {
+            "active": false,
+            "count": 3,
+            "id": "26",
+            "label": "26",
+            "type": "value",
+            "value": "26"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "26_",
+            "label": "26\"",
+            "type": "value",
+            "value": "26\""
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "26___1_0_1_25",
+            "label": "26 x 1.0-1.25",
+            "type": "value",
+            "value": "26 x 1.0-1.25"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "26___1_25_2_0",
+            "label": "26 x 1.25-2.0",
+            "type": "value",
+            "value": "26 x 1.25-2.0"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "26___1_5",
+            "label": "26 x 1.5",
+            "type": "value",
+            "value": "26 x 1.5"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "26___1_5_1_8",
+            "label": "26 x 1.5-1.8",
+            "type": "value",
+            "value": "26 x 1.5-1.8"
+          },
+          {
+            "active": false,
+            "count": 2,
+            "id": "26___1_75_2_4",
+            "label": "26 x 1.75-2.4",
+            "type": "value",
+            "value": "26 x 1.75-2.4"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "26___1_9",
+            "label": "26 x 1.9",
+            "type": "value",
+            "value": "26 x 1.9"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "26___2_2",
+            "label": "26 x 2.2",
+            "type": "value",
+            "value": "26 x 2.2"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "26___2_3",
+            "label": "26 x 2.3",
+            "type": "value",
+            "value": "26 x 2.3"
+          },
+          {
+            "active": false,
+            "count": 2,
+            "id": "26___2_35",
+            "label": "26 x 2.35",
+            "type": "value",
+            "value": "26 x 2.35"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "26___2_3_3_0",
+            "label": "26 x 2.3-3.0",
+            "type": "value",
+            "value": "26 x 2.3-3.0"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "26___3_8_4_8",
+            "label": "26 x 3.8-4.8",
+            "type": "value",
+            "value": "26 x 3.8-4.8"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "27_5_",
+            "label": "27.5\"",
+            "type": "value",
+            "value": "27.5\""
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "27_5_650b___1_75",
+            "label": "27.5/650b x 1.75",
+            "type": "value",
+            "value": "27.5/650b x 1.75"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "27_5_650b___1_75_2_4",
+            "label": "27.5/650B x 1.75-2.4",
+            "type": "value",
+            "value": "27.5/650B x 1.75-2.4"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "27_5_650b___1_9",
+            "label": "27.5/650b x 1.9",
+            "type": "value",
+            "value": "27.5/650b x 1.9"
+          },
+          {
+            "active": false,
+            "count": 7,
+            "id": "27_5_650b___2_3",
+            "label": "27.5/650B x 2.3",
+            "type": "value",
+            "value": "27.5/650B x 2.3"
+          },
+          {
+            "active": false,
+            "count": 2,
+            "id": "27_5_650b___2_35",
+            "label": "27.5/650B x 2.35",
+            "type": "value",
+            "value": "27.5/650B x 2.35"
+          },
+          {
+            "active": false,
+            "count": 2,
+            "id": "27_5_650b___2_3_3_0",
+            "label": "27.5/650B x 2.3-3.0",
+            "type": "value",
+            "value": "27.5/650B x 2.3-3.0"
+          },
+          {
+            "active": false,
+            "count": 2,
+            "id": "27_5_650b___2_4",
+            "label": "27.5/650B x 2.4",
+            "type": "value",
+            "value": "27.5/650B x 2.4"
+          },
+          {
+            "active": false,
+            "count": 6,
+            "id": "27_5_650b___2_6",
+            "label": "27.5/650B x 2.6",
+            "type": "value",
+            "value": "27.5/650B x 2.6"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "27_5_650b___2_8",
+            "label": "27.5/650B x 2.8",
+            "type": "value",
+            "value": "27.5/650B x 2.8"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "27_5_650b___32_50c",
+            "label": "27.5/650b x 32-50C",
+            "type": "value",
+            "value": "27.5/650b x 32-50C"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "27_5_650b___42",
+            "label": "27.5/650b x 42",
+            "type": "value",
+            "value": "27.5/650b x 42"
+          },
+          {
+            "active": false,
+            "count": 3,
+            "id": "27_5_front",
+            "label": "27.5 Front",
+            "type": "value",
+            "value": "27.5 Front"
+          },
+          {
+            "active": false,
+            "count": 3,
+            "id": "27_5_rear_28h",
+            "label": "27.5 Rear 28H",
+            "type": "value",
+            "value": "27.5 Rear 28H"
+          },
+          {
+            "active": false,
+            "count": 2,
+            "id": "27_5_rear_32h",
+            "label": "27.5 Rear 32H",
+            "type": "value",
+            "value": "27.5 Rear 32H"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "27___1_1_4",
+            "label": "27 x 1 1/4",
+            "type": "value",
+            "value": "27 x 1 1/4"
+          },
+          {
+            "active": false,
+            "count": 22,
+            "id": "28",
+            "label": "28",
+            "type": "value",
+            "value": "28"
+          },
+          {
+            "active": false,
+            "count": 2,
+            "id": "29___1_75_2_4",
+            "label": "29 x 1.75-2.4",
+            "type": "value",
+            "value": "29 x 1.75-2.4"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "29___1_75_2_4_60mm",
+            "label": "29 x 1.75-2.4 60mm",
+            "type": "value",
+            "value": "29 x 1.75-2.4 60mm"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "29___2_1",
+            "label": "29 x 2.1",
+            "type": "value",
+            "value": "29 x 2.1"
+          },
+          {
+            "active": false,
+            "count": 4,
+            "id": "29___2_2",
+            "label": "29 x 2.2",
+            "type": "value",
+            "value": "29 x 2.2"
+          },
+          {
+            "active": false,
+            "count": 6,
+            "id": "29___2_3",
+            "label": "29 x 2.3",
+            "type": "value",
+            "value": "29 x 2.3"
+          },
+          {
+            "active": false,
+            "count": 4,
+            "id": "29___2_35",
+            "label": "29 x 2.35",
+            "type": "value",
+            "value": "29 x 2.35"
+          },
+          {
+            "active": false,
+            "count": 3,
+            "id": "29___2_4",
+            "label": "29 x 2.4",
+            "type": "value",
+            "value": "29 x 2.4"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "29___2_4_2_8",
+            "label": "29 x 2.4-2.8",
+            "type": "value",
+            "value": "29 x 2.4-2.8"
+          },
+          {
+            "active": false,
+            "count": 6,
+            "id": "29___2_6",
+            "label": "29 x 2.6",
+            "type": "value",
+            "value": "29 x 2.6"
+          },
+          {
+            "active": false,
+            "count": 4,
+            "id": "29_front_28h",
+            "label": "29 Front 28H",
+            "type": "value",
+            "value": "29 Front 28H"
+          },
+          {
+            "active": false,
+            "count": 4,
+            "id": "29_rear_28h",
+            "label": "29 Rear 28H",
+            "type": "value",
+            "value": "29 Rear 28H"
+          },
+          {
+            "active": false,
+            "count": 2,
+            "id": "29_rear_32h",
+            "label": "29 Rear 32H",
+            "type": "value",
+            "value": "29 Rear 32H"
+          },
+          {
+            "active": false,
+            "count": 24,
+            "id": "30",
+            "label": "30",
+            "type": "value",
+            "value": "30"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "30_6mm",
+            "label": "30.6mm",
+            "type": "value",
+            "value": "30.6mm"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "31_6mm",
+            "label": "31.6mm",
+            "type": "value",
+            "value": "31.6mm"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "31_8mm___100mm__6_degree",
+            "label": "31.8mm x 100mm, 6 Degree",
+            "type": "value",
+            "value": "31.8mm x 100mm, 6 Degree"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "31_8mm___110mm__12_degree",
+            "label": "31.8mm x 110mm, 12 Degree",
+            "type": "value",
+            "value": "31.8mm x 110mm, 12 Degree"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "31_8mm___110mm__6_degree",
+            "label": "31.8mm x 110mm, 6 Degree",
+            "type": "value",
+            "value": "31.8mm x 110mm, 6 Degree"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "31_8mm___120mm__12_degree",
+            "label": "31.8mm x 120mm, 12 Degree",
+            "type": "value",
+            "value": "31.8mm x 120mm, 12 Degree"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "31_8mm___120mm__6_degree",
+            "label": "31.8mm x 120mm, 6 Degree",
+            "type": "value",
+            "value": "31.8mm x 120mm, 6 Degree"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "31_8mm___130mm__12_degree",
+            "label": "31.8mm x 130mm, 12 Degree",
+            "type": "value",
+            "value": "31.8mm x 130mm, 12 Degree"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "31_8mm___130mm__6_degree",
+            "label": "31.8mm x 130mm, 6 Degree",
+            "type": "value",
+            "value": "31.8mm x 130mm, 6 Degree"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "31_8mm___140mm__12_degree",
+            "label": "31.8mm x 140mm, 12 Degree",
+            "type": "value",
+            "value": "31.8mm x 140mm, 12 Degree"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "31_8mm___140mm__6_degree",
+            "label": "31.8mm x 140mm, 6 Degree",
+            "type": "value",
+            "value": "31.8mm x 140mm, 6 Degree"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "31_8mm___40mm__6_degree",
+            "label": "31.8mm x 40mm, 6 Degree",
+            "type": "value",
+            "value": "31.8mm x 40mm, 6 Degree"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "31_8mm___50mm__6_degree",
+            "label": "31.8mm x 50mm, 6 Degree",
+            "type": "value",
+            "value": "31.8mm x 50mm, 6 Degree"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "31_8mm___60mm__6_degree",
+            "label": "31.8mm x 60mm, 6 Degree",
+            "type": "value",
+            "value": "31.8mm x 60mm, 6 Degree"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "31_8mm___80mm__6_degree",
+            "label": "31.8mm X 80mm, 6 Degree",
+            "type": "value",
+            "value": "31.8mm X 80mm, 6 Degree"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "31_8mm___90mm__6_degree",
+            "label": "31.8mm X 90mm, 6 Degree",
+            "type": "value",
+            "value": "31.8mm X 90mm, 6 Degree"
+          },
+          {
+            "active": false,
+            "count": 24,
+            "id": "32",
+            "label": "32",
+            "type": "value",
+            "value": "32"
+          },
+          {
+            "active": false,
+            "count": 24,
+            "id": "34",
+            "label": "34",
+            "type": "value",
+            "value": "34"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "35mm",
+            "label": "35mm",
+            "type": "value",
+            "value": "35mm"
+          },
+          {
+            "active": false,
+            "count": 47,
+            "id": "36",
+            "label": "36",
+            "type": "value",
+            "value": "36"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "36_37",
+            "label": "36-37",
+            "type": "value",
+            "value": "36-37"
+          },
+          {
+            "active": false,
+            "count": 23,
+            "id": "37",
+            "label": "37",
+            "type": "value",
+            "value": "37"
+          },
+          {
+            "active": false,
+            "count": 47,
+            "id": "38",
+            "label": "38",
+            "type": "value",
+            "value": "38"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "38_39_5",
+            "label": "38-39.5",
+            "type": "value",
+            "value": "38-39.5"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "38_40",
+            "label": "38-40",
+            "type": "value",
+            "value": "38-40"
+          },
+          {
+            "active": false,
+            "count": 21,
+            "id": "38_5",
+            "label": "38.5",
+            "type": "value",
+            "value": "38.5"
+          },
+          {
+            "active": false,
+            "count": 23,
+            "id": "39",
+            "label": "39",
+            "type": "value",
+            "value": "39"
+          },
+          {
+            "active": false,
+            "count": 21,
+            "id": "39_5",
+            "label": "39.5",
+            "type": "value",
+            "value": "39.5"
+          },
+          {
+            "active": false,
+            "count": 3,
+            "id": "4",
+            "label": "4",
+            "type": "value",
+            "value": "4"
+          },
+          {
+            "active": false,
+            "count": 45,
+            "id": "40",
+            "label": "40",
+            "type": "value",
+            "value": "40"
+          },
+          {
+            "active": false,
+            "count": 21,
+            "id": "40_5",
+            "label": "40.5",
+            "type": "value",
+            "value": "40.5"
+          },
+          {
+            "active": false,
+            "count": 23,
+            "id": "41",
+            "label": "41",
+            "type": "value",
+            "value": "41"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "41_42",
+            "label": "41-42",
+            "type": "value",
+            "value": "41-42"
+          },
+          {
+            "active": false,
+            "count": 21,
+            "id": "41_5",
+            "label": "41.5",
+            "type": "value",
+            "value": "41.5"
+          },
+          {
+            "active": false,
+            "count": 45,
+            "id": "42",
+            "label": "42",
+            "type": "value",
+            "value": "42"
+          },
+          {
+            "active": false,
+            "count": 21,
+            "id": "42_5",
+            "label": "42.5",
+            "type": "value",
+            "value": "42.5"
+          },
+          {
+            "active": false,
+            "count": 23,
+            "id": "43",
+            "label": "43",
+            "type": "value",
+            "value": "43"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "43_44",
+            "label": "43-44",
+            "type": "value",
+            "value": "43-44"
+          },
+          {
+            "active": false,
+            "count": 21,
+            "id": "43_5",
+            "label": "43.5",
+            "type": "value",
+            "value": "43.5"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "44_48_",
+            "label": "44-48>",
+            "type": "value",
+            "value": "44-48>"
+          },
+          {
+            "active": false,
+            "count": 21,
+            "id": "44_5",
+            "label": "44.5",
+            "type": "value",
+            "value": "44.5"
+          },
+          {
+            "active": false,
+            "count": 23,
+            "id": "45",
+            "label": "45",
+            "type": "value",
+            "value": "45"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "45_46",
+            "label": "45-46",
+            "type": "value",
+            "value": "45-46"
+          },
+          {
+            "active": false,
+            "count": 21,
+            "id": "45_5",
+            "label": "45.5",
+            "type": "value",
+            "value": "45.5"
+          },
+          {
+            "active": false,
+            "count": 23,
+            "id": "46",
+            "label": "46",
+            "type": "value",
+            "value": "46"
+          },
+          {
+            "active": false,
+            "count": 20,
+            "id": "46_5",
+            "label": "46.5",
+            "type": "value",
+            "value": "46.5"
+          },
+          {
+            "active": false,
+            "count": 23,
+            "id": "47",
+            "label": "47",
+            "type": "value",
+            "value": "47"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "47_48",
+            "label": "47-48",
+            "type": "value",
+            "value": "47-48"
+          },
+          {
+            "active": false,
+            "count": 23,
+            "id": "48",
+            "label": "48",
+            "type": "value",
+            "value": "48"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "5000_ml___169_o__each",
+            "label": "5000 ml - 169 oz EACH",
+            "type": "value",
+            "value": "5000 ml - 169 oz EACH"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "504_wh",
+            "label": "504 WH",
+            "type": "value",
+            "value": "504 WH"
+          },
+          {
+            "active": false,
+            "count": 3,
+            "id": "6",
+            "label": "6",
+            "type": "value",
+            "value": "6"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "650___20_28c",
+            "label": "650 x 20-28c",
+            "type": "value",
+            "value": "650 x 20-28c"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "700___18_25c",
+            "label": "700 x 18-25c",
+            "type": "value",
+            "value": "700 x 18-25c"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "700___18_25c_48mm",
+            "label": "700 x 18-25c 48mm",
+            "type": "value",
+            "value": "700 x 18-25c 48mm"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "700___18_25c_60mm",
+            "label": "700 x 18-25c 60mm",
+            "type": "value",
+            "value": "700 x 18-25c 60mm"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "700___18_25c_80mm",
+            "label": "700 x 18-25c 80mm",
+            "type": "value",
+            "value": "700 x 18-25c 80mm"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "700___20_26c",
+            "label": "700 x 20-26c",
+            "type": "value",
+            "value": "700 x 20-26c"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "700___20_26c_48mm",
+            "label": "700 x 20-26c 48mm",
+            "type": "value",
+            "value": "700 x 20-26c 48mm"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "700___20_26c_60mm",
+            "label": "700 x 20-26c 60mm",
+            "type": "value",
+            "value": "700 x 20-26c 60mm"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "700___20_26c_80mm",
+            "label": "700 x 20-26c 80mm",
+            "type": "value",
+            "value": "700 x 20-26c 80mm"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "700___20_28c",
+            "label": "700 x 20-28c",
+            "type": "value",
+            "value": "700 x 20-28c"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "700___20_28c_48mm",
+            "label": "700 x 20-28c 48mm",
+            "type": "value",
+            "value": "700 x 20-28c 48mm"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "700___20_28c_60mm",
+            "label": "700 x 20-28c 60mm",
+            "type": "value",
+            "value": "700 x 20-28c 60mm"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "700___20_28c_80mm",
+            "label": "700 x 20-28c 80mm",
+            "type": "value",
+            "value": "700 x 20-28c 80mm"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "700___23",
+            "label": "700 x 23",
+            "type": "value",
+            "value": "700 x 23"
+          },
+          {
+            "active": false,
+            "count": 2,
+            "id": "700___23_25",
+            "label": "700 x 23/25",
+            "type": "value",
+            "value": "700 x 23/25"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "700___24",
+            "label": "700 x 24",
+            "type": "value",
+            "value": "700 x 24"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "700___25",
+            "label": "700 x 25",
+            "type": "value",
+            "value": "700 x 25"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "700___25_28",
+            "label": "700 x 25/28",
+            "type": "value",
+            "value": "700 x 25/28"
+          },
+          {
+            "active": false,
+            "count": 3,
+            "id": "700___26",
+            "label": "700 x 26",
+            "type": "value",
+            "value": "700 x 26"
+          },
+          {
+            "active": false,
+            "count": 5,
+            "id": "700___28",
+            "label": "700 x 28",
+            "type": "value",
+            "value": "700 x 28"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "700___28_38c",
+            "label": "700 x 28-38c",
+            "type": "value",
+            "value": "700 x 28-38c"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "700___28_38c_48mm",
+            "label": "700 x 28-38c 48mm",
+            "type": "value",
+            "value": "700 x 28-38c 48mm"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "700___28_42c_60mm",
+            "label": "700 x 28-42c 60mm",
+            "type": "value",
+            "value": "700 x 28-42c 60mm"
+          },
+          {
+            "active": false,
+            "count": 3,
+            "id": "700___30",
+            "label": "700 x 30",
+            "type": "value",
+            "value": "700 x 30"
+          },
+          {
+            "active": false,
+            "count": 2,
+            "id": "700___32",
+            "label": "700 x 32",
+            "type": "value",
+            "value": "700 x 32"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "700___32_50c",
+            "label": "700 x 32-50c",
+            "type": "value",
+            "value": "700 x 32-50c"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "700___32_50c_60mm",
+            "label": "700 x 32-50c 60mm",
+            "type": "value",
+            "value": "700 x 32-50c 60mm"
+          },
+          {
+            "active": false,
+            "count": 4,
+            "id": "700___33",
+            "label": "700 x 33",
+            "type": "value",
+            "value": "700 x 33"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "700___35",
+            "label": "700 x 35",
+            "type": "value",
+            "value": "700 x 35"
+          },
+          {
+            "active": false,
+            "count": 6,
+            "id": "700___38",
+            "label": "700 x 38",
+            "type": "value",
+            "value": "700 x 38"
+          },
+          {
+            "active": false,
+            "count": 4,
+            "id": "700___42",
+            "label": "700 x 42",
+            "type": "value",
+            "value": "700 x 42"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "700___45",
+            "label": "700 x 45",
+            "type": "value",
+            "value": "700 x 45"
+          },
+          {
+            "active": false,
+            "count": 2,
+            "id": "700___47",
+            "label": "700 x 47",
+            "type": "value",
+            "value": "700 x 47"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "700c",
+            "label": "700c",
+            "type": "value",
+            "value": "700c"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "700c_front",
+            "label": "700c Front",
+            "type": "value",
+            "value": "700c Front"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "700c_rear",
+            "label": "700c Rear",
+            "type": "value",
+            "value": "700c Rear"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "760_ml___26_o__each",
+            "label": "760 ml - 26 oz EACH",
+            "type": "value",
+            "value": "760 ml - 26 oz EACH"
+          },
+          {
+            "active": false,
+            "count": 3,
+            "id": "8",
+            "label": "8",
+            "type": "value",
+            "value": "8"
+          },
+          {
+            "active": false,
+            "count": 2,
+            "id": "8l",
+            "label": "8L",
+            "type": "value",
+            "value": "8L"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "8o_",
+            "label": "8oz",
+            "type": "value",
+            "value": "8oz"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "8o__bottles___12_pack",
+            "label": "8oz Bottles - 12 Pack",
+            "type": "value",
+            "value": "8oz Bottles - 12 Pack"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "_38_43",
+            "label": "<38-43",
+            "type": "value",
+            "value": "<38-43"
+          },
+          {
+            "active": false,
+            "count": 14,
+            "id": "___l",
+            "label": "XXXL",
+            "type": "value",
+            "value": "XXXL"
+          },
+          {
+            "active": false,
+            "count": 177,
+            "id": "__l",
+            "label": "XXL",
+            "type": "value",
+            "value": "XXL"
+          },
+          {
+            "active": false,
+            "count": 2,
+            "id": "__l_t",
+            "label": "XXL/T",
+            "type": "value",
+            "value": "XXL/T"
+          },
+          {
+            "active": false,
+            "count": 102,
+            "id": "__s",
+            "label": "XXS",
+            "type": "value",
+            "value": "XXS"
+          },
+          {
+            "active": false,
+            "count": 5,
+            "id": "_l___l",
+            "label": "XL/XXL",
+            "type": "value",
+            "value": "XL/XXL"
+          },
+          {
+            "active": false,
+            "count": 2,
+            "id": "_l_t",
+            "label": "XL/T",
+            "type": "value",
+            "value": "XL/T"
+          },
+          {
+            "active": false,
+            "count": 5,
+            "id": "_s_s",
+            "label": "XS/S",
+            "type": "value",
+            "value": "XS/S"
+          },
+          {
+            "active": false,
+            "count": 2,
+            "id": "_s_t",
+            "label": "XS/T",
+            "type": "value",
+            "value": "XS/T"
+          },
+          {
+            "active": false,
+            "count": 9,
+            "id": "l__l",
+            "label": "L/XL",
+            "type": "value",
+            "value": "L/XL"
+          },
+          {
+            "active": false,
+            "count": 2,
+            "id": "l_t",
+            "label": "L/T",
+            "type": "value",
+            "value": "L/T"
+          },
+          {
+            "active": false,
+            "count": 4,
+            "id": "m_l",
+            "label": "M/L",
+            "type": "value",
+            "value": "M/L"
+          },
+          {
+            "active": false,
+            "count": 4,
+            "id": "m_t",
+            "label": "M/T",
+            "type": "value",
+            "value": "M/T"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "n_a",
+            "label": "N/A",
+            "type": "value",
+            "value": "N/A"
+          },
+          {
+            "active": false,
+            "count": 63,
+            "id": "one_si_e",
+            "label": "One Size",
+            "type": "value",
+            "value": "One Size"
+          },
+          {
+            "active": false,
+            "count": 9,
+            "id": "s_m",
+            "label": "S/M",
+            "type": "value",
+            "value": "S/M"
+          },
+          {
+            "active": false,
+            "count": 4,
+            "id": "s_t",
+            "label": "S/T",
+            "type": "value",
+            "value": "S/T"
+          }
+        ]
+      },
+      {
+        "field": "gender",
+        "id": "0",
+        "label": "Gender",
+        "hidden": false,
+        "order": null,
+        "values": [
+          {
+            "active": false,
+            "count": 375,
+            "id": "102",
+            "label": "Women",
+            "type": "value",
+            "value": "Women"
+          },
+          {
+            "active": false,
+            "count": 320,
+            "id": "101",
+            "label": "Men",
+            "type": "value",
+            "value": "Men"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "100",
+            "label": "Kids",
+            "type": "value",
+            "value": "Kids"
+          }
+        ]
+      },
+      {
+        "field": "productfamily",
+        "id": "15",
+        "label": "Product Family",
+        "hidden": false,
+        "order": null,
+        "values": [
+          {
+            "active": false,
+            "count": 2,
+            "id": "423",
+            "label": "Roubaix",
+            "type": "value",
+            "value": "Roubaix"
+          },
+          {
+            "active": false,
+            "count": 2,
+            "id": "202009141035",
+            "label": "Aethos",
+            "type": "value",
+            "value": "Aethos"
+          },
+          {
+            "active": false,
+            "count": 14,
+            "id": "463",
+            "label": "Stumpjumper",
+            "type": "value",
+            "value": "Stumpjumper"
+          },
+          {
+            "active": false,
+            "count": 3,
+            "id": "500",
+            "label": "Epic",
+            "type": "value",
+            "value": "Epic"
+          },
+          {
+            "active": false,
+            "count": 4,
+            "id": "488",
+            "label": "Turbo Vado",
+            "type": "value",
+            "value": "Turbo Vado"
+          },
+          {
+            "active": false,
+            "count": 8,
+            "id": "1600",
+            "label": "Turbo Vado SL",
+            "type": "value",
+            "value": "Turbo Vado SL"
+          },
+          {
+            "active": false,
+            "count": 12,
+            "id": "278",
+            "label": "2FO",
+            "type": "value",
+            "value": "2FO"
+          },
+          {
+            "active": false,
+            "count": 20,
+            "id": "1322586090",
+            "label": "ADV",
+            "type": "value",
+            "value": "ADV"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "282",
+            "label": "Airlock",
+            "type": "value",
+            "value": "Airlock"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "287",
+            "label": "All Condition",
+            "type": "value",
+            "value": "All Condition"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "288",
+            "label": "Allez",
+            "type": "value",
+            "value": "Allez"
+          },
+          {
+            "active": false,
+            "count": 7,
+            "id": "289",
+            "label": "Ambush",
+            "type": "value",
+            "value": "Ambush"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "291",
+            "label": "Andorra",
+            "type": "value",
+            "value": "Andorra"
+          },
+          {
+            "active": false,
+            "count": 4,
+            "id": "202101120135",
+            "label": "Ares",
+            "type": "value",
+            "value": "Ares"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "294",
+            "label": "Atlas",
+            "type": "value",
+            "value": "Atlas"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "300",
+            "label": "Big Mouth",
+            "type": "value",
+            "value": "Big Mouth"
+          },
+          {
+            "active": false,
+            "count": 3,
+            "id": "304",
+            "label": "Butcher",
+            "type": "value",
+            "value": "Butcher"
+          },
+          {
+            "active": false,
+            "count": 7,
+            "id": "307",
+            "label": "Camber",
+            "type": "value",
+            "value": "Camber"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "312",
+            "label": "Chamonix",
+            "type": "value",
+            "value": "Chamonix"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "313",
+            "label": "Chisel",
+            "type": "value",
+            "value": "Chisel"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "315",
+            "label": "Comp",
+            "type": "value",
+            "value": "Comp"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "1322754155",
+            "label": "Cotton",
+            "type": "value",
+            "value": "Cotton"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "319",
+            "label": "Covert",
+            "type": "value",
+            "value": "Covert"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "321",
+            "label": "Crossroads",
+            "type": "value",
+            "value": "Crossroads"
+          },
+          {
+            "active": false,
+            "count": 2,
+            "id": "324",
+            "label": "Deflect\u2122",
+            "type": "value",
+            "value": "Deflect\u2122"
+          },
+          {
+            "active": false,
+            "count": 2,
+            "id": "328",
+            "label": "Dissident",
+            "type": "value",
+            "value": "Dissident"
+          },
+          {
+            "active": false,
+            "count": 2,
+            "id": "338",
+            "label": "Eliminator",
+            "type": "value",
+            "value": "Eliminator"
+          },
+          {
+            "active": false,
+            "count": 3,
+            "id": "501",
+            "label": "Epic EVO",
+            "type": "value",
+            "value": "Epic EVO"
+          },
+          {
+            "active": false,
+            "count": 3,
+            "id": "1322653628",
+            "label": "Epic World Cup",
+            "type": "value",
+            "value": "Epic World Cup"
+          },
+          {
+            "active": false,
+            "count": 4,
+            "id": "346",
+            "label": "Evade",
+            "type": "value",
+            "value": "Evade"
+          },
+          {
+            "active": false,
+            "count": 3,
+            "id": "349",
+            "label": "Fast Trak",
+            "type": "value",
+            "value": "Fast Trak"
+          },
+          {
+            "active": false,
+            "count": 2,
+            "id": "353",
+            "label": "Flux",
+            "type": "value",
+            "value": "Flux"
+          },
+          {
+            "active": false,
+            "count": 2,
+            "id": "1322705751",
+            "label": "Foundation",
+            "type": "value",
+            "value": "Foundation"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "356",
+            "label": "Gel",
+            "type": "value",
+            "value": "Gel"
+          },
+          {
+            "active": false,
+            "count": 2,
+            "id": "358",
+            "label": "Grail",
+            "type": "value",
+            "value": "Grail"
+          },
+          {
+            "active": false,
+            "count": 10,
+            "id": "1322619163",
+            "label": "Gravity",
+            "type": "value",
+            "value": "Gravity"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "365",
+            "label": "Hillbilly",
+            "type": "value",
+            "value": "Hillbilly"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "202009151820",
+            "label": "Merino",
+            "type": "value",
+            "value": "Merino"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "1322513142",
+            "label": "Mode",
+            "type": "value",
+            "value": "Mode"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "382",
+            "label": "Nimbus",
+            "type": "value",
+            "value": "Nimbus"
+          },
+          {
+            "active": false,
+            "count": 4,
+            "id": "384",
+            "label": "P.Series",
+            "type": "value",
+            "value": "P.Series"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "387",
+            "label": "Pathfinder",
+            "type": "value",
+            "value": "Pathfinder"
+          },
+          {
+            "active": false,
+            "count": 2,
+            "id": "202009151823",
+            "label": "Primaloft",
+            "type": "value",
+            "value": "Primaloft"
+          },
+          {
+            "active": false,
+            "count": 29,
+            "id": "91020201545",
+            "label": "Prime-Series",
+            "type": "value",
+            "value": "Prime-Series"
+          },
+          {
+            "active": false,
+            "count": 3,
+            "id": "398",
+            "label": "Purgatory",
+            "type": "value",
+            "value": "Purgatory"
+          },
+          {
+            "active": false,
+            "count": 3,
+            "id": "91020201547",
+            "label": "Race-Series",
+            "type": "value",
+            "value": "Race-Series"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "1322761609",
+            "label": "Rapidair",
+            "type": "value",
+            "value": "Rapidair"
+          },
+          {
+            "active": false,
+            "count": 19,
+            "id": "402",
+            "label": "RBX",
+            "type": "value",
+            "value": "RBX"
+          },
+          {
+            "active": false,
+            "count": 2,
+            "id": "405",
+            "label": "Recon",
+            "type": "value",
+            "value": "Recon"
+          },
+          {
+            "active": false,
+            "count": 2,
+            "id": "407",
+            "label": "Renegade",
+            "type": "value",
+            "value": "Renegade"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "409",
+            "label": "Rhythm Lite",
+            "type": "value",
+            "value": "Rhythm Lite"
+          },
+          {
+            "active": false,
+            "count": 2,
+            "id": "414",
+            "label": "Rime",
+            "type": "value",
+            "value": "Rime"
+          },
+          {
+            "active": false,
+            "count": 4,
+            "id": "419",
+            "label": "Roll",
+            "type": "value",
+            "value": "Roll"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "440",
+            "label": "Sawtooth",
+            "type": "value",
+            "value": "Sawtooth"
+          },
+          {
+            "active": false,
+            "count": 7,
+            "id": "449",
+            "label": "Sirrus",
+            "type": "value",
+            "value": "Sirrus"
+          },
+          {
+            "active": false,
+            "count": 11,
+            "id": "1220",
+            "label": "Sirrus X",
+            "type": "value",
+            "value": "Sirrus X"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "450",
+            "label": "Sitero",
+            "type": "value",
+            "value": "Sitero"
+          },
+          {
+            "active": false,
+            "count": 15,
+            "id": "436",
+            "label": "SL",
+            "type": "value",
+            "value": "SL"
+          },
+          {
+            "active": false,
+            "count": 5,
+            "id": "455",
+            "label": "Speedzone",
+            "type": "value",
+            "value": "Speedzone"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "458",
+            "label": "Standard",
+            "type": "value",
+            "value": "Standard"
+          },
+          {
+            "active": false,
+            "count": 4,
+            "id": "631",
+            "label": "Status 140",
+            "type": "value",
+            "value": "Status 140"
+          },
+          {
+            "active": false,
+            "count": 7,
+            "id": "502",
+            "label": "Stumpjumper EVO",
+            "type": "value",
+            "value": "Stumpjumper EVO"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "439",
+            "label": "SWAT",
+            "type": "value",
+            "value": "SWAT"
+          },
+          {
+            "active": false,
+            "count": 4,
+            "id": "467",
+            "label": "Tactic",
+            "type": "value",
+            "value": "Tactic"
+          },
+          {
+            "active": false,
+            "count": 4,
+            "id": "470",
+            "label": "Tech Layer",
+            "type": "value",
+            "value": "Tech Layer"
+          },
+          {
+            "active": false,
+            "count": 2,
+            "id": "471",
+            "label": "Terra",
+            "type": "value",
+            "value": "Terra"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "473",
+            "label": "Therminal",
+            "type": "value",
+            "value": "Therminal"
+          },
+          {
+            "active": false,
+            "count": 3,
+            "id": "475",
+            "label": "Torch",
+            "type": "value",
+            "value": "Torch"
+          },
+          {
+            "active": false,
+            "count": 2,
+            "id": "477",
+            "label": "Tracer",
+            "type": "value",
+            "value": "Tracer"
+          },
+          {
+            "active": false,
+            "count": 66,
+            "id": "91020201546",
+            "label": "Trail-Series",
+            "type": "value",
+            "value": "Trail-Series"
+          },
+          {
+            "active": false,
+            "count": 4,
+            "id": "478",
+            "label": "Traverse",
+            "type": "value",
+            "value": "Traverse"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "480",
+            "label": "Trigger",
+            "type": "value",
+            "value": "Trigger"
+          },
+          {
+            "active": false,
+            "count": 2,
+            "id": "642",
+            "label": "Turbo",
+            "type": "value",
+            "value": "Turbo"
+          },
+          {
+            "active": false,
+            "count": 2,
+            "id": "484",
+            "label": "Turbo Como",
+            "type": "value",
+            "value": "Turbo Como"
+          },
+          {
+            "active": false,
+            "count": 6,
+            "id": "756139",
+            "label": "Turbo Kenevo SL",
+            "type": "value",
+            "value": "Turbo Kenevo SL"
+          },
+          {
+            "active": false,
+            "count": 17,
+            "id": "1240",
+            "label": "Turbo Levo SL",
+            "type": "value",
+            "value": "Turbo Levo SL"
+          },
+          {
+            "active": false,
+            "count": 3,
+            "id": "1322641401",
+            "label": "Turbo Tero X",
+            "type": "value",
+            "value": "Turbo Tero X"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "1681",
+            "label": "Vent",
+            "type": "value",
+            "value": "Vent"
+          }
+        ]
+      },
+      {
+        "field": "price",
+        "id": "consumerpricelow",
+        "label": "Price",
+        "hidden": false,
+        "order": 6,
+        "values": [
+          {
+            "active": false,
+            "count": 330,
+            "id": "0.0<consumerpricelow<50.0",
+            "label": "Less than $50",
+            "type": "value",
+            "value": "Less than $50"
+          },
+          {
+            "active": false,
+            "count": 121,
+            "id": "50.0<consumerpricelow<250.0",
+            "label": "$50 - $250",
+            "type": "value",
+            "value": "$50 - $250"
+          },
+          {
+            "active": false,
+            "count": 13,
+            "id": "250.0<consumerpricelow<500.0",
+            "label": "$250 - $500",
+            "type": "value",
+            "value": "$250 - $500"
+          },
+          {
+            "active": false,
+            "count": 25,
+            "id": "500.0<consumerpricelow<1000.0",
+            "label": "$500 - $1,000",
+            "type": "value",
+            "value": "$500 - $1,000"
+          },
+          {
+            "active": false,
+            "count": 9,
+            "id": "1000.0<consumerpricelow<2500.0",
+            "label": "$1,000 - $2,500",
+            "type": "value",
+            "value": "$1,000 - $2,500"
+          },
+          {
+            "active": false,
+            "count": 34,
+            "id": "2500.0<consumerpricelow<5000.0",
+            "label": "$2,500 - $5,000",
+            "type": "value",
+            "value": "$2,500 - $5,000"
+          },
+          {
+            "active": false,
+            "count": 35,
+            "id": "5000.0<consumerpricelow<10000.0",
+            "label": "$5,000 - $10,000",
+            "type": "value",
+            "value": "$5,000 - $10,000"
+          },
+          {
+            "active": false,
+            "count": 2,
+            "id": "consumerpricelow>10000.0",
+            "label": "Greater than $10,000",
+            "type": "value",
+            "value": "Greater than $10,000"
+          }
+        ]
+      },
+      {
+        "field": "color",
+        "id": "50",
+        "label": "Color",
+        "hidden": false,
+        "order": 7,
+        "values": [
+          {
+            "active": false,
+            "count": 218,
+            "id": "51",
+            "label": "Black",
+            "type": "value",
+            "value": "Black"
+          },
+          {
+            "active": false,
+            "count": 58,
+            "id": "54",
+            "label": "Green",
+            "type": "value",
+            "value": "Green"
+          },
+          {
+            "active": false,
+            "count": 56,
+            "id": "58",
+            "label": "Red",
+            "type": "value",
+            "value": "Red"
+          },
+          {
+            "active": false,
+            "count": 55,
+            "id": "61",
+            "label": "Grey",
+            "type": "value",
+            "value": "Grey"
+          },
+          {
+            "active": false,
+            "count": 41,
+            "id": "52",
+            "label": "Blue",
+            "type": "value",
+            "value": "Blue"
+          },
+          {
+            "active": false,
+            "count": 35,
+            "id": "59",
+            "label": "White",
+            "type": "value",
+            "value": "White"
+          },
+          {
+            "active": false,
+            "count": 32,
+            "id": "62",
+            "label": "Neutral",
+            "type": "value",
+            "value": "Neutral"
+          },
+          {
+            "active": false,
+            "count": 23,
+            "id": "53",
+            "label": "Brown",
+            "type": "value",
+            "value": "Brown"
+          },
+          {
+            "active": false,
+            "count": 20,
+            "id": "60",
+            "label": "Yellow",
+            "type": "value",
+            "value": "Yellow"
+          },
+          {
+            "active": false,
+            "count": 11,
+            "id": "55",
+            "label": "Orange",
+            "type": "value",
+            "value": "Orange"
+          },
+          {
+            "active": false,
+            "count": 11,
+            "id": "56",
+            "label": "Pink",
+            "type": "value",
+            "value": "Pink"
+          },
+          {
+            "active": false,
+            "count": 9,
+            "id": "57",
+            "label": "Purple",
+            "type": "value",
+            "value": "Purple"
+          }
+        ]
+      },
+      {
+        "field": "experience",
+        "id": "2",
+        "label": "Experience",
+        "hidden": false,
+        "order": null,
+        "values": [
+          {
+            "active": false,
+            "count": 214,
+            "id": "122",
+            "label": "Trail",
+            "type": "value",
+            "value": "Trail"
+          },
+          {
+            "active": false,
+            "count": 168,
+            "id": "120",
+            "label": "Performance",
+            "type": "value",
+            "value": "Performance"
+          },
+          {
+            "active": false,
+            "count": 65,
+            "id": "115",
+            "label": "Cross Country",
+            "type": "value",
+            "value": "Cross Country"
+          },
+          {
+            "active": false,
+            "count": 62,
+            "id": "580",
+            "label": "Recreation",
+            "type": "value",
+            "value": "Recreation"
+          },
+          {
+            "active": false,
+            "count": 52,
+            "id": "119",
+            "label": "Fitness",
+            "type": "value",
+            "value": "Fitness"
+          },
+          {
+            "active": false,
+            "count": 35,
+            "id": "801",
+            "label": "Comfort",
+            "type": "value",
+            "value": "Comfort"
+          },
+          {
+            "active": false,
+            "count": 28,
+            "id": "820",
+            "label": "Transport",
+            "type": "value",
+            "value": "Transport"
+          },
+          {
+            "active": false,
+            "count": 25,
+            "id": "117",
+            "label": "Downhill",
+            "type": "value",
+            "value": "Downhill"
+          },
+          {
+            "active": false,
+            "count": 21,
+            "id": "505",
+            "label": "Kids",
+            "type": "value",
+            "value": "Kids"
+          },
+          {
+            "active": false,
+            "count": 8,
+            "id": "114",
+            "label": "BMX / Dirt Jump",
+            "type": "value",
+            "value": "BMX / Dirt Jump"
+          },
+          {
+            "active": false,
+            "count": 7,
+            "id": "113",
+            "label": "Gravel",
+            "type": "value",
+            "value": "Gravel"
+          },
+          {
+            "active": false,
+            "count": 4,
+            "id": "116",
+            "label": "Cyclocross",
+            "type": "value",
+            "value": "Cyclocross"
+          },
+          {
+            "active": false,
+            "count": 4,
+            "id": "202010200331",
+            "label": "Indoor Cycling",
+            "type": "value",
+            "value": "Indoor Cycling"
+          },
+          {
+            "active": false,
+            "count": 3,
+            "id": "123",
+            "label": "Triathlon",
+            "type": "value",
+            "value": "Triathlon"
+          },
+          {
+            "active": false,
+            "count": 3,
+            "id": "1322791405",
+            "label": "Road Race",
+            "type": "value",
+            "value": "Road Race"
+          },
+          {
+            "active": false,
+            "count": 2,
+            "id": "1322791406",
+            "label": "Road Endurance",
+            "type": "value",
+            "value": "Road Endurance"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "118",
+            "label": "Fat Bike",
+            "type": "value",
+            "value": "Fat Bike"
+          }
+        ]
+      },
+      {
+        "field": "material",
+        "id": "6",
+        "label": "Material",
+        "hidden": false,
+        "order": null,
+        "values": [
+          {
+            "active": false,
+            "count": 58,
+            "id": "200",
+            "label": "Carbon",
+            "type": "value",
+            "value": "Carbon"
+          },
+          {
+            "active": false,
+            "count": 49,
+            "id": "199",
+            "label": "Aluminum",
+            "type": "value",
+            "value": "Aluminum"
+          },
+          {
+            "active": false,
+            "count": 16,
+            "id": "1322779068",
+            "label": "Cotton",
+            "type": "value",
+            "value": "Cotton"
+          },
+          {
+            "active": false,
+            "count": 15,
+            "id": "1322779070",
+            "label": "Recycled",
+            "type": "value",
+            "value": "Recycled"
+          },
+          {
+            "active": false,
+            "count": 11,
+            "id": "1322779069",
+            "label": "Wool",
+            "type": "value",
+            "value": "Wool"
+          },
+          {
+            "active": false,
+            "count": 5,
+            "id": "204",
+            "label": "Nylon",
+            "type": "value",
+            "value": "Nylon"
+          },
+          {
+            "active": false,
+            "count": 3,
+            "id": "1322779071",
+            "label": "Neoprene",
+            "type": "value",
+            "value": "Neoprene"
+          },
+          {
+            "active": false,
+            "count": 2,
+            "id": "201",
+            "label": "Composite",
+            "type": "value",
+            "value": "Composite"
+          }
+        ]
+      },
+      {
+        "field": "modellevel",
+        "id": "24",
+        "label": "Model Level",
+        "hidden": false,
+        "order": null,
+        "values": [
+          {
+            "active": false,
+            "count": 31,
+            "id": "1462",
+            "label": "S-Works",
+            "type": "value",
+            "value": "S-Works"
+          },
+          {
+            "active": false,
+            "count": 6,
+            "id": "1480",
+            "label": "Pro",
+            "type": "value",
+            "value": "Pro"
+          },
+          {
+            "active": false,
+            "count": 21,
+            "id": "1481",
+            "label": "Expert",
+            "type": "value",
+            "value": "Expert"
+          },
+          {
+            "active": false,
+            "count": 11,
+            "id": "1463",
+            "label": "Comp",
+            "type": "value",
+            "value": "Comp"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "1464",
+            "label": "Sport",
+            "type": "value",
+            "value": "Sport"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "1483",
+            "label": "Base",
+            "type": "value",
+            "value": "Base"
+          },
+          {
+            "active": false,
+            "count": 5,
+            "id": "1322677216",
+            "label": "5.0",
+            "type": "value",
+            "value": "5.0"
+          },
+          {
+            "active": false,
+            "count": 15,
+            "id": "1322677215",
+            "label": "4.0",
+            "type": "value",
+            "value": "4.0"
+          },
+          {
+            "active": false,
+            "count": 13,
+            "id": "1322677214",
+            "label": "3.0",
+            "type": "value",
+            "value": "3.0"
+          },
+          {
+            "active": false,
+            "count": 1,
+            "id": "1322746451",
+            "label": "2.0",
+            "type": "value",
+            "value": "2.0"
+          }
+        ]
+      }
+    ],
+    "pagination": {
+      "totalResults": 569,
+      "currentPage": 1,
+      "totalPages": 6,
+      "previousPage": null,
+      "nextPage": 2,
+      "perPage": 96
+    },
+    "results": [
+      {
+        "archived": false,
+        "defaultColorId": "5466825_4291508",
+        "imageUrl": "https://assets.specialized.com/i/specialized/93326-01_SJ-15-SW-DI2-SLDMET-REDSKY-BRSHCP_HERO-SQUARE?$scom-plp-product-image-square$&fmt=webp",
+        "isBike": true,
+        "modelYear": "2026",
+        "name": "S-Works Stumpjumper 15 EVO  - Shimano XTR Di2, FOX Factory",
+        "primaryBadge": null,
+        "productData": {
+          "currencyCode": "USD",
+          "id": "4291508",
+          "list": "Bikes|Mountain Bikes|Trail Bikes|Stumpjumper|S-Works Bikes|Suspension Calculator",
+          "name": "S-Works Stumpjumper 15 EVO  - Shimano XTR Di2, FOX Factory",
+          "price": "11299.99"
+        },
+        "secondaryBadges": [],
+        "subhead": "Shimano XTR Di2, FOX Factory",
+        "title": "S-Works Stumpjumper 15 EVO",
+        "swatchesJSON": [
+          {
+            "color": null,
+            "colorFamily": null,
+            "id": "5466825-4291508",
+            "onlinefrom": "2025-06-18T15:00:00Z",
+            "plpImageId": "https://assets.specialized.com/i/specialized/93326-01_SJ-15-SW-DI2-SLDMET-REDSKY-BRSHCP_HERO-SQUARE?$scom-plp-product-image-square$&fmt=webp",
+            "colorPrices": {
+              "minPrice": 11299.99,
+              "maxPrice": 11299.99,
+              "minPriceMinor": "1129999",
+              "maxPriceMinor": "1129999",
+              "minDiscountPrice": 9999.99,
+              "maxDiscountPrice": 9999.99,
+              "formattedMinPrice": "$11,299.99",
+              "formattedMaxPrice": "$11,299.99",
+              "formattedMinDiscountPrice": "$9,999.99",
+              "formattedMaxDiscountPrice": "$9,999.99"
+            },
+            "shouldShowColorProp": "1",
+            "swatch": "#690215::#FFFFFF",
+            "thumbnail": "https://assets.specialized.com/i/specialized/93326-01_SJ-15-SW-DI2-SLDMET-REDSKY-BRSHCP_HERO-SQUARE?$hybris-large$"
+          }
+        ],
+        "uid": "4291508",
+        "url": "/us/en/p/4291508"
+      },
+      {
+        "archived": false,
+        "defaultColorId": "5461536_4291508",
+        "imageUrl": "https://assets.specialized.com/i/specialized/93326-00_SJ-15-SW-DI2-DLMMET-SMKLQDMET_HERO-SQUARE?$scom-plp-product-image-square$&fmt=webp",
+        "isBike": true,
+        "modelYear": "2026",
+        "name": "S-Works Stumpjumper 15 EVO  - Shimano XTR Di2, FOX Factory",
+        "primaryBadge": null,
+        "productData": {
+          "currencyCode": "USD",
+          "id": "4291508",
+          "list": "Bikes|Mountain Bikes|Trail Bikes|Stumpjumper|S-Works Bikes|Suspension Calculator",
+          "name": "S-Works Stumpjumper 15 EVO  - Shimano XTR Di2, FOX Factory",
+          "price": "11299.99"
+        },
+        "secondaryBadges": [],
+        "subhead": "Shimano XTR Di2, FOX Factory",
+        "title": "S-Works Stumpjumper 15 EVO",
+        "swatchesJSON": [
+          {
+            "color": null,
+            "colorFamily": null,
+            "id": "5461536-4291508",
+            "onlinefrom": "2025-06-18T15:00:00Z",
+            "plpImageId": "https://assets.specialized.com/i/specialized/93326-00_SJ-15-SW-DI2-DLMMET-SMKLQDMET_HERO-SQUARE?$scom-plp-product-image-square$&fmt=webp",
+            "colorPrices": {
+              "minPrice": 11299.99,
+              "maxPrice": 11299.99,
+              "minPriceMinor": "1129999",
+              "maxPriceMinor": "1129999",
+              "minDiscountPrice": 9999.99,
+              "maxDiscountPrice": 9999.99,
+              "formattedMinPrice": "$11,299.99",
+              "formattedMaxPrice": "$11,299.99",
+              "formattedMinDiscountPrice": "$9,999.99",
+              "formattedMaxDiscountPrice": "$9,999.99"
+            },
+            "shouldShowColorProp": "1",
+            "swatch": "#C1C1BF::#000000",
+            "thumbnail": "https://assets.specialized.com/i/specialized/93326-00_SJ-15-SW-DI2-DLMMET-SMKLQDMET_HERO-SQUARE?$hybris-large$"
+          }
+        ],
+        "uid": "4291508",
+        "url": "/us/en/p/4291508"
+      },
+      {
+        "archived": false,
+        "defaultColorId": "5462256_4221349",
+        "imageUrl": "https://assets.specialized.com/i/specialized/96826-00_LEVO-SL-SW-CARBON-DI2-CHARTNT-SILDST-CHRM_HERO-SQUARE?$scom-plp-product-image-square$&fmt=webp",
+        "isBike": true,
+        "modelYear": "2026",
+        "name": "S-Works Turbo Levo SL 2 Di2",
+        "primaryBadge": null,
+        "productData": {
+          "currencyCode": "USD",
+          "id": "4221349",
+          "list": "Suspension Calculator|Bikes|S-Works Bikes|Mountain Bikes|Trail Bikes|Electric Bikes|Electric Mountain Bikes|Turbo Levo",
+          "name": "S-Works Turbo Levo SL 2 Di2",
+          "price": "13899.99"
+        },
+        "secondaryBadges": [],
+        "subhead": "50Nm Torque, 320W Power, 320Wh Battery",
+        "title": "S-Works Turbo Levo SL 2 Di2",
+        "swatchesJSON": [
+          {
+            "color": null,
+            "colorFamily": null,
+            "id": "5462256-4221349",
+            "onlinefrom": "2025-06-18T15:00:00Z",
+            "plpImageId": "https://assets.specialized.com/i/specialized/96826-00_LEVO-SL-SW-CARBON-DI2-CHARTNT-SILDST-CHRM_HERO-SQUARE?$scom-plp-product-image-square$&fmt=webp",
+            "colorPrices": {
+              "minPrice": 13899.99,
+              "maxPrice": 13899.99,
+              "minPriceMinor": "1389999",
+              "maxPriceMinor": "1389999",
+              "minDiscountPrice": 11999.99,
+              "maxDiscountPrice": 11999.99,
+              "formattedMinPrice": "$13,899.99",
+              "formattedMaxPrice": "$13,899.99",
+              "formattedMinDiscountPrice": "$11,999.99",
+              "formattedMaxDiscountPrice": "$11,999.99"
+            },
+            "shouldShowColorProp": "1",
+            "swatch": "#443E3C::#CAC9C6",
+            "thumbnail": "https://assets.specialized.com/i/specialized/96826-00_LEVO-SL-SW-CARBON-DI2-CHARTNT-SILDST-CHRM_HERO-SQUARE?$hybris-large$"
+          }
+        ],
+        "uid": "4221349",
+        "url": "/us/en/p/4221349"
+      }
+    ],
+    "sorting": {
+      "options": [
+        {
+          "field": "featured",
+          "direction": "desc"
+        },
+        {
+          "field": "newness",
+          "direction": "asc"
+        },
+        {
+          "field": "price",
+          "direction": "asc"
+        },
+        {
+          "field": "price",
+          "direction": "desc"
+        }
+      ]
+    },
+    "meta": {
+      "url": null
+    },
+    "settings": {
+      "showCount": true
+    },
+    "categoryName": "Sale",
+    "categoryDescription": "",
+    "seoCategoryDescription": null,
+    "seoCategoryTitle": null,
+    "metaTags": {
+      "description": "Find our latest clearance items here and snag a deal on quality equipment and apparel.",
+      "title": "Sale - Specialized"
+    }
+  }
+}

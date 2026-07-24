@@ -6,15 +6,16 @@ import { BROWSER_USER_AGENT, SCRAPER_MAX_PRODUCTS } from "../config.js";
 import type { ScrapeResult } from "../types.js";
 
 const SPECIALIZED_ORIGIN = "https://www.specialized.com";
-
-/** Persisted query hash for SEARCH_PRODUCT_DATA (sale PLP). */
-export const SPECIALIZED_SEARCH_PRODUCT_DATA_HASH =
-  "bf8ddeb358a5285109e572678e70c6a5194f6c03dafd3203bc644141736234ee";
+const SPECIALIZED_SALE_PAGE_URL = `${SPECIALIZED_ORIGIN}/us/en/shop/sale`;
 
 const CATEGORY_LIST_NOISE = new Set([
   "suspension calculator",
   "turbo range calculator",
 ]);
+
+/** Matches JWT-like site tokens embedded in sale PLP HTML for RPC coreParams.code. */
+const SPECIALIZED_RPC_CODE_PATTERN =
+  /eyJhbGciOiJIUzI1NiJ9\._v\d+_v\d+\.[A-Za-z0-9_~.-]+/;
 
 interface ColorPrices {
   minPrice?: number | null;
@@ -51,12 +52,11 @@ interface SearchProductPagination {
   perPage?: number;
 }
 
-export interface SearchProductResponseBody {
+export interface SpecializedRpcSearchProductResponseBody {
+  success?: boolean;
   data?: {
-    searchProducts?: {
-      results?: SearchProductResult[];
-      pagination?: SearchProductPagination;
-    };
+    results?: SearchProductResult[];
+    pagination?: SearchProductPagination;
   };
 }
 
@@ -69,48 +69,48 @@ export function parseCategoryPathFromList(list: string | undefined): string[] | 
   return parts.length > 0 ? parts : null;
 }
 
-export function buildSpecializedSaleSearchVariables(page: number): Record<string, unknown> {
+export function extractSpecializedRpcCode(html: string): string {
+  const match = SPECIALIZED_RPC_CODE_PATTERN.exec(html);
+  if (!match?.[0]) {
+    throw new Error("Specialized sale page: RPC code token not found in HTML");
+  }
+  return match[0];
+}
+
+export function buildSpecializedSaleSearchRpcArgs(page: number): Record<string, unknown> {
   return {
-    ajaxCatalog: "v3",
-    baseSiteId: "SBCUnitedStates",
-    categories: [],
-    categoryCode: "sale",
-    categoryFilter: "",
+    breadcrumbCategories: [],
+    pageConfigCategoryCode: "sale",
+    productQueryCategoryCode: "",
     currencyIso: "USD",
     filters: [],
     backgroundFilters: [{ key: "clearance_{country}", value: true }],
     getFromArchive: false,
-    language: "en",
     page,
-    path: "/us/en/shop/sale",
     q: "",
-    region: "us",
-    resultsFormat: "native",
     resultsPerPage: 96,
     routeTag: "",
     shouldShowColor: { property: "alt_clearance_{country}", acceptedValue: "1" },
     sort: null,
     temporaryAddlQueryString: `&bgfilter.clearance=true&&&excludedFacets=ss_price_employee&excludedFacets=ss_price_prodeal&resultsPerPage=96&page=${page}`,
-    user_id: "",
     validSolrCampaign: true,
   };
 }
 
-export function buildSpecializedSaleSearchUrl(page: number): string {
-  const variables = buildSpecializedSaleSearchVariables(page);
-  const extensions = {
-    persistedQuery: {
-      version: 1,
-      sha256Hash: SPECIALIZED_SEARCH_PRODUCT_DATA_HASH,
-    },
+export function buildSpecializedSaleSearchRpcCoreParams(code: string): Record<string, unknown> {
+  return {
+    baseSiteId: "SBCUnitedStates",
+    code,
+    locale: "en-US",
   };
+}
+
+export function buildSpecializedSaleSearchRpcUrl(page: number, code: string): string {
   const params = new URLSearchParams({
-    operationName: "SEARCH_PRODUCT_DATA",
-    variables: JSON.stringify(variables),
-    extensions: JSON.stringify(extensions),
-    localeCacheKey: "US:en",
+    coreParams: JSON.stringify(buildSpecializedSaleSearchRpcCoreParams(code)),
+    args: JSON.stringify(buildSpecializedSaleSearchRpcArgs(page)),
   });
-  return `${SPECIALIZED_ORIGIN}/api/graphql/SEARCH_PRODUCT_DATA?${params.toString()}`;
+  return `${SPECIALIZED_ORIGIN}/api/rpc/search/searchProducts?${params.toString()}`;
 }
 
 function colorLabel(swatch: SwatchJson): string | null {
@@ -157,15 +157,10 @@ function buildProductUrl(resultUrl: string, swatchId: string): string {
   return `${base}${sep}color=${encodeURIComponent(swatchId)}`;
 }
 
-/**
- * Parse SEARCH_PRODUCT_DATA GraphQL JSON into scrape rows (one per swatch).
- */
-export function parseSpecializedSearchProductResponse(
-  body: SearchProductResponseBody,
+function parseSearchProductResults(
+  results: SearchProductResult[],
+  pagination: SearchProductPagination,
 ): { rows: ScrapeResult[]; pagination: SearchProductPagination } {
-  const search = body.data?.searchProducts;
-  const pagination = search?.pagination ?? {};
-  const results = search?.results ?? [];
   const rows: ScrapeResult[] = [];
   const categoryFromList = new Map<string, string[] | null>();
 
@@ -212,38 +207,89 @@ export function parseSpecializedSearchProductResponse(
   return { rows, pagination };
 }
 
-export async function fetchSpecializedSaleSearchPage(
-  page: number,
-): Promise<SearchProductResponseBody> {
-  const url = buildSpecializedSaleSearchUrl(page);
-  const res = await fetch(url, {
+/**
+ * Parse RPC searchProducts JSON into scrape rows (one per swatch).
+ */
+export function parseSpecializedRpcSearchProductResponse(
+  body: SpecializedRpcSearchProductResponseBody,
+): { rows: ScrapeResult[]; pagination: SearchProductPagination } {
+  const data = body.data ?? {};
+  return parseSearchProductResults(data.results ?? [], data.pagination ?? {});
+}
+
+function specializedRpcHeaders(): Record<string, string> {
+  return {
+    Accept: "application/json",
+    "Accept-Language": "en-US,en;q=0.9",
+    "User-Agent": BROWSER_USER_AGENT,
+    Referer: SPECIALIZED_SALE_PAGE_URL,
+    Origin: SPECIALIZED_ORIGIN,
+  };
+}
+
+function formatFetchError(page: number, res: Response, bodyText: string): string {
+  const contentType = res.headers.get("content-type") ?? "unknown";
+  const snippet = bodyText.replace(/\s+/g, " ").trim().slice(0, 160);
+  return `Specialized sale search page ${page}: ${res.status} ${res.statusText} (${contentType}) ${snippet}`;
+}
+
+export async function fetchSpecializedSaleHtml(
+  salePageUrl: string = SPECIALIZED_SALE_PAGE_URL,
+): Promise<string> {
+  const res = await fetch(salePageUrl, {
     headers: {
-      Accept: "application/json",
+      Accept: "text/html,application/xhtml+xml",
       "Accept-Language": "en-US,en;q=0.9",
       "User-Agent": BROWSER_USER_AGENT,
-      /** Apollo CSRF preflight — required for GET persisted queries. */
-      "x-apollo-operation-name": "SEARCH_PRODUCT_DATA",
-      "apollo-require-preflight": "true",
     },
   });
+  const bodyText = await res.text();
   if (!res.ok) {
-    throw new Error(`Specialized sale search page ${page}: ${res.status} ${res.statusText}`);
+    throw new Error(formatFetchError(0, res, bodyText));
   }
-  return (await res.json()) as SearchProductResponseBody;
+  return bodyText;
+}
+
+export async function fetchSpecializedSaleSearchPage(
+  page: number,
+  code: string,
+): Promise<SpecializedRpcSearchProductResponseBody> {
+  const url = buildSpecializedSaleSearchRpcUrl(page, code);
+  const res = await fetch(url, { headers: specializedRpcHeaders() });
+  const bodyText = await res.text();
+  if (!res.ok) {
+    throw new Error(formatFetchError(page, res, bodyText));
+  }
+
+  let body: SpecializedRpcSearchProductResponseBody;
+  try {
+    body = JSON.parse(bodyText) as SpecializedRpcSearchProductResponseBody;
+  } catch {
+    throw new Error(formatFetchError(page, res, bodyText));
+  }
+
+  if (body.success !== true) {
+    throw new Error(formatFetchError(page, res, bodyText));
+  }
+
+  return body;
 }
 
 /**
- * Scrape Specialized US sale via persisted GraphQL SEARCH_PRODUCT_DATA (fetch only).
+ * Scrape Specialized US sale via RPC searchProducts (fetch only).
  */
-export async function scrapeSpecializedSalePl(_salePageUrl: string): Promise<ScrapeResult[]> {
+export async function scrapeSpecializedSalePl(salePageUrl: string): Promise<ScrapeResult[]> {
+  const html = await fetchSpecializedSaleHtml(salePageUrl);
+  const code = extractSpecializedRpcCode(html);
+
   const all: ScrapeResult[] = [];
   const seenSku = new Set<string>();
   let page = 1;
   let totalPages = 1;
 
   while (page <= totalPages) {
-    const body = await fetchSpecializedSaleSearchPage(page);
-    const { rows, pagination } = parseSpecializedSearchProductResponse(body);
+    const body = await fetchSpecializedSaleSearchPage(page, code);
+    const { rows, pagination } = parseSpecializedRpcSearchProductResponse(body);
     totalPages = pagination.totalPages ?? totalPages;
 
     let added = 0;
@@ -264,11 +310,10 @@ export async function scrapeSpecializedSalePl(_salePageUrl: string): Promise<Scr
   return all;
 }
 
-export function loadSpecializedGraphqlFixture(name: string): SearchProductResponseBody {
+export function loadSpecializedRpcFixture(
+  name: string,
+): SpecializedRpcSearchProductResponseBody {
   const dir = dirname(fileURLToPath(import.meta.url));
-  const raw = readFileSync(
-    join(dir, "__fixtures__", "specialized", name),
-    "utf8",
-  );
-  return JSON.parse(raw) as SearchProductResponseBody;
+  const raw = readFileSync(join(dir, "__fixtures__", "specialized", name), "utf8");
+  return JSON.parse(raw) as SpecializedRpcSearchProductResponseBody;
 }

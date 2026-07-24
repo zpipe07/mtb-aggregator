@@ -139,7 +139,7 @@ make enrich-now-canyon
 
 ### Specialized
 
-**Listing scrape** (`specialized` in `PARSERS`) uses **fetch** against persisted GraphQL `SEARCH_PRODUCT_DATA` (`/api/graphql/SEARCH_PRODUCT_DATA`, APQ hash in `specialized-plp.ts`), paginating `page` 1…`totalPages` with `resultsPerPage=96`. Requests include Apollo CSRF headers (`x-apollo-operation-name`, `apollo-require-preflight`). Seed `scrape_url`: `https://www.specialized.com/us/en/shop/sale`. Emits one row per `swatchesJSON` entry; `store_sku` is the swatch id (`{colorId}-{productId}`), `product_group_key` is the product id.
+**Listing scrape** (`specialized` in `PARSERS`) uses **fetch** against RPC `searchProducts` (`/api/rpc/search/searchProducts`) on the US sale PLP. Each scrape GETs the sale page HTML to extract a short-lived `coreParams.code` token, then paginates `page` 1…`totalPages` with `resultsPerPage=96`. Requests include browser-like `Referer` / `Origin`. Seed `scrape_url`: `https://www.specialized.com/us/en/shop/sale`. Emits one row per `swatchesJSON` entry; `store_sku` is the swatch id (`{colorId}-{productId}`), `product_group_key` is the product id.
 
 **PDP enrichment** (`enrichSpecialized`) fetches PDP HTML and parses microdata breadcrumbs, `og:description`, and technical-spec sections. No affiliate URL in MVP.
 
@@ -333,7 +333,7 @@ Parsers live in `src/parsers/` — one file per store:
 - `365cycles.ts` — 365 Cycles (Shopify collection JSON + PDP enrich like Cambria Bikes)
 - `thelostco.ts` — The Lost Co (Shopify collection JSON + PDP enrich like Cambria Bikes)
 - `canyon.ts` / `canyon-plp.ts` / `canyon-pdp.ts` — Canyon US sale (Demandware ajax PLP + fetch PDP enrich)
-- `specialized.ts` / `specialized-plp.ts` / `specialized-pdp.ts` — Specialized US sale (GraphQL PLP + fetch PDP enrich)
+- `specialized.ts` / `specialized-plp.ts` / `specialized-pdp.ts` — Specialized US sale (RPC searchProducts PLP + fetch PDP enrich)
 - `trek.ts` / `trek-plp.ts` / `trek-pdp.ts` — Trek US MTB sale (OCC PLP + HTML MSRP merge + fetch PDP enrich)
 - `universalcycles.ts` / `universalcycles-plp.ts` / `universalcycles-pdp.ts` — Universal Cycles specials (fetch PLP + attribute fan-out on PDP enrich)
 - `n1bikes.ts` / `n1bikes-plp.ts` / `n1bikes-pdp.ts` — N+1 Bikes sale catalog (MasterLinq API + PDP specs enrich)

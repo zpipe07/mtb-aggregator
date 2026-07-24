@@ -1,10 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
-  buildSpecializedSaleSearchUrl,
-  loadSpecializedGraphqlFixture,
+  buildSpecializedSaleSearchRpcUrl,
+  extractSpecializedRpcCode,
+  loadSpecializedRpcFixture,
   parseCategoryPathFromList,
-  parseSpecializedSearchProductResponse,
+  parseSpecializedRpcSearchProductResponse,
 } from "./specialized-plp.js";
 import {
   enrichSpecializedPdpFromHtml,
@@ -12,7 +13,12 @@ import {
 } from "./specialized-pdp.js";
 import { enrichSpecialized, scrapeSpecialized } from "./specialized.js";
 
-const PAGE2_FIXTURE = loadSpecializedGraphqlFixture("graphql-sale-page-2.json");
+const PAGE1_FIXTURE = loadSpecializedRpcFixture("rpc-sale-page-1.json");
+
+const SAMPLE_RPC_CODE =
+  "eyJhbGciOiJIUzI1NiJ9._v39_v39.l8_DRBSB5VoAij-2rD6GtQ46tE19Wwwdgq567avVYfo~";
+
+const SALE_HTML_WITH_CODE = `<html><body><script>window.__SBC__={"code":"${SAMPLE_RPC_CODE}"}</script></body></html>`;
 
 const PDP_HTML = `
 <html><head>
@@ -32,12 +38,32 @@ const PDP_HTML = `
 `;
 
 describe("specialized-plp helpers", () => {
-  it("builds persisted GraphQL URL with page variable", () => {
-    const url = buildSpecializedSaleSearchUrl(2);
-    expect(url).toContain("SEARCH_PRODUCT_DATA");
-    expect(url).toContain("operationName=SEARCH_PRODUCT_DATA");
-    expect(decodeURIComponent(url)).toContain('"page":2');
-    expect(url).toContain("bf8ddeb358a5285109e572678e70c6a5194f6c03dafd3203bc644141736234ee");
+  it("builds RPC searchProducts URL with coreParams and args", () => {
+    const url = buildSpecializedSaleSearchRpcUrl(2, SAMPLE_RPC_CODE);
+    expect(url).toContain("/api/rpc/search/searchProducts");
+    expect(url).not.toContain("/api/graphql/");
+
+    const parsed = new URL(url);
+    const coreParams = JSON.parse(parsed.searchParams.get("coreParams")!);
+    const args = JSON.parse(parsed.searchParams.get("args")!);
+
+    expect(coreParams.baseSiteId).toBe("SBCUnitedStates");
+    expect(coreParams.locale).toBe("en-US");
+    expect(coreParams.code).toBe(SAMPLE_RPC_CODE);
+    expect(args.pageConfigCategoryCode).toBe("sale");
+    expect(args.page).toBe(2);
+    expect(args.backgroundFilters).toEqual([{ key: "clearance_{country}", value: true }]);
+    expect(args.temporaryAddlQueryString).toContain("page=2");
+  });
+
+  it("extracts RPC code token from sale HTML", () => {
+    expect(extractSpecializedRpcCode(SALE_HTML_WITH_CODE)).toBe(SAMPLE_RPC_CODE);
+  });
+
+  it("throws when RPC code token is missing from sale HTML", () => {
+    expect(() => extractSpecializedRpcCode("<html><body>no token</body></html>")).toThrow(
+      /code/i,
+    );
   });
 
   it("parses category list and drops calculator noise", () => {
@@ -49,33 +75,31 @@ describe("specialized-plp helpers", () => {
   });
 });
 
-describe("parseSpecializedSearchProductResponse", () => {
-  it("extracts per-swatch rows from GraphQL fixture", () => {
-    const { rows, pagination } = parseSpecializedSearchProductResponse(PAGE2_FIXTURE);
-    expect(pagination.totalResults).toBe(630);
-    expect(pagination.totalPages).toBe(7);
-    expect(rows.length).toBeGreaterThan(50);
+describe("parseSpecializedRpcSearchProductResponse", () => {
+  it("extracts per-swatch rows from RPC fixture", () => {
+    const { rows, pagination } = parseSpecializedRpcSearchProductResponse(PAGE1_FIXTURE);
+    expect(pagination.totalResults).toBe(569);
+    expect(pagination.totalPages).toBe(6);
+    expect(rows.length).toBeGreaterThan(0);
 
-    const stumpy = rows.find((r) => r.store_sku === "5366729-4221397");
+    const stumpy = rows.find((r) => r.store_sku === "5466825-4291508");
     expect(stumpy).toBeDefined();
-    expect(stumpy!.product_name).toContain("Stumpjumper 15 Comp Alloy");
-    expect(stumpy!.current_price).toBe(2999.99);
-    expect(stumpy!.original_price).toBe(3999.99);
+    expect(stumpy!.product_name).toContain("S-Works Stumpjumper 15 EVO");
     expect(stumpy!.brand).toBe("Specialized");
-    expect(stumpy!.product_group_key).toBe("4221397");
+    expect(stumpy!.product_group_key).toBe("4291508");
     expect(stumpy!.product_url).toBe(
-      "https://www.specialized.com/us/en/p/4221397?color=5366729-4221397",
+      "https://www.specialized.com/us/en/p/4291508?color=5466825-4291508",
     );
     expect(stumpy!.category_path).toContain("Mountain Bikes");
   });
 
   it("skips swatches without discount price", () => {
-    const body = structuredClone(PAGE2_FIXTURE);
-    const first = body.data!.searchProducts!.results![0]!;
+    const body = structuredClone(PAGE1_FIXTURE);
+    const first = body.data!.results![0]!;
     first.swatchesJSON![0]!.colorPrices!.minDiscountPrice = null;
     first.swatchesJSON![0]!.colorPrices!.minPrice = null;
-    const { rows } = parseSpecializedSearchProductResponse(body);
-    expect(rows.some((r) => r.store_sku === "5366729-4221397")).toBe(false);
+    const { rows } = parseSpecializedRpcSearchProductResponse(body);
+    expect(rows.some((r) => r.store_sku === "5466825-4291508")).toBe(false);
   });
 });
 
@@ -102,21 +126,24 @@ describe("scrapeSpecialized / enrichSpecialized", () => {
     vi.restoreAllMocks();
   });
 
-  it("paginates GraphQL until totalPages", async () => {
-    const page1 = structuredClone(PAGE2_FIXTURE);
-    page1.data!.searchProducts!.pagination!.currentPage = 1;
-    page1.data!.searchProducts!.pagination!.totalPages = 2;
-    page1.data!.searchProducts!.results = page1.data!.searchProducts!.results!.slice(
-      0,
-      2,
-    );
+  it("fetches sale HTML for code then paginates RPC until totalPages", async () => {
+    const page1 = structuredClone(PAGE1_FIXTURE);
+    page1.data!.pagination!.currentPage = 1;
+    page1.data!.pagination!.totalPages = 2;
+    page1.data!.results = page1.data!.results!.slice(0, 2);
 
-    const page2 = structuredClone(PAGE2_FIXTURE);
-    page2.data!.searchProducts!.pagination!.currentPage = 2;
-    page2.data!.searchProducts!.pagination!.totalPages = 2;
-    page2.data!.searchProducts!.results = [];
+    const page2 = structuredClone(PAGE1_FIXTURE);
+    page2.data!.pagination!.currentPage = 2;
+    page2.data!.pagination!.totalPages = 2;
+    page2.data!.results = [];
 
     vi.mocked(globalThis.fetch)
+      .mockResolvedValueOnce(
+        new Response(SALE_HTML_WITH_CODE, {
+          status: 200,
+          headers: { "Content-Type": "text/html" },
+        }),
+      )
       .mockResolvedValueOnce(
         new Response(JSON.stringify(page1), {
           status: 200,
@@ -132,7 +159,13 @@ describe("scrapeSpecialized / enrichSpecialized", () => {
 
     const rows = await scrapeSpecialized("https://www.specialized.com/us/en/shop/sale");
     expect(rows.length).toBeGreaterThan(0);
-    expect(globalThis.fetch).toHaveBeenCalledTimes(2);
+    expect(globalThis.fetch).toHaveBeenCalledTimes(3);
+
+    const firstCall = vi.mocked(globalThis.fetch).mock.calls[0]![0] as string;
+    expect(firstCall).toContain("/us/en/shop/sale");
+
+    const secondCall = vi.mocked(globalThis.fetch).mock.calls[1]![0] as string;
+    expect(secondCall).toContain("/api/rpc/search/searchProducts");
   });
 
   it("fetch enrich returns category or specs", async () => {
