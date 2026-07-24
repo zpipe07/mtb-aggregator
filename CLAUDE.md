@@ -95,6 +95,7 @@ make scrape-now-cambriabikes   # cambriabikes only
 make scrape-now-365cycles      # 365cycles only
 make scrape-now-thelostco      # thelostco only
 make scrape-now-hayes          # hayes only
+make scrape-now-raceface       # raceface only
 make scrape-now-ion            # ion only
 make scrape-now-trek           # trek only
 make scrape-now-universalcycles  # universalcycles only
@@ -117,6 +118,7 @@ make enrich-now-cambriabikes   # cambriabikes only (optional FORCE=1)
 make enrich-now-365cycles      # 365cycles only (optional FORCE=1)
 make enrich-now-thelostco      # thelostco only (optional FORCE=1)
 make enrich-now-hayes          # hayes only (optional FORCE=1)
+make enrich-now-raceface       # raceface only (optional FORCE=1)
 make enrich-now-ion            # ion only (optional FORCE=1)
 make enrich-now-trek           # trek only (optional FORCE=1)
 make enrich-now-universalcycles  # universalcycles only (optional FORCE=1)
