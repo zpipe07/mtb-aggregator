@@ -1,5 +1,8 @@
 {
   "mcpServers": {
+    "Sentry": {
+      "url": "https://mcp.sentry.dev/mcp"
+    },
     "google-search-console": {
       "command": "/Users/zackpiper/.nvm/versions/node/v20.11.1/bin/npx",
       "args": ["-y", "google-searchconsole-mcp"],
