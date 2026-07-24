@@ -258,6 +258,19 @@ make scrape-now-hayes
 make enrich-now-hayes
 ```
 
+### ION
+
+**Platform:** Custom Nuxt storefront (Boards & More) with Shopify checkout — not standard `/collections/.../products.json`.
+
+**Listing scrape** (`ion` in `PARSERS`) fetches the sale PLP HTML (`/en/us/bike/sale`), extracts article numbers from SSR product links, then for each product calls `ion-products.com` `/api/product/{articleNumber}` and `/api/product/regionalAvailability/{articleNumber}` for US PDP URLs. Per-variant USD sale pricing comes from the Shopify Storefront GraphQL API (`secure-us.ion-products.com`, fallback `secure.ion-products.com`). Emits discounted variants only (`compareAtPrice` > price); `product_group_key` is the article number. Seed `scrape_url`: `https://www.ion-products.com/en/us/bike/sale`.
+
+**PDP enrichment** (`enrichIon`) uses `/api/product/{articleNumber}` for description, key features, materials, and category.
+
+```bash
+make scrape-now-ion
+make enrich-now-ion
+```
+
 ### Trek
 
 **Listing scrape** (`trek` in `PARSERS`) uses **fetch** against SAP Commerce OCC (`api.trekbikes.com/occ/v2/us/categories/B300/products?query=:relevance:saleFlag:true`), paginated with `currentPage` / `pageSize=24`. In parallel, fetches the seed PLP HTML and parses Vue `:product` blocks for `wasPriceRange` (MSRP). Emits one row per product code; `store_sku` and `product_group_key` are the OCC `code`. Seed `scrape_url`: MTB category B300 with `saleFlag:true`.
@@ -344,6 +357,7 @@ Parsers live in `src/parsers/` — one file per store:
 - `365cycles.ts` — 365 Cycles (Shopify collection JSON + PDP enrich like Cambria Bikes)
 - `thelostco.ts` — The Lost Co (Shopify collection JSON + PDP enrich like Cambria Bikes)
 - `hayes.ts` — Hayes (Shopify collection JSON + PDP enrich like The Lost Co)
+- `ion.ts` — ION Bike (Nuxt + Boards & More API + Shopify Storefront pricing)
 - `canyon.ts` / `canyon-plp.ts` / `canyon-pdp.ts` — Canyon US sale (Demandware ajax PLP + fetch PDP enrich)
 - `specialized.ts` / `specialized-plp.ts` / `specialized-pdp.ts` — Specialized US sale (RPC searchProducts PLP + fetch PDP enrich)
 - `trek.ts` / `trek-plp.ts` / `trek-pdp.ts` — Trek US MTB sale (OCC PLP + HTML MSRP merge + fetch PDP enrich)
