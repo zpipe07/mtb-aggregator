@@ -28,6 +28,7 @@ import { scrapeCambriaBikes, enrichCambriaBikes } from "./cambriabikes.js";
 import { scrape365Cycles, enrich365Cycles } from "./365cycles.js";
 import { scrapeTheLostCo, enrichTheLostCo } from "./thelostco.js";
 import { scrapeHayes, enrichHayes } from "./hayes.js";
+import { scrapeRaceFace, enrichRaceFace } from "./raceface.js";
 import { scrapeIon, enrichIon } from "./ion.js";
 import { enrichCompetitiveCyclist } from "./competitivecyclist.js";
 
@@ -60,6 +61,7 @@ export const PARSERS: Record<string, ParserFn> = {
   "365cycles": scrape365Cycles,
   thelostco: scrapeTheLostCo,
   hayes: scrapeHayes,
+  raceface: scrapeRaceFace,
   ion: scrapeIon,
 };
 
@@ -89,6 +91,7 @@ export const ENRICHERS: Record<string, EnrichFn> = {
   "365cycles": enrich365Cycles,
   thelostco: enrichTheLostCo,
   hayes: enrichHayes,
+  raceface: enrichRaceFace,
   ion: enrichIon,
   competitivecyclist: enrichCompetitiveCyclist,
 };
