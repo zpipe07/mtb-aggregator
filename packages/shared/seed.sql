@@ -114,3 +114,7 @@ WHERE NOT EXISTS (SELECT 1 FROM stores WHERE name = 'Colorado Cyclist');
 INSERT INTO stores (name, base_url, scrape_url, store_type, affiliate_network)
 SELECT 'Canfield', 'https://canfieldbikes.com', 'https://canfieldbikes.com/collections/mtb-sale', 'canfield', NULL
 WHERE NOT EXISTS (SELECT 1 FROM stores WHERE name = 'Canfield');
+
+INSERT INTO stores (name, base_url, scrape_url, store_type, affiliate_network)
+SELECT 'Cased', 'https://ridecased.com', 'https://ridecased.com/collections/mtb', 'cased', NULL
+WHERE NOT EXISTS (SELECT 1 FROM stores WHERE name = 'Cased');
