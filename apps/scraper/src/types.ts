@@ -50,6 +50,7 @@ export const STORE_TYPES = [
   "ion",
   "coloradocyclist",
   "canfield",
+  "cased",
 ] as const;
 export type StoreType = (typeof STORE_TYPES)[number];
 

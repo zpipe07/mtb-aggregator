@@ -36,6 +36,7 @@ import {
   enrichColoradoCyclist,
 } from "./coloradocyclist.js";
 import { scrapeCanfield, enrichCanfield } from "./canfield.js";
+import { scrapeCased, enrichCased } from "./cased.js";
 
 export type ParserFn = (url: string) => Promise<ScrapeResult[]>;
 export type EnrichFn = (url: string) => Promise<EnrichResult>;
@@ -70,6 +71,7 @@ export const PARSERS: Record<string, ParserFn> = {
   ion: scrapeIon,
   coloradocyclist: scrapeColoradoCyclist,
   canfield: scrapeCanfield,
+  cased: scrapeCased,
 };
 
 export const ENRICHERS: Record<string, EnrichFn> = {
@@ -102,6 +104,7 @@ export const ENRICHERS: Record<string, EnrichFn> = {
   ion: enrichIon,
   coloradocyclist: enrichColoradoCyclist,
   canfield: enrichCanfield,
+  cased: enrichCased,
   competitivecyclist: enrichCompetitiveCyclist,
 };
 
