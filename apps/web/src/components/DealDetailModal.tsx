@@ -307,8 +307,8 @@ export function DealDetailModal({ dealId, onClose }: DealDetailModalProps) {
                               domain={["dataMin - 5", "dataMax + 5"]}
                             />
                             <Tooltip
-                              formatter={(value: number) => [
-                                `$${value.toFixed(2)}`,
+                              formatter={(value) => [
+                                `$${Number(value ?? 0).toFixed(2)}`,
                                 "Price",
                               ]}
                               labelFormatter={(_, payload) =>

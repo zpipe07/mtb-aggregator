@@ -1509,7 +1509,7 @@ export function DataBrowser() {
                             tick={{ fontSize: 10 }}
                             tickFormatter={(v) => `$${formatMoney(v)}`}
                           />
-                          <Tooltip formatter={(v: number) => [`$${v.toFixed(2)}`, "Price"]} labelFormatter={(l) => l} />
+                          <Tooltip formatter={(v) => [`$${Number(v ?? 0).toFixed(2)}`, "Price"]} labelFormatter={(l) => l} />
                           <Line type="monotone" dataKey="price" stroke="#57534e" strokeWidth={2} dot={false} />
                         </LineChart>
                       </ResponsiveContainer>
