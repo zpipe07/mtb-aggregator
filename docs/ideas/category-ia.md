@@ -8,6 +8,8 @@ How might we help deal-hunters find the right MTB product family in one or two t
 
 **v1 (shipped):** Add `Gear → Eyewear → Sunglasses | Goggles` with high-priority taxonomy mappings and product-name backfill (migration `027`). LLM classifier picks up new paths from the live `categories` tree automatically.
 
+**v2 (shipped):** Add `Components → Drivetrain → Bottom Brackets` and `Components → Cockpit → Headsets` with mappings, product-name backfill, and LLM spec profiles for `bb_standard` / `headset_standard` filters (migration `032`). See [bb-headset-shelves.md](./bb-headset-shelves.md).
+
 **Strategy:** Targeted shelf additions where inventory exists; fix classification quality before deepening the tree. Do not flatten Components/Bikes discipline trees.
 
 ## Key Assumptions to Validate
@@ -43,3 +45,5 @@ How might we help deal-hunters find the right MTB product family in one or two t
 | Empty `gear-clothing` parent bucket | ~1,524 visible in-stock on parent | Improve mappings + classifier; `backfill-canonical-categories` |
 | Uncategorized listings | ~720 visible | Same + admin Data Browser spot checks |
 | Pedals as Components sibling | ~129 visible | Migration move slug; remap `components-drivetrain-pedals` → `components-pedals` |
+| Thru-axle leaf | ~14 visible | Wheels/Tires > Parts until volume grows; see [bb-headset-shelves.md](./bb-headset-shelves.md) |
+| Cable/housing leaf | ~61 visible | Separate pass; Brakes vs Drivetrain Parts disambiguation |
