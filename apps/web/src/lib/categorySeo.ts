@@ -205,6 +205,18 @@ const HAND_TUNED: Partial<Record<string, Partial<CategorySeoMeta>>> = {
     intro:
       "Derailleur markdowns for MTB drivetrains. Compare mechanical and electronic options.",
   },
+  "components-drivetrain-bottom-brackets": {
+    description:
+      "Compare bottom bracket deals for MTB builds. Find BSA, PF30, BB86/92, and T47 interfaces on sale.",
+    intro:
+      "Shop bottom bracket markdowns by standard and shell width. Match your frame before you buy.",
+  },
+  "components-cockpit-headsets": {
+    description:
+      "Find headset deals for mountain bikes. Compare ZS, EC, and integrated (IS) standards across retailers.",
+    intro:
+      "Browse headset sale prices — threadless and integrated cups for your head tube.",
+  },
   "components-wheels-tires-tires": {
     intro:
       "MTB tire deals—trail, enduro, and XC rubber when shops run sales.",

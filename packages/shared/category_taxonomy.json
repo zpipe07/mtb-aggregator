@@ -104,6 +104,28 @@
       "canonical": ["Components", "Drivetrain"]
     },
     {
+      "raw": [
+        "bottom bracket",
+        "bottom brackets",
+        "bottom-bracket",
+        "bb30",
+        "bb86",
+        "bb92",
+        "pf30",
+        "t47"
+      ],
+      "canonical": ["Components", "Drivetrain", "Bottom Brackets"]
+    },
+    {
+      "raw": [
+        "headset",
+        "headsets",
+        "integrated headset",
+        "threadless headset"
+      ],
+      "canonical": ["Components", "Cockpit", "Headsets"]
+    },
+    {
       "raw": ["brake", "brakes", "brake pad", "disc brake", "rotor"],
       "canonical": ["Components", "Brakes"]
     },
