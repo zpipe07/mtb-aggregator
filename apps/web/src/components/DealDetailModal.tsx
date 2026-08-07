@@ -7,7 +7,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { track } from "@vercel/analytics";
+import { captureStoreOutboundClick } from "@/lib/outboundAnalytics";
 import { useDeal, usePriceHistory } from "../hooks/queries";
 import { Button } from "./ui/button";
 import { cn, focusRing } from "@/lib/utils";
@@ -224,7 +224,7 @@ export function DealDetailModal({ dealId, onClose }: DealDetailModalProps) {
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={() =>
-                        track("view_at_store", {
+                        captureStoreOutboundClick({
                           deal_id: deal.id,
                           store: deal.store_name,
                           brand: deal.brand ?? "",

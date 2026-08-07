@@ -12,8 +12,8 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { ExternalLink } from "lucide-react";
-import { track } from "@vercel/analytics";
 import posthog from "posthog-js";
+import { captureStoreOutboundClick } from "@/lib/outboundAnalytics";
 import type { CategoryTreeNode, Deal, PriceHistoryResponse } from "@/api";
 import { isCategoryBrowseRedundantWithBack } from "@/lib/dealsBackHref";
 import { dealsListSurfaceFromListHref } from "@/lib/dealsListSurface";
@@ -299,21 +299,15 @@ function DealDetailContentInner({
                     href={viewUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    onClick={() => {
-                      track("view_at_store", {
-                        deal_id: deal.id,
-                        store: deal.store_name,
-                        brand: deal.brand ?? "",
-                        list_surface: listSurface,
-                      });
-                      posthog.capture("deal_outbound_click", {
+                    onClick={() =>
+                      captureStoreOutboundClick({
                         deal_id: deal.id,
                         store: deal.store_name,
                         brand: deal.brand ?? "",
                         list_surface: listSurface,
                         cta: "snag_retailer",
-                      });
-                    }}
+                      })
+                    }
                   >
                     <span className="relative z-[1] inline-flex items-center gap-2">
                       Snag the Deal

@@ -26,6 +26,8 @@ The wizard has completed a deep integration of PostHog analytics into The Droppe
 | `filter_applied` | User applies a filter (store, brand, category, min_discount, spec) on the deals page. For **category**, properties include `nav_source` (`breadcrumb` \| `chip` \| `all_clear`), `category_slug` (when set), and `value` (slug or empty) | `apps/web/src/views/DealsPageContent.tsx` |
 | `sort_changed` | User changes the sort order on the deals page | `apps/web/src/components/Toolbar.tsx` |
 | `deal_detail_viewed` | User opens the deal detail page — top of store-referral funnel | `apps/web/src/app/(public)/deals/[id]/DealDetailContent.tsx` |
+| `view_at_store` | User clicks through to the retailer (Snag the Deal); paired with `deal_outbound_click` | `apps/web/src/lib/outboundAnalytics.ts` (deal cards + detail) |
+| `deal_outbound_click` | Same retailer click with optional `cta` (alias for funnels that used this name) | `apps/web/src/lib/outboundAnalytics.ts` |
 | `deals_paginated` | User navigates to a new page of results | `apps/web/src/views/DealsPageContent.tsx` |
 | `filter_drawer_opened` | User opens the mobile filter drawer | `apps/web/src/views/DealsPageContent.tsx` |
 | `filters_cleared` | User clears all active filters at once. Property **`had_category_path`**: `true` when the URL was `/deals/c/...` before clearing (category path retained; clears query-backed filters only) | `apps/web/src/views/DealsPageContent.tsx` |

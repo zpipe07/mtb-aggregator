@@ -152,8 +152,8 @@ The web app uses [Vercel Web Analytics](https://vercel.com/docs/analytics) via `
 
 **Custom events** (require Vercel Pro or an alternative such as PostHog) are wired via `track()` and/or `posthog.capture()` in [DealCard](apps/web/src/components/DealCard.tsx), [DealDetailModal](apps/web/src/components/DealDetailModal.tsx), [DealFilters](apps/web/src/components/DealFilters.tsx), [SearchBar](apps/web/src/components/SearchBar.tsx), [DealsPageContent](apps/web/src/views/DealsPageContent.tsx), and related components:
 
-- `deal_card_click` — user opens deal modal (deal_id, store, brand)
-- `view_deal` / `view_at_store` — user clicks through to retailer (deal_id, store, brand)
+- `deal_card_click` — user opens deal detail (deal_id, store, brand, list_surface)
+- `view_at_store` / `deal_outbound_click` — user clicks through to retailer (PostHog: both events; Vercel: `view_at_store` only). Properties: deal_id, store, brand, list_surface, optional cta
 - `filter_applied` — store, brand, category, sort, min_discount, or spec (type, value). For **category**, PostHog also sends `nav_source` (`breadcrumb` | `chip` | `all_clear`) and `category_slug` when applicable
 - `search` — search query (debounced)
 - `deals_transition_timeout` — deals filter/sort/pagination navigation exceeded the client pending timeout (~15s); includes `duration_ms`, `pathname`, `search_params`, `sort`, `offset`
