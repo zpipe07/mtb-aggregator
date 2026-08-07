@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { ExternalLink } from "lucide-react";
 import posthog from "posthog-js";
 import { track } from "@vercel/analytics";
+import { captureStoreOutboundClick } from "@/lib/outboundAnalytics";
 import type { Deal } from "../api";
 import { Button } from "./ui/button";
 import { cn, focusRingWithin } from "@/lib/utils";
@@ -173,10 +174,8 @@ export function DealCard({
                 rel="noopener noreferrer"
                 onClick={(e) => {
                   e.stopPropagation();
-                  track("view_deal", analyticsBase);
-                  posthog.capture("deal_outbound_click", {
+                  captureStoreOutboundClick({
                     ...analyticsBase,
-                    brand: deal.brand ?? "",
                     cta: "snag_retailer",
                   });
                 }}
@@ -213,10 +212,8 @@ export function DealCard({
             rel="noopener noreferrer"
             onClick={(e) => {
               e.stopPropagation();
-              track("view_deal", analyticsBase);
-              posthog.capture("deal_outbound_click", {
+              captureStoreOutboundClick({
                 ...analyticsBase,
-                brand: deal.brand ?? "",
                 cta: "snag_retailer",
               });
             }}
