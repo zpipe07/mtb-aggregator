@@ -1,4 +1,4 @@
-import { DEFAULT_PAGE_SIZE } from "@/api";
+import { DEFAULT_PAGE_SIZE, fetchDeals } from "@/api";
 import type { ParsedFilterParams } from "@/lib/filterParams";
 
 /** Aligned with [docs/ideas/thedropper-distribution-seo.md](docs/ideas/thedropper-distribution-seo.md). */
@@ -11,6 +11,11 @@ export type SeoHubFilter = {
   min_price?: number;
 };
 
+export type SeoHubFaqItem = {
+  question: string;
+  answer: string;
+};
+
 export type SeoHubDefinition = {
   slug: string;
   title: string;
@@ -21,6 +26,12 @@ export type SeoHubDefinition = {
    * Show this hub in “Popular searches” on `/deals/c/…` when the page category slug matches.
    */
   relatedCategorySlugs: string[];
+  /** Optional FAQ for hub uniqueness (indexed money pages). */
+  faq?: SeoHubFaqItem[];
+  /** Parent category path for crawlable context links (e.g. `/deals/c/bikes/mountain`). */
+  parentCategoryPath?: string;
+  /** Label for {@link parentCategoryPath} link text. */
+  parentCategoryLabel?: string;
 };
 
 const HUBS: SeoHubDefinition[] = [
@@ -107,13 +118,37 @@ const HUBS: SeoHubDefinition[] = [
   },
   {
     slug: "mountain-bikes-under-3000",
-    title: "Mountain bikes under $3,000",
+    title: "Mountain bikes on sale under $3,000",
     description:
-      "Mountain bikes on sale under $3,000. Compare trail, enduro, and XC deals.",
+      "Compare mountain bikes on sale under $3,000 across MTB retailers. Live trail, enduro, and XC deals updated throughout the day.",
     intro:
-      "Full-suspension and hardtail MTBs under three grand—sale prices from shops we track.",
+      "This list tracks mountain bikes currently on sale under $3,000 from shops we monitor—full-suspension and hardtail builds when retailers mark them down. Prices and inventory change as new scrapes run; use each listing to jump to the shop for current availability.",
     filters: { category_slug: "bikes-mountain", max_price: 3000 },
     relatedCategorySlugs: ["bikes-mountain", "bikes"],
+    parentCategoryPath: "/deals/c/bikes/mountain",
+    parentCategoryLabel: "All mountain bike deals",
+    faq: [
+      {
+        question: "What mountain bikes show up in this list?",
+        answer:
+          "Complete mountain bikes—hardtails and full-suspension trail, enduro, and XC builds—listed at $3,000 or less at the time we last checked each retailer. We aggregate sale and closeout pricing from multiple bike shops, not a single store catalog.",
+      },
+      {
+        question: "Are these prices guaranteed?",
+        answer:
+          "No. Sale prices and stock change quickly. Each card links to the retailer’s product page where you can confirm the current price, size, and availability before you buy.",
+      },
+      {
+        question: "Hardtail or full suspension under $3,000?",
+        answer:
+          "Both appear when shops discount them into this price band. Hardtails often sit lower in the range; full-suspension deals near $3,000 tend to be prior-year models, direct-to-consumer builds, or limited closeouts.",
+      },
+      {
+        question: "How often is this list updated?",
+        answer:
+          "We re-scrape retailer sale pages on a regular cadence (roughly every few hours). When a bike sells out or the price moves above $3,000, it may drop off the list on the next refresh.",
+      },
+    ],
   },
   {
     slug: "complete-wheels-under-1000",
@@ -209,6 +244,16 @@ export function buildSeoHubPublicPath(slug: string): string {
 
 export function hubMeetsIndexThreshold(totalCount: number): boolean {
   return totalCount >= SEO_HUB_MIN_INDEXABLE_DEALS;
+}
+
+/** True when live inventory meets the indexable hub threshold. */
+export async function hubEligible(hub: SeoHubDefinition): Promise<boolean> {
+  const res = await fetchDeals({
+    ...buildFetchDealsParamsFromHubAndFilters(hub, emptyParsedFilterParams()),
+    limit: 1,
+    offset: 0,
+  });
+  return hubMeetsIndexThreshold(res.total_count ?? 0);
 }
 
 function dedupeBrands(brands: string[]): string[] {

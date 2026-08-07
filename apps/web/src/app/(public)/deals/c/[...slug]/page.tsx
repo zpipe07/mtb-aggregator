@@ -199,8 +199,10 @@ export default async function CategoryDealsPage({ params, searchParams }: Props)
           categoryTree={categoryTree}
           dealsListPath={dealsListPath}
           categoryIntro={seo.intro}
+          belowIntro={
+            <SeoHubLinksForCategory categorySlug={categorySlug} />
+          }
         >
-          <SeoHubLinksForCategory categorySlug={categorySlug} />
           <CategoryBrandLinks
             categorySlug={categorySlug}
             categoryTree={categoryTree}
