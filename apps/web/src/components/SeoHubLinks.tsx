@@ -2,21 +2,10 @@ import Link from "next/link";
 import { fetchDeals } from "@/api";
 import {
   listSeoHubs,
-  hubMeetsIndexThreshold,
   buildSeoHubPublicPath,
-  buildFetchDealsParamsFromHubAndFilters,
-  emptyParsedFilterParams,
+  hubEligible,
   type SeoHubDefinition,
 } from "@/lib/seoHubs";
-
-async function hubEligible(hub: SeoHubDefinition): Promise<boolean> {
-  const res = await fetchDeals({
-    ...buildFetchDealsParamsFromHubAndFilters(hub, emptyParsedFilterParams()),
-    limit: 1,
-    offset: 0,
-  });
-  return hubMeetsIndexThreshold(res.total_count ?? 0);
-}
 
 type CategoryProps = { categorySlug: string; title?: string };
 

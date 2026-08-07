@@ -11,6 +11,7 @@ import {
 import { deriveHeroStats } from "@/lib/heroStats";
 import { absoluteUrl } from "@/lib/siteUrl";
 import { HomePageContent } from "@/views/HomePageContent";
+import { SeoHubLinksGlobal } from "@/components/SeoHubLinks";
 
 /** Rebuild markup with a literal `&` in the serialized HTML—React normally writes `&amp;` in attrs, which some affiliate verifiers reject. */
 function avantlinkVerificationScriptMarkup(raw: string): string | null {
@@ -130,6 +131,9 @@ export default async function Home() {
         storeCount={heroStats.storeCount}
         dealCount={heroStats.dealCount}
         lastUpdated={heroStats.lastUpdated}
+        hubLinks={
+          <SeoHubLinksGlobal title="Popular deal searches" />
+        }
       />
     </>
   );

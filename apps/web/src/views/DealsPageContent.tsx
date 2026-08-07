@@ -40,6 +40,8 @@ type Props = {
   dealsListPath: string;
   /** Optional GEO intro (e.g. `/deals/c/...` routes from `getCategorySeo().intro`). */
   categoryIntro?: string;
+  /** Server-rendered content immediately below intro (e.g. Popular searches on category pages). */
+  belowIntro?: ReactNode;
   /** Server-rendered slots at page bottom (e.g. curated SEO hub links after grid + browse footer). */
   children?: ReactNode;
 };
@@ -52,6 +54,7 @@ export function DealsPageContent({
   categoryTree,
   dealsListPath,
   categoryIntro,
+  belowIntro,
   children,
 }: Props) {
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
@@ -259,6 +262,8 @@ export function DealsPageContent({
               {categoryIntro}
             </p>
           ) : null}
+
+          {belowIntro ? <div className="mb-6">{belowIntro}</div> : null}
 
           <FilterChips
             filters={activeFilters}
