@@ -47,14 +47,14 @@ importers:
         specifier: ^5.2.1
         version: 5.2.1
       playwright:
-        specifier: ^1.49.0
-        version: 1.58.2
+        specifier: ^1.62.1
+        version: 1.62.1
       playwright-extra:
         specifier: ^4.3.6
-        version: 4.3.6(playwright-core@1.58.2)(playwright@1.58.2)
+        version: 4.3.6(playwright-core@1.62.1)(playwright@1.62.1)
       puppeteer-extra-plugin-stealth:
         specifier: ^2.11.2
-        version: 2.11.2(playwright-extra@4.3.6(playwright-core@1.58.2)(playwright@1.58.2))
+        version: 2.11.2(playwright-extra@4.3.6(playwright-core@1.62.1)(playwright@1.62.1))
       zod:
         specifier: ^3.24.0
         version: 3.25.76
@@ -5219,9 +5219,9 @@ packages:
     resolution: {integrity: sha512-wQ0b/W4Fr01qtpHlqSqspcj3EhBvimsdh0KlHhH8HRZnMsEa0ea2fTULOXOS9ccQr3om+GcGRk4e+isrZWV8qQ==}
     engines: {node: '>=16.20.0'}
 
-  playwright-core@1.58.2:
-    resolution: {integrity: sha512-yZkEtftgwS8CsfYo7nm0KE8jsvm6i/PTgVtB8DL726wNf6H2IMsDuxCpJj59KDaxCtSnrWan2AeDqM7JBaultg==}
-    engines: {node: '>=18'}
+  playwright-core@1.62.1:
+    resolution: {integrity: sha512-wPYSwEBJY9GHraISXqyqtx0na0LpO3XEX7jNDhntbex7tzUS7kLnZsOlFruFJB4Hi/rhDMjXGqHewDZ68nYZVw==}
+    engines: {node: '>=20'}
     hasBin: true
 
   playwright-extra@4.3.6:
@@ -5236,9 +5236,9 @@ packages:
       playwright-core:
         optional: true
 
-  playwright@1.58.2:
-    resolution: {integrity: sha512-vA30H8Nvkq/cPBnNw4Q8TWz1EJyqgpuinBcHET0YVJVFldr8JDNiU9LaWAE1KqSkRYazuaBhTpB5ZzShOezQ6A==}
-    engines: {node: '>=18'}
+  playwright@1.62.1:
+    resolution: {integrity: sha512-0M+L3LAD8/nm554LOla9Ayx0j0tmFZ0FBcoQ7F1VuVHpM/XpiC8RcDzBQB8W5+hA8L22THxELzeF+2WcUzvcLg==}
+    engines: {node: '>=20'}
     hasBin: true
 
   polished@4.3.1:
@@ -11615,20 +11615,20 @@ snapshots:
 
   pkce-challenge@5.0.1: {}
 
-  playwright-core@1.58.2: {}
+  playwright-core@1.62.1: {}
 
-  playwright-extra@4.3.6(playwright-core@1.58.2)(playwright@1.58.2):
+  playwright-extra@4.3.6(playwright-core@1.62.1)(playwright@1.62.1):
     dependencies:
       debug: 4.4.3
     optionalDependencies:
-      playwright: 1.58.2
-      playwright-core: 1.58.2
+      playwright: 1.62.1
+      playwright-core: 1.62.1
     transitivePeerDependencies:
       - supports-color
 
-  playwright@1.58.2:
+  playwright@1.62.1:
     dependencies:
-      playwright-core: 1.58.2
+      playwright-core: 1.62.1
     optionalDependencies:
       fsevents: 2.3.2
 
@@ -11725,45 +11725,45 @@ snapshots:
 
   punycode@2.3.1: {}
 
-  puppeteer-extra-plugin-stealth@2.11.2(playwright-extra@4.3.6(playwright-core@1.58.2)(playwright@1.58.2)):
+  puppeteer-extra-plugin-stealth@2.11.2(playwright-extra@4.3.6(playwright-core@1.62.1)(playwright@1.62.1)):
     dependencies:
       debug: 4.4.3
-      puppeteer-extra-plugin: 3.2.3(playwright-extra@4.3.6(playwright-core@1.58.2)(playwright@1.58.2))
-      puppeteer-extra-plugin-user-preferences: 2.4.1(playwright-extra@4.3.6(playwright-core@1.58.2)(playwright@1.58.2))
+      puppeteer-extra-plugin: 3.2.3(playwright-extra@4.3.6(playwright-core@1.62.1)(playwright@1.62.1))
+      puppeteer-extra-plugin-user-preferences: 2.4.1(playwright-extra@4.3.6(playwright-core@1.62.1)(playwright@1.62.1))
     optionalDependencies:
-      playwright-extra: 4.3.6(playwright-core@1.58.2)(playwright@1.58.2)
+      playwright-extra: 4.3.6(playwright-core@1.62.1)(playwright@1.62.1)
     transitivePeerDependencies:
       - supports-color
 
-  puppeteer-extra-plugin-user-data-dir@2.4.1(playwright-extra@4.3.6(playwright-core@1.58.2)(playwright@1.58.2)):
+  puppeteer-extra-plugin-user-data-dir@2.4.1(playwright-extra@4.3.6(playwright-core@1.62.1)(playwright@1.62.1)):
     dependencies:
       debug: 4.4.3
       fs-extra: 10.1.0
-      puppeteer-extra-plugin: 3.2.3(playwright-extra@4.3.6(playwright-core@1.58.2)(playwright@1.58.2))
+      puppeteer-extra-plugin: 3.2.3(playwright-extra@4.3.6(playwright-core@1.62.1)(playwright@1.62.1))
       rimraf: 3.0.2
     optionalDependencies:
-      playwright-extra: 4.3.6(playwright-core@1.58.2)(playwright@1.58.2)
+      playwright-extra: 4.3.6(playwright-core@1.62.1)(playwright@1.62.1)
     transitivePeerDependencies:
       - supports-color
 
-  puppeteer-extra-plugin-user-preferences@2.4.1(playwright-extra@4.3.6(playwright-core@1.58.2)(playwright@1.58.2)):
+  puppeteer-extra-plugin-user-preferences@2.4.1(playwright-extra@4.3.6(playwright-core@1.62.1)(playwright@1.62.1)):
     dependencies:
       debug: 4.4.3
       deepmerge: 4.3.1
-      puppeteer-extra-plugin: 3.2.3(playwright-extra@4.3.6(playwright-core@1.58.2)(playwright@1.58.2))
-      puppeteer-extra-plugin-user-data-dir: 2.4.1(playwright-extra@4.3.6(playwright-core@1.58.2)(playwright@1.58.2))
+      puppeteer-extra-plugin: 3.2.3(playwright-extra@4.3.6(playwright-core@1.62.1)(playwright@1.62.1))
+      puppeteer-extra-plugin-user-data-dir: 2.4.1(playwright-extra@4.3.6(playwright-core@1.62.1)(playwright@1.62.1))
     optionalDependencies:
-      playwright-extra: 4.3.6(playwright-core@1.58.2)(playwright@1.58.2)
+      playwright-extra: 4.3.6(playwright-core@1.62.1)(playwright@1.62.1)
     transitivePeerDependencies:
       - supports-color
 
-  puppeteer-extra-plugin@3.2.3(playwright-extra@4.3.6(playwright-core@1.58.2)(playwright@1.58.2)):
+  puppeteer-extra-plugin@3.2.3(playwright-extra@4.3.6(playwright-core@1.62.1)(playwright@1.62.1)):
     dependencies:
       '@types/debug': 4.1.12
       debug: 4.4.3
       merge-deep: 3.0.3
     optionalDependencies:
-      playwright-extra: 4.3.6(playwright-core@1.58.2)(playwright@1.58.2)
+      playwright-extra: 4.3.6(playwright-core@1.62.1)(playwright@1.62.1)
     transitivePeerDependencies:
       - supports-color
 
