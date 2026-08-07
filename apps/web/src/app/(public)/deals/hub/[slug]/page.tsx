@@ -155,10 +155,8 @@ export default async function SeoHubDealsPage({ params, searchParams }: Props) {
           categoryTree={categoryTree}
           dealsListPath={dealsListPath}
           categoryIntro={hub.intro}
-          belowIntro={
-            hub.faq?.length ? <SeoHubFaq items={hub.faq} /> : undefined
-          }
         >
+          {hub.faq?.length ? <SeoHubFaq items={hub.faq} /> : null}
           <SeoHubRelatedLinks hub={hub} />
         </DealsPageContent>
       </Suspense>
