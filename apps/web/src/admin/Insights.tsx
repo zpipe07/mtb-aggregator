@@ -258,7 +258,7 @@ export function Insights() {
                   <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                   <XAxis dataKey="label" tick={{ fontSize: 10 }} interval={0} angle={-20} textAnchor="end" height={50} />
                   <YAxis tick={{ fontSize: 10 }} allowDecimals={false} />
-                  <Tooltip formatter={(v: number) => [v.toLocaleString(), "Listings"]} />
+                  <Tooltip formatter={(v) => [v != null ? Number(v).toLocaleString() : "", "Listings"]} />
                   <Bar dataKey="count" fill="#57534e" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
@@ -305,7 +305,7 @@ export function Insights() {
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                 <XAxis dataKey="dateLabel" tick={{ fontSize: 10 }} />
                 <YAxis tick={{ fontSize: 10 }} allowDecimals={false} />
-                <Tooltip formatter={(v: number) => [v.toLocaleString(), "Upserted"]} />
+                <Tooltip formatter={(v) => [v != null ? Number(v).toLocaleString() : "", "Upserted"]} />
                 <Line type="monotone" dataKey="upserted" stroke="#57534e" strokeWidth={2} dot={false} />
               </LineChart>
             </ResponsiveContainer>
