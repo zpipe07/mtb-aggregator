@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" fill="currentColor" role="img" aria-label="The Dropper">
+  <rect x="10" y="100" width="158" height="36"/>
+  <rect x="72" y="136" width="36" height="94"/>
+  <path d="M 82 42 L 142 42 C 200 42, 206 88, 206 160" fill="none" stroke="currentColor" stroke-width="24" stroke-linecap="round"/>
+  <polygon points="178,154 234,154 206,200"/>
+</svg>

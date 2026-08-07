@@ -2,9 +2,41 @@ import type { ScrapeResult } from "../types.js";
 import type { EnrichResult } from "./jensonusa.js";
 import { scrapeJensonUSA, enrichJensonUSA } from "./jensonusa.js";
 import { scrapeWorldwideCyclery, enrichWorldwideCyclery } from "./worldwidecyclery.js";
-import { scrapeRevelBikes } from "./revelbikes.js";
+import { scrapeRevelBikes, enrichRevelBikes } from "./revelbikes.js";
 import { scrapeBackcountry, enrichBackcountry } from "./backcountry.js";
 import { scrapeRideBicycles, enrichRideBicycles } from "./ridebicycles.js";
+import {
+  scrapeThunderMountainBikes,
+  enrichThunderMountainBikes,
+} from "./thundermountainbikes.js";
+import { scrapeMackCycle, enrichMackCycle } from "./mackcycle.js";
+import { scrapeCanyon, enrichCanyon } from "./canyon.js";
+import { scrapeSpecialized, enrichSpecialized } from "./specialized.js";
+import { scrapeTrek, enrichTrek } from "./trek.js";
+import { scrapeUniversalCycles, enrichUniversalCycles } from "./universalcycles.js";
+import { scrapeN1Bikes, enrichN1Bikes } from "./n1bikes.js";
+import { scrapeFoxRacing, enrichFoxRacing } from "./foxracing.js";
+import { scrapeRideConcepts, enrichRideConcepts } from "./rideconcepts.js";
+import { scrapeLeatt, enrichLeatt } from "./leatt.js";
+import { scrapeChromag, enrichChromag } from "./chromag.js";
+import { scrapeGravityCartel, enrichGravityCartel } from "./gravitycartel.js";
+import { scrapeBell, enrichBell } from "./bell.js";
+import { scrapeGiro, enrichGiro } from "./giro.js";
+import { scrapeBikesOnline, enrichBikesOnline } from "./bikesonline.js";
+import { scrapeEvo, enrichEvo } from "./evo.js";
+import { scrapeCambriaBikes, enrichCambriaBikes } from "./cambriabikes.js";
+import { scrape365Cycles, enrich365Cycles } from "./365cycles.js";
+import { scrapeTheLostCo, enrichTheLostCo } from "./thelostco.js";
+import { scrapeHayes, enrichHayes } from "./hayes.js";
+import { scrapeRaceFace, enrichRaceFace } from "./raceface.js";
+import { scrapeIon, enrichIon } from "./ion.js";
+import { enrichCompetitiveCyclist } from "./competitivecyclist.js";
+import {
+  scrapeColoradoCyclist,
+  enrichColoradoCyclist,
+} from "./coloradocyclist.js";
+import { scrapeCanfield, enrichCanfield } from "./canfield.js";
+import { scrapeCased, enrichCased } from "./cased.js";
 
 export type ParserFn = (url: string) => Promise<ScrapeResult[]>;
 export type EnrichFn = (url: string) => Promise<EnrichResult>;
@@ -15,13 +47,65 @@ export const PARSERS: Record<string, ParserFn> = {
   revelbikes: scrapeRevelBikes,
   backcountry: scrapeBackcountry,
   ridebicycles: scrapeRideBicycles,
+  thundermountainbikes: scrapeThunderMountainBikes,
+  mackcycle: scrapeMackCycle,
+  canyon: scrapeCanyon,
+  specialized: scrapeSpecialized,
+  trek: scrapeTrek,
+  universalcycles: scrapeUniversalCycles,
+  n1bikes: scrapeN1Bikes,
+  foxracing: scrapeFoxRacing,
+  rideconcepts: scrapeRideConcepts,
+  leatt: scrapeLeatt,
+  chromag: scrapeChromag,
+  gravitycartel: scrapeGravityCartel,
+  bell: scrapeBell,
+  giro: scrapeGiro,
+  bikesonline: scrapeBikesOnline,
+  evo: scrapeEvo,
+  cambriabikes: scrapeCambriaBikes,
+  "365cycles": scrape365Cycles,
+  thelostco: scrapeTheLostCo,
+  hayes: scrapeHayes,
+  raceface: scrapeRaceFace,
+  ion: scrapeIon,
+  coloradocyclist: scrapeColoradoCyclist,
+  canfield: scrapeCanfield,
+  cased: scrapeCased,
 };
 
 export const ENRICHERS: Record<string, EnrichFn> = {
   jensonusa: enrichJensonUSA,
   worldwidecyclery: enrichWorldwideCyclery,
+  revelbikes: enrichRevelBikes,
   backcountry: enrichBackcountry,
   ridebicycles: enrichRideBicycles,
+  thundermountainbikes: enrichThunderMountainBikes,
+  mackcycle: enrichMackCycle,
+  canyon: enrichCanyon,
+  specialized: enrichSpecialized,
+  trek: enrichTrek,
+  universalcycles: enrichUniversalCycles,
+  n1bikes: enrichN1Bikes,
+  foxracing: enrichFoxRacing,
+  rideconcepts: enrichRideConcepts,
+  leatt: enrichLeatt,
+  chromag: enrichChromag,
+  gravitycartel: enrichGravityCartel,
+  bell: enrichBell,
+  giro: enrichGiro,
+  bikesonline: enrichBikesOnline,
+  evo: enrichEvo,
+  cambriabikes: enrichCambriaBikes,
+  "365cycles": enrich365Cycles,
+  thelostco: enrichTheLostCo,
+  hayes: enrichHayes,
+  raceface: enrichRaceFace,
+  ion: enrichIon,
+  coloradocyclist: enrichColoradoCyclist,
+  canfield: enrichCanfield,
+  cased: enrichCased,
+  competitivecyclist: enrichCompetitiveCyclist,
 };
 
 export function getParser(store: string): ParserFn | null {

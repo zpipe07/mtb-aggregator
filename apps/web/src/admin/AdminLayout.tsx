@@ -8,6 +8,7 @@ const navItems = [
   { to: "/admin", end: true, label: "Dashboard" },
   { to: "/admin/stores", end: false, label: "Stores" },
   { to: "/admin/data", end: false, label: "Data" },
+  { to: "/admin/insights", end: false, label: "Insights" },
   { to: "/admin/taxonomy", end: false, label: "Taxonomy" },
   { to: "/admin/categories", end: false, label: "Categories" },
   { to: "/admin/spec-filters", end: false, label: "Spec Filters" },
@@ -15,6 +16,7 @@ const navItems = [
   { to: "/admin/llm-profiles", end: false, label: "LLM Profiles" },
   { to: "/admin/category-classifier", end: false, label: "Category Classifier" },
   { to: "/admin/operations", end: false, label: "Operations" },
+  { to: "/admin/cache", end: false, label: "Cache" },
 ];
 
 export function AdminLayout({ children }: { children: React.ReactNode }) {

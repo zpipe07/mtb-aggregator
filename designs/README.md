@@ -9,7 +9,7 @@ The working document is opened in Pencil as **`pencil-new.pen`**. To keep it in 
 | Document | Save as |
 | :--- | :--- |
 | Public UI (Home, Deals, detail) | `designs/mtb-public-ui.pen` |
-| Public UI v2 (high-contrast “Trail Pulse” home + “Forest Grid” deals) | `designs/mtb-public-ui-v2.pen` |
+| Public UI v3 (Workshop Modern — Concrete & Lime, Home / Deals / detail) | `designs/mtb-public-ui-v3.pen` |
 | Logo refinement & light/dark brainstorm | `designs/the-dropper-logo-brainstorm.pen` |
 
 (A commit-friendly copy cannot be written here automatically; the editor owns the file.)

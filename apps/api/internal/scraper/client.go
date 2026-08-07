@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"strings"
@@ -24,6 +25,11 @@ type ScrapeResult struct {
 	IsInStock        bool            `json:"is_in_stock"`
 	ProductGroupKey  *string         `json:"product_group_key"` // Shopify handle; API stores as store_id:handle
 	VariantOptions   json.RawMessage `json:"variant_options"`
+	// FeedDescription is set by non-scraper ingest (e.g. Impact catalog) for LLM enrichment without PDP.
+	FeedDescription *string `json:"feed_description,omitempty"`
+	// ImpactCatalogOutboundURL is the raw catalog Url before PDP unwrap (Impact tracking hop).
+	// Used when IMPACT_DEEP_LINK_COMPETITIVE_CYCLIST is unset so outbound clicks stay commissionable.
+	ImpactCatalogOutboundURL *string `json:"impact_catalog_outbound_url,omitempty"`
 }
 
 // ScrapeRequest is sent to the scraper
@@ -32,12 +38,22 @@ type ScrapeRequest struct {
 	Store string `json:"store"`
 }
 
+// EnrichVariant is one PDP variant row (JensonUSA / Universal Cycles enricher).
+type EnrichVariant struct {
+	Code          string            `json:"code"`
+	Dimensions    map[string]string `json:"dimensions"`
+	IsOrderable   bool              `json:"is_orderable"`
+	CurrentPrice  *float64          `json:"current_price,omitempty"`
+	OriginalPrice *float64          `json:"original_price,omitempty"`
+}
+
 // EnrichResult from POST /enrich
 type EnrichResult struct {
 	CategoryPath []string          `json:"category_path"`
 	RawSpecs     map[string]string `json:"raw_specs"`
 	Unavailable  bool              `json:"unavailable"`
 	Description  *string           `json:"description,omitempty"`
+	Variants     []EnrichVariant   `json:"variants,omitempty"`
 }
 
 type Client struct {
@@ -84,7 +100,7 @@ func (c *Client) Scrape(ctx context.Context, url, store string) ([]ScrapeResult,
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("scraper returned status %d", resp.StatusCode)
+		return nil, scraperHTTPError("scrape", resp)
 	}
 
 	var results []ScrapeResult
@@ -116,7 +132,7 @@ func (c *Client) Enrich(ctx context.Context, productURL, store string) (*EnrichR
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("scraper returned status %d", resp.StatusCode)
+		return nil, scraperHTTPError("enrich", resp)
 	}
 
 	var result EnrichResult
@@ -125,4 +141,27 @@ func (c *Client) Enrich(ctx context.Context, productURL, store string) (*EnrichR
 	}
 
 	return &result, nil
+}
+
+type scraperErrorBody struct {
+	Error   string `json:"error"`
+	Message string `json:"message"`
+}
+
+func scraperHTTPError(op string, resp *http.Response) error {
+	body, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
+	detail := strings.TrimSpace(string(body))
+	var parsed scraperErrorBody
+	if err := json.Unmarshal(body, &parsed); err == nil {
+		switch {
+		case strings.TrimSpace(parsed.Message) != "":
+			detail = strings.TrimSpace(parsed.Message)
+		case strings.TrimSpace(parsed.Error) != "":
+			detail = strings.TrimSpace(parsed.Error)
+		}
+	}
+	if detail != "" {
+		return fmt.Errorf("scraper %s returned status %d: %s", op, resp.StatusCode, detail)
+	}
+	return fmt.Errorf("scraper returned status %d", resp.StatusCode)
 }

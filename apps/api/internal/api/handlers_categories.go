@@ -136,6 +136,34 @@ func (h *Handlers) DeleteAdminCategory(w http.ResponseWriter, r *http.Request, i
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// GetAdminCategoryProfileFields returns effective extraction_schema.fields for a category (admin).
+func (h *Handlers) GetAdminCategoryProfileFields(w http.ResponseWriter, r *http.Request, id int) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	profile, err := h.DB.GetLLMPromptProfileForCategoryID(r.Context(), id)
+	if err != nil {
+		log.Printf("[api] GetAdminCategoryProfileFields error: %v", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	var fields []interface{}
+	if profile != nil && len(profile.ExtractionSchema) > 0 {
+		var schema struct {
+			Fields []interface{} `json:"fields"`
+		}
+		if err := json.Unmarshal(profile.ExtractionSchema, &schema); err == nil {
+			fields = schema.Fields
+		}
+	}
+	if fields == nil {
+		fields = []interface{}{}
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{"fields": fields})
+}
+
 // CategoriesAdminHandler routes /admin/categories and /admin/categories/:id.
 func (h *Handlers) CategoriesAdminHandler(w http.ResponseWriter, r *http.Request) {
 	path := strings.TrimPrefix(r.URL.Path, "/admin/categories")
@@ -151,10 +179,18 @@ func (h *Handlers) CategoriesAdminHandler(w http.ResponseWriter, r *http.Request
 		}
 		return
 	}
-	// path is numeric id
-	id, err := strconv.Atoi(path)
+	parts := strings.SplitN(path, "/", 2)
+	id, err := strconv.Atoi(parts[0])
 	if err != nil {
 		http.Error(w, "invalid id", http.StatusBadRequest)
+		return
+	}
+	if len(parts) > 1 && parts[1] == "profile-fields" {
+		h.GetAdminCategoryProfileFields(w, r, id)
+		return
+	}
+	if len(parts) > 1 {
+		http.NotFound(w, r)
 		return
 	}
 	switch r.Method {

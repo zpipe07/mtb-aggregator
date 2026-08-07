@@ -26,17 +26,14 @@ export interface DealsParams {
   limit?: number;
   offset?: number;
   store?: string;
-  brand?: string;
+  brands?: string[];
   category?: string;
   category_slug?: string;
   canonical_category?: string;
   min_discount?: number;
   min_price?: number;
   exclude_category_slug?: string;
-  spec_key?: string;
-  spec_value?: string;
-  specFilters?: Record<string, string>;
-  variantFilters?: Record<string, string>;
+  specFilters?: Record<string, string[]>;
   group_variants?: boolean;
   q?: string;
   sort?: string;
@@ -47,20 +44,17 @@ function buildDealsParams(params: DealsParams) {
     limit: params.limit ?? DEFAULT_PAGE_SIZE,
     offset: params.offset ?? 0,
     store: params.store || undefined,
-    brand: params.brand || undefined,
+    brands: params.brands?.length ? params.brands : undefined,
     category: params.category || undefined,
     category_slug: params.category_slug || undefined,
     canonical_category: params.canonical_category || undefined,
     min_discount: params.min_discount,
     min_price: params.min_price,
     exclude_category_slug: params.exclude_category_slug || undefined,
-    spec_key: params.spec_key || undefined,
-    spec_value: params.spec_value || undefined,
     specFilters: params.specFilters,
-    variantFilters: params.variantFilters,
     group_variants: params.group_variants ?? true,
     q: params.q?.trim() || undefined,
-    sort: params.sort ?? "newest",
+    sort: params.sort ?? "discount",
   };
 }
 
@@ -126,19 +120,19 @@ export function useCategoryTree() {
 
 export interface FacetsParams {
   store?: string;
-  brand?: string;
+  brands?: string[];
   category?: string;
   category_slug?: string;
   canonical_category?: string;
   min_discount?: number;
   q?: string;
-  specFilters?: Record<string, string>;
+  specFilters?: Record<string, string[]>;
 }
 
 function buildFacetsParams(params: FacetsParams) {
   return {
     store: params.store || undefined,
-    brand: params.brand || undefined,
+    brands: params.brands?.length ? params.brands : undefined,
     category: params.category || undefined,
     category_slug: params.category_slug || undefined,
     canonical_category: params.canonical_category || undefined,

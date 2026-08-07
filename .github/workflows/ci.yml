@@ -31,7 +31,7 @@ jobs:
 
       - uses: actions/setup-go@v6
         with:
-          go-version: "1.25.9"
+          go-version: "1.25.12"
           cache-dependency-path: apps/api/go.sum
 
       - name: Install dependencies
@@ -50,6 +50,9 @@ jobs:
 
       - name: SEO smoke (JSON-LD builders)
         run: pnpm --filter @mtb-aggregator/web run seo:smoke
+
+      - name: Web tests
+        run: pnpm --filter @mtb-aggregator/web run test
 
       - name: Node dependency audit
         run: pnpm audit --audit-level=high
@@ -70,8 +73,27 @@ jobs:
           go install golang.org/x/vuln/cmd/govulncheck@v1.2.0
           govulncheck ./...
 
+      - name: API tests
+        working-directory: apps/api
+        run: go test ./...
+
+      - name: Build logging package
+        run: pnpm --filter @mtb-aggregator/logging run build
+
+      - name: Logging package tests
+        run: pnpm --filter @mtb-aggregator/logging run test
+
+      - name: Build scraper
+        run: pnpm --filter @mtb-aggregator/scraper run build
+
       - name: Scraper tests
         run: pnpm --filter @mtb-aggregator/scraper run test
+
+      - name: Build API Docker image
+        run: docker build -t mtb-api-ci -f apps/api/Dockerfile .
+
+      - name: Build scraper Docker image
+        run: docker build -t mtb-scraper-ci -f apps/scraper/Dockerfile .
 
       - name: API build
         run: cd apps/api && go build -o /dev/null .

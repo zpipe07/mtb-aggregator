@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import { useLLMExtractionFieldDefs } from "./hooks/queries";
 import {
   useCreateLLMExtractionFieldDef,
@@ -38,6 +38,8 @@ function DefModal({
   );
   const [error, setError] = useState<string | null>(null);
   const busy = createMut.isPending || updateMut.isPending;
+  const fieldIds = useId();
+  const fk = (s: string) => `${fieldIds}-${s}`;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -103,8 +105,11 @@ function DefModal({
         )}
         <form onSubmit={handleSubmit} className="space-y-3">
           <div>
-            <label className="block text-xs font-medium text-stone-600">field_key</label>
+            <label htmlFor={fk("field-key")} className="block text-xs font-medium text-stone-600">
+              field_key
+            </label>
             <input
+              id={fk("field-key")}
               value={fieldKey}
               onChange={(e) => setFieldKey(e.target.value)}
               disabled={!!initial}
@@ -116,8 +121,11 @@ function DefModal({
             )}
           </div>
           <div>
-            <label className="block text-xs font-medium text-stone-600">field_type</label>
+            <label htmlFor={fk("field-type")} className="block text-xs font-medium text-stone-600">
+              field_type
+            </label>
             <select
+              id={fk("field-type")}
               value={fieldType}
               onChange={(e) => setFieldType(e.target.value)}
               className="mt-0.5 w-full rounded border border-stone-300 px-2 py-1.5 text-sm"
@@ -130,8 +138,11 @@ function DefModal({
             </select>
           </div>
           <div>
-            <label className="block text-xs font-medium text-stone-600">description</label>
+            <label htmlFor={fk("description")} className="block text-xs font-medium text-stone-600">
+              description
+            </label>
             <textarea
+              id={fk("description")}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
@@ -140,18 +151,22 @@ function DefModal({
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-stone-600">label (optional)</label>
+            <label htmlFor={fk("label-opt")} className="block text-xs font-medium text-stone-600">
+              label (optional)
+            </label>
             <input
+              id={fk("label-opt")}
               value={label}
               onChange={(e) => setLabel(e.target.value)}
               className="mt-0.5 w-full rounded border border-stone-300 px-2 py-1.5 text-sm"
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-stone-600">
+            <label htmlFor={fk("values-json")} className="block text-xs font-medium text-stone-600">
               values (JSON array for enum / multi_enum, optional)
             </label>
             <textarea
+              id={fk("values-json")}
               value={valuesStr}
               onChange={(e) => setValuesStr(e.target.value)}
               rows={4}
@@ -161,8 +176,11 @@ function DefModal({
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-stone-600">filterable</label>
+            <label htmlFor={fk("filterable")} className="block text-xs font-medium text-stone-600">
+              filterable
+            </label>
             <select
+              id={fk("filterable")}
               value={filterable}
               onChange={(e) => setFilterable(e.target.value as "" | "true" | "false")}
               className="mt-0.5 w-full rounded border border-stone-300 px-2 py-1.5 text-sm"
@@ -191,6 +209,7 @@ function DefModal({
 }
 
 export function ExtractionFieldLibraryPanel() {
+  const defSearchInputId = useId();
   const [q, setQ] = useState("");
   const { data: defs, isLoading, isError, error } = useLLMExtractionFieldDefs(q);
   const deleteMut = useDeleteLLMExtractionFieldDef();
@@ -203,7 +222,11 @@ export function ExtractionFieldLibraryPanel() {
         labels, enum values, etc.
       </p>
       <div className="flex flex-wrap items-center gap-2">
+        <label htmlFor={defSearchInputId} className="sr-only">
+          Search definitions
+        </label>
         <input
+          id={defSearchInputId}
           type="search"
           placeholder="Search key or label…"
           value={q}

@@ -177,6 +177,38 @@ const HAND_TUNED: Partial<Record<string, Partial<CategorySeoMeta>>> = {
     intro:
       "Shop brake component deals and compare prices across retailers.",
   },
+  "components-brakes-brakesets": {
+    description:
+      "Compare MTB brake set deals. Find hydraulic disc brake sets on sale across retailers.",
+    intro:
+      "Brake set markdowns—match calipers, rotors, and hoses to your build.",
+  },
+  "components-brakes-rotors": {
+    intro:
+      "Shop rotor deals by size and mount. Compare prices before you refresh worn rotors.",
+  },
+  "components-suspension-forks": {
+    description:
+      "Compare mountain bike fork deals. Find trail, enduro, and XC suspension forks on sale.",
+    intro:
+      "Fork deals from Fox, RockShox, and more—compare travel and wheel size before you buy.",
+  },
+  "components-suspension-shocks": {
+    intro:
+      "Rear shock deals for trail and enduro builds. Compare stroke and tune options.",
+  },
+  "components-drivetrain-cassettes": {
+    intro:
+      "Cassette deals for 11-, 12-, and 13-speed builds. Compare tooth counts and prices.",
+  },
+  "components-drivetrain-derailleurs": {
+    intro:
+      "Derailleur markdowns for MTB drivetrains. Compare mechanical and electronic options.",
+  },
+  "components-wheels-tires-tires": {
+    intro:
+      "MTB tire deals—trail, enduro, and XC rubber when shops run sales.",
+  },
   "components-suspension": {
     description:
       "Find deals on fork and shock suspension for mountain bikes. Compare prices across retailers.",
@@ -197,7 +229,7 @@ const HAND_TUNED: Partial<Record<string, Partial<CategorySeoMeta>>> = {
   },
   gear: {
     description:
-      "Compare deals on MTB gear: helmets, protection, clothing, and shoes.",
+      "Compare deals on MTB gear: helmets, eyewear, protection, clothing, and shoes.",
     intro:
       "Browse gear sale prices and compare retailers in one place.",
   },
@@ -206,6 +238,24 @@ const HAND_TUNED: Partial<Record<string, Partial<CategorySeoMeta>>> = {
       "Find the best deals on mountain bike helmets. Compare prices across brands and retailers.",
     intro:
       "Shop helmet discounts and compare prices across top retailers.",
+  },
+  "gear-eyewear": {
+    description:
+      "Compare deals on MTB sunglasses and bike goggles. Find sale prices across retailers.",
+    intro:
+      "Shop eyewear deals for trail, enduro, and downhill riding.",
+  },
+  "gear-eyewear-sunglasses": {
+    description:
+      "Find the best deals on cycling sunglasses and MTB glasses. Compare prices across brands.",
+    intro:
+      "Browse sunglass deals for trail and gravel riding.",
+  },
+  "gear-eyewear-goggles": {
+    description:
+      "Compare mountain bike goggle deals. Find discounts on DH and enduro goggles.",
+    intro:
+      "Shop goggle deals for full-face and gravity riding.",
   },
   "gear-protection": {
     description:

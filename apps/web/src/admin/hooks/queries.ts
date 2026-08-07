@@ -1,6 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import {
   fetchDashboard,
+  fetchPipelineMetrics,
+  fetchEnrichmentStepMetrics,
   fetchAdminStores,
   fetchStoreTypes,
   fetchStoreTypesWithEnrichers,
@@ -22,9 +24,14 @@ import {
   fetchLLMExtractionFieldDefs,
   fetchCategoryClassifier,
   fetchAdminCategoryTree,
+  fetchCanonicalCategoryPaths,
+  fetchCategoryProfileFields,
+  fetchDBMigrations,
 } from "../api";
 import {
   adminDashboardKeys,
+  adminPipelineMetricsKeys,
+  adminEnrichmentStepMetricsKeys,
   adminStoreKeys,
   adminStoreTypeKeys,
   adminStoreTypesWithEnrichersKeys,
@@ -38,6 +45,7 @@ import {
   adminLLMFieldDefKeys,
   adminCategoryClassifierKeys,
   adminCategoryKeys,
+  adminDBKeys,
 } from "./queryKeys";
 
 export function useAdminDashboard() {
@@ -45,6 +53,22 @@ export function useAdminDashboard() {
     queryKey: adminDashboardKeys.all,
     queryFn: fetchDashboard,
     staleTime: 30 * 1000,
+  });
+}
+
+export function usePipelineMetrics(days = 30) {
+  return useQuery({
+    queryKey: adminPipelineMetricsKeys.detail(days),
+    queryFn: () => fetchPipelineMetrics(days),
+    staleTime: 60 * 1000,
+  });
+}
+
+export function useEnrichmentStepMetrics(days = 7) {
+  return useQuery({
+    queryKey: adminEnrichmentStepMetricsKeys.detail(days),
+    queryFn: () => fetchEnrichmentStepMetrics(days),
+    staleTime: 60 * 1000,
   });
 }
 
@@ -130,6 +154,7 @@ export interface AdminListingsParams {
   in_stock?: boolean;
   hidden?: boolean;
   category?: string;
+  category_slug?: string;
   canonical_category?: string;
   llm_confidence_below?: number;
   q?: string;
@@ -187,6 +212,16 @@ export function useSpecKeys() {
     queryKey: adminSpecFilterKeys.specKeys(),
     queryFn: fetchSpecKeys,
     staleTime: 60 * 1000,
+  });
+}
+
+export const adminCanonicalCategoryPathsKey = ["admin", "canonical-category-paths"] as const;
+
+export function useCanonicalCategoryPaths() {
+  return useQuery({
+    queryKey: adminCanonicalCategoryPathsKey,
+    queryFn: fetchCanonicalCategoryPaths,
+    staleTime: 5 * 60 * 1000,
   });
 }
 
@@ -253,5 +288,22 @@ export function useAdminCategoryTree() {
     queryKey: adminCategoryKeys.all,
     queryFn: fetchAdminCategoryTree,
     staleTime: 60 * 1000,
+  });
+}
+
+export function useCategoryProfileFields(categoryId: number | null | undefined) {
+  return useQuery({
+    queryKey: adminCategoryKeys.profileFields(categoryId ?? 0),
+    queryFn: () => fetchCategoryProfileFields(categoryId!),
+    enabled: categoryId != null && categoryId > 0,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useDBMigrations() {
+  return useQuery({
+    queryKey: adminDBKeys.migrations(),
+    queryFn: fetchDBMigrations,
+    staleTime: 30 * 1000,
   });
 }

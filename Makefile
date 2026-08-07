@@ -1,4 +1,4 @@
-.PHONY: dev db-up db-down db-migrate db-migrate-docker db-seed db-up-local db-migrate-local db-migrate-remote db-seed-remote backfill-brands backfill-canonical-categories backfill-llm-specs backfill-field-library backfill-variant-options scrape scrape-now scrape-now-wwc scrape-now-revel scrape-now-ridebicycles build-all install
+.PHONY: dev db-up db-down db-migrate db-migrate-docker db-seed db-up-local db-migrate-local db-migrate-remote db-seed-remote backfill-brands backfill-canonical-categories backfill-llm-specs backfill-field-library backfill-variant-options backfill-jenson-variants backfill-cc-variants scrape scrape-now scrape-now-wwc scrape-now-revel scrape-now-competitivecyclist scrape-now-ridebicycles scrape-now-thundermountainbikes scrape-now-canyon scrape-now-specialized scrape-now-mackcycle scrape-now-trek scrape-now-universalcycles scrape-now-n1bikes scrape-now-foxracing scrape-now-rideconcepts scrape-now-leatt scrape-now-chromag scrape-now-gravitycartel scrape-now-bell scrape-now-giro scrape-now-bikesonline scrape-now-evo scrape-now-cambriabikes scrape-now-365cycles scrape-now-thelostco scrape-now-hayes scrape-now-raceface scrape-now-ion scrape-now-coloradocyclist scrape-now-canfield enrich-now enrich-now-revel enrich-now-competitivecyclist enrich-now-thundermountainbikes enrich-now-canyon enrich-now-specialized enrich-now-mackcycle enrich-now-trek enrich-now-universalcycles enrich-now-n1bikes enrich-now-foxracing enrich-now-rideconcepts enrich-now-leatt enrich-now-chromag enrich-now-gravitycartel enrich-now-bell enrich-now-giro enrich-now-bikesonline enrich-now-evo enrich-now-cambriabikes enrich-now-365cycles enrich-now-thelostco enrich-now-hayes enrich-now-raceface enrich-now-ion enrich-now-coloradocyclist enrich-now-canfield scrape-now-cased enrich-now-cased build-all install impact-catalog-probe
 
 # Ensure Make can find docker (Docker Desktop CLI locations)
 export PATH := /Applications/Docker.app/Contents/Resources/bin:/usr/local/bin:/opt/homebrew/bin:$(PATH)
@@ -81,6 +81,10 @@ backfill-canonical-categories:
 backfill-llm-specs:
 	cd apps/api && go run ./cmd/backfill-llm-specs
 
+# Clear last_enriched_at on listings whose metadata was wiped by scrape-after-enrich; then run enrich-now FORCE=1
+requeue-wiped-enrichment:
+	cd apps/api && go run ./cmd/requeue-wiped-enrichment
+
 # Rename ambiguous extraction keys, seed llm_extraction_field_defs, fill llm_prompt_profile_fields (run once after migration 019)
 backfill-field-library:
 	cd apps/api && go run ./cmd/backfill-field-library
@@ -88,6 +92,14 @@ backfill-field-library:
 # Populate variant_options from Shopify product JSON for listings missing it (run once after migration 021)
 backfill-variant-options:
 	cd apps/api && go run ./cmd/backfill-variant-options
+
+# JensonUSA: PDP enrich once per product_group_key, fan out variant_options + is_in_stock (requires scraper service)
+backfill-jenson-variants:
+	cd apps/api && go run ./cmd/backfill-jenson-variants
+
+# Competitive Cyclist: PDP enrich once per product_url, fan out hasVariant grouping (requires scraper service)
+backfill-cc-variants:
+	cd apps/api && go run ./cmd/backfill-cc-variants
 
 # Run scraper manually (for testing)
 scrape:
@@ -105,14 +117,203 @@ scrape-now-wwc:
 scrape-now-revel:
 	@curl -s -X POST "http://localhost:8080/scrape-now?store=revelbikes"
 
+# Scrape only Competitive Cyclist (requires API; ingest uses Impact Partner catalog on the API when configured)
+scrape-now-competitivecyclist:
+	@curl -s -X POST "http://localhost:8080/scrape-now?store=competitivecyclist"
+
 # Scrape only Ride Bicycles (requires API running)
 scrape-now-ridebicycles:
 	@curl -s -X POST "http://localhost:8080/scrape-now?store=ridebicycles"
+
+# Scrape only Thunder Mountain Bikes (requires API running)
+scrape-now-thundermountainbikes:
+	@curl -s -X POST "http://localhost:8080/scrape-now?store=thundermountainbikes"
+
+# Scrape only Canyon (requires API running)
+scrape-now-canyon:
+	@curl -s -X POST "http://localhost:8080/scrape-now?store=canyon"
+
+scrape-now-specialized:
+	@curl -s -X POST "http://localhost:8080/scrape-now?store=specialized"
+
+# Scrape only Mack Cycle (requires API running)
+scrape-now-mackcycle:
+	@curl -s -X POST "http://localhost:8080/scrape-now?store=mackcycle"
+
+# Scrape only Trek (requires API running)
+scrape-now-trek:
+	@curl -s -X POST "http://localhost:8080/scrape-now?store=trek"
+
+# Scrape only Universal Cycles (requires API running)
+scrape-now-universalcycles:
+	@curl -s -X POST "http://localhost:8080/scrape-now?store=universalcycles"
+
+# Scrape only N+1 Bikes (requires API running)
+scrape-now-n1bikes:
+	@curl -s -X POST "http://localhost:8080/scrape-now?store=n1bikes"
+
+# Scrape only Fox Racing (requires API running)
+scrape-now-foxracing:
+	@curl -s -X POST "http://localhost:8080/scrape-now?store=foxracing"
+
+# Scrape only Ride Concepts (requires API running)
+scrape-now-rideconcepts:
+	@curl -s -X POST "http://localhost:8080/scrape-now?store=rideconcepts"
+
+# Scrape only Leatt (requires API running)
+scrape-now-leatt:
+	@curl -s -X POST "http://localhost:8080/scrape-now?store=leatt"
+
+# Scrape only Chromag (requires API running)
+scrape-now-chromag:
+	@curl -s -X POST "http://localhost:8080/scrape-now?store=chromag"
+
+# Scrape only The Gravity Cartel (requires API running)
+scrape-now-gravitycartel:
+	@curl -s -X POST "http://localhost:8080/scrape-now?store=gravitycartel"
+
+# Scrape only Bell (requires API running)
+scrape-now-bell:
+	@curl -s -X POST "http://localhost:8080/scrape-now?store=bell"
+
+# Scrape only Giro (requires API running)
+scrape-now-giro:
+	@curl -s -X POST "http://localhost:8080/scrape-now?store=giro"
+
+# Scrape only Bikes Online (requires API running)
+scrape-now-bikesonline:
+	@curl -s -X POST "http://localhost:8080/scrape-now?store=bikesonline"
+
+# Scrape only Evo (requires API running)
+scrape-now-evo:
+	@curl -s -X POST "http://localhost:8080/scrape-now?store=evo"
+
+# Scrape only Cambria Bikes (requires API running)
+scrape-now-cambriabikes:
+	@curl -s -X POST "http://localhost:8080/scrape-now?store=cambriabikes"
+
+# Scrape only 365 Cycles (requires API running)
+scrape-now-365cycles:
+	@curl -s -X POST "http://localhost:8080/scrape-now?store=365cycles"
+
+# Scrape only The Lost Co (requires API running)
+scrape-now-thelostco:
+	@curl -s -X POST "http://localhost:8080/scrape-now?store=thelostco"
+
+# Scrape only Hayes (requires API running)
+scrape-now-hayes:
+	@curl -s -X POST "http://localhost:8080/scrape-now?store=hayes"
+
+# Scrape only Race Face (requires API running)
+scrape-now-raceface:
+	@curl -s -X POST "http://localhost:8080/scrape-now?store=raceface"
+
+# Scrape only ION (requires API running)
+scrape-now-ion:
+	@curl -s -X POST "http://localhost:8080/scrape-now?store=ion"
+
+# Scrape only Colorado Cyclist (requires API running)
+scrape-now-coloradocyclist:
+	@curl -s -X POST "http://localhost:8080/scrape-now?store=coloradocyclist"
+
+# Scrape only Canfield (requires API running)
+scrape-now-canfield:
+	@curl -s -X POST "http://localhost:8080/scrape-now?store=canfield"
+
+# Scrape only Cased (requires API running)
+scrape-now-cased:
+	@curl -s -X POST "http://localhost:8080/scrape-now?store=cased"
 
 # Trigger enrichment job manually (requires API and scraper running)
 # Add force=1 to re-enrich all listings: make enrich-now FORCE=1
 enrich-now:
 	@curl -s -X POST "http://localhost:8080/enrich-now$(if $(FORCE),?force=1,)"
+
+# Enrich only Revel Bikes (requires API and scraper running). Optional: FORCE=1
+enrich-now-revel:
+	@curl -s -X POST "http://localhost:8080/enrich-now?store=revelbikes$(if $(FORCE),&force=1,)"
+
+enrich-now-competitivecyclist:
+	@curl -s -X POST "http://localhost:8080/enrich-now?store=competitivecyclist$(if $(FORCE),&force=1,)"
+
+enrich-now-thundermountainbikes:
+	@curl -s -X POST "http://localhost:8080/enrich-now?store=thundermountainbikes$(if $(FORCE),&force=1,)"
+
+enrich-now-canyon:
+	@curl -s -X POST "http://localhost:8080/enrich-now?store=canyon$(if $(FORCE),&force=1,)"
+
+enrich-now-specialized:
+	@curl -s -X POST "http://localhost:8080/enrich-now?store=specialized$(if $(FORCE),&force=1,)"
+
+enrich-now-mackcycle:
+	@curl -s -X POST "http://localhost:8080/enrich-now?store=mackcycle$(if $(FORCE),&force=1,)"
+
+enrich-now-trek:
+	@curl -s -X POST "http://localhost:8080/enrich-now?store=trek$(if $(FORCE),&force=1,)"
+
+enrich-now-universalcycles:
+	@curl -s -X POST "http://localhost:8080/enrich-now?store=universalcycles$(if $(FORCE),&force=1,)"
+
+enrich-now-n1bikes:
+	@curl -s -X POST "http://localhost:8080/enrich-now?store=n1bikes$(if $(FORCE),&force=1,)"
+
+enrich-now-foxracing:
+	@curl -s -X POST "http://localhost:8080/enrich-now?store=foxracing$(if $(FORCE),&force=1,)"
+
+enrich-now-rideconcepts:
+	@curl -s -X POST "http://localhost:8080/enrich-now?store=rideconcepts$(if $(FORCE),&force=1,)"
+
+enrich-now-leatt:
+	@curl -s -X POST "http://localhost:8080/enrich-now?store=leatt$(if $(FORCE),&force=1,)"
+
+enrich-now-chromag:
+	@curl -s -X POST "http://localhost:8080/enrich-now?store=chromag$(if $(FORCE),&force=1,)"
+
+enrich-now-gravitycartel:
+	@curl -s -X POST "http://localhost:8080/enrich-now?store=gravitycartel$(if $(FORCE),&force=1,)"
+
+enrich-now-bell:
+	@curl -s -X POST "http://localhost:8080/enrich-now?store=bell$(if $(FORCE),&force=1,)"
+
+enrich-now-giro:
+	@curl -s -X POST "http://localhost:8080/enrich-now?store=giro$(if $(FORCE),&force=1,)"
+
+enrich-now-bikesonline:
+	@curl -s -X POST "http://localhost:8080/enrich-now?store=bikesonline$(if $(FORCE),&force=1,)"
+
+enrich-now-evo:
+	@curl -s -X POST "http://localhost:8080/enrich-now?store=evo$(if $(FORCE),&force=1,)"
+
+enrich-now-cambriabikes:
+	@curl -s -X POST "http://localhost:8080/enrich-now?store=cambriabikes$(if $(FORCE),&force=1,)"
+
+enrich-now-365cycles:
+	@curl -s -X POST "http://localhost:8080/enrich-now?store=365cycles$(if $(FORCE),&force=1,)"
+
+enrich-now-thelostco:
+	@curl -s -X POST "http://localhost:8080/enrich-now?store=thelostco$(if $(FORCE),&force=1,)"
+
+enrich-now-hayes:
+	@curl -s -X POST "http://localhost:8080/enrich-now?store=hayes$(if $(FORCE),&force=1,)"
+
+enrich-now-raceface:
+	@curl -s -X POST "http://localhost:8080/enrich-now?store=raceface$(if $(FORCE),&force=1,)"
+
+enrich-now-ion:
+	@curl -s -X POST "http://localhost:8080/enrich-now?store=ion$(if $(FORCE),&force=1,)"
+
+enrich-now-coloradocyclist:
+	@curl -s -X POST "http://localhost:8080/enrich-now?store=coloradocyclist$(if $(FORCE),&force=1,)"
+
+enrich-now-canfield:
+	@curl -s -X POST "http://localhost:8080/enrich-now?store=canfield$(if $(FORCE),&force=1,)"
+
+enrich-now-cased:
+	@curl -s -X POST "http://localhost:8080/enrich-now?store=cased$(if $(FORCE),&force=1,)"
+
+# Discover Impact catalogs and sample CC catalog items (requires IMPACT_ACCOUNT_SID + IMPACT_AUTH_TOKEN in .env)
+impact-catalog-probe:
+	cd apps/api && go run ./cmd/impact-catalog-probe
 
 # Build all apps
 build-all:

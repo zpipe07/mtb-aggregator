@@ -15,6 +15,18 @@ export const adminDashboardKeys = {
   all: ["admin", "dashboard"] as const,
 };
 
+export const adminPipelineMetricsKeys = {
+  all: ["admin", "pipelineMetrics"] as const,
+  detail: (days: number) =>
+    [...adminPipelineMetricsKeys.all, days] as const,
+};
+
+export const adminEnrichmentStepMetricsKeys = {
+  all: ["admin", "enrichmentStepMetrics"] as const,
+  detail: (days: number) =>
+    [...adminEnrichmentStepMetricsKeys.all, days] as const,
+};
+
 export const adminScrapeJobKeys = {
   all: ["admin", "scrapeJobs"] as const,
   list: (params: { limit?: number; offset?: number; store_id?: number }) =>
@@ -43,6 +55,8 @@ export const adminTaxonomyKeys = {
 
 export const adminCategoryKeys = {
   all: ["admin", "categories"] as const,
+  profileFields: (categoryId: number) =>
+    [...adminCategoryKeys.all, "profileFields", categoryId] as const,
 };
 
 export const adminSpecFilterKeys = {
@@ -72,4 +86,9 @@ export const adminLLMFieldDefKeys = {
 
 export const adminCategoryClassifierKeys = {
   all: ["admin", "categoryClassifier"] as const,
+};
+
+export const adminDBKeys = {
+  all: ["admin", "db"] as const,
+  migrations: () => [...adminDBKeys.all, "migrations"] as const,
 };

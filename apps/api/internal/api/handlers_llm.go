@@ -3,11 +3,15 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
+	"os"
+	"strconv"
 	"strings"
 
 	"github.com/mtb-aggregator/api/internal/db"
 	"github.com/mtb-aggregator/api/internal/llm"
+	"github.com/mtb-aggregator/api/internal/sentryutil"
 )
 
 // GetLLMProfiles returns all LLM prompt profiles (admin).
@@ -99,6 +103,17 @@ func (h *Handlers) GetLLMProfileByID(w http.ResponseWriter, r *http.Request, id 
 		"system_prompt":      p.SystemPrompt,
 		"extraction_schema":  json.RawMessage(p.ExtractionSchema),
 		"enabled":            p.Enabled,
+	}
+	if cid, err := h.DB.GetLLMPromptProfileCategoryID(r.Context(), id); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	} else if cid != nil {
+		if eff, err := h.DB.GetLLMPromptProfileForCategoryID(r.Context(), *cid); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		} else if eff != nil {
+			out["effective_extraction_schema"] = json.RawMessage(eff.ExtractionSchema)
+		}
 	}
 	if nComp > 0 {
 		pfs, err := h.DB.ListLLMPromptProfileFields(r.Context(), id)
@@ -455,37 +470,151 @@ func (h *Handlers) PostCategoryClassifierTest(w http.ResponseWriter, r *http.Req
 	})
 }
 
-// PostCategoryClassifierRun re-runs category classification on listings. Body: {"store": "worldwidecyclery", "canonical_category": ["Bikes", "Mountain"], "limit": 100}.
+// adminBulkMaxListings caps bulk classify / bulk enrich listing counts (env ADMIN_BULK_MAX_LISTINGS, default 5000).
+func adminBulkMaxListings() int {
+	if s := os.Getenv("ADMIN_BULK_MAX_LISTINGS"); s != "" {
+		if n, err := strconv.Atoi(s); err == nil && n > 0 {
+			return n
+		}
+	}
+	return 5000
+}
+
+// categoryClassifierRunBody is the JSON body for /admin/category-classifier/run and preview.
+type categoryClassifierRunBody struct {
+	Store                 string   `json:"store"`
+	CanonicalCategory     []string `json:"canonical_category"`
+	IDs                   []int    `json:"ids"`
+	HasEnrichment         *bool    `json:"has_enrichment"`
+	MinConfidence         *float64 `json:"min_confidence"`
+	MaxConfidence         *float64 `json:"max_confidence"`
+	LlmConfidenceBelow    *float64 `json:"llm_confidence_below"`
+	Limit                 int      `json:"limit"`
+	DryRun                bool     `json:"dry_run"`
+}
+
+func (b categoryClassifierRunBody) toParams() db.CategoryClassifierRunParams {
+	p := db.CategoryClassifierRunParams{
+		Store:                 strings.TrimSpace(b.Store),
+		CanonicalCategory:     b.CanonicalCategory,
+		IDs:                   b.IDs,
+		HasEnrichment:         b.HasEnrichment,
+		MinMetadataConfidence: b.MinConfidence,
+		MaxMetadataConfidence: b.MaxConfidence,
+		LlmConfidenceBelow:    b.LlmConfidenceBelow,
+		Limit:                 b.Limit,
+	}
+	return p
+}
+
+// PostCategoryClassifierRun re-runs category classification on listings matching filters. Supports dry_run for preview.
 func (h *Handlers) PostCategoryClassifierRun(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	var body struct {
-		Store             string   `json:"store"`
-		CanonicalCategory []string `json:"canonical_category"`
-		Limit             int      `json:"limit"`
-	}
+	var body categoryClassifierRunBody
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		http.Error(w, "invalid json", http.StatusBadRequest)
 		return
 	}
-	limit := body.Limit
-	if limit <= 0 {
-		limit = 500
+	if body.DryRun {
+		h.postCategoryClassifierPreview(w, r, body)
+		return
 	}
-	ids, err := h.DB.ListListingIDsForCategoryClassifierRun(r.Context(), body.Store, body.CanonicalCategory, limit)
+	p := body.toParams()
+	maxN := adminBulkMaxListings()
+
+	count, err := h.DB.CountListingsForCategoryClassifierRun(r.Context(), p)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	processed := 0
-	for _, id := range ids {
-		h.runLLMCategoryClassification(r.Context(), id)
-		processed++
+	if count > maxN {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"error": fmt.Sprintf("filter matches %d listings (max per run is %d); narrow filters", count, maxN),
+		})
+		return
+	}
+	// How many to process: optional limit from body, else all matches (capped to maxN already)
+	if p.Limit > 0 {
+		if p.Limit > count {
+			p.Limit = count
+		}
+	} else {
+		p.Limit = count
+	}
+	if p.Limit > maxN {
+		p.Limit = maxN
+	}
+	ids, err := h.DB.ListListingIDsForCategoryClassifierRun(r.Context(), p)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if len(ids) == 0 {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{"ok": true, "async": false, "processed": 0, "job_id": 0, "total": 0})
+		return
+	}
+
+	var storeTypeForJob *string
+	if s := p.Store; s != "" {
+		st := s
+		storeTypeForJob = &st
+	}
+	jobID, err := h.DB.CreateEnrichJob(r.Context(), storeTypeForJob, "manual", false, "classify")
+	if err != nil {
+		log.Printf("[admin] create classify job: %v", err)
+		sentryutil.CaptureError(err, map[string]string{"component": "api", "handler": "category_classifier_run", "phase": "create_job"})
+		http.Error(w, "could not create job: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if jobID == 0 {
+		http.Error(w, "could not create job", http.StatusInternalServerError)
+		return
+	}
+	idsCopy := append([]int(nil), ids...)
+	go runBulkClassifyInBackground(h, jobID, idsCopy, count)
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusAccepted)
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"ok":      true,
+		"async":   true,
+		"job_id":  jobID,
+		"total":   count,
+		"message": "Job started. Re-classify runs in the background (avoids dev proxy time limits on long runs).",
+	})
+}
+
+func (h *Handlers) postCategoryClassifierPreview(w http.ResponseWriter, r *http.Request, body categoryClassifierRunBody) {
+	ctx := r.Context()
+	p := body.toParams()
+	n, err := h.DB.CountListingsForCategoryClassifierRun(ctx, p)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	maxN := adminBulkMaxListings()
+	sample, err := h.DB.ListSampleForCategoryClassifierRun(ctx, p, 10)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if sample == nil {
+		sample = []db.ClassifierRunPreviewSample{}
 	}
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{"ok": true, "processed": processed})
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"ok":            true,
+		"total":         n,
+		"max_per_run":   maxN,
+		"exceeds_max":   n > maxN,
+		"sample":        sample,
+	})
 }
 
 // PostAdminLLMRun re-runs LLM extraction for all listings in a canonical category. Body: {"canonical_category": ["Bikes", "Mountain"]}.
@@ -512,9 +641,94 @@ func (h *Handlers) PostAdminLLMRun(w http.ResponseWriter, r *http.Request) {
 	}
 	processed := 0
 	for _, id := range ids {
-		h.runLLMExtractionIfApplicable(r.Context(), id)
+		ctx := r.Context()
+		if w := h.runLLMCategoryClassification(ctx, id); w != "" {
+			log.Printf("[admin] /admin/llm/run listing %d: %s", id, w)
+		}
+		if w := h.runLLMExtractionIfApplicable(ctx, id); w != "" {
+			log.Printf("[admin] /admin/llm/run listing %d: %s", id, w)
+		}
 		processed++
 	}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{"ok": true, "processed": processed})
+}
+
+// PostLLMSpecsNow starts an async job (job_type llm_specs) using query filters; no PDP fetch. Mirrors enrich-now scope knobs.
+func (h *Handlers) PostLLMSpecsNow(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if h.LLM == nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusServiceUnavailable)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "OpenAI client not configured"})
+		return
+	}
+	ctx := r.Context()
+	store := strings.TrimSpace(r.URL.Query().Get("store"))
+	canonJoined := strings.TrimSpace(r.URL.Query().Get("canonical_category"))
+	var confBelow *float64
+	if s := strings.TrimSpace(r.URL.Query().Get("llm_confidence_below")); s != "" {
+		if v, err := strconv.ParseFloat(s, 64); err == nil && v >= 0 && v <= 1 {
+			confBelow = &v
+		}
+	}
+	allowEmpty := r.URL.Query().Get("allow_empty_specs") == "1"
+	body := bulkListingsFilterBody{StoreType: store, CanonicalCategory: canonJoined, LLMConfidenceBelow: confBelow}
+	if !allowEmpty {
+		t := true
+		body.HasNonEmptySpecs = &t
+	}
+	params := body.toGetAdminListingsParams()
+	maxN := adminBulkMaxListings()
+	ids, total, err := h.DB.ListAdminListingIDsByFilter(ctx, params, false, false, maxN)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if total > maxN {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"error": fmt.Sprintf("filter matches %d listings (max per run is %d); narrow filters", total, maxN),
+		})
+		return
+	}
+	if len(ids) == 0 {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"ok": true, "async": false, "processed": 0, "total": 0, "job_id": 0,
+		})
+		return
+	}
+	storeTypeForJob, err := enrichJobStoreTypeFromBulkBody(ctx, h.DB, body)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	jobID, jerr := h.DB.CreateEnrichJob(ctx, storeTypeForJob, "manual", false, "llm_specs")
+	if jerr != nil {
+		log.Printf("[llm-specs-now] create job: %v", jerr)
+		sentryutil.CaptureError(jerr, map[string]string{"component": "api", "handler": "llm_specs_now", "phase": "create_job"})
+		http.Error(w, jerr.Error(), http.StatusInternalServerError)
+		return
+	}
+	if jobID == 0 {
+		http.Error(w, "could not create job", http.StatusInternalServerError)
+		return
+	}
+	idsCopy := append([]int(nil), ids...)
+	hnd := h
+	go runBulkLLMSpecsInBackground(hnd, jobID, idsCopy, total)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusAccepted)
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
+		"ok":       true,
+		"async":    true,
+		"job_id":   jobID,
+		"total":    total,
+		"message":  "Job started.",
+	})
 }

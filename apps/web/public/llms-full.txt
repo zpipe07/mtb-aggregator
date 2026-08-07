@@ -17,8 +17,15 @@ The Dropper aggregates publicly listed mountain bike deals from participating re
 | `/` | Home; featured deals and navigation |
 | `/deals` | All deals (filters, search) |
 | `/deals/c/...` | Category-scoped deal listings (path mirrors category hierarchy) |
+| `/deals/hub/...` | Curated buyer-intent hubs (brand + category + price filters) |
+| `/deals/brand/...` | Brand-scoped deal listings |
+| `/deals/brand/{brand}/c/...` | Brand + category intersection pages |
 | `/deals/{id}` | Single deal detail (stable id) |
+| `/deals/{id}/price-history` | Price tracker page for a listing |
 | `/categories` | Category hub |
+| `/policies` | Site policies (aggregator, shipping, affiliates) |
+| `/returns` | Returns & refunds policy |
+| `/feed/google-shopping.xml` | Google Merchant Center product feed |
 | `/sitemap.xml` | Sitemap |
 | `/robots.txt` | Crawl policy |
 

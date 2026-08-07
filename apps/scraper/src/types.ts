@@ -14,12 +14,52 @@ export const ScrapeResultSchema = z.object({
   product_group_key: z.string().nullable().optional(),
   /** Per-variant options, e.g. { Size: "Large", Color: "Black" }. */
   variant_options: z.record(z.string(), z.string()).nullable().optional(),
+  /** Set by API-side ingest (not Node scraper) for LLM context. */
+  feed_description: z.string().nullable().optional(),
 });
 
 export type ScrapeResult = z.infer<typeof ScrapeResultSchema>;
 
-export const STORE_TYPES = ["jensonusa", "backcountry", "worldwidecyclery", "revelbikes", "ridebicycles"] as const;
+export const STORE_TYPES = [
+  "jensonusa",
+  "backcountry",
+  "worldwidecyclery",
+  "revelbikes",
+  "ridebicycles",
+  "thundermountainbikes",
+  "mackcycle",
+  "canyon",
+  "specialized",
+  "trek",
+  "universalcycles",
+  "n1bikes",
+  "foxracing",
+  "rideconcepts",
+  "leatt",
+  "chromag",
+  "gravitycartel",
+  "bell",
+  "giro",
+  "bikesonline",
+  "evo",
+  "cambriabikes",
+  "365cycles",
+  "thelostco",
+  "hayes",
+  "raceface",
+  "ion",
+  "coloradocyclist",
+  "canfield",
+  "cased",
+] as const;
 export type StoreType = (typeof STORE_TYPES)[number];
+
+/** Enrich-only store types (no POST /scrape parser). */
+export const ENRICH_ONLY_STORE_TYPES = ["competitivecyclist"] as const;
+export type EnrichOnlyStoreType = (typeof ENRICH_ONLY_STORE_TYPES)[number];
+
+export const ENRICH_STORE_TYPES = [...STORE_TYPES, ...ENRICH_ONLY_STORE_TYPES] as const;
+export type EnrichStoreType = (typeof ENRICH_STORE_TYPES)[number];
 
 export const ScrapeRequestSchema = z.object({
   url: z.string().url(),
@@ -30,7 +70,7 @@ export type ScrapeRequest = z.infer<typeof ScrapeRequestSchema>;
 
 export const EnrichRequestSchema = z.object({
   url: z.string().url(),
-  store: z.enum(STORE_TYPES),
+  store: z.enum(ENRICH_STORE_TYPES),
 });
 
 export type EnrichRequest = z.infer<typeof EnrichRequestSchema>;

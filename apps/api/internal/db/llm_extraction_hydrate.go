@@ -181,6 +181,31 @@ func applySchemaFieldOverrides(sf *llm.SchemaField, overrides []byte) error {
 	return nil
 }
 
+// appendConfidenceToSchemaFields strips any existing confidence field and appends the library
+// confidence definition once (same source as hydrateExtractionSchemaFrom).
+func (db *DB) appendConfidenceToSchemaFields(ctx context.Context, fields []llm.SchemaField) ([]llm.SchemaField, error) {
+	filtered := fields[:0]
+	maxSort := 0
+	for _, f := range fields {
+		if f.Key == "confidence" {
+			continue
+		}
+		if f.SortOrder > maxSort {
+			maxSort = f.SortOrder
+		}
+		filtered = append(filtered, f)
+	}
+	conf, err := db.loadExtractionFieldDefByKey(ctx, "confidence")
+	if err != nil {
+		return nil, err
+	}
+	if conf == nil {
+		return nil, fmt.Errorf("missing llm_extraction_field_defs row for field_key=confidence")
+	}
+	filtered = append(filtered, conf.toSchemaField(maxSort+1))
+	return filtered, nil
+}
+
 func (db *DB) loadExtractionFieldDefByKey(ctx context.Context, fieldKey string) (*extractionFieldDefRow, error) {
 	var d extractionFieldDefRow
 	var label *string

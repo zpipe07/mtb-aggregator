@@ -1,117 +1,108 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useTheme } from "../context/ThemeContext";
-import { Button } from "./ui/button";
+import type { CategoryTreeNode } from "@/api";
+import {
+  DealsMegaMenuDesktopPanel,
+  DealsMegaMenuDesktopTrigger,
+  DealsMegaMenuMobile,
+  useActiveCategorySlug,
+  useDealsMegaMenuHover,
+} from "@/components/DealsMegaMenu";
+import { cn, focusRing, focusRingInset } from "@/lib/utils";
+import { mainNavLinkTypography } from "@/lib/mainNavStyles";
+import { TheDropperLogo } from "@/components/TheDropperLogo";
 
-function SunIcon() {
-  return (
-    <svg
-      className="size-5"
-      fill="none"
-      viewBox="0 0 24 24"
-      stroke="currentColor"
-      aria-hidden
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={2}
-        d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"
-      />
-    </svg>
-  );
-}
+type NavHeaderProps = {
+  categoryTree?: CategoryTreeNode[];
+};
 
-function MoonIcon() {
-  return (
-    <svg
-      className="size-5"
-      fill="none"
-      viewBox="0 0 24 24"
-      stroke="currentColor"
-      aria-hidden
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={2}
-        d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"
-      />
-    </svg>
-  );
-}
-
-export function NavHeader() {
-  const { theme, toggleTheme } = useTheme();
+export function NavHeader({ categoryTree = [] }: NavHeaderProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [mounted, setMounted] = useState(false);
+  const [mobileDealsExpanded, setMobileDealsExpanded] = useState(false);
+  const [desktopDealsMenuOpen, setDesktopDealsMenuOpen] = useState(false);
   const pathname = usePathname();
+  const activeCategorySlug = useActiveCategorySlug();
+  const desktopMenuId = useId();
+  const headerRef = useRef<HTMLElement>(null);
+  const { onHoverIntent, onHoverLeave } = useDealsMegaMenuHover(
+    setDesktopDealsMenuOpen,
+  );
 
-  useEffect(() => setMounted(true), []);
+  const navLinks = [{ href: "/", label: "Home", exact: true }];
 
-  const navLinks = [
-    { href: "/", label: "Home", exact: true },
-    { href: "/categories", label: "Categories", exact: true },
-    { href: "/deals", label: "Deals", exact: false },
-  ];
+  const isDealsActive = pathname.startsWith("/deals");
+
+  const closeMobileMenu = () => {
+    setMobileMenuOpen(false);
+    setMobileDealsExpanded(false);
+  };
+
+  const closeDesktopMenu = () => setDesktopDealsMenuOpen(false);
+
+  useEffect(() => {
+    setDesktopDealsMenuOpen(false);
+    setMobileDealsExpanded(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!desktopDealsMenuOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [desktopDealsMenuOpen]);
+
+  useEffect(() => {
+    if (!desktopDealsMenuOpen) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") closeDesktopMenu();
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [desktopDealsMenuOpen]);
+
+  useEffect(() => {
+    if (!desktopDealsMenuOpen) return;
+    const onPointerDown = (event: MouseEvent) => {
+      if (!headerRef.current?.contains(event.target as Node)) {
+        closeDesktopMenu();
+      }
+    };
+    document.addEventListener("mousedown", onPointerDown);
+    return () => document.removeEventListener("mousedown", onPointerDown);
+  }, [desktopDealsMenuOpen]);
+
+  const handleHeaderMouseLeave = (event: React.MouseEvent<HTMLElement>) => {
+    if (!desktopDealsMenuOpen) return;
+    const next = event.relatedTarget;
+    if (next instanceof Node && headerRef.current?.contains(next)) return;
+    onHoverLeave();
+  };
 
   return (
-    <header className="bg-background text-foreground">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
+    <header
+      ref={headerRef}
+      className="relative z-40 border-b border-border bg-background text-foreground"
+      onMouseLeave={handleHeaderMouseLeave}
+    >
+      <div className="relative z-50 mx-auto flex max-w-6xl items-center justify-between px-4 py-2 sm:px-6 sm:py-3">
         <Link
           href="/"
-          className="flex items-center hover:opacity-90 transition-opacity"
+          className={cn(
+            "flex items-center rounded-sm transition-opacity hover:opacity-90",
+            focusRing,
+          )}
           aria-label="The Dropper - Home"
         >
-          <img
-            src="/logo.png"
-            alt="The Dropper"
-            className="h-22 sm:h-24 w-auto dark:hidden"
-          />
-          <img
-            src="/logo-light.png"
-            alt=""
-            aria-hidden
-            className="h-22 sm:h-24 w-auto hidden dark:block"
-          />
-          <span className="ml-2 flex flex-col">
-            <span className="text-sm/[1] font-bold tracking-tight sm:text-lg/[1]">
-              THE
-            </span>
-            <span className="text-2xl/[1] font-bold tracking-tight sm:text-5xl/[1]">
-              DROPPER
-            </span>
-          </span>
+          <TheDropperLogo variant="nav" className="h-15 w-auto sm:h-20" />
         </Link>
 
         {/* Desktop nav */}
-        <nav className="hidden lg:flex items-center gap-8">
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            onClick={toggleTheme}
-            aria-label={
-              mounted
-                ? theme === "dark"
-                  ? "Switch to light mode"
-                  : "Switch to dark mode"
-                : "Toggle theme"
-            }
-          >
-            {mounted ? (
-              theme === "dark" ? (
-                <SunIcon />
-              ) : (
-                <MoonIcon />
-              )
-            ) : (
-              <MoonIcon />
-            )}
-          </Button>
+        <nav className="hidden items-center gap-8 lg:flex">
           {navLinks.map(({ href, label, exact }) => {
             const isActive = exact
               ? pathname === href
@@ -120,23 +111,36 @@ export function NavHeader() {
               <Link
                 key={href}
                 href={href}
-                className={`font-medium transition-colors ${
+                className={cn(
+                  "rounded-sm border-b-2 pb-1 transition-colors",
+                  mainNavLinkTypography,
+                  focusRing,
                   isActive
-                    ? "text-foreground border-b-2 border-primary"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
+                    ? "border-primary text-foreground"
+                    : "border-transparent text-muted-foreground hover:text-foreground",
+                )}
               >
-                {label}
+                {label.toUpperCase()}
               </Link>
             );
           })}
+          <DealsMegaMenuDesktopTrigger
+            isOpen={desktopDealsMenuOpen}
+            onOpenChange={setDesktopDealsMenuOpen}
+            isDealsActive={isDealsActive}
+            menuId={desktopMenuId}
+            onHoverIntent={onHoverIntent}
+          />
         </nav>
 
         {/* Mobile menu button */}
         <button
           type="button"
-          className="lg:hidden p-2 -mr-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring"
-          onClick={() => setMobileMenuOpen((o) => !o)}
+          className={cn(
+            "-mr-2 rounded-sm p-2 text-muted-foreground hover:bg-muted hover:text-foreground lg:hidden",
+            focusRing,
+          )}
+          onClick={() => setMobileMenuOpen((open) => !open)}
           aria-expanded={mobileMenuOpen}
           aria-controls="mobile-nav"
         >
@@ -167,51 +171,26 @@ export function NavHeader() {
         </button>
       </div>
 
-      {/* Mobile nav overlay */}
+      <DealsMegaMenuDesktopPanel
+        isOpen={desktopDealsMenuOpen}
+        menuId={desktopMenuId}
+        categoryTree={categoryTree}
+        activeCategorySlug={activeCategorySlug}
+        onClose={closeDesktopMenu}
+      />
+
+      {/* Mobile nav */}
       <div
         id="mobile-nav"
-        className={`lg:hidden overflow-hidden transition-all duration-200 ease-out ${
-          mobileMenuOpen ? "max-h-48 opacity-100" : "max-h-0 opacity-0"
-        }`}
+        className={cn(
+          "overflow-hidden transition-all duration-200 ease-out lg:hidden",
+          mobileMenuOpen
+            ? "max-h-[min(85vh,40rem)] opacity-100"
+            : "max-h-0 opacity-0",
+        )}
         aria-hidden={!mobileMenuOpen}
       >
-        <nav className="px-4 pb-4 pt-2 space-y-1 border-t border-border">
-          <Button
-            type="button"
-            variant="ghost"
-            size="default"
-            onClick={() => {
-              toggleTheme();
-              setMobileMenuOpen(false);
-            }}
-            className="w-full justify-start gap-2"
-            aria-label={
-              mounted
-                ? theme === "dark"
-                  ? "Switch to light mode"
-                  : "Switch to dark mode"
-                : "Toggle theme"
-            }
-          >
-            {mounted ? (
-              theme === "dark" ? (
-                <>
-                  <SunIcon />
-                  Light mode
-                </>
-              ) : (
-                <>
-                  <MoonIcon />
-                  Dark mode
-                </>
-              )
-            ) : (
-              <>
-                <MoonIcon />
-                Dark mode
-              </>
-            )}
-          </Button>
+        <nav className="space-y-1 border-t border-border px-4 pb-4 pt-2">
           {navLinks.map(({ href, label, exact }) => {
             const isActive = exact
               ? pathname === href
@@ -220,17 +199,29 @@ export function NavHeader() {
               <Link
                 key={href}
                 href={href}
-                onClick={() => setMobileMenuOpen(false)}
-                className={`block px-3 py-2 rounded-lg font-medium transition-colors ${
+                onClick={closeMobileMenu}
+                className={cn(
+                  "block rounded-sm px-3 py-2 transition-colors",
+                  mainNavLinkTypography,
+                  focusRingInset,
                   isActive
-                    ? "bg-primary/20 text-foreground"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                }`}
+                    ? "bg-primary/15 text-foreground ring-2 ring-primary/40 ring-inset"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                )}
               >
-                {label}
+                {label.toUpperCase()}
               </Link>
             );
           })}
+          <DealsMegaMenuMobile
+            isExpanded={mobileDealsExpanded}
+            onToggle={() => setMobileDealsExpanded((open) => !open)}
+            isDealsActive={isDealsActive}
+            categoryTree={categoryTree}
+            activeCategorySlug={activeCategorySlug}
+            onNavigate={closeMobileMenu}
+            onClose={() => setMobileDealsExpanded(false)}
+          />
         </nav>
       </div>
     </header>

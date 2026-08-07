@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import { useLLMProfiles, useLLMProfile, useLLMExtractionFieldDefs } from "./hooks/queries";
 import {
   useCreateLLMProfile,
@@ -185,6 +185,7 @@ function profileCategoryLabel(p: { canonical_category: unknown }): string {
 }
 
 export function PromptProfileManager() {
+  const testListingInputId = useId();
   const [tab, setTab] = useState<Tab>("profiles");
   const { data: profiles, isLoading } = useLLMProfiles();
   const createMutation = useCreateLLMProfile();
@@ -400,7 +401,8 @@ export function PromptProfileManager() {
           </div>
 
           <p className="text-sm text-stone-600">
-            Profiles define extraction tasks per canonical category. When enrichment runs, the LLM uses
+            Profiles define extraction tasks per canonical category. After PDP enrichment—or when you use
+            Operations “LLM specs only” / Data Browser “LLM specs”—the configured LLM uses
             the matching profile to extract structured specs. After migration{" "}
             <code className="rounded bg-stone-200 px-1">019</code>, edit composed fields via the composition
             editor; manage shared templates on the <strong>Field library</strong> tab. Set{" "}
@@ -422,6 +424,24 @@ export function PromptProfileManager() {
           {editingId != null && editDetailLoading && (
             <p className="text-sm text-stone-600">Loading profile…</p>
           )}
+
+          {editingId != null &&
+            editDetail &&
+            !editDetailLoading &&
+            editDetail.effective_extraction_schema != null && (
+              <details className="mb-4 rounded border border-stone-200 bg-amber-50/60 p-3 text-sm text-stone-800">
+                <summary className="cursor-pointer font-medium">
+                  Effective extraction schema (merged with ancestor categories)
+                </summary>
+                <p className="mt-2 text-stone-600">
+                  Enrichment and facets use this merged schema. Fields from enabled profiles on parent
+                  categories are included unless this category overrides the same field key.
+                </p>
+                <pre className="mt-2 max-h-64 overflow-auto rounded border border-stone-200 bg-white p-2 text-xs text-stone-900">
+                  {JSON.stringify(editDetail.effective_extraction_schema, null, 2)}
+                </pre>
+              </details>
+            )}
 
           {editingId != null && waitingForDefsForComposition && (
             <p className="text-sm text-stone-600">Loading field definitions…</p>
@@ -587,14 +607,20 @@ export function PromptProfileManager() {
             <p className="mb-2 text-sm text-stone-600">
               Enter a listing ID from the Data browser to preview LLM extraction.
             </p>
-            <div className="mb-4 flex gap-2">
-              <input
-                type="number"
-                value={testListingId}
-                onChange={(e) => setTestListingId(e.target.value)}
-                placeholder="Listing ID"
-                className="flex-1 rounded border border-stone-300 px-3 py-2 text-stone-900"
-              />
+            <div className="mb-4 flex flex-col gap-1 sm:flex-row sm:gap-2 sm:items-end">
+              <div className="flex-1 min-w-0">
+                <label htmlFor={testListingInputId} className="mb-1 block text-xs font-medium text-stone-600">
+                  Listing ID
+                </label>
+                <input
+                  id={testListingInputId}
+                  type="number"
+                  value={testListingId}
+                  onChange={(e) => setTestListingId(e.target.value)}
+                  placeholder="Listing ID"
+                  className="w-full rounded border border-stone-300 px-3 py-2 text-stone-900"
+                />
+              </div>
               <button
                 type="button"
                 onClick={handleTest}

@@ -83,23 +83,23 @@ export default meta;
 
 type Story = StoryObj<typeof meta>;
 
-export const RootLevel: Story = {
+export const HiddenAtRoot: Story = {
   args: {
     categoryFilter: "",
     searchParams: new URLSearchParams(),
   },
 };
 
-export const DrilledIntoComponents: Story = {
-  args: {
-    categoryFilter: "components",
-    searchParams: new URLSearchParams(),
-  },
-};
-
-export const DeepLeaf: Story = {
+export const BreadcrumbsOnly: Story = {
   args: {
     categoryFilter: "components-brakes-disc",
     searchParams: new URLSearchParams("q=hydraulic"),
+  },
+};
+
+export const DeepCategory: Story = {
+  args: {
+    categoryFilter: "components",
+    searchParams: new URLSearchParams(),
   },
 };

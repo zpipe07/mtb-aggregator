@@ -1,4 +1,6 @@
 import { getApiBase } from "@/lib/api";
+import { normalizeCategoryTree } from "@/lib/categoryTree";
+import { PUBLIC_DATA_CACHE_TAG, PUBLIC_ISR_REVALIDATE_SECONDS } from "@/lib/revalidate";
 
 /** One SKU variant when deals are grouped (Shopify). */
 export interface DealVariantRow {
@@ -8,6 +10,13 @@ export interface DealVariantRow {
   current_price: number;
   original_price?: number | null;
   is_in_stock: boolean;
+}
+
+export interface PriceHistorySummary {
+  lowest_price: number;
+  highest_price: number;
+  price_dropped: boolean;
+  point_count: number;
 }
 
 export interface Deal {
@@ -36,12 +45,15 @@ export interface Deal {
   variant_count?: number;
   /** [min, max] when grouped and prices differ */
   price_range?: number[];
+  /** Aggregate stats for deal scoring on list responses (≥2 history points). */
+  price_history_summary?: PriceHistorySummary;
 }
 
 export interface Store {
   id: number;
   name: string;
   base_url: string;
+  /** Distinct in-stock, visible product groups for this store (matches grouped deals list). */
   deal_count: number;
   last_scraped: string;
 }
@@ -53,31 +65,97 @@ export interface DealListResponse {
 
 const DEFAULT_PAGE_SIZE = 24;
 
-export async function fetchDeals(params?: {
+/** Skip Next.js data cache (bulk SEO fetches that exceed the 2MB cache limit). */
+type FetchCacheOptions = { noStore?: boolean };
+
+const PUBLIC_FETCH_CACHE: RequestInit = {
+  next: {
+    revalidate: PUBLIC_ISR_REVALIDATE_SECONDS,
+    tags: [PUBLIC_DATA_CACHE_TAG],
+  },
+};
+
+function publicFetchInit(options?: FetchCacheOptions): RequestInit {
+  if (options?.noStore) return { cache: "no-store" };
+  return PUBLIC_FETCH_CACHE;
+}
+
+const RETRYABLE_STATUS = new Set([408, 429, 500, 502, 503, 504]);
+const DEFAULT_RETRY_DELAYS_MS = [500, 1000];
+
+async function sleep(ms: number): Promise<void> {
+  await new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function isRetryableResponse(res: Response): boolean {
+  return RETRYABLE_STATUS.has(res.status);
+}
+
+export async function fetchWithRetry(
+  url: string,
+  init?: RequestInit,
+  options?: { retries?: number; delaysMs?: number[] },
+): Promise<Response> {
+  const retries = options?.retries ?? 2;
+  const delaysMs = options?.delaysMs ?? DEFAULT_RETRY_DELAYS_MS;
+  let lastError: unknown;
+
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const res = await fetch(url, init);
+      if (res.ok || attempt >= retries || !isRetryableResponse(res)) {
+        return res;
+      }
+      lastError = new Error(`HTTP ${res.status} for ${url}`);
+    } catch (err) {
+      lastError = err;
+      if (attempt >= retries) throw err;
+    }
+
+    await sleep(delaysMs[attempt] ?? delaysMs[delaysMs.length - 1] ?? 1000);
+  }
+
+  throw lastError instanceof Error
+    ? lastError
+    : new Error("Fetch failed after retries");
+}
+
+export async function fetchDeals(
+  params?: {
   store?: string;
-  brand?: string;
+  /** Repeated `brand` query params (OR). */
+  brands?: string[];
   category?: string;
   category_slug?: string;
   canonical_category?: string;
   min_discount?: number;
   /** Minimum current_price (inclusive). */
   min_price?: number;
+  /** Maximum current_price (inclusive). */
+  max_price?: number;
   /** Exclude listings in this category subtree (e.g. `accessories`). */
   exclude_category_slug?: string;
   q?: string;
   sort?: string;
+  /** When true, only listings with a scrape-to-scrape price decrease within the recency window. */
+  price_dropped?: boolean;
+  /** Recency window in days for price_dropped / sort=price_drop (default 7). */
+  price_drop_within_days?: number;
   limit?: number;
   offset?: number;
-  spec_key?: string;
-  spec_value?: string;
-  specFilters?: Record<string, string>;
-  variantFilters?: Record<string, string>;
+  specFilters?: Record<string, string[]>;
   /** Default true: collapse Shopify variants into one card */
   group_variants?: boolean;
-}): Promise<DealListResponse> {
+} & FetchCacheOptions,
+): Promise<DealListResponse> {
   const search = new URLSearchParams();
   if (params?.store) search.set("store", params.store);
-  if (params?.brand) search.set("brand", params.brand);
+  if (params?.brands?.length) {
+    for (const b of params.brands) {
+      const t = b.trim();
+      if (t) search.append("brand", t);
+    }
+  }
   if (params?.category) search.set("category", params.category);
   if (params?.category_slug) search.set("category_slug", params.category_slug);
   if (params?.canonical_category)
@@ -86,31 +164,33 @@ export async function fetchDeals(params?: {
     search.set("min_discount", String(params.min_discount));
   if (params?.min_price != null)
     search.set("min_price", String(params.min_price));
+  if (params?.max_price != null)
+    search.set("max_price", String(params.max_price));
   if (params?.exclude_category_slug)
     search.set("exclude_category_slug", params.exclude_category_slug);
   if (params?.q) search.set("q", params.q);
   if (params?.sort) search.set("sort", params.sort);
+  if (params?.price_dropped) search.set("price_dropped", "true");
+  if (params?.price_drop_within_days != null)
+    search.set("price_drop_within_days", String(params.price_drop_within_days));
   if (params?.limit != null) search.set("limit", String(params.limit));
   if (params?.offset != null) search.set("offset", String(params.offset));
   if (params?.group_variants !== false) search.set("group_variants", "true");
   if (params?.specFilters && Object.keys(params.specFilters).length > 0) {
-    for (const [key, value] of Object.entries(params.specFilters)) {
-      if (key && value) search.set(`spec_${key}`, value);
-    }
-  } else {
-    if (params?.spec_key) search.set("spec_key", params.spec_key);
-    if (params?.spec_value) search.set("spec_value", params.spec_value);
-  }
-  if (params?.variantFilters) {
-    for (const [key, value] of Object.entries(params.variantFilters)) {
-      if (key && value) search.set(`variant_${key}`, value);
+    for (const [key, values] of Object.entries(params.specFilters)) {
+      if (!key) continue;
+      for (const value of values) {
+        const t = value.trim();
+        if (t) search.append(`spec_${key}`, t);
+      }
     }
   }
   const qs = search.toString();
   const url = `${getApiBase()}/deals${qs ? `?${qs}` : ""}`;
-  const res = await fetch(url, {
-    next: { revalidate: 60 },
-  });
+  const res = await fetchWithRetry(
+    url,
+    publicFetchInit({ noStore: params?.noStore }),
+  );
   if (!res.ok) throw new Error("Failed to fetch deals");
   const data = await res.json();
   return {
@@ -122,7 +202,7 @@ export async function fetchDeals(params?: {
 export { DEFAULT_PAGE_SIZE };
 
 export async function fetchDeal(id: number): Promise<Deal> {
-  const res = await fetch(`${getApiBase()}/deals/${id}`);
+  const res = await fetch(`${getApiBase()}/deals/${id}`, PUBLIC_FETCH_CACHE);
   if (!res.ok) throw new Error("Failed to fetch deal");
   return res.json();
 }
@@ -143,24 +223,20 @@ export interface PriceHistoryResponse {
 export async function fetchPriceHistory(
   dealId: number,
 ): Promise<PriceHistoryResponse> {
-  const res = await fetch(`${getApiBase()}/deals/${dealId}/price-history`);
+  const res = await fetch(`${getApiBase()}/deals/${dealId}/price-history`, PUBLIC_FETCH_CACHE);
   if (!res.ok) throw new Error("Failed to fetch price history");
   return res.json();
 }
 
 export async function fetchStores(): Promise<Store[]> {
-  const res = await fetch(`${getApiBase()}/stores`, {
-    next: { revalidate: 60 },
-  });
+  const res = await fetch(`${getApiBase()}/stores`, PUBLIC_FETCH_CACHE);
   if (!res.ok) throw new Error("Failed to fetch stores");
   const data = await res.json();
   return Array.isArray(data) ? data : [];
 }
 
 export async function fetchBrands(): Promise<string[]> {
-  const res = await fetch(`${getApiBase()}/brands`, {
-    next: { revalidate: 60 },
-  });
+  const res = await fetch(`${getApiBase()}/brands`, PUBLIC_FETCH_CACHE);
   if (!res.ok) throw new Error("Failed to fetch brands");
   const data = await res.json();
   return Array.isArray(data) ? data : [];
@@ -192,12 +268,10 @@ export interface CategoryTreeNode {
 }
 
 export async function fetchCategoryTree(): Promise<CategoryTreeNode[]> {
-  const res = await fetch(`${getApiBase()}/categories/tree`, {
-    next: { revalidate: 60 },
-  });
+  const res = await fetch(`${getApiBase()}/categories/tree`, PUBLIC_FETCH_CACHE);
   if (!res.ok) throw new Error("Failed to fetch category tree");
   const data = await res.json();
-  return Array.isArray(data) ? data : [];
+  return normalizeCategoryTree(Array.isArray(data) ? data : []);
 }
 
 export interface SpecFacetValue {
@@ -217,63 +291,83 @@ export interface BrandFacet {
   count: number;
 }
 
-export interface VariantFacetValue {
-  value: string;
-  count: number;
-}
-
-export interface VariantFacet {
-  key: string;
-  values: VariantFacetValue[];
-}
-
 export interface FacetsResponse {
   spec_facets: SpecFacet[];
   brand_facets: BrandFacet[];
-  variant_facets: VariantFacet[];
   price_range: { min: number; max: number };
   total_matching: number;
 }
 
+const EMPTY_FACETS: FacetsResponse = {
+  spec_facets: [],
+  brand_facets: [],
+  price_range: { min: 0, max: 0 },
+  total_matching: 0,
+};
+
+/** Go nil slices serialize as JSON null; coerce to arrays for safe `.filter` / `.map`. */
+export function normalizeFacetsResponse(
+  response: FacetsResponse | null | undefined,
+  brandFacetsOverride?: BrandFacet[] | null,
+): FacetsResponse {
+  const base = response ?? EMPTY_FACETS;
+  return {
+    spec_facets: base.spec_facets ?? [],
+    brand_facets: brandFacetsOverride ?? base.brand_facets ?? [],
+    price_range: base.price_range ?? EMPTY_FACETS.price_range,
+    total_matching: base.total_matching ?? 0,
+  };
+}
+
 export interface FacetsParams {
   store?: string;
-  brand?: string;
+  brands?: string[];
   category?: string;
   category_slug?: string;
   canonical_category?: string;
   min_discount?: number;
+  min_price?: number;
+  max_price?: number;
   q?: string;
-  specFilters?: Record<string, string>;
-  variantFilters?: Record<string, string>;
+  specFilters?: Record<string, string[]>;
 }
 
 export async function fetchFacets(
-  params?: FacetsParams,
+  params?: FacetsParams & FetchCacheOptions,
 ): Promise<FacetsResponse> {
   const search = new URLSearchParams();
   if (params?.store) search.set("store", params.store);
-  if (params?.brand) search.set("brand", params.brand);
+  if (params?.brands?.length) {
+    for (const b of params.brands) {
+      const t = b.trim();
+      if (t) search.append("brand", t);
+    }
+  }
   if (params?.category) search.set("category", params.category);
   if (params?.category_slug) search.set("category_slug", params.category_slug);
   if (params?.canonical_category)
     search.set("canonical_category", params.canonical_category);
   if (params?.min_discount != null)
     search.set("min_discount", String(params.min_discount));
+  if (params?.min_price != null)
+    search.set("min_price", String(params.min_price));
+  if (params?.max_price != null)
+    search.set("max_price", String(params.max_price));
   if (params?.q) search.set("q", params.q);
   if (params?.specFilters) {
-    for (const [key, value] of Object.entries(params.specFilters)) {
-      if (key && value) search.set(`spec_${key}`, value);
-    }
-  }
-  if (params?.variantFilters) {
-    for (const [key, value] of Object.entries(params.variantFilters)) {
-      if (key && value) search.set(`variant_${key}`, value);
+    for (const [key, values] of Object.entries(params.specFilters)) {
+      if (!key) continue;
+      for (const value of values) {
+        const t = value.trim();
+        if (t) search.append(`spec_${key}`, t);
+      }
     }
   }
   const qs = search.toString();
-  const res = await fetch(`${getApiBase()}/facets${qs ? `?${qs}` : ""}`, {
-    next: { revalidate: 60 },
-  });
+  const res = await fetchWithRetry(
+    `${getApiBase()}/facets${qs ? `?${qs}` : ""}`,
+    publicFetchInit({ noStore: params?.noStore }),
+  );
   if (!res.ok) throw new Error("Failed to fetch facets");
   return res.json();
 }
@@ -301,7 +395,7 @@ export interface Status {
 }
 
 export async function fetchStatus(): Promise<Status> {
-  const res = await fetch(`${getApiBase()}/status`);
+  const res = await fetch(`${getApiBase()}/status`, PUBLIC_FETCH_CACHE);
   if (!res.ok) throw new Error("Failed to fetch status");
   return res.json();
 }

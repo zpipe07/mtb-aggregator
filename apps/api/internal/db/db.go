@@ -5,7 +5,9 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"os"
 	"reflect"
+	"strconv"
 	"strings"
 	"time"
 
@@ -34,6 +36,7 @@ type Listing struct {
 	CurrentPrice       float64
 	OriginalPrice      *float64
 	ProductURL         string
+	AffiliateURL       *string
 	ImageURL           *string
 	Brand              *string
 	CategoryPath       []string
@@ -198,26 +201,51 @@ func (db *DB) UpsertListing(ctx context.Context, listing Listing) (int, error) {
 
 	var id int
 	err := db.pool.QueryRow(ctx, `
-		INSERT INTO store_listings (store_id, store_sku, product_name, current_price, original_price, product_url, image_url, brand, category_path, canonical_category, category_id, metadata, is_in_stock, product_group_key, variant_options, last_scraped)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, NOW())
+		INSERT INTO store_listings (store_id, store_sku, product_name, current_price, original_price, product_url, affiliate_url, image_url, brand, category_path, canonical_category, category_id, metadata, is_in_stock, product_group_key, variant_options, last_scraped)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, NOW())
 		ON CONFLICT (store_id, store_sku) DO UPDATE SET
 			product_name = EXCLUDED.product_name,
 			current_price = EXCLUDED.current_price,
 			original_price = EXCLUDED.original_price,
 			product_url = EXCLUDED.product_url,
+			affiliate_url = CASE WHEN NULLIF(TRIM(EXCLUDED.affiliate_url), '') IS NOT NULL THEN EXCLUDED.affiliate_url ELSE store_listings.affiliate_url END,
 			image_url = EXCLUDED.image_url,
 			brand = EXCLUDED.brand,
 			category_path = CASE WHEN EXCLUDED.category_path IS NOT NULL AND array_length(EXCLUDED.category_path, 1) > 0 THEN EXCLUDED.category_path ELSE store_listings.category_path END,
 			canonical_category = CASE WHEN store_listings.canonical_category IS NOT NULL AND array_length(store_listings.canonical_category, 1) > 0 THEN store_listings.canonical_category ELSE EXCLUDED.canonical_category END,
 			category_id = COALESCE(store_listings.category_id, EXCLUDED.category_id),
-			metadata = EXCLUDED.metadata,
+			metadata = CASE
+				WHEN EXCLUDED.metadata IS NULL OR EXCLUDED.metadata = '{}'::jsonb
+				THEN store_listings.metadata
+				WHEN store_listings.metadata IS NULL OR store_listings.metadata = '{}'::jsonb
+				THEN EXCLUDED.metadata
+				ELSE (
+					COALESCE(store_listings.metadata, '{}'::jsonb)
+					|| CASE
+						WHEN EXCLUDED.metadata ? 'description'
+							AND NULLIF(BTRIM(EXCLUDED.metadata->>'description'), '') IS NOT NULL
+						THEN jsonb_build_object('description', EXCLUDED.metadata->'description')
+						ELSE '{}'::jsonb
+					END
+					|| CASE
+						WHEN EXCLUDED.metadata ? 'specs'
+							AND jsonb_typeof(EXCLUDED.metadata->'specs') = 'object'
+							AND EXCLUDED.metadata->'specs' <> '{}'::jsonb
+						THEN jsonb_build_object(
+							'specs',
+							COALESCE(store_listings.metadata->'specs', '{}'::jsonb) || EXCLUDED.metadata->'specs'
+						)
+						ELSE '{}'::jsonb
+					END
+				)
+			END,
 			is_in_stock = EXCLUDED.is_in_stock,
 			product_group_key = COALESCE(EXCLUDED.product_group_key, store_listings.product_group_key),
 			variant_options = COALESCE(EXCLUDED.variant_options, store_listings.variant_options),
 			last_scraped = NOW()
 		RETURNING id
 	`, listing.StoreID, listing.StoreSKU, listing.ProductName, listing.CurrentPrice, listing.OriginalPrice,
-		listing.ProductURL, listing.ImageURL, listing.Brand, pq.Array(listing.CategoryPath), pq.Array(listing.CanonicalCategory), categoryID, listing.Metadata, listing.IsInStock, productGroupKey, variantOpts).Scan(&id)
+		listing.ProductURL, listing.AffiliateURL, listing.ImageURL, listing.Brand, pq.Array(listing.CategoryPath), pq.Array(listing.CanonicalCategory), categoryID, listing.Metadata, listing.IsInStock, productGroupKey, variantOpts).Scan(&id)
 	return id, err
 }
 
@@ -250,8 +278,9 @@ type Deal struct {
 	ProductGroupKey *string  `json:"product_group_key,omitempty"`
 	VariantOptions  json.RawMessage `json:"variant_options,omitempty"`
 	Variants        json.RawMessage `json:"variants,omitempty"`
-	VariantCount    *int            `json:"variant_count,omitempty"`
-	PriceRange      []float64       `json:"price_range,omitempty"` // [min, max] when grouped
+	VariantCount          *int                 `json:"variant_count,omitempty"`
+	PriceRange            []float64            `json:"price_range,omitempty"` // [min, max] when grouped
+	PriceHistorySummary   *PriceHistorySummary `json:"price_history_summary,omitempty"`
 }
 
 // AdminListing extends Deal with created_at, last_enriched_at, hidden, and structured category for the admin data browser.
@@ -274,11 +303,46 @@ type GetAdminListingsParams struct {
 	Hidden                *bool   // true = hidden only; false = visible only; nil = any
 	Category              string
 	CanonicalCategory     string
-	Search                string
-	Sort                  string  // newest, discount, price_asc, price_desc, relevance
-	LLMConfidenceBelow    *float64 // filter: (metadata->>'llm_confidence')::float < value (e.g. 0.7 for low confidence)
-	Limit                 int
-	Offset                int
+	// CategorySlug matches categories.slug; filter is l.category_id = ANY(subtree IDs), same as GET /deals?category_slug=.
+	// When non-empty, CanonicalCategory is ignored (see resolveAdminListingsCategoryFilter).
+	CategorySlug string
+	// categoryFilterIDs is set by resolveAdminListingsCategoryFilter when CategorySlug is non-empty.
+	// nil = no slug-based subtree filter; non-nil empty slice = unknown slug → no rows.
+	categoryFilterIDs *[]int
+	Search             string
+	Sort               string // newest, discount, price_asc, price_desc, relevance, last_enriched
+	LLMConfidenceBelow *float64 // filter: (metadata->>'llm_confidence')::float < value (e.g. 0.7 for low confidence)
+	// HasNonEmptySpecs when true restricts to listings with non-empty metadata.specs JSON object (for LLM-from-DB pipelines).
+	HasNonEmptySpecs *bool
+	// StoreType when non-empty restricts to listings whose store matches this store_type (lower-cased equality).
+	StoreType string
+	Limit     int
+	Offset    int
+}
+
+// resolveAdminListingsCategoryFilter resolves CategorySlug into categoryFilterIDs for subtree matching (same semantics as GET /deals).
+// When CategorySlug is non-empty, CanonicalCategory is cleared so slug takes precedence over canonical_category.
+func (db *DB) resolveAdminListingsCategoryFilter(ctx context.Context, p GetAdminListingsParams) (GetAdminListingsParams, error) {
+	slug := strings.TrimSpace(p.CategorySlug)
+	if slug == "" {
+		return p, nil
+	}
+	p.CanonicalCategory = ""
+	cat, err := db.GetCategoryBySlug(ctx, slug)
+	if err != nil {
+		return p, err
+	}
+	var ids []int
+	if cat == nil {
+		ids = []int{}
+	} else {
+		ids, err = db.GetCategorySubtreeIDs(ctx, cat.ID)
+		if err != nil {
+			return p, err
+		}
+	}
+	p.categoryFilterIDs = &ids
+	return p, nil
 }
 
 // GetAdminListings returns listings for the admin data browser with full detail.
@@ -297,6 +361,12 @@ func (db *DB) GetAdminListings(ctx context.Context, params GetAdminListingsParam
 		sort = "newest"
 	}
 
+	var err error
+	params, err = db.resolveAdminListingsCategoryFilter(ctx, params)
+	if err != nil {
+		return nil, 0, err
+	}
+
 	query := `
 		SELECT l.id, l.store_id, s.name, l.store_sku, l.product_name, l.current_price, l.original_price,
 			l.product_url, l.affiliate_url, l.image_url, l.brand, COALESCE(l.category_path, '{}'), COALESCE(l.canonical_category, '{}'), l.metadata, l.is_in_stock, l.hidden, l.last_scraped::text,
@@ -312,6 +382,12 @@ func (db *DB) GetAdminListings(ctx context.Context, params GetAdminListingsParam
 	if params.StoreID > 0 {
 		query += fmt.Sprintf(" AND l.store_id = $%d", argNum)
 		args = append(args, params.StoreID)
+		argNum++
+	}
+	storeTypeTrim := strings.TrimSpace(params.StoreType)
+	if storeTypeTrim != "" && params.StoreID <= 0 {
+		query += fmt.Sprintf(" AND lower(s.store_type) = lower($%d)", argNum)
+		args = append(args, storeTypeTrim)
 		argNum++
 	}
 	if params.Brand != "" {
@@ -343,6 +419,11 @@ func (db *DB) GetAdminListings(ctx context.Context, params GetAdminListingsParam
 	if params.Hidden != nil {
 		query += fmt.Sprintf(" AND l.hidden = $%d", argNum)
 		args = append(args, *params.Hidden)
+		argNum++
+	}
+	if params.categoryFilterIDs != nil {
+		query += fmt.Sprintf(" AND l.category_id = ANY($%d)", argNum)
+		args = append(args, pq.Array(*params.categoryFilterIDs))
 		argNum++
 	}
 	if params.Category != "" {
@@ -379,6 +460,9 @@ func (db *DB) GetAdminListings(ctx context.Context, params GetAdminListingsParam
 		args = append(args, *params.LLMConfidenceBelow)
 		argNum++
 	}
+	if params.HasNonEmptySpecs != nil && *params.HasNonEmptySpecs {
+		query += ` AND l.metadata->'specs' IS NOT NULL AND jsonb_typeof(l.metadata->'specs') = 'object' AND l.metadata->'specs' <> '{}'::jsonb`
+	}
 
 	switch sort {
 	case "relevance":
@@ -393,6 +477,8 @@ func (db *DB) GetAdminListings(ctx context.Context, params GetAdminListingsParam
 		query += " ORDER BY l.current_price ASC"
 	case "price_desc":
 		query += " ORDER BY l.current_price DESC"
+	case "last_enriched":
+		query += " ORDER BY l.last_enriched_at DESC NULLS LAST"
 	default:
 		query += " ORDER BY l.last_scraped DESC"
 	}
@@ -441,6 +527,163 @@ func (db *DB) GetAdminListings(ctx context.Context, params GetAdminListingsParam
 		listings = []AdminListing{}
 	}
 	return listings, totalCount, rows.Err()
+}
+
+// buildAdminListingsFilter appends the same conditions as GetAdminListings (excluding sort/limit) to a query starting with "... WHERE 1=1".
+// productURLNonEmpty, when true, adds l.product_url IS NOT NULL.
+func buildAdminListingsFilter(query string, params GetAdminListingsParams, argNum int) (string, []interface{}, int) {
+	args := []interface{}{}
+	if params.StoreID > 0 {
+		query += fmt.Sprintf(" AND l.store_id = $%d", argNum)
+		args = append(args, params.StoreID)
+		argNum++
+	}
+	storeTypeTrim := strings.TrimSpace(params.StoreType)
+	if storeTypeTrim != "" && params.StoreID <= 0 {
+		query += fmt.Sprintf(" AND lower(s.store_type) = lower($%d)", argNum)
+		args = append(args, storeTypeTrim)
+		argNum++
+	}
+	if params.Brand != "" {
+		query += fmt.Sprintf(" AND l.brand ILIKE $%d", argNum)
+		args = append(args, params.Brand)
+		argNum++
+	}
+	if params.HasCanonicalCategory != nil {
+		if *params.HasCanonicalCategory {
+			query += " AND l.canonical_category IS NOT NULL AND array_length(l.canonical_category, 1) > 0"
+		} else {
+			query += " AND (l.canonical_category IS NULL OR array_length(l.canonical_category, 1) IS NULL)"
+		}
+	}
+	if params.HasEnrichment != nil {
+		if *params.HasEnrichment {
+			query += " AND l.last_enriched_at IS NOT NULL"
+		} else {
+			query += " AND l.last_enriched_at IS NULL"
+		}
+	}
+	if params.InStock != nil {
+		if *params.InStock {
+			query += " AND l.is_in_stock = true"
+		} else {
+			query += " AND l.is_in_stock = false"
+		}
+	}
+	if params.Hidden != nil {
+		query += fmt.Sprintf(" AND l.hidden = $%d", argNum)
+		args = append(args, *params.Hidden)
+		argNum++
+	}
+	if params.categoryFilterIDs != nil {
+		query += fmt.Sprintf(" AND l.category_id = ANY($%d)", argNum)
+		args = append(args, pq.Array(*params.categoryFilterIDs))
+		argNum++
+	}
+	if params.Category != "" {
+		query += fmt.Sprintf(` AND (
+			EXISTS (SELECT 1 FROM unnest(COALESCE(l.category_path, '{}')) AS c WHERE strpos(lower(c), lower($%d)) > 0)
+			OR EXISTS (SELECT 1 FROM unnest(COALESCE(l.canonical_category, '{}')) AS cc WHERE strpos(lower(cc), lower($%d)) > 0)
+		)`, argNum, argNum)
+		args = append(args, params.Category)
+		argNum++
+	}
+	if params.CanonicalCategory != "" {
+		path := strings.Split(params.CanonicalCategory, " > ")
+		trimmed := make([]string, 0, len(path))
+		for _, p := range path {
+			if t := strings.TrimSpace(p); t != "" {
+				trimmed = append(trimmed, t)
+			}
+		}
+		if len(trimmed) > 0 {
+			query += fmt.Sprintf(" AND l.canonical_category = $%d", argNum)
+			args = append(args, pq.Array(trimmed))
+			argNum++
+		}
+	}
+	if params.Search != "" {
+		query += fmt.Sprintf(" AND l.search_vector @@ plainto_tsquery('english', $%d)", argNum)
+		args = append(args, params.Search)
+		argNum++
+	}
+	if params.LLMConfidenceBelow != nil {
+		query += fmt.Sprintf(" AND (l.metadata->>'llm_confidence')::float < $%d", argNum)
+		args = append(args, *params.LLMConfidenceBelow)
+		argNum++
+	}
+	if params.HasNonEmptySpecs != nil && *params.HasNonEmptySpecs {
+		query += ` AND l.metadata->'specs' IS NOT NULL AND jsonb_typeof(l.metadata->'specs') = 'object' AND l.metadata->'specs' <> '{}'::jsonb`
+	}
+	return query, args, argNum
+}
+
+// CountAdminListingsByFilter returns the number of rows matching the admin data browser filters.
+func (db *DB) CountAdminListingsByFilter(ctx context.Context, params GetAdminListingsParams) (int, error) {
+	var err error
+	params, err = db.resolveAdminListingsCategoryFilter(ctx, params)
+	if err != nil {
+		return 0, err
+	}
+	base := ` FROM store_listings l JOIN stores s ON s.id = l.store_id WHERE 1=1`
+	q, args, _ := buildAdminListingsFilter(base, params, 1)
+	countQ := "SELECT COUNT(*)" + q
+	var n int
+	err = db.pool.QueryRow(ctx, countQ, args...).Scan(&n)
+	return n, err
+}
+
+// ListAdminListingIDsByFilter returns listing ids matching the filter, capped at maxIDs, plus total count before capping.
+// onlyEnricherStores restricts to store_type in StoreTypesWithEnrichers (for PDP re-enrich).
+// requireProductURL when true adds a non-empty product_url constraint.
+func (db *DB) ListAdminListingIDsByFilter(ctx context.Context, params GetAdminListingsParams, onlyEnricherStores, requireProductURL bool, maxIDs int) (ids []int, total int, err error) {
+	params, err = db.resolveAdminListingsCategoryFilter(ctx, params)
+	if err != nil {
+		return nil, 0, err
+	}
+	if maxIDs <= 0 {
+		maxIDs = 5000
+	}
+	base := ` FROM store_listings l JOIN stores s ON s.id = l.store_id WHERE 1=1`
+	if requireProductURL {
+		base += " AND l.product_url IS NOT NULL AND l.product_url != ''"
+	}
+	args := []interface{}{}
+	argNum := 1
+	if onlyEnricherStores {
+		base += fmt.Sprintf(" AND s.store_type = ANY($%d)", argNum)
+		args = append(args, pq.Array(StoreTypesWithEnrichers))
+		argNum++
+	}
+	rest, restArgs, nextArg := buildAdminListingsFilter(base, params, argNum)
+	args = append(args, restArgs...)
+
+	var totalCount int
+	countQ := "SELECT COUNT(*)" + rest
+	if err := db.pool.QueryRow(ctx, countQ, args...).Scan(&totalCount); err != nil {
+		return nil, 0, err
+	}
+	if totalCount == 0 {
+		return []int{}, 0, nil
+	}
+	listQ := "SELECT l.id" + rest + fmt.Sprintf(" ORDER BY l.last_scraped DESC LIMIT $%d", nextArg)
+	listArgs := append(append([]interface{}{}, args...), maxIDs)
+	rows, err := db.pool.Query(ctx, listQ, listArgs...)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var id int
+		if err := rows.Scan(&id); err != nil {
+			return nil, 0, err
+		}
+		ids = append(ids, id)
+	}
+	if ids == nil {
+		ids = []int{}
+	}
+	return ids, totalCount, rows.Err()
 }
 
 // GetAdminListingByID returns one listing by id for admin detail view, or nil if not found.
@@ -493,6 +736,25 @@ func (db *DB) GetAdminListingByID(ctx context.Context, id int) (*AdminListing, e
 	return &a, nil
 }
 
+// HideStaleListings hides all non-hidden listings for a store whose last_scraped
+// timestamp predates scrapeStartedAt. This catches products that were not
+// returned by the most recent full scrape — meaning they are no longer on sale
+// or have been removed from the store's collection.
+// Returns the number of listings hidden.
+func (db *DB) HideStaleListings(ctx context.Context, storeID int, scrapeStartedAt time.Time) (int, error) {
+	cmd, err := db.pool.Exec(ctx, `
+		UPDATE store_listings
+		SET hidden = true
+		WHERE store_id = $1
+		  AND hidden = false
+		  AND last_scraped < $2
+	`, storeID, scrapeStartedAt)
+	if err != nil {
+		return 0, err
+	}
+	return int(cmd.RowsAffected()), nil
+}
+
 // SetListingHidden sets the hidden flag for a listing by id. Returns error if not found.
 func (db *DB) SetListingHidden(ctx context.Context, id int, hidden bool) error {
 	cmd, err := db.pool.Exec(ctx, `UPDATE store_listings SET hidden = $1 WHERE id = $2`, hidden, id)
@@ -509,22 +771,22 @@ func (db *DB) SetListingHidden(ctx context.Context, id int, hidden bool) error {
 type GetDealsParams struct {
 	StoreID           *int
 	StoreName         string
-	Brand             string
+	Brands            []string // OR within brands (ILIKE ANY)
 	Category          string
 	CanonicalCategory string // legacy: "Bikes > Mountain" (exact path match)
 	CategorySlug          string // preferred: slug for subtree filter (e.g. "bikes" includes all bike subcategories)
 	ExcludeCategorySlug   string // exclude listings in this category subtree (e.g. "accessories")
 	MinDiscount           *float64
 	MinPrice              *float64 // minimum current_price (inclusive)
+	MaxPrice              *float64 // maximum current_price (inclusive)
 	Search                string // full-text search query (q)
-	Sort                  string // newest, discount, value, price_asc, price_desc, relevance
+	Sort                  string // newest, discount, value, price_asc, price_desc, relevance, price_drop
+	PriceDropped          *bool  // when true, only listings with a scrape-to-scrape price decrease within PriceDropWithinDays
+	PriceDropWithinDays   int    // recency window for price_dropped / sort=price_drop (default 7)
 	Limit             int
 	Offset            int
-	SpecKey           string            // legacy: single spec filter (use SpecFilters for multi)
-	SpecValue         string            // legacy: single spec value
-	SpecFilters       map[string]string // multiple spec filters: key -> value (e.g. hub_spacing=148mm)
-	GroupVariants     bool              // one row per product group (Shopify variants collapsed)
-	VariantFilters    map[string]string // variant option key -> value (e.g. Size -> Large); keys matched case-insensitively
+	SpecFilters   map[string][]string // spec key -> values; OR within key, AND across keys
+	GroupVariants bool                // one row per product group (Shopify variants collapsed)
 }
 
 // GetDealsResult includes deals and total count for pagination
@@ -540,13 +802,22 @@ func (db *DB) GetDeals(ctx context.Context, params GetDealsParams) (*GetDealsRes
 	if params.GroupVariants {
 		return db.getDealsGrouped(ctx, params)
 	}
-	// Normalize sort: default newest; relevance only valid when Search is set
+	// Normalize sort: default discount; relevance only valid when Search is set
 	sort := params.Sort
 	if sort == "" {
-		sort = "newest"
+		sort = "discount"
 	}
 	if params.Search == "" && sort == "relevance" {
-		sort = "newest"
+		sort = "discount"
+	}
+
+	priceDropFilter := wantsPriceDropFilter(params)
+	priceDropData := needsPriceDropData(params)
+	args := []interface{}{}
+	argNum := 1
+	if priceDropData {
+		args = append(args, priceDropWithinDays(params))
+		argNum++
 	}
 
 	query := `
@@ -556,12 +827,24 @@ func (db *DB) GetDeals(ctx context.Context, params GetDealsParams) (*GetDealsRes
 			COUNT(*) OVER() AS total_count
 		FROM store_listings l
 		JOIN stores s ON s.id = l.store_id
+	`
+	if priceDropData {
+		query = `WITH ` + recentPriceDropsCTE(1) + query
+		if priceDropFilter {
+			query += `
+		JOIN recent_price_drops rpd ON rpd.listing_id = l.id
+		`
+		} else {
+			query += `
+		LEFT JOIN recent_price_drops rpd ON rpd.listing_id = l.id
+		`
+		}
+	}
+	query += `
 		WHERE 1=1 AND l.is_in_stock = true AND l.hidden = false
 	`
-	args := []interface{}{}
-	argNum := 1
 
-	frag, fragArgs, nextArg, err := db.dealsFilterSQL(ctx, params)
+	frag, fragArgs, nextArg, err := db.dealsFilterSQL(ctx, params, argNum)
 	if err != nil {
 		return nil, err
 	}
@@ -583,6 +866,8 @@ func (db *DB) GetDeals(ctx context.Context, params GetDealsParams) (*GetDealsRes
 		query += " ORDER BY l.current_price ASC"
 	case "price_desc":
 		query += " ORDER BY l.current_price DESC"
+	case "price_drop":
+		query += " ORDER BY rpd.drop_amount DESC NULLS LAST, rpd.dropped_at DESC"
 	default:
 		query += " ORDER BY l.last_scraped DESC"
 	}
@@ -631,7 +916,13 @@ func (db *DB) GetDeals(ctx context.Context, params GetDealsParams) (*GetDealsRes
 	if deals == nil {
 		deals = []Deal{}
 	}
-	return &GetDealsResult{Deals: deals, TotalCount: totalCount}, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	if err := db.attachPriceHistorySummaries(ctx, deals); err != nil {
+		return nil, err
+	}
+	return &GetDealsResult{Deals: deals, TotalCount: totalCount}, nil
 }
 
 func (db *DB) GetDealByID(ctx context.Context, id int) (*Deal, error) {
@@ -760,16 +1051,16 @@ func (db *DB) GetPriceHistory(ctx context.Context, listingID int) (*PriceHistory
 		return nil, err
 	}
 
+	if points == nil {
+		points = []PriceHistoryPoint{}
+	}
+
 	n := float64(len(points))
 	avg := 0.0
 	if n > 0 {
 		avg = sum / n
 	}
-	priceDropped := false
-	if len(points) >= 2 {
-		last, prev := points[len(points)-1].Price, points[len(points)-2].Price
-		priceDropped = last < prev
-	}
+	priceDropped := hasPriceDropWithinDays(points, defaultPriceDropWithinDays)
 
 	return &PriceHistoryResult{
 		Points:       points,
@@ -807,14 +1098,24 @@ type DashboardStats struct {
 	EnrichedListings int `json:"enriched_listings"` // canonical_category set
 }
 
+// storeVisibleProductGroupKey groups in-stock, visible listings into distinct deals
+// (matches GET /deals?group_variants=true).
+const storeVisibleProductGroupKey = `COALESCE(product_group_key, 'single:' || id::text)`
+
 func (db *DB) GetStoresWithCounts(ctx context.Context) ([]StoreWithCount, error) {
 	rows, err := db.pool.Query(ctx, `
 		SELECT s.id, s.name, s.base_url,
-			COUNT(l.id) as deal_count,
-			MAX(l.last_scraped)::text as last_scraped
+			COALESCE(v.deal_count, 0) AS deal_count,
+			COALESCE(v.last_scraped, '') AS last_scraped
 		FROM stores s
-		LEFT JOIN store_listings l ON l.store_id = s.id
-		GROUP BY s.id, s.name, s.base_url
+		LEFT JOIN (
+			SELECT store_id,
+				COUNT(DISTINCT `+storeVisibleProductGroupKey+`)::int AS deal_count,
+				MAX(last_scraped)::text AS last_scraped
+			FROM store_listings
+			WHERE is_in_stock = true AND hidden = false
+			GROUP BY store_id
+		) v ON v.store_id = s.id
 		ORDER BY s.name
 	`)
 	if err != nil {
@@ -998,11 +1299,12 @@ func (db *DB) GetScrapeJobByID(ctx context.Context, id int) (*ScrapeJob, error) 
 	return &j, nil
 }
 
-// EnrichJob represents a single enrichment run (optionally scoped by store_type).
+// EnrichJob represents a single enrichment or classify job (optionally scoped by store_type).
 type EnrichJob struct {
 	ID                int      `json:"id"`
 	StoreType         *string  `json:"store_type,omitempty"`
-	Status            string   `json:"status"` // running, completed, failed
+	JobType           string   `json:"job_type"` // enrich, classify, ...
+	Status            string   `json:"status"`   // running, completed, failed
 	StartedAt         string   `json:"started_at"`
 	CompletedAt       *string  `json:"completed_at,omitempty"`
 	ListingsProcessed *int     `json:"listings_processed,omitempty"`
@@ -1012,14 +1314,18 @@ type EnrichJob struct {
 	ForceMode         bool     `json:"force_mode"`
 }
 
-// CreateEnrichJob inserts a new enrich job (status=running) and returns its id.
-func (db *DB) CreateEnrichJob(ctx context.Context, storeType *string, triggeredBy string, forceMode bool) (int, error) {
+// CreateEnrichJob inserts a new enrich or classify job (status=running) and returns its id.
+// jobType is "enrich", "classify", etc.; empty defaults to "enrich".
+func (db *DB) CreateEnrichJob(ctx context.Context, storeType *string, triggeredBy string, forceMode bool, jobType string) (int, error) {
+	if jobType == "" {
+		jobType = "enrich"
+	}
 	var id int
 	err := db.pool.QueryRow(ctx, `
-		INSERT INTO enrich_jobs (store_type, status, triggered_by, force_mode)
-		VALUES ($1, 'running', $2, $3)
+		INSERT INTO enrich_jobs (store_type, status, triggered_by, force_mode, job_type)
+		VALUES ($1, 'running', $2, $3, $4)
 		RETURNING id
-	`, storeType, triggeredBy, forceMode).Scan(&id)
+	`, storeType, triggeredBy, forceMode, jobType).Scan(&id)
 	return id, err
 }
 
@@ -1041,6 +1347,18 @@ func (db *DB) UpdateEnrichJob(ctx context.Context, id int, status string, proces
 		WHERE id = $5
 	`, status, processed, enriched, errSlice, id)
 	return err
+}
+
+// enrichJobFinalizeDBTimeout bounds DB writes for terminal enrich_jobs updates when the
+// work context may already be canceled (e.g. job deadline exceeded).
+const enrichJobFinalizeDBTimeout = 30 * time.Second
+
+// UpdateEnrichJobDetached persists terminal enrich job state using a fresh context so pgx Exec
+// is not aborted by a canceled work context (scheduler timeout, bulk job timeout, etc.).
+func (db *DB) UpdateEnrichJobDetached(id int, status string, processed, enriched *int, errors []string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), enrichJobFinalizeDBTimeout)
+	defer cancel()
+	return db.UpdateEnrichJob(ctx, id, status, processed, enriched, errors)
 }
 
 // MarkStaleJobs sets status='stale' and completed_at=NOW() for any scrape_jobs and enrich_jobs that are still 'running'.
@@ -1080,7 +1398,7 @@ func (db *DB) CancelEnrichJob(ctx context.Context, id int) (bool, error) {
 // GetEnrichJobs returns recent enrich jobs (newest first), paginated.
 func (db *DB) GetEnrichJobs(ctx context.Context, limit, offset int) ([]EnrichJob, error) {
 	rows, err := db.pool.Query(ctx, `
-		SELECT id, store_type, status, started_at::text, completed_at::text,
+		SELECT id, store_type, COALESCE(job_type, 'enrich'), status, started_at::text, completed_at::text,
 			listings_processed, listings_enriched, COALESCE(errors, '{}'), triggered_by, force_mode
 		FROM enrich_jobs
 		ORDER BY started_at DESC LIMIT $1 OFFSET $2
@@ -1095,7 +1413,7 @@ func (db *DB) GetEnrichJobs(ctx context.Context, limit, offset int) ([]EnrichJob
 		var j EnrichJob
 		var completedAt *string
 		var errArr pgtype.FlatArray[string]
-		if err := rows.Scan(&j.ID, &j.StoreType, &j.Status, &j.StartedAt, &completedAt, &j.ListingsProcessed, &j.ListingsEnriched, &errArr, &j.TriggeredBy, &j.ForceMode); err != nil {
+		if err := rows.Scan(&j.ID, &j.StoreType, &j.JobType, &j.Status, &j.StartedAt, &completedAt, &j.ListingsProcessed, &j.ListingsEnriched, &errArr, &j.TriggeredBy, &j.ForceMode); err != nil {
 			return nil, err
 		}
 		j.CompletedAt = completedAt
@@ -1111,10 +1429,10 @@ func (db *DB) GetEnrichJobByID(ctx context.Context, id int) (*EnrichJob, error) 
 	var completedAt *string
 	var errArr pgtype.FlatArray[string]
 	err := db.pool.QueryRow(ctx, `
-		SELECT id, store_type, status, started_at::text, completed_at::text,
+		SELECT id, store_type, COALESCE(job_type, 'enrich'), status, started_at::text, completed_at::text,
 			listings_processed, listings_enriched, COALESCE(errors, '{}'), triggered_by, force_mode
 		FROM enrich_jobs WHERE id = $1
-	`, id).Scan(&j.ID, &j.StoreType, &j.Status, &j.StartedAt, &completedAt, &j.ListingsProcessed, &j.ListingsEnriched, &errArr, &j.TriggeredBy, &j.ForceMode)
+	`, id).Scan(&j.ID, &j.StoreType, &j.JobType, &j.Status, &j.StartedAt, &completedAt, &j.ListingsProcessed, &j.ListingsEnriched, &errArr, &j.TriggeredBy, &j.ForceMode)
 	if err != nil {
 		if err.Error() == "no rows in result set" {
 			return nil, nil
@@ -1235,7 +1553,7 @@ func (db *DB) GetCanonicalCategories(ctx context.Context) ([]string, error) {
 
 // StoreTypesWithEnrichers lists store_type values that have a scraper enricher (PDP enrichment).
 // When adding an enricher for a new store, add its store_type here.
-var StoreTypesWithEnrichers = []string{"jensonusa", "worldwidecyclery", "backcountry", "ridebicycles"}
+var StoreTypesWithEnrichers = []string{"jensonusa", "worldwidecyclery", "revelbikes", "backcountry", "ridebicycles", "thundermountainbikes", "mackcycle", "canyon", "specialized", "trek", "universalcycles", "n1bikes", "foxracing", "rideconcepts", "leatt", "chromag", "gravitycartel", "bell", "giro", "bikesonline", "evo", "cambriabikes", "365cycles", "thelostco", "hayes", "raceface", "ion", "coloradocyclist", "canfield", "cased"}
 
 // ListingForEnrichment is a listing that needs PDP enrichment
 type ListingForEnrichment struct {
@@ -1243,8 +1561,21 @@ type ListingForEnrichment struct {
 	StoreID    int
 	StoreType  string
 	ProductURL string
+	StoreSKU   string
 }
 
+// enrichmentStalenessFilter limits scheduled PDP enrich to never-enriched rows or those
+// enriched more than 7 days ago (unless force mode skips this filter).
+const enrichmentStalenessFilter = ` AND (l.last_enriched_at IS NULL OR l.last_enriched_at < NOW() - INTERVAL '7 days')`
+
+// enrichmentSelectionOrder puts never-enriched listings first, then oldest enrichment,
+// then newest scrape within each tier.
+const enrichmentSelectionOrder = `
+		ORDER BY l.last_enriched_at NULLS FIRST, l.last_scraped DESC`
+
+// GetListingsNeedingEnrichment returns in-stock visible listings for PDP enrichment.
+// Priority: never-enriched (last_enriched_at IS NULL) first, then oldest enrichment,
+// then newest scrape within each tier. Unless force is true, skips listings enriched within 7 days.
 func (db *DB) GetListingsNeedingEnrichment(ctx context.Context, limit int, force bool) ([]ListingForEnrichment, error) {
 	if limit <= 0 {
 		limit = 50
@@ -1253,17 +1584,16 @@ func (db *DB) GetListingsNeedingEnrichment(ctx context.Context, limit int, force
 		return nil, nil
 	}
 	query := `
-		SELECT l.id, l.store_id, COALESCE(s.store_type, 'jensonusa'), l.product_url
+		SELECT l.id, l.store_id, COALESCE(s.store_type, 'jensonusa'), l.product_url, COALESCE(l.store_sku, '')
 		FROM store_listings l
 		JOIN stores s ON s.id = l.store_id
-		WHERE l.product_url IS NOT NULL AND l.product_url != ''
+		WHERE l.product_url IS NOT NULL AND l.product_url != ''` + listingVisibilityGate + `
 		  AND s.store_type = ANY($2)
 	`
 	if !force {
-		query += ` AND (l.last_enriched_at IS NULL OR l.last_enriched_at < NOW() - INTERVAL '7 days')`
+		query += enrichmentStalenessFilter
 	}
-	query += `
-		ORDER BY l.last_enriched_at NULLS FIRST, l.last_scraped DESC
+	query += enrichmentSelectionOrder + `
 		LIMIT $1
 	`
 	rows, err := db.pool.Query(ctx, query, limit, pq.Array(StoreTypesWithEnrichers))
@@ -1275,7 +1605,7 @@ func (db *DB) GetListingsNeedingEnrichment(ctx context.Context, limit int, force
 	var listings []ListingForEnrichment
 	for rows.Next() {
 		var l ListingForEnrichment
-		if err := rows.Scan(&l.ID, &l.StoreID, &l.StoreType, &l.ProductURL); err != nil {
+		if err := rows.Scan(&l.ID, &l.StoreID, &l.StoreType, &l.ProductURL, &l.StoreSKU); err != nil {
 			return nil, err
 		}
 		listings = append(listings, l)
@@ -1293,17 +1623,16 @@ func (db *DB) GetListingsNeedingEnrichmentForStore(ctx context.Context, storeTyp
 		return nil, nil
 	}
 	query := `
-		SELECT l.id, l.store_id, COALESCE(s.store_type, 'jensonusa'), l.product_url
+		SELECT l.id, l.store_id, COALESCE(s.store_type, 'jensonusa'), l.product_url, COALESCE(l.store_sku, '')
 		FROM store_listings l
 		JOIN stores s ON s.id = l.store_id
-		WHERE l.product_url IS NOT NULL AND l.product_url != ''
+		WHERE l.product_url IS NOT NULL AND l.product_url != ''` + listingVisibilityGate + `
 		  AND s.store_type = $2
 	`
 	if !force {
-		query += ` AND (l.last_enriched_at IS NULL OR l.last_enriched_at < NOW() - INTERVAL '7 days')`
+		query += enrichmentStalenessFilter
 	}
-	query += `
-		ORDER BY l.last_enriched_at NULLS FIRST, l.last_scraped DESC
+	query += enrichmentSelectionOrder + `
 		LIMIT $1
 	`
 	rows, err := db.pool.Query(ctx, query, limit, storeType)
@@ -1315,12 +1644,130 @@ func (db *DB) GetListingsNeedingEnrichmentForStore(ctx context.Context, storeTyp
 	var listings []ListingForEnrichment
 	for rows.Next() {
 		var l ListingForEnrichment
-		if err := rows.Scan(&l.ID, &l.StoreID, &l.StoreType, &l.ProductURL); err != nil {
+		if err := rows.Scan(&l.ID, &l.StoreID, &l.StoreType, &l.ProductURL, &l.StoreSKU); err != nil {
 			return nil, err
 		}
 		listings = append(listings, l)
 	}
 	return listings, rows.Err()
+}
+
+// EnrichmentFilter scopes PDP enrichment for targeted re-enrich (store, category, and/or low confidence).
+// StoreType empty means all store types in StoreTypesWithEnrichers.
+// CanonicalCategory empty means no path filter. LlmConfidenceBelow if set: only listings with stored llm confidence below that value.
+type EnrichmentFilter struct {
+	StoreType            string
+	CanonicalCategory   []string
+	LlmConfidenceBelow *float64
+}
+
+// GetListingsNeedingEnrichmentForFilter returns listings matching the filter, allowlisted to scraper/enricher stores.
+func (db *DB) GetListingsNeedingEnrichmentForFilter(ctx context.Context, f EnrichmentFilter, limit int, force bool) ([]ListingForEnrichment, error) {
+	if limit <= 0 {
+		limit = 50
+	}
+	if len(StoreTypesWithEnrichers) == 0 {
+		return nil, nil
+	}
+	var query string
+	args := []interface{}{}
+	argNum := 1
+
+	query = `
+		SELECT l.id, l.store_id, COALESCE(s.store_type, 'jensonusa'), l.product_url, COALESCE(l.store_sku, '')
+		FROM store_listings l
+		JOIN stores s ON s.id = l.store_id
+		WHERE l.product_url IS NOT NULL AND l.product_url != ''` + listingVisibilityGate
+	if f.StoreType != "" {
+		query += fmt.Sprintf(" AND s.store_type = $%d", argNum)
+		args = append(args, f.StoreType)
+		argNum++
+	} else {
+		query += fmt.Sprintf(" AND s.store_type = ANY($%d)", argNum)
+		args = append(args, pq.Array(StoreTypesWithEnrichers))
+		argNum++
+	}
+	if len(f.CanonicalCategory) > 0 {
+		query += fmt.Sprintf(" AND l.canonical_category = $%d", argNum)
+		args = append(args, pq.Array(f.CanonicalCategory))
+		argNum++
+	}
+	if f.LlmConfidenceBelow != nil {
+		query += fmt.Sprintf(" AND (l.metadata->>'llm_confidence')::float < $%d", argNum)
+		args = append(args, *f.LlmConfidenceBelow)
+		argNum++
+	}
+	if !force {
+		query += enrichmentStalenessFilter
+	}
+	query += enrichmentSelectionOrder + fmt.Sprintf(" LIMIT $%d", argNum)
+	args = append(args, limit)
+
+	rows, err := db.pool.Query(ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var listings []ListingForEnrichment
+	for rows.Next() {
+		var l ListingForEnrichment
+		if err := rows.Scan(&l.ID, &l.StoreID, &l.StoreType, &l.ProductURL, &l.StoreSKU); err != nil {
+			return nil, err
+		}
+		listings = append(listings, l)
+	}
+	return listings, rows.Err()
+}
+
+// DefaultLLMCategoryPreserveThreshold is used when LLM_CATEGORY_PRESERVE_THRESHOLD is unset and
+// no classifier confidence_threshold is available. See UpdateListingEnrichment.
+const DefaultLLMCategoryPreserveThreshold = 0.5
+
+// llmCategoryFromMetadata reads metadata.llm_category for preservation checks (before enrichment merge).
+func llmCategoryFromMetadata(meta []byte) (canonical []string, confidence float64, ok bool) {
+	var root map[string]interface{}
+	if err := json.Unmarshal(meta, &root); err != nil {
+		return nil, 0, false
+	}
+	lm, _ := root["llm_category"].(map[string]interface{})
+	if lm == nil {
+		return nil, 0, false
+	}
+	switch c := lm["confidence"].(type) {
+	case float64:
+		confidence = c
+	case json.Number:
+		f, _ := c.Float64()
+		confidence = f
+	}
+	switch cc := lm["canonical_category"].(type) {
+	case []interface{}:
+		for _, v := range cc {
+			if s, ok2 := v.(string); ok2 && s != "" {
+				canonical = append(canonical, s)
+			}
+		}
+	case string:
+		if cc != "" {
+			canonical = []string{cc}
+		}
+	}
+	ok = len(canonical) > 0
+	return canonical, confidence, ok
+}
+
+// resolveLLMCategoryPreserveThreshold returns env override, else classifier threshold if > 0, else default.
+func resolveLLMCategoryPreserveThreshold(envOverride string, cfg *CategoryClassifierConfig) float64 {
+	if envOverride != "" {
+		if v, err := strconv.ParseFloat(envOverride, 64); err == nil && v >= 0 && v <= 1 {
+			return v
+		}
+	}
+	if cfg != nil && cfg.ConfidenceThreshold > 0 {
+		return cfg.ConfidenceThreshold
+	}
+	return DefaultLLMCategoryPreserveThreshold
 }
 
 func (db *DB) UpdateListingEnrichment(ctx context.Context, id int, categoryPath []string, rawSpecs map[string]string, unavailable bool, description *string) error {
@@ -1348,8 +1795,23 @@ func (db *DB) UpdateListingEnrichment(ctx context.Context, id int, categoryPath 
 		mergedMeta = metadata.MergeDescription(mergedMeta, *description)
 	}
 
-	// If we got a non-empty categoryPath, update category_path, canonical_category, and category_id; otherwise leave them unchanged.
+	classifierCfg, _ := db.GetCategoryClassifier(ctx)
+	threshold := resolveLLMCategoryPreserveThreshold(os.Getenv("LLM_CATEGORY_PRESERVE_THRESHOLD"), classifierCfg)
+	_, conf, hasLLM := llmCategoryFromMetadata(existingMeta)
+	preserveLLMCategory := metadata.HasManualCategoryOverride(existingMeta) || (hasLLM && conf >= threshold)
+
+	// If we got a non-empty categoryPath, update category_path and usually canonical_category/category_id from taxonomy.Map.
+	// When metadata already has a confident LLM category, only refresh category_path + metadata so we do not overwrite
+	// LLM-defined canonical_category/category_id (e.g. when the classifier fails with 429 afterward).
 	if len(categoryPath) > 0 {
+		if preserveLLMCategory {
+			_, err := db.pool.Exec(ctx, `
+				UPDATE store_listings
+				SET category_path = $1, metadata = $2, last_enriched_at = NOW()
+				WHERE id = $3
+			`, pq.Array(categoryPath), mergedMeta, id)
+			return err
+		}
 		canonicalCat := taxonomy.Map(categoryPath)
 		var categoryID interface{}
 		if len(canonicalCat) > 0 {
@@ -1387,21 +1849,21 @@ func (db *DB) UpdateListingEnrichment(ctx context.Context, id int, categoryPath 
 	return err
 }
 
-// GetListingEnrichmentInfo returns product_url and store_type for a listing by id. Used for single-listing enrichment.
-func (db *DB) GetListingEnrichmentInfo(ctx context.Context, id int) (productURL, storeType string, err error) {
+// GetListingEnrichmentInfo returns store id, product_url, store_type, and store_sku for a listing by id. Used for single-listing enrichment.
+func (db *DB) GetListingEnrichmentInfo(ctx context.Context, id int) (storeID int, productURL, storeType, storeSKU string, err error) {
 	err = db.pool.QueryRow(ctx, `
-		SELECT l.product_url, COALESCE(s.store_type, 'jensonusa')
+		SELECT l.store_id, l.product_url, COALESCE(s.store_type, 'jensonusa'), COALESCE(l.store_sku, '')
 		FROM store_listings l
 		JOIN stores s ON s.id = l.store_id
 		WHERE l.id = $1
-	`, id).Scan(&productURL, &storeType)
+	`, id).Scan(&storeID, &productURL, &storeType, &storeSKU)
 	if err != nil {
 		if err.Error() == "no rows in result set" {
-			return "", "", nil
+			return 0, "", "", "", nil
 		}
-		return "", "", err
+		return 0, "", "", "", err
 	}
-	return productURL, storeType, nil
+	return storeID, productURL, storeType, storeSKU, nil
 }
 
 // ListingForLLM holds data needed to run LLM extraction (product name, metadata, canonical category).
@@ -1540,6 +2002,23 @@ func (db *DB) BackfillMetadata(ctx context.Context, extractFn func(productName s
 	return updated, rows.Err()
 }
 
+// RequeueWipedEnrichment clears last_enriched_at on listings whose metadata was wiped by a scrape
+// that ran after enrichment (empty metadata but enrichment timestamp set). Returns rows updated.
+// Run make enrich-now FORCE=1 afterward to re-fetch PDP specs.
+func (db *DB) RequeueWipedEnrichment(ctx context.Context) (int64, error) {
+	tag, err := db.pool.Exec(ctx, `
+		UPDATE store_listings
+		SET last_enriched_at = NULL
+		WHERE last_enriched_at IS NOT NULL
+		  AND (metadata IS NULL OR metadata = '{}'::jsonb)
+		  AND last_scraped > last_enriched_at
+	`)
+	if err != nil {
+		return 0, err
+	}
+	return tag.RowsAffected(), nil
+}
+
 // BackfillCanonicalCategories sets canonical_category and category_id from category_path using the given mapper (e.g. taxonomy.Map).
 // Returns the number of rows updated.
 func (db *DB) BackfillCanonicalCategories(ctx context.Context, mapFn func([]string) []string) (int, error) {
@@ -1580,30 +2059,6 @@ func (db *DB) BackfillCanonicalCategories(ctx context.Context, mapFn func([]stri
 // LLM-enriched before the llm_specs split. For each listing with llm_confidence but no llm_specs,
 // copies profile-defined field values from specs into llm_specs. Returns the number of rows updated.
 func (db *DB) BackfillLLMSpecs(ctx context.Context) (int, error) {
-	profiles, err := db.ListLLMPromptProfiles(ctx)
-	if err != nil {
-		return 0, fmt.Errorf("list profiles: %w", err)
-	}
-	for i := range profiles {
-		if err := db.maybeHydrateLLMProfile(ctx, &profiles[i]); err != nil {
-			return 0, fmt.Errorf("hydrate profile %d: %w", profiles[i].ID, err)
-		}
-	}
-	profileKeys := make(map[string]map[string]struct{}) // "Bikes>Mountain" -> set of keys
-	for _, p := range profiles {
-		if !p.Enabled {
-			continue
-		}
-		keys := extractSchemaKeys(p.ExtractionSchema)
-		if len(keys) > 0 {
-			catKey := strings.Join(p.CanonicalCategory, ">")
-			profileKeys[catKey] = keys
-		}
-	}
-	if len(profileKeys) == 0 {
-		return 0, nil
-	}
-
 	rows, err := db.pool.Query(ctx, `
 		SELECT l.id, l.canonical_category, l.metadata
 		FROM store_listings l
@@ -1618,6 +2073,7 @@ func (db *DB) BackfillLLMSpecs(ctx context.Context) (int, error) {
 	defer rows.Close()
 
 	updated := 0
+	keysByCatKey := make(map[string]map[string]struct{})
 	for rows.Next() {
 		var id int
 		var cat pgtype.FlatArray[string]
@@ -1625,9 +2081,23 @@ func (db *DB) BackfillLLMSpecs(ctx context.Context) (int, error) {
 		if err := rows.Scan(&id, &cat, &meta); err != nil {
 			return updated, err
 		}
-		catKey := strings.Join([]string(cat), ">")
-		allowed, ok := profileKeys[catKey]
+		path := []string(cat)
+		catKey := strings.Join(path, ">")
+		allowed, ok := keysByCatKey[catKey]
 		if !ok {
+			p, err := db.GetLLMPromptProfileForCategory(ctx, path)
+			if err != nil {
+				return updated, fmt.Errorf("profile for %q: %w", catKey, err)
+			}
+			if p == nil {
+				keysByCatKey[catKey] = nil
+				allowed = nil
+			} else {
+				allowed = extractSchemaKeys(p.ExtractionSchema)
+				keysByCatKey[catKey] = allowed
+			}
+		}
+		if len(allowed) == 0 {
 			continue
 		}
 		var base map[string]interface{}

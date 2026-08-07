@@ -77,3 +77,21 @@ export const ReadOnly: Story = {
     href: undefined,
   },
 };
+
+export const MobileViewport: Story = {
+  args: {
+    deal: mockDeal,
+    href: "/deals/1",
+  },
+  parameters: {
+    layout: "padded",
+    viewport: { defaultViewport: "mobile1" },
+  },
+  decorators: [
+    (Story) => (
+      <div className="w-full max-w-sm">
+        <Story />
+      </div>
+    ),
+  ],
+};

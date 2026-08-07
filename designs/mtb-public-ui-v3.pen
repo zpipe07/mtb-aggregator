@@ -1,0 +1,2236 @@
+{
+  "version": "2.11",
+  "children": [
+    {
+      "type": "frame",
+      "id": "bi8Au",
+      "x": 0,
+      "y": 0,
+      "name": "Workshop Modern · v3",
+      "clip": true,
+      "width": 4200,
+      "fill": "#F1F2F4",
+      "gap": 80,
+      "padding": 64,
+      "children": [
+        {
+          "type": "frame",
+          "id": "yk16E",
+          "name": "01 Home",
+          "clip": true,
+          "width": 1280,
+          "fill": "#F1F2F4",
+          "layout": "vertical",
+          "children": [
+            {
+              "type": "frame",
+              "id": "cGQkG",
+              "name": "Nav",
+              "width": "fill_container",
+              "height": 72,
+              "fill": "#FCFCFD",
+              "stroke": {
+                "thickness": {
+                  "bottom": 1
+                },
+                "fill": "#D2D4D7"
+              },
+              "gap": 24,
+              "padding": [
+                12,
+                28
+              ],
+              "justifyContent": "space_between",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "BB2fo",
+                  "name": "navBrand",
+                  "fill": "#202327",
+                  "content": "THE DROPPER //",
+                  "fontFamily": "Inter",
+                  "fontSize": 11,
+                  "fontWeight": "700",
+                  "letterSpacing": 3
+                },
+                {
+                  "type": "frame",
+                  "id": "mDfCd",
+                  "name": "navMid",
+                  "gap": 28,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "Y0NR2",
+                      "name": "navDeal",
+                      "fill": "#6E7278",
+                      "content": "DEALS",
+                      "fontFamily": "Inter",
+                      "fontSize": 10,
+                      "fontWeight": "600",
+                      "letterSpacing": 2
+                    },
+                    {
+                      "type": "text",
+                      "id": "EBRgF",
+                      "name": "navCat",
+                      "fill": "#6E7278",
+                      "content": "CATEGORIES",
+                      "fontFamily": "Inter",
+                      "fontSize": 10,
+                      "fontWeight": "600",
+                      "letterSpacing": 2
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "mW6lO",
+                  "name": "navSearch",
+                  "width": 36,
+                  "height": 36,
+                  "fill": "#FCFCFD",
+                  "cornerRadius": 4,
+                  "stroke": {
+                    "thickness": 1,
+                    "fill": "#202327"
+                  },
+                  "layout": "none"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "H8dm2J",
+              "name": "Hero bento",
+              "width": "fill_container",
+              "gap": 16,
+              "padding": [
+                8,
+                24,
+                32,
+                24
+              ],
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "XLcsE",
+                  "name": "Hero main",
+                  "width": "fill_container",
+                  "height": 440,
+                  "fill": "#FCFCFD",
+                  "cornerRadius": 4,
+                  "stroke": {
+                    "thickness": 1,
+                    "fill": "#202327"
+                  },
+                  "layout": "vertical",
+                  "gap": 20,
+                  "padding": 28,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "SZOdB",
+                      "name": "meta",
+                      "fill": "#6E7278",
+                      "content": "// 2026.04.28 · REDESIGN",
+                      "fontFamily": "Inter",
+                      "fontSize": 9,
+                      "fontWeight": "500",
+                      "letterSpacing": 1.5
+                    },
+                    {
+                      "type": "text",
+                      "id": "C5kFuW",
+                      "name": "h1a",
+                      "fill": "#202327",
+                      "content": "Stop searching.",
+                      "fontFamily": "Inter",
+                      "fontSize": 34,
+                      "fontWeight": "700",
+                      "letterSpacing": -1.2
+                    },
+                    {
+                      "type": "text",
+                      "id": "mjcKd",
+                      "name": "h1b",
+                      "fill": "#202327",
+                      "content": "Start shredding.",
+                      "fontFamily": "Inter",
+                      "fontSize": 34,
+                      "fontWeight": "700",
+                      "letterSpacing": -1.2
+                    },
+                    {
+                      "type": "text",
+                      "id": "e700N",
+                      "name": "sub",
+                      "fill": "#6E7278",
+                      "textGrowth": "fixed-width",
+                      "width": 480,
+                      "content": "Live deals from 47 shops — scanned every fifteen minutes.",
+                      "fontFamily": "Inter",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "Q7mydC",
+                      "name": "Search open-frame",
+                      "width": "fill_container",
+                      "height": 48,
+                      "fill": "#FCFCFD",
+                      "stroke": {
+                        "thickness": {
+                          "top": 1,
+                          "bottom": 1
+                        },
+                        "fill": "#202327"
+                      },
+                      "gap": 10,
+                      "padding": [
+                        8,
+                        14
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "a209d",
+                          "name": "sIcon",
+                          "fill": "#202327",
+                          "content": "⌕",
+                          "fontFamily": "Inter",
+                          "fontSize": 16,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "text",
+                          "id": "wevCb",
+                          "name": "sPh",
+                          "fill": "#6E7278",
+                          "content": "search 8,432 live deals",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "otOxm",
+                      "name": "ctaRow",
+                      "gap": 14,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "y6iPm",
+                          "name": "Lime switch CTA",
+                          "width": 212,
+                          "height": 40,
+                          "fill": "#202327",
+                          "cornerRadius": 4,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "rectangle",
+                              "id": "t8Qxsy",
+                              "name": "strip",
+                              "fill": "#C7E635",
+                              "width": 4,
+                              "height": 40
+                            },
+                            {
+                              "type": "text",
+                              "id": "msyiu",
+                              "name": "btnTxt",
+                              "fill": "#F1F2F4",
+                              "content": "BROWSE ALL DEALS →",
+                              "fontFamily": "Inter",
+                              "fontSize": 9,
+                              "fontWeight": "700",
+                              "letterSpacing": 1.5
+                            }
+                          ]
+                        },
+                        {
+                          "type": "text",
+                          "id": "AMZ79",
+                          "name": "ghostTxt",
+                          "fill": "#202327",
+                          "content": "▸ HOW IT WORKS ↗",
+                          "fontFamily": "Inter",
+                          "fontSize": 9,
+                          "fontWeight": "600",
+                          "letterSpacing": 1.2
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "raT3B",
+                  "name": "Stat ticker",
+                  "width": 272,
+                  "height": 440,
+                  "fill": "#202327",
+                  "cornerRadius": 4,
+                  "layout": "vertical",
+                  "gap": 14,
+                  "padding": 20,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "F6WXQ",
+                      "name": "liveRow",
+                      "gap": 8,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "ellipse",
+                          "id": "VGpG9",
+                          "name": "liveDot",
+                          "fill": "#C7E635",
+                          "width": 8,
+                          "height": 8
+                        },
+                        {
+                          "type": "text",
+                          "id": "bwWNS",
+                          "name": "liveLbl",
+                          "fill": "#C7E635",
+                          "content": "// LIVE",
+                          "fontFamily": "Inter",
+                          "fontSize": 9,
+                          "fontWeight": "600",
+                          "letterSpacing": 2
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "m83nWJ",
+                      "name": "stat1",
+                      "fill": "#FCFCFD",
+                      "content": "47",
+                      "fontFamily": "Inter",
+                      "fontSize": 26,
+                      "fontWeight": "700"
+                    },
+                    {
+                      "type": "text",
+                      "id": "p3FHvq",
+                      "name": "stat1l",
+                      "fill": "#9CA3AF",
+                      "content": "SHOPS",
+                      "fontFamily": "Inter",
+                      "fontSize": 8,
+                      "fontWeight": "600",
+                      "letterSpacing": 2
+                    },
+                    {
+                      "type": "text",
+                      "id": "dbuWD",
+                      "name": "stat2",
+                      "fill": "#FCFCFD",
+                      "content": "8,432",
+                      "fontFamily": "Inter",
+                      "fontSize": 26,
+                      "fontWeight": "700"
+                    },
+                    {
+                      "type": "text",
+                      "id": "q9kbU",
+                      "name": "stat2l",
+                      "fill": "#9CA3AF",
+                      "content": "LIVE DEALS",
+                      "fontFamily": "Inter",
+                      "fontSize": 8,
+                      "fontWeight": "600",
+                      "letterSpacing": 2
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "KTyvE",
+              "name": "Bento categories",
+              "width": "fill_container",
+              "gap": 12,
+              "padding": [
+                0,
+                24,
+                24,
+                24
+              ],
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "CInRC",
+                  "name": "Tile forks",
+                  "clip": true,
+                  "width": 296,
+                  "height": 188,
+                  "fill": "#FCFCFD",
+                  "cornerRadius": 4,
+                  "stroke": {
+                    "thickness": 1,
+                    "fill": "#202327"
+                  },
+                  "layout": "vertical",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "DMNGb",
+                      "name": "t1img",
+                      "clip": true,
+                      "width": "fill_container",
+                      "height": 120,
+                      "fill": {
+                        "type": "image",
+                        "enabled": true,
+                        "url": "../apps/web/public/placeholders/workshop-modern-hero-2.jpg",
+                        "mode": "fill"
+                      }
+                    },
+                    {
+                      "type": "frame",
+                      "id": "YyM3Y",
+                      "name": "t1cap",
+                      "width": "fill_container",
+                      "height": 68,
+                      "fill": "#202327",
+                      "layout": "vertical",
+                      "gap": 4,
+                      "padding": [
+                        10,
+                        12
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "vxjLK",
+                          "name": "t1ey",
+                          "fill": "#C7E635",
+                          "content": "// CATEGORY",
+                          "fontFamily": "Inter",
+                          "fontSize": 8,
+                          "fontWeight": "600",
+                          "letterSpacing": 2
+                        },
+                        {
+                          "type": "text",
+                          "id": "jUgjM",
+                          "name": "t1lb",
+                          "fill": "#FCFCFD",
+                          "content": "FORKS · 124 →",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "p9dSB",
+                  "name": "Tile helmets",
+                  "width": 292,
+                  "height": 188,
+                  "fill": "#E5E6E8",
+                  "cornerRadius": 4,
+                  "stroke": {
+                    "thickness": 1,
+                    "fill": "#202327"
+                  },
+                  "layout": "vertical",
+                  "gap": 8,
+                  "padding": [
+                    14,
+                    16
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "xLoAn",
+                      "name": "t2t",
+                      "fill": "#202327",
+                      "content": "// HELMETS · 88",
+                      "fontFamily": "Inter",
+                      "fontSize": 11,
+                      "fontWeight": "600",
+                      "letterSpacing": 1
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "dj7fq",
+                  "name": "Featured",
+                  "width": 300,
+                  "height": 188,
+                  "fill": "#FCFCFD",
+                  "cornerRadius": 4,
+                  "stroke": {
+                    "thickness": 1,
+                    "fill": "#202327"
+                  },
+                  "layout": "vertical",
+                  "gap": 8,
+                  "padding": 14,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "BKoRo",
+                      "name": "featSku",
+                      "fill": "#6E7278",
+                      "content": "// A07-2F",
+                      "fontFamily": "Inter",
+                      "fontSize": 8,
+                      "fontWeight": "600",
+                      "letterSpacing": 2
+                    },
+                    {
+                      "type": "text",
+                      "id": "clh3n",
+                      "name": "featTn",
+                      "fill": "#202327",
+                      "textGrowth": "fixed-width",
+                      "width": 260,
+                      "content": "SRAM brake set · save $230",
+                      "fontFamily": "Inter",
+                      "fontSize": 12,
+                      "fontWeight": "600"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "vXZjF",
+              "name": "Todays drop",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 12,
+              "padding": [
+                8,
+                24,
+                48,
+                24
+              ],
+              "children": [
+                {
+                  "type": "text",
+                  "id": "P3OEmC",
+                  "name": "secHd",
+                  "fill": "#6E7278",
+                  "content": "// 02 · TODAY'S DROP",
+                  "fontFamily": "Inter",
+                  "fontSize": 10,
+                  "fontWeight": "600",
+                  "letterSpacing": 2
+                },
+                {
+                  "type": "frame",
+                  "id": "qObTX",
+                  "name": "cards",
+                  "width": "fill_container",
+                  "gap": 14,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "jZHDT",
+                      "name": "Deal card",
+                      "clip": true,
+                      "width": 272,
+                      "height": 360,
+                      "fill": "#FCFCFD",
+                      "cornerRadius": 4,
+                      "stroke": {
+                        "thickness": 1,
+                        "fill": "#202327"
+                      },
+                      "layout": "vertical",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "xI2Sa",
+                          "name": "c1img",
+                          "clip": true,
+                          "width": "fill_container",
+                          "height": 200,
+                          "fill": {
+                            "type": "image",
+                            "enabled": true,
+                            "url": "../apps/web/public/placeholders/workshop-modern-hero-1.jpg",
+                            "mode": "fill"
+                          }
+                        },
+                        {
+                          "type": "frame",
+                          "id": "eHUZM",
+                          "name": "c1body",
+                          "width": "fill_container",
+                          "fill": "#FCFCFD",
+                          "layout": "vertical",
+                          "gap": 10,
+                          "padding": 14,
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "V8iqYl",
+                              "name": "row1",
+                              "gap": 8,
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "pb3n2",
+                                  "name": "bdg",
+                                  "fill": "#C7E635",
+                                  "cornerRadius": 4,
+                                  "padding": [
+                                    6,
+                                    10
+                                  ],
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "id": "FVFFS",
+                                      "name": "bdgT",
+                                      "fill": "#202327",
+                                      "content": "−35%",
+                                      "fontFamily": "Inter",
+                                      "fontSize": 11,
+                                      "fontWeight": "700"
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "type": "text",
+                              "id": "T2Usdi",
+                              "name": "c1br",
+                              "fill": "#6E7278",
+                              "content": "// SRAM",
+                              "fontFamily": "Inter",
+                              "fontSize": 8,
+                              "fontWeight": "600",
+                              "letterSpacing": 2
+                            },
+                            {
+                              "type": "text",
+                              "id": "ctzXX",
+                              "name": "c1nm",
+                              "fill": "#202327",
+                              "textGrowth": "fixed-width",
+                              "width": 240,
+                              "content": "Code RSC brakes",
+                              "fontFamily": "Inter",
+                              "fontSize": 13,
+                              "fontWeight": "600"
+                            },
+                            {
+                              "type": "text",
+                              "id": "WOK8q",
+                              "name": "c1sv",
+                              "fill": "#202327",
+                              "content": "SAVE $230",
+                              "fontFamily": "Inter",
+                              "fontSize": 18,
+                              "fontWeight": "700"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "iSeCG",
+                      "name": "c2",
+                      "clip": true,
+                      "width": 272,
+                      "height": 360,
+                      "fill": "#FCFCFD",
+                      "cornerRadius": 4,
+                      "stroke": {
+                        "thickness": 1,
+                        "fill": "#202327"
+                      },
+                      "layout": "vertical",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "p3fvP",
+                          "name": "c1img",
+                          "clip": true,
+                          "width": "fill_container",
+                          "height": 200,
+                          "fill": {
+                            "type": "image",
+                            "enabled": true,
+                            "url": "../apps/web/public/placeholders/trail-atlas-hero-2.jpg",
+                            "mode": "fill"
+                          }
+                        },
+                        {
+                          "type": "frame",
+                          "id": "jOC0b",
+                          "name": "c1body",
+                          "width": "fill_container",
+                          "fill": "#FCFCFD",
+                          "layout": "vertical",
+                          "gap": 10,
+                          "padding": 14,
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "RtXbz",
+                              "name": "row1",
+                              "gap": 8,
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "j6NzH9",
+                                  "name": "bdg",
+                                  "fill": "#C7E635",
+                                  "cornerRadius": 4,
+                                  "padding": [
+                                    6,
+                                    10
+                                  ],
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "id": "iwpgE",
+                                      "name": "bdgT",
+                                      "fill": "#202327",
+                                      "content": "−22%",
+                                      "fontFamily": "Inter",
+                                      "fontSize": 11,
+                                      "fontWeight": "700"
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "type": "text",
+                              "id": "zqQIk",
+                              "name": "c1br",
+                              "fill": "#6E7278",
+                              "content": "// FOX",
+                              "fontFamily": "Inter",
+                              "fontSize": 8,
+                              "fontWeight": "600",
+                              "letterSpacing": 2
+                            },
+                            {
+                              "type": "text",
+                              "id": "dhlPs",
+                              "name": "c1nm",
+                              "fill": "#202327",
+                              "textGrowth": "fixed-width",
+                              "width": 240,
+                              "content": "Fox 36 Factory GRIP2",
+                              "fontFamily": "Inter",
+                              "fontSize": 13,
+                              "fontWeight": "600"
+                            },
+                            {
+                              "type": "text",
+                              "id": "NguKn",
+                              "name": "c1sv",
+                              "fill": "#202327",
+                              "content": "SAVE $412",
+                              "fontFamily": "Inter",
+                              "fontSize": 18,
+                              "fontWeight": "700"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "ZyBb2",
+          "name": "02 Deals",
+          "clip": true,
+          "width": 1280,
+          "fill": "#F1F2F4",
+          "layout": "vertical",
+          "children": [
+            {
+              "type": "frame",
+              "id": "EG1yV",
+              "name": "Nav",
+              "width": "fill_container",
+              "height": 72,
+              "fill": "#FCFCFD",
+              "stroke": {
+                "thickness": {
+                  "bottom": 1
+                },
+                "fill": "#D2D4D7"
+              },
+              "gap": 24,
+              "padding": [
+                12,
+                28
+              ],
+              "justifyContent": "space_between",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "NUPGK",
+                  "name": "dBrand",
+                  "fill": "#202327",
+                  "content": "THE DROPPER //",
+                  "fontFamily": "Inter",
+                  "fontSize": 11,
+                  "fontWeight": "700",
+                  "letterSpacing": 3
+                },
+                {
+                  "type": "frame",
+                  "id": "Vhi5L",
+                  "name": "dMid",
+                  "gap": 28,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "ZtAtF",
+                      "name": "dDeals",
+                      "fill": "#202327",
+                      "content": "DEALS",
+                      "fontFamily": "Inter",
+                      "fontSize": 10,
+                      "fontWeight": "700",
+                      "letterSpacing": 2
+                    },
+                    {
+                      "type": "text",
+                      "id": "bIEps",
+                      "name": "dCat",
+                      "fill": "#6E7278",
+                      "content": "CATEGORIES",
+                      "fontFamily": "Inter",
+                      "fontSize": 10,
+                      "fontWeight": "600",
+                      "letterSpacing": 2
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "nXdJZ",
+              "name": "Toolbar",
+              "width": "fill_container",
+              "fill": "#F1F2F4",
+              "gap": 12,
+              "padding": [
+                14,
+                24
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "a0gKu",
+                  "name": "tSearch",
+                  "width": 320,
+                  "height": 40,
+                  "fill": "#FCFCFD",
+                  "stroke": {
+                    "thickness": {
+                      "top": 1,
+                      "bottom": 1
+                    },
+                    "fill": "#202327"
+                  },
+                  "gap": 8,
+                  "padding": [
+                    8,
+                    12
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "ksIZH",
+                      "name": "tSph",
+                      "fill": "#6E7278",
+                      "content": "⌕  Search deals…",
+                      "fontFamily": "Inter",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "x72c02",
+                  "name": "tSort",
+                  "height": 40,
+                  "fill": "#FCFCFD",
+                  "cornerRadius": 4,
+                  "stroke": {
+                    "thickness": 1,
+                    "fill": "#202327"
+                  },
+                  "padding": [
+                    8,
+                    14
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "JQvDk",
+                      "name": "tSortT",
+                      "fill": "#202327",
+                      "content": "SORT · BIGGEST SAVINGS ▾",
+                      "fontFamily": "Inter",
+                      "fontSize": 9,
+                      "fontWeight": "600",
+                      "letterSpacing": 1
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "W8I6c",
+                  "name": "tFilt",
+                  "height": 40,
+                  "fill": "#202327",
+                  "cornerRadius": 4,
+                  "padding": [
+                    10,
+                    16
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "EjyHq",
+                      "name": "tFiltT",
+                      "fill": "#C7E635",
+                      "content": "FILTERS · 3",
+                      "fontFamily": "Inter",
+                      "fontSize": 9,
+                      "fontWeight": "700",
+                      "letterSpacing": 1
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "iqd9E",
+              "name": "bread",
+              "width": "fill_container",
+              "gap": 8,
+              "padding": [
+                12,
+                24,
+                8,
+                24
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "hITsE",
+                  "name": "brTxt",
+                  "fill": "#6E7278",
+                  "content": "ALL  ›  COMPONENTS  ›  BRAKES",
+                  "fontFamily": "Inter",
+                  "fontSize": 10,
+                  "fontWeight": "600",
+                  "letterSpacing": 0.5
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "yOjmH",
+              "name": "List + sidebar",
+              "width": "fill_container",
+              "gap": 20,
+              "padding": [
+                0,
+                24,
+                40,
+                24
+              ],
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "X3yNUt",
+                  "name": "Filters",
+                  "width": 228,
+                  "fill": "#FCFCFD",
+                  "cornerRadius": 4,
+                  "stroke": {
+                    "thickness": 1,
+                    "fill": "#202327"
+                  },
+                  "layout": "vertical",
+                  "gap": 18,
+                  "padding": 18,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "l9yBja",
+                      "name": "sH",
+                      "fill": "#6E7278",
+                      "content": "// BRAND",
+                      "fontFamily": "Inter",
+                      "fontSize": 9,
+                      "fontWeight": "600",
+                      "letterSpacing": 2
+                    },
+                    {
+                      "type": "text",
+                      "id": "P4hFq8",
+                      "name": "sLn",
+                      "fill": "#202327",
+                      "content": "☐ SRAM · 234",
+                      "fontFamily": "Inter",
+                      "fontSize": 11,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "E7Jut",
+                      "name": "fRot",
+                      "fill": "#6E7278",
+                      "content": "// ROTOR SIZE",
+                      "fontFamily": "Inter",
+                      "fontSize": 9,
+                      "fontWeight": "600",
+                      "letterSpacing": 2
+                    },
+                    {
+                      "type": "text",
+                      "id": "G3leZl",
+                      "name": "fRot1",
+                      "fill": "#202327",
+                      "content": "☐ 180mm · 890",
+                      "fontFamily": "Inter",
+                      "fontSize": 11,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "rCjNd",
+                      "name": "fRot2",
+                      "fill": "#202327",
+                      "content": "☐ 200mm · 412",
+                      "fontFamily": "Inter",
+                      "fontSize": 11,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "PUPKl",
+                  "name": "Results",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 14,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "u2GKvU",
+                      "name": "mChips",
+                      "gap": 8,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "TjoYA",
+                          "name": "mc1",
+                          "fill": "#202327",
+                          "cornerRadius": 4,
+                          "gap": 6,
+                          "padding": [
+                            6,
+                            10
+                          ],
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "GbfpU",
+                              "name": "mc1t",
+                              "fill": "#C7E635",
+                              "content": "// SRAM ×",
+                              "fontFamily": "Inter",
+                              "fontSize": 9,
+                              "fontWeight": "600",
+                              "letterSpacing": 1
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "S0kbn",
+                          "name": "ch2",
+                          "fill": "#202327",
+                          "cornerRadius": 4,
+                          "gap": 6,
+                          "padding": [
+                            6,
+                            10
+                          ],
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "lgXAU",
+                              "name": "mc1t",
+                              "fill": "#C7E635",
+                              "content": "// 200mm ×",
+                              "fontFamily": "Inter",
+                              "fontSize": 9,
+                              "fontWeight": "600",
+                              "letterSpacing": 1
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "hy9K5",
+                      "name": "mGrid",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 12,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "XImhD",
+                          "name": "gridRow1",
+                          "width": "fill_container",
+                          "gap": 12,
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "INRlC",
+                              "name": "mC",
+                              "clip": true,
+                              "width": 240,
+                              "height": 280,
+                              "fill": "#FCFCFD",
+                              "cornerRadius": 4,
+                              "stroke": {
+                                "thickness": 1,
+                                "fill": "#202327"
+                              },
+                              "layout": "vertical",
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "orUmW",
+                                  "name": "mc1img",
+                                  "clip": true,
+                                  "width": "fill_container",
+                                  "height": 140,
+                                  "fill": {
+                                    "type": "image",
+                                    "enabled": true,
+                                    "url": "../apps/web/public/placeholders/workshop-modern-hero-1.jpg",
+                                    "mode": "fill"
+                                  }
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "ts8qx",
+                                  "name": "mc1bd",
+                                  "width": "fill_container",
+                                  "layout": "vertical",
+                                  "gap": 6,
+                                  "padding": [
+                                    12,
+                                    14
+                                  ],
+                                  "children": [
+                                    {
+                                      "type": "frame",
+                                      "id": "dyeFv",
+                                      "name": "mc1row",
+                                      "alignItems": "center",
+                                      "children": [
+                                        {
+                                          "type": "frame",
+                                          "id": "q4yqd",
+                                          "name": "mc1badge",
+                                          "fill": "#C7E635",
+                                          "cornerRadius": 4,
+                                          "padding": [
+                                            4,
+                                            8
+                                          ],
+                                          "children": [
+                                            {
+                                              "type": "text",
+                                              "id": "ur5ff",
+                                              "name": "mc1badget",
+                                              "fill": "#202327",
+                                              "content": "−35%",
+                                              "fontFamily": "Inter",
+                                              "fontSize": 10,
+                                              "fontWeight": "700"
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "DWfbu",
+                                      "name": "mc1br",
+                                      "fill": "#6E7278",
+                                      "content": "// SRAM",
+                                      "fontFamily": "Inter",
+                                      "fontSize": 8,
+                                      "fontWeight": "600",
+                                      "letterSpacing": 2
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "y2q7W",
+                                      "name": "mc1ttl",
+                                      "fill": "#202327",
+                                      "textGrowth": "fixed-width",
+                                      "width": 212,
+                                      "content": "Code RSC 4-piston brakes",
+                                      "fontFamily": "Inter",
+                                      "fontSize": 12,
+                                      "fontWeight": "600"
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "MZrS4",
+                                      "name": "mc1pr",
+                                      "fill": "#202327",
+                                      "content": "$430 · was $660",
+                                      "fontFamily": "Inter",
+                                      "fontSize": 11,
+                                      "fontWeight": "normal"
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "V5byRl",
+                              "name": "mC",
+                              "clip": true,
+                              "width": 240,
+                              "height": 280,
+                              "fill": "#FCFCFD",
+                              "cornerRadius": 4,
+                              "stroke": {
+                                "thickness": 1,
+                                "fill": "#202327"
+                              },
+                              "layout": "vertical",
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "JJh8x",
+                                  "name": "mc2img",
+                                  "clip": true,
+                                  "width": "fill_container",
+                                  "height": 140,
+                                  "fill": {
+                                    "type": "image",
+                                    "enabled": true,
+                                    "url": "../apps/web/public/placeholders/workshop-modern-hero-2.jpg",
+                                    "mode": "fill"
+                                  }
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "X4nIj",
+                                  "name": "mc2bd",
+                                  "width": "fill_container",
+                                  "layout": "vertical",
+                                  "gap": 6,
+                                  "padding": [
+                                    12,
+                                    14
+                                  ],
+                                  "children": [
+                                    {
+                                      "type": "frame",
+                                      "id": "kc5rV",
+                                      "name": "mc2row",
+                                      "alignItems": "center",
+                                      "children": [
+                                        {
+                                          "type": "frame",
+                                          "id": "AvjAd",
+                                          "name": "mc2badge",
+                                          "fill": "#C7E635",
+                                          "cornerRadius": 4,
+                                          "padding": [
+                                            4,
+                                            8
+                                          ],
+                                          "children": [
+                                            {
+                                              "type": "text",
+                                              "id": "CdGpw",
+                                              "name": "mc2badget",
+                                              "fill": "#202327",
+                                              "content": "−22%",
+                                              "fontFamily": "Inter",
+                                              "fontSize": 10,
+                                              "fontWeight": "700"
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "BGWrQ",
+                                      "name": "mc2br",
+                                      "fill": "#6E7278",
+                                      "content": "// FOX",
+                                      "fontFamily": "Inter",
+                                      "fontSize": 8,
+                                      "fontWeight": "600",
+                                      "letterSpacing": 2
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "f3gnW7",
+                                      "name": "mc2ttl",
+                                      "fill": "#202327",
+                                      "textGrowth": "fixed-width",
+                                      "width": 212,
+                                      "content": "36 Factory GRIP2 fork",
+                                      "fontFamily": "Inter",
+                                      "fontSize": 12,
+                                      "fontWeight": "600"
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "hpW1v",
+                                      "name": "mc2pr",
+                                      "fill": "#202327",
+                                      "content": "$988 · was $1,289",
+                                      "fontFamily": "Inter",
+                                      "fontSize": 11,
+                                      "fontWeight": "normal"
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "ZrTwL",
+                          "name": "gridRow2",
+                          "width": "fill_container",
+                          "gap": 12,
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "Y526QE",
+                              "name": "mC",
+                              "clip": true,
+                              "width": 240,
+                              "height": 280,
+                              "fill": "#FCFCFD",
+                              "cornerRadius": 4,
+                              "stroke": {
+                                "thickness": 1,
+                                "fill": "#202327"
+                              },
+                              "layout": "vertical",
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "BIEkK",
+                                  "name": "mc3img",
+                                  "clip": true,
+                                  "width": "fill_container",
+                                  "height": 140,
+                                  "fill": {
+                                    "type": "image",
+                                    "enabled": true,
+                                    "url": "../apps/web/public/placeholders/trail-atlas-hero-1.jpg",
+                                    "mode": "fill"
+                                  }
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "r77QY",
+                                  "name": "mc3bd",
+                                  "width": "fill_container",
+                                  "layout": "vertical",
+                                  "gap": 6,
+                                  "padding": [
+                                    12,
+                                    14
+                                  ],
+                                  "children": [
+                                    {
+                                      "type": "frame",
+                                      "id": "sQ3IP",
+                                      "name": "mc3row",
+                                      "alignItems": "center",
+                                      "children": [
+                                        {
+                                          "type": "frame",
+                                          "id": "IXV5c",
+                                          "name": "mc3badge",
+                                          "fill": "#C7E635",
+                                          "cornerRadius": 4,
+                                          "padding": [
+                                            4,
+                                            8
+                                          ],
+                                          "children": [
+                                            {
+                                              "type": "text",
+                                              "id": "C7cqT",
+                                              "name": "mc3badget",
+                                              "fill": "#202327",
+                                              "content": "−18%",
+                                              "fontFamily": "Inter",
+                                              "fontSize": 10,
+                                              "fontWeight": "700"
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "SGgWX",
+                                      "name": "mc3br",
+                                      "fill": "#6E7278",
+                                      "content": "// SHIMANO",
+                                      "fontFamily": "Inter",
+                                      "fontSize": 8,
+                                      "fontWeight": "600",
+                                      "letterSpacing": 2
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "BfACQ",
+                                      "name": "mc3ttl",
+                                      "fill": "#202327",
+                                      "textGrowth": "fixed-width",
+                                      "width": 212,
+                                      "content": "XT M8100 12-sp cassette",
+                                      "fontFamily": "Inter",
+                                      "fontSize": 12,
+                                      "fontWeight": "600"
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "QjNn6",
+                                      "name": "mc3pr",
+                                      "fill": "#202327",
+                                      "content": "$89 · was $109",
+                                      "fontFamily": "Inter",
+                                      "fontSize": 11,
+                                      "fontWeight": "normal"
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "onQEJ",
+                              "name": "mC",
+                              "clip": true,
+                              "width": 240,
+                              "height": 280,
+                              "fill": "#FCFCFD",
+                              "cornerRadius": 4,
+                              "stroke": {
+                                "thickness": 1,
+                                "fill": "#202327"
+                              },
+                              "layout": "vertical",
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "uJkqi",
+                                  "name": "mc4img",
+                                  "clip": true,
+                                  "width": "fill_container",
+                                  "height": 140,
+                                  "fill": {
+                                    "type": "image",
+                                    "enabled": true,
+                                    "url": "../apps/web/public/placeholders/trail-atlas-hero-2.jpg",
+                                    "mode": "fill"
+                                  }
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "rc7j1",
+                                  "name": "mc4bd",
+                                  "width": "fill_container",
+                                  "layout": "vertical",
+                                  "gap": 6,
+                                  "padding": [
+                                    12,
+                                    14
+                                  ],
+                                  "children": [
+                                    {
+                                      "type": "frame",
+                                      "id": "jYLJX",
+                                      "name": "mc4row",
+                                      "alignItems": "center",
+                                      "children": [
+                                        {
+                                          "type": "frame",
+                                          "id": "hwiaL",
+                                          "name": "mc4badge",
+                                          "fill": "#C7E635",
+                                          "cornerRadius": 4,
+                                          "padding": [
+                                            4,
+                                            8
+                                          ],
+                                          "children": [
+                                            {
+                                              "type": "text",
+                                              "id": "b25Si",
+                                              "name": "mc4badget",
+                                              "fill": "#202327",
+                                              "content": "−41%",
+                                              "fontFamily": "Inter",
+                                              "fontSize": 10,
+                                              "fontWeight": "700"
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "vsZxP",
+                                      "name": "mc4br",
+                                      "fill": "#6E7278",
+                                      "content": "// CRANKBROS",
+                                      "fontFamily": "Inter",
+                                      "fontSize": 8,
+                                      "fontWeight": "600",
+                                      "letterSpacing": 2
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "MDD6e",
+                                      "name": "mc4ttl",
+                                      "fill": "#202327",
+                                      "textGrowth": "fixed-width",
+                                      "width": 212,
+                                      "content": "Stamp 7 large pedals",
+                                      "fontFamily": "Inter",
+                                      "fontSize": 12,
+                                      "fontWeight": "600"
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "Lg12M",
+                                      "name": "mc4pr",
+                                      "fill": "#202327",
+                                      "content": "$99 · was $169",
+                                      "fontFamily": "Inter",
+                                      "fontSize": 11,
+                                      "fontWeight": "normal"
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "D4zjMi",
+                      "name": "Pagination",
+                      "gap": 16,
+                      "padding": [
+                        12,
+                        0,
+                        0,
+                        0
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "m5Kzy",
+                          "name": "pgL",
+                          "fill": "#6E7278",
+                          "content": "‹ PREV",
+                          "fontFamily": "Inter",
+                          "fontSize": 10,
+                          "fontWeight": "600",
+                          "letterSpacing": 1
+                        },
+                        {
+                          "type": "text",
+                          "id": "k4DgZf",
+                          "name": "pgM",
+                          "fill": "#202327",
+                          "content": "PAGE 1 / 24",
+                          "fontFamily": "Inter",
+                          "fontSize": 10,
+                          "fontWeight": "600",
+                          "letterSpacing": 1
+                        },
+                        {
+                          "type": "text",
+                          "id": "F500G",
+                          "name": "pgR",
+                          "fill": "#202327",
+                          "content": "NEXT ›",
+                          "fontFamily": "Inter",
+                          "fontSize": 10,
+                          "fontWeight": "600",
+                          "letterSpacing": 1
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "B5AR2",
+          "name": "03 Deal detail",
+          "clip": true,
+          "width": 1280,
+          "fill": "#F1F2F4",
+          "layout": "vertical",
+          "children": [
+            {
+              "type": "frame",
+              "id": "Tniva",
+              "name": "Nav",
+              "width": "fill_container",
+              "height": 72,
+              "fill": "#FCFCFD",
+              "stroke": {
+                "thickness": {
+                  "bottom": 1
+                },
+                "fill": "#D2D4D7"
+              },
+              "gap": 24,
+              "padding": [
+                12,
+                28
+              ],
+              "justifyContent": "space_between",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "pBkd5",
+                  "name": "pBrand",
+                  "fill": "#202327",
+                  "content": "THE DROPPER //",
+                  "fontFamily": "Inter",
+                  "fontSize": 11,
+                  "fontWeight": "700",
+                  "letterSpacing": 3
+                },
+                {
+                  "type": "frame",
+                  "id": "rQG1R",
+                  "name": "pMid",
+                  "gap": 28,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "kvUh4",
+                      "name": "pDeals",
+                      "fill": "#6E7278",
+                      "content": "DEALS",
+                      "fontFamily": "Inter",
+                      "fontSize": 10,
+                      "fontWeight": "600",
+                      "letterSpacing": 2
+                    },
+                    {
+                      "type": "text",
+                      "id": "b0iyn",
+                      "name": "pCat",
+                      "fill": "#6E7278",
+                      "content": "CATEGORIES",
+                      "fontFamily": "Inter",
+                      "fontSize": 10,
+                      "fontWeight": "600",
+                      "letterSpacing": 2
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "Wcpkv",
+                  "name": "navSearch",
+                  "width": 36,
+                  "height": 36,
+                  "fill": "#FCFCFD",
+                  "cornerRadius": 4,
+                  "stroke": {
+                    "thickness": 1,
+                    "fill": "#202327"
+                  },
+                  "layout": "none"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "l37iP5",
+              "name": "back",
+              "width": "fill_container",
+              "padding": [
+                16,
+                28,
+                12,
+                28
+              ],
+              "children": [
+                {
+                  "type": "text",
+                  "id": "zVUGz",
+                  "name": "backT",
+                  "fill": "#6E7278",
+                  "content": "‹ BACK TO DEALS",
+                  "fontFamily": "Inter",
+                  "fontSize": 10,
+                  "fontWeight": "600",
+                  "letterSpacing": 1.5
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "DdUyr",
+              "name": "Detail columns",
+              "width": "fill_container",
+              "gap": 28,
+              "padding": [
+                8,
+                28,
+                48,
+                28
+              ],
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "XHymm",
+                  "name": "Gallery",
+                  "clip": true,
+                  "width": 420,
+                  "height": 420,
+                  "fill": {
+                    "type": "image",
+                    "enabled": true,
+                    "url": "../apps/web/public/placeholders/workshop-modern-hero-1.jpg",
+                    "mode": "fill"
+                  },
+                  "cornerRadius": 4,
+                  "stroke": {
+                    "thickness": 1,
+                    "fill": "#202327"
+                  }
+                },
+                {
+                  "type": "frame",
+                  "id": "Y7G4P",
+                  "name": "Meta",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 16,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "ce5Sp",
+                      "name": "mSku",
+                      "fill": "#6E7278",
+                      "content": "// A07-2F",
+                      "fontFamily": "Inter",
+                      "fontSize": 9,
+                      "fontWeight": "600",
+                      "letterSpacing": 2
+                    },
+                    {
+                      "type": "text",
+                      "id": "a7RJR",
+                      "name": "mBr",
+                      "fill": "#6E7278",
+                      "content": "// SRAM",
+                      "fontFamily": "Inter",
+                      "fontSize": 9,
+                      "fontWeight": "600",
+                      "letterSpacing": 2
+                    },
+                    {
+                      "type": "text",
+                      "id": "y1IouJ",
+                      "name": "st",
+                      "fill": "#6E7278",
+                      "content": "// WORLDWIDECYCLERY",
+                      "fontFamily": "Inter",
+                      "fontSize": 9,
+                      "fontWeight": "600",
+                      "letterSpacing": 2
+                    },
+                    {
+                      "type": "text",
+                      "id": "nucIH",
+                      "name": "mNm",
+                      "fill": "#202327",
+                      "textGrowth": "fixed-width",
+                      "width": 420,
+                      "content": "Code RSC 4-piston brakes",
+                      "fontFamily": "Inter",
+                      "fontSize": 22,
+                      "fontWeight": "700",
+                      "letterSpacing": -0.5
+                    },
+                    {
+                      "type": "frame",
+                      "id": "nO2ME",
+                      "name": "priceRow",
+                      "gap": 20,
+                      "alignItems": "end",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "N2jPph",
+                          "name": "disc",
+                          "fill": "#C7E635",
+                          "cornerRadius": 4,
+                          "padding": [
+                            6,
+                            10
+                          ],
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "ICnSG",
+                              "name": "dBdgt",
+                              "fill": "#202327",
+                              "content": "−35%",
+                              "fontFamily": "Inter",
+                              "fontSize": 12,
+                              "fontWeight": "700"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "text",
+                          "id": "ylrKV",
+                          "name": "off",
+                          "fill": "#202327",
+                          "content": "SAVE $230",
+                          "fontFamily": "Inter",
+                          "fontSize": 28,
+                          "fontWeight": "700"
+                        },
+                        {
+                          "type": "text",
+                          "id": "a9Eet",
+                          "name": "was",
+                          "fill": "#6E7278",
+                          "content": "was $660",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "bVlHY",
+                      "name": "spec",
+                      "fill": "#FCFCFD",
+                      "cornerRadius": 4,
+                      "stroke": {
+                        "thickness": 1,
+                        "fill": "#D2D4D7"
+                      },
+                      "layout": "vertical",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "zV0IR",
+                          "name": "sR1",
+                          "stroke": {
+                            "thickness": {
+                              "bottom": 1
+                            },
+                            "fill": "#E5E6E8"
+                          },
+                          "padding": [
+                            10,
+                            14
+                          ],
+                          "justifyContent": "space_between",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "AJLHc",
+                              "name": "sR1k",
+                              "fill": "#6E7278",
+                              "content": "ROTOR SIZE",
+                              "fontFamily": "Inter",
+                              "fontSize": 9,
+                              "fontWeight": "600",
+                              "letterSpacing": 1.5
+                            },
+                            {
+                              "type": "text",
+                              "id": "zTESX",
+                              "name": "sR1v",
+                              "fill": "#202327",
+                              "content": "200mm",
+                              "fontFamily": "Inter",
+                              "fontSize": 12,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "HNSQf",
+                          "name": "s2",
+                          "stroke": {
+                            "thickness": {
+                              "bottom": 1
+                            },
+                            "fill": "#E5E6E8"
+                          },
+                          "padding": [
+                            10,
+                            14
+                          ],
+                          "justifyContent": "space_between",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "rsBiF",
+                              "name": "sR1k",
+                              "fill": "#6E7278",
+                              "content": "CALIPER",
+                              "fontFamily": "Inter",
+                              "fontSize": 9,
+                              "fontWeight": "600",
+                              "letterSpacing": 1.5
+                            },
+                            {
+                              "type": "text",
+                              "id": "ogoWk",
+                              "name": "sR1v",
+                              "fill": "#202327",
+                              "content": "4-piston",
+                              "fontFamily": "Inter",
+                              "fontSize": 12,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "fNiNv",
+                          "name": "s3",
+                          "stroke": {
+                            "thickness": {
+                              "bottom": 1
+                            },
+                            "fill": "#E5E6E8"
+                          },
+                          "padding": [
+                            10,
+                            14
+                          ],
+                          "justifyContent": "space_between",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "dQOdv",
+                              "name": "sR1k",
+                              "fill": "#6E7278",
+                              "content": "HOSE LENGTH",
+                              "fontFamily": "Inter",
+                              "fontSize": 9,
+                              "fontWeight": "600",
+                              "letterSpacing": 1.5
+                            },
+                            {
+                              "type": "text",
+                              "id": "yJ584",
+                              "name": "sR1v",
+                              "fill": "#202327",
+                              "content": "2000mm",
+                              "fontFamily": "Inter",
+                              "fontSize": 12,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "Davq0",
+                      "name": "pCta",
+                      "width": 240,
+                      "height": 44,
+                      "fill": "#202327",
+                      "cornerRadius": 4,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "rectangle",
+                          "id": "C4ca7V",
+                          "name": "pStr",
+                          "fill": "#C7E635",
+                          "width": 4,
+                          "height": 44
+                        },
+                        {
+                          "type": "text",
+                          "id": "wMtTw",
+                          "name": "pTx",
+                          "fill": "#F1F2F4",
+                          "content": "SNAG THE DEAL →",
+                          "fontFamily": "Inter",
+                          "fontSize": 10,
+                          "fontWeight": "700",
+                          "letterSpacing": 1.5
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "rjxtY",
+                  "name": "See also",
+                  "width": 232,
+                  "layout": "vertical",
+                  "gap": 12,
+                  "padding": [
+                    0,
+                    0,
+                    0,
+                    4
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "xMYsg",
+                      "name": "seeH",
+                      "fill": "#6E7278",
+                      "content": "// SEE ALSO",
+                      "fontFamily": "Inter",
+                      "fontSize": 9,
+                      "fontWeight": "600",
+                      "letterSpacing": 2
+                    },
+                    {
+                      "type": "frame",
+                      "id": "L6vbT4",
+                      "name": "seeR1",
+                      "width": "fill_container",
+                      "gap": 10,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "HUES2",
+                          "name": "seeR1i",
+                          "clip": true,
+                          "width": 52,
+                          "height": 52,
+                          "fill": {
+                            "type": "image",
+                            "enabled": true,
+                            "url": "../apps/web/public/placeholders/workshop-modern-hero-2.jpg",
+                            "mode": "fill"
+                          },
+                          "cornerRadius": 4
+                        },
+                        {
+                          "type": "frame",
+                          "id": "a4rdP",
+                          "name": "seeR1t",
+                          "layout": "vertical",
+                          "gap": 4,
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "XkOus",
+                              "name": "seeR1a",
+                              "fill": "#202327",
+                              "textGrowth": "fixed-width",
+                              "width": 160,
+                              "content": "Centerline rotors · pair",
+                              "fontFamily": "Inter",
+                              "fontSize": 11,
+                              "fontWeight": "600"
+                            },
+                            {
+                              "type": "text",
+                              "id": "y2grNA",
+                              "name": "seeR1b",
+                              "fill": "#6E7278",
+                              "content": "SAVE $45 · WWC",
+                              "fontFamily": "Inter",
+                              "fontSize": 10,
+                              "fontWeight": "700"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "WXuH2",
+                      "name": "seeR2",
+                      "width": "fill_container",
+                      "gap": 10,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "q3Nrj",
+                          "name": "seeR2i",
+                          "clip": true,
+                          "width": 52,
+                          "height": 52,
+                          "fill": {
+                            "type": "image",
+                            "enabled": true,
+                            "url": "../apps/web/public/placeholders/trail-atlas-hero-1.jpg",
+                            "mode": "fill"
+                          },
+                          "cornerRadius": 4
+                        },
+                        {
+                          "type": "frame",
+                          "id": "Jp1Tk",
+                          "name": "seeR2t",
+                          "layout": "vertical",
+                          "gap": 4,
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "SkvVi",
+                              "name": "seeR2a",
+                              "fill": "#202327",
+                              "textGrowth": "fixed-width",
+                              "width": 160,
+                              "content": "Bleed kit · pro",
+                              "fontFamily": "Inter",
+                              "fontSize": 11,
+                              "fontWeight": "600"
+                            },
+                            {
+                              "type": "text",
+                              "id": "XI1Qk",
+                              "name": "seeR2b",
+                              "fill": "#6E7278",
+                              "content": "SAVE $12",
+                              "fontFamily": "Inter",
+                              "fontSize": 10,
+                              "fontWeight": "700"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "variables": {
+    "background": {
+      "type": "color",
+      "value": "#F1F2F4"
+    },
+    "border": {
+      "type": "color",
+      "value": "#D2D4D7"
+    },
+    "card": {
+      "type": "color",
+      "value": "#FCFCFD"
+    },
+    "foreground": {
+      "type": "color",
+      "value": "#202327"
+    },
+    "graphite": {
+      "type": "color",
+      "value": "#6F7782"
+    },
+    "lime": {
+      "type": "color",
+      "value": "#C7E635"
+    },
+    "muted": {
+      "type": "color",
+      "value": "#E5E6E8"
+    },
+    "mutedFg": {
+      "type": "color",
+      "value": "#6E7278"
+    }
+  }
+}

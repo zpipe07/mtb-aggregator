@@ -6,6 +6,7 @@ import {
   fetchStores,
   fetchCategoryTree,
   DEFAULT_PAGE_SIZE,
+  normalizeFacetsResponse,
   type FacetsResponse,
 } from "@/api";
 import { parseFilterParamsFromSearch } from "../../../lib/filterParams";
@@ -14,9 +15,12 @@ import { JsonLd } from "@/components/JsonLd";
 import { buildBreadcrumbJsonLd, buildItemListJsonLd } from "@/lib/jsonLd";
 import { absoluteUrl } from "@/lib/siteUrl";
 import { DealsPageContent } from "@/views/DealsPageContent";
+import { SeoHubLinksGlobal } from "@/components/SeoHubLinks";
+import { BrandLinksGlobal } from "@/components/BrandLinks";
 import DealsLoading from "./loading";
 
-export const revalidate = 60;
+/** 4h — must match {@link PUBLIC_ISR_REVALIDATE_SECONDS} in @/lib/revalidate. */
+export const revalidate = 14400;
 
 const dealsDescription =
   "Browse all mountain bike deals. Filter by category, brand, price, and specs to find your next ride at the best price.";
@@ -50,7 +54,10 @@ export default async function DealsPage({ searchParams }: Props) {
     limit: DEFAULT_PAGE_SIZE,
     offset: filterParams.offset,
     store: filterParams.storeFilter || undefined,
-    brand: filterParams.brandFilter || undefined,
+    brands:
+      filterParams.brandFilters.length > 0
+        ? filterParams.brandFilters
+        : undefined,
     category_slug: filterParams.categoryFilter || undefined,
     min_discount: filterParams.minDiscount
       ? parseFloat(filterParams.minDiscount) || undefined
@@ -63,10 +70,6 @@ export default async function DealsPage({ searchParams }: Props) {
       Object.keys(filterParams.specFilters).length > 0
         ? filterParams.specFilters
         : undefined,
-    variantFilters:
-      Object.keys(filterParams.variantFilters).length > 0
-        ? filterParams.variantFilters
-        : undefined,
     q: filterParams.searchQuery.trim() || undefined,
     sort: filterParams.sort,
     group_variants: true,
@@ -74,7 +77,10 @@ export default async function DealsPage({ searchParams }: Props) {
 
   const facetsParams = {
     store: filterParams.storeFilter || undefined,
-    brand: filterParams.brandFilter || undefined,
+    brands:
+      filterParams.brandFilters.length > 0
+        ? filterParams.brandFilters
+        : undefined,
     category_slug: filterParams.categoryFilter || undefined,
     min_discount: filterParams.minDiscount
       ? parseFloat(filterParams.minDiscount) || undefined
@@ -83,17 +89,13 @@ export default async function DealsPage({ searchParams }: Props) {
       Object.keys(filterParams.specFilters).length > 0
         ? filterParams.specFilters
         : undefined,
-    variantFilters:
-      Object.keys(filterParams.variantFilters).length > 0
-        ? filterParams.variantFilters
-        : undefined,
     q: filterParams.searchQuery.trim() || undefined,
   };
 
   /** When a brand is selected, fetch facets again without `brand` so `brand_facets` lists all brands for the rest of the filters (matches faceted UX; avoids relying on a single response when cache/proxy differs). */
   const facetsForBrandOptionsPromise: Promise<FacetsResponse | null> =
-    filterParams.brandFilter
-      ? fetchFacets({ ...facetsParams, brand: undefined })
+    filterParams.brandFilters.length > 0
+      ? fetchFacets({ ...facetsParams, brands: undefined })
       : Promise.resolve(null);
 
   const [dealsResponse, facetsResponse, facetsForBrandOptions, stores, categoryTree] =
@@ -107,18 +109,10 @@ export default async function DealsPage({ searchParams }: Props) {
 
   const deals = dealsResponse.deals ?? [];
   const totalCount = dealsResponse.total_count ?? 0;
-  const facetsBase = facetsResponse ?? {
-    spec_facets: [],
-    brand_facets: [],
-    variant_facets: [],
-    price_range: { min: 0, max: 0 },
-    total_matching: 0,
-  };
-  const facets = {
-    ...facetsBase,
-    brand_facets:
-      facetsForBrandOptions?.brand_facets ?? facetsBase.brand_facets,
-  };
+  const facets = normalizeFacetsResponse(
+    facetsResponse,
+    facetsForBrandOptions?.brand_facets,
+  );
 
   const dealsListPath = searchParamsRecordToDealsListPath(params);
 
@@ -151,7 +145,10 @@ export default async function DealsPage({ searchParams }: Props) {
           stores={stores}
           categoryTree={categoryTree}
           dealsListPath={dealsListPath}
-        />
+        >
+          <SeoHubLinksGlobal title="Popular deal searches" />
+          <BrandLinksGlobal brandFacets={facets.brand_facets} />
+        </DealsPageContent>
       </Suspense>
     </>
   );

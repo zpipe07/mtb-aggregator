@@ -1,5 +1,6 @@
 import { chromium as chromiumPlain, type Browser } from "playwright";
 import { chromium as chromiumExtra } from "playwright-extra";
+import { SCRAPER_HEADED } from "./config.js";
 // @ts-ignore — no types shipped, plugin works at runtime
 import StealthPlugin from "puppeteer-extra-plugin-stealth";
 
@@ -50,24 +51,64 @@ export async function getBrowser(): Promise<Browser> {
       timeout: 90000,
     });
   }
-  console.log("[browser] Using local Chromium with stealth (BROWSER_WS_ENDPOINT not set)");
+  console.log(
+    `[browser] Using local Chromium with stealth (BROWSER_WS_ENDPOINT not set, headless=${!SCRAPER_HEADED})`,
+  );
   return chromiumExtra.launch({
-    headless: true,
+    headless: !SCRAPER_HEADED,
     args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"],
   });
 }
 
+/** Idle time before closing a shared browser between sequential enrich/scrape calls. */
+const BROWSER_IDLE_CLOSE_MS =
+  Number(process.env.BROWSER_IDLE_CLOSE_MS) || 60_000;
+
+let sharedBrowser: Browser | null = null;
+let sharedBrowserUsers = 0;
+let sharedBrowserIdleTimer: ReturnType<typeof setTimeout> | null = null;
+
+async function acquireSharedBrowser(): Promise<Browser> {
+  if (sharedBrowserIdleTimer) {
+    clearTimeout(sharedBrowserIdleTimer);
+    sharedBrowserIdleTimer = null;
+  }
+  if (sharedBrowser?.isConnected()) {
+    sharedBrowserUsers++;
+    return sharedBrowser;
+  }
+  sharedBrowser = await getBrowser();
+  sharedBrowserUsers = 1;
+  return sharedBrowser;
+}
+
+function releaseSharedBrowser(): void {
+  sharedBrowserUsers = Math.max(0, sharedBrowserUsers - 1);
+  if (sharedBrowserUsers > 0 || !sharedBrowser) {
+    return;
+  }
+  sharedBrowserIdleTimer = setTimeout(() => {
+    sharedBrowserIdleTimer = null;
+    if (sharedBrowserUsers > 0 || !sharedBrowser) {
+      return;
+    }
+    void sharedBrowser.close().catch(() => {});
+    sharedBrowser = null;
+  }, BROWSER_IDLE_CLOSE_MS);
+}
+
 /**
- * Run a function with a browser instance. Launches Chromium locally by default;
- * connects to remote CDP when BROWSER_WS_ENDPOINT is set. Browser is always closed when done.
+ * Run a function with a browser instance. Reuses one browser across sequential calls
+ * (closes after BROWSER_IDLE_CLOSE_MS idle). Launches locally by default; connects to
+ * remote CDP when BROWSER_WS_ENDPOINT is set.
  */
 export async function runWithBrowser<T>(
   fn: (browser: Browser) => Promise<T>
 ): Promise<T> {
-  const browser = await getBrowser();
+  const browser = await acquireSharedBrowser();
   try {
     return await fn(browser);
   } finally {
-    await browser.close();
+    releaseSharedBrowser();
   }
 }

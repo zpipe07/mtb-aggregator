@@ -2,28 +2,17 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import posthog from "posthog-js";
 import type { CategoryTreeNode } from "../api";
-import {
-  categoryHasDeals,
-  findCategoryWithAncestors,
-  getBrowseChipNodes,
-} from "../lib/categoryTree";
+import { findCategoryWithAncestors } from "../lib/categoryTree";
+import { captureCategoryNav } from "../lib/categoryNavAnalytics";
 import { buildDealsBrowseHref } from "@/lib/dealsBrowseHref";
-import { Button, buttonVariants } from "./ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { Button } from "./ui/button";
 import { cn } from "@/lib/utils";
 
-export type CategoryNavSource = "breadcrumb" | "chip" | "all_clear";
+const monoMicro =
+  "font-mono text-[10px] font-semibold uppercase tracking-[0.14em]";
 
-function captureCategoryNav(slug: string, navSource: CategoryNavSource) {
-  posthog.capture("filter_applied", {
-    filter_type: "category",
-    value: slug || "",
-    nav_source: navSource,
-    ...(slug ? { category_slug: slug } : {}),
-  });
-}
+export type { CategoryNavSource } from "@/lib/categoryNavAnalytics";
 
 type DealsCategoryNavProps = {
   categoryTree: CategoryTreeNode[];
@@ -38,30 +27,15 @@ export function DealsCategoryNavInner({
 }: DealsCategoryNavProps & {
   searchParams: URLSearchParams;
 }) {
-  if (!categoryTree.length) return null;
+  if (!categoryTree.length || !categoryFilter) return null;
 
-  const resolved = categoryFilter
-    ? findCategoryWithAncestors(categoryTree, categoryFilter)
-    : null;
-  const { nodes: chipsRaw, mode: chipMode } = getBrowseChipNodes(
-    categoryTree,
-    categoryFilter,
-  );
-  const chips = chipsRaw.filter((n) => categoryHasDeals(n));
-  const chipSectionLabel =
-    chipMode === "roots"
-      ? "Browse by type"
-      : chipMode === "children"
-        ? "Subcategories"
-        : "Related categories";
+  const resolved = findCategoryWithAncestors(categoryTree, categoryFilter);
 
   return (
     <DealsCategoryNavPresentation
       categoryTree={categoryTree}
       categoryFilter={categoryFilter}
       resolved={resolved}
-      chips={chips}
-      chipSectionLabel={chipSectionLabel}
       searchParams={searchParams}
     />
   );
@@ -76,8 +50,6 @@ type PresentationProps = {
   categoryTree: CategoryTreeNode[];
   categoryFilter: string;
   resolved: ReturnType<typeof findCategoryWithAncestors>;
-  chips: CategoryTreeNode[];
-  chipSectionLabel: string;
   searchParams: URLSearchParams;
 };
 
@@ -85,127 +57,76 @@ function DealsCategoryNavPresentation({
   categoryTree,
   categoryFilter,
   resolved,
-  chips,
-  chipSectionLabel,
   searchParams,
 }: PresentationProps) {
   return (
-    <nav aria-label="Category" className="mb-4">
-      <Card className="gap-1 py-3">
-        <CardHeader className="px-4 pb-0 pt-0">
-          <CardTitle className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-            Category
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3 px-4 pb-1 pt-0">
-          {!categoryFilter ? (
-            <p className="text-sm font-medium text-foreground min-h-9 flex items-center">
+    <nav
+      aria-label="Category"
+      className="mb-4 border-b border-foreground/15 pb-4"
+    >
+      <div className="mb-3 flex flex-wrap items-end gap-3">
+        <span className={cn(monoMicro, "text-muted-foreground")}>
+          {"// category"}
+        </span>
+        <span
+          className="mb-0.5 hidden h-px min-w-6 flex-1 max-w-[12rem] bg-border sm:block"
+          aria-hidden
+        />
+      </div>
+      <ol className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm">
+        <li className="flex min-h-9 items-center">
+          <Button variant="outline" size="sm" asChild>
+            <Link
+              href={buildDealsBrowseHref("", searchParams, categoryTree)}
+              onClick={() => captureCategoryNav("", "all_clear")}
+            >
               All deals
-            </p>
-          ) : (
-            <ol className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm">
-              <li className="flex min-h-9 items-center">
+            </Link>
+          </Button>
+        </li>
+        {resolved ? (
+          <>
+            {resolved.ancestors.map((node) => (
+              <li
+                key={node.slug}
+                className="flex min-h-9 items-center gap-1.5"
+              >
+                <BreadcrumbSep />
                 <Button variant="outline" size="sm" asChild>
                   <Link
-                    href={buildDealsBrowseHref("", searchParams, categoryTree)}
-                    onClick={() => captureCategoryNav("", "all_clear")}
+                    href={buildDealsBrowseHref(
+                      node.slug,
+                      searchParams,
+                      categoryTree,
+                    )}
+                    onClick={() =>
+                      captureCategoryNav(node.slug, "breadcrumb")
+                    }
                   >
-                    All deals
+                    {node.name}
                   </Link>
                 </Button>
               </li>
-              {resolved ? (
-                <>
-                  {resolved.ancestors.map((node) => (
-                    <li
-                      key={node.slug}
-                      className="flex min-h-9 items-center gap-1.5"
-                    >
-                      <BreadcrumbSep />
-                      <Button variant="outline" size="sm" asChild>
-                        <Link
-                          href={buildDealsBrowseHref(
-                            node.slug,
-                            searchParams,
-                            categoryTree,
-                          )}
-                          onClick={() =>
-                            captureCategoryNav(node.slug, "breadcrumb")
-                          }
-                        >
-                          {node.name}
-                        </Link>
-                      </Button>
-                    </li>
-                  ))}
-                  <li className="flex min-h-9 items-center gap-1.5">
-                    <BreadcrumbSep />
-                    <span
-                      className="font-semibold text-foreground"
-                      aria-current="page"
-                    >
-                      {resolved.node.name}
-                    </span>
-                  </li>
-                </>
-              ) : (
-                <li className="flex min-h-9 items-center gap-1.5">
-                  <BreadcrumbSep />
-                  <span className="font-semibold text-muted-foreground">
-                    {categoryFilter}
-                  </span>
-                </li>
-              )}
-            </ol>
-          )}
-
-          {chips.length > 0 && (
-            <div className="space-y-2">
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                {chipSectionLabel}
-              </p>
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                {chips.map((node) => {
-                  const selected = node.slug === categoryFilter;
-                  const href = buildDealsBrowseHref(
-                    node.slug,
-                    searchParams,
-                    categoryTree,
-                  );
-                  if (selected) {
-                    return (
-                      <span
-                        key={node.slug}
-                        className={cn(
-                          buttonVariants({
-                            variant: "default",
-                            size: "lg",
-                          }),
-                          "shrink-0 rounded-sm justify-center pointer-events-none opacity-100",
-                        )}
-                        aria-current="page"
-                      >
-                        {node.name}
-                      </span>
-                    );
-                  }
-                  return (
-                    <Button key={node.slug} variant="outline" asChild size="lg">
-                      <Link
-                        href={href}
-                        onClick={() => captureCategoryNav(node.slug, "chip")}
-                        className="shrink-0 rounded-sm"
-                      >
-                        {node.name}
-                      </Link>
-                    </Button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+            ))}
+            <li className="flex min-h-9 items-center gap-1.5">
+              <BreadcrumbSep />
+              <span
+                className="font-semibold text-foreground"
+                aria-current="page"
+              >
+                {resolved.node.name}
+              </span>
+            </li>
+          </>
+        ) : (
+          <li className="flex min-h-9 items-center gap-1.5">
+            <BreadcrumbSep />
+            <span className="font-semibold text-muted-foreground">
+              {categoryFilter}
+            </span>
+          </li>
+        )}
+      </ol>
     </nav>
   );
 }

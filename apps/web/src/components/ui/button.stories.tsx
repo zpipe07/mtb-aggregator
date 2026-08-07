@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react";
+import NextLink from "next/link";
 import { Button } from "./button";
 
 const meta = {
@@ -83,4 +84,12 @@ export const Disabled: Story = {
     children: "Disabled",
     disabled: true,
   },
+};
+
+export const AsChildLink: Story = {
+  render: () => (
+    <Button asChild>
+      <NextLink href="/deals">Browse deals</NextLink>
+    </Button>
+  ),
 };

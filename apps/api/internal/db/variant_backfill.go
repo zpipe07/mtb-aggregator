@@ -25,7 +25,7 @@ const (
 // index products by handle, then match listing SKU to variants. Fallback (unless
 // BACKFILL_VARIANT_FALLBACK_PRODUCT_JSON=0): GET /products/{handle}.json for handles not in the index.
 //
-// Enrichment jobs do not populate variant_options; only scrape upserts or this backfill do.
+// Enrichment does not populate variant_options for Shopify stores; JensonUSA uses PDP enrich + DB fan-out instead. Shopify rows are filled by scrape upserts or this backfill.
 //
 // Set BACKFILL_VARIANT_VERBOSE=1 for per-row skip reasons (debugging).
 //
@@ -44,7 +44,7 @@ func (db *DB) BackfillVariantOptions(ctx context.Context) (int, error) {
 		SELECT l.id, l.store_id, l.store_sku, l.product_url, s.scrape_url, s.base_url
 		FROM store_listings l
 		JOIN stores s ON s.id = l.store_id
-		WHERE s.store_type IN ('ridebicycles', 'worldwidecyclery', 'revelbikes')
+		WHERE s.store_type IN ('ridebicycles', 'worldwidecyclery', 'revelbikes', 'thundermountainbikes', 'mackcycle', 'rideconcepts', 'leatt', 'chromag', 'gravitycartel', 'bikesonline', 'evo', 'cambriabikes', '365cycles', 'thelostco', 'hayes', 'raceface', 'ion', 'coloradocyclist', 'canfield', 'cased')
 		  AND l.hidden = false
 		  AND (
 		    l.variant_options IS NULL

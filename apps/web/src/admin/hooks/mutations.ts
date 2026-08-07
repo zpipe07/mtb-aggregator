@@ -2,13 +2,16 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   triggerScrape,
   triggerEnrich,
+  triggerLLMSpecs,
   cancelScrapeJob,
   cancelEnrichJob,
   createStore,
   updateStore,
   deleteStore,
   enrichListing,
+  runListingLLMSpecs,
   setListingHidden,
+  setListingCategory,
   setListingLLMOverrides,
   runLLMExtractionForCategory,
   createTaxonomyMapping,
@@ -40,9 +43,16 @@ import {
   updateCategoryClassifier,
   testCategoryClassifier,
   runCategoryClassifier,
+  postAdminListingsBulkClassify,
+  postAdminListingsBulkEnrich,
+  postAdminListingsBulkLLMSpecs,
+  postAdminListingsBulkSetCategory,
   createAdminCategory,
   updateAdminCategory,
   deleteAdminCategory,
+  runDBMigrate,
+  runDBSeed,
+  revalidateCache,
   type StoreFormBody,
 } from "../api";
 import {
@@ -59,8 +69,33 @@ import {
   adminLLMFieldDefKeys,
   adminCategoryClassifierKeys,
   adminCategoryKeys,
+  adminDBKeys,
 } from "./queryKeys";
 import { dealKeys } from "../../hooks/queryKeys";
+
+export function useRunDBMigrate() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: runDBMigrate,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminDBKeys.all });
+      queryClient.invalidateQueries({ queryKey: adminDashboardKeys.all });
+      queryClient.invalidateQueries({ queryKey: adminStoreKeys.all });
+    },
+  });
+}
+
+export function useRunDBSeed() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: runDBSeed,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminDBKeys.all });
+      queryClient.invalidateQueries({ queryKey: adminDashboardKeys.all });
+      queryClient.invalidateQueries({ queryKey: adminStoreKeys.all });
+    },
+  });
+}
 
 export function useTriggerScrape() {
   const queryClient = useQueryClient();
@@ -77,11 +112,31 @@ export function useTriggerScrape() {
 export function useTriggerEnrich() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (opts?: { force?: boolean; store?: string }) =>
-      triggerEnrich(opts?.force, opts?.store),
+    mutationFn: (opts?: {
+      force?: boolean;
+      store?: string;
+      canonical_category?: string;
+      llm_confidence_below?: number;
+    }) => triggerEnrich(opts),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: adminEnrichJobKeys.all });
       queryClient.invalidateQueries({ queryKey: adminDashboardKeys.all });
+      queryClient.invalidateQueries({ queryKey: adminListingKeys.all });
+    },
+  });
+}
+
+export function useTriggerLLMSpecs() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (opts?: {
+      store?: string;
+      canonical_category?: string;
+      llm_confidence_below?: number;
+      allow_empty_specs?: boolean;
+    }) => triggerLLMSpecs(opts),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminEnrichJobKeys.all });
       queryClient.invalidateQueries({ queryKey: adminListingKeys.all });
     },
   });
@@ -152,6 +207,24 @@ export function useEnrichListing() {
   });
 }
 
+export function useRunListingLLMSpecs() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      allow_empty_specs,
+    }: {
+      id: number;
+      allow_empty_specs?: boolean;
+    }) => runListingLLMSpecs(id, { allow_empty_specs }),
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: adminListingKeys.all });
+      queryClient.invalidateQueries({ queryKey: adminListingKeys.detail(id) });
+      queryClient.invalidateQueries({ queryKey: dealKeys.all });
+    },
+  });
+}
+
 export function useSetListingHidden() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -164,10 +237,32 @@ export function useSetListingHidden() {
   });
 }
 
+export function useSetListingCategory() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, categoryId }: { id: number; categoryId: number }) =>
+      setListingCategory(id, categoryId),
+    onSuccess: (_, { id, categoryId }) => {
+      queryClient.invalidateQueries({ queryKey: adminListingKeys.all });
+      queryClient.invalidateQueries({ queryKey: adminListingKeys.detail(id) });
+      queryClient.invalidateQueries({
+        queryKey: adminCategoryKeys.profileFields(categoryId),
+      });
+      queryClient.invalidateQueries({ queryKey: dealKeys.all });
+    },
+  });
+}
+
 export function useSetListingLLMOverrides() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, overrides }: { id: number; overrides: Record<string, string | null> }) =>
+    mutationFn: ({
+      id,
+      overrides,
+    }: {
+      id: number;
+      overrides: Record<string, string | string[] | null>;
+    }) =>
       setListingLLMOverrides(id, overrides),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: adminListingKeys.all });
@@ -547,11 +642,55 @@ export function useTestCategoryClassifier() {
 export function useRunCategoryClassifier() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (params?: { store?: string; canonical_category?: string[]; limit?: number }) =>
-      runCategoryClassifier(params),
+    mutationFn: (params?: Parameters<typeof runCategoryClassifier>[0]) => runCategoryClassifier(params),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: adminListingKeys.all });
       queryClient.invalidateQueries({ queryKey: adminCategoryClassifierKeys.all });
+      queryClient.invalidateQueries({ queryKey: adminEnrichJobKeys.all });
+    },
+  });
+}
+
+export function usePostBulkListingsClassify() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: postAdminListingsBulkClassify,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminListingKeys.all });
+      queryClient.invalidateQueries({ queryKey: adminEnrichJobKeys.all });
+    },
+  });
+}
+
+export function usePostBulkListingsEnrich() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: postAdminListingsBulkEnrich,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminListingKeys.all });
+      queryClient.invalidateQueries({ queryKey: adminEnrichJobKeys.all });
+    },
+  });
+}
+
+export function usePostBulkListingsLLMSpecs() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: postAdminListingsBulkLLMSpecs,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminListingKeys.all });
+      queryClient.invalidateQueries({ queryKey: adminEnrichJobKeys.all });
+    },
+  });
+}
+
+export function usePostBulkListingsSetCategory() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: postAdminListingsBulkSetCategory,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminListingKeys.all });
+      queryClient.invalidateQueries({ queryKey: dealKeys.all });
     },
   });
 }
@@ -592,5 +731,11 @@ export function useDeleteAdminCategory() {
       queryClient.invalidateQueries({ queryKey: adminCategoryKeys.all });
       queryClient.invalidateQueries({ queryKey: dealKeys.all });
     },
+  });
+}
+
+export function useRevalidateCache() {
+  return useMutation({
+    mutationFn: revalidateCache,
   });
 }

@@ -93,12 +93,12 @@ export function Dashboard() {
           </p>
         </div>
         <div className="rounded-lg border border-stone-200 bg-white p-4 shadow-sm">
-          <p className="text-sm text-stone-500">Enrichment</p>
+          <p className="text-sm text-stone-500">Category coverage</p>
           <p className="text-2xl font-semibold text-stone-800">
             {stats.total_listings > 0 ? `${enrichment_pct.toFixed(1)}%` : "—"}
           </p>
           <p className="text-xs text-stone-400">
-            {stats.enriched_listings} / {stats.total_listings} with category
+            {stats.enriched_listings} / {stats.total_listings} with canonical category
           </p>
         </div>
       </div>

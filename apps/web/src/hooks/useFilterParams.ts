@@ -1,8 +1,15 @@
-import { useEffect, useCallback, useTransition } from "react";
+import {
+  useEffect,
+  useCallback,
+  useTransition,
+  useOptimistic,
+  useMemo,
+} from "react";
 import { useSearchParams, usePathname, useRouter } from "next/navigation";
 import type { CategoryTreeNode } from "../api";
 import {
   parseFilterParamsFromURL,
+  type ParsedFilterParams,
   type SortOption,
 } from "../lib/filterParams";
 import {
@@ -13,23 +20,40 @@ import {
 export type { SortOption };
 
 const SPEC_PREFIX = "spec_";
-const VARIANT_PREFIX = "variant_";
+
+function mergeCategoryFromPath(
+  parsed: ParsedFilterParams,
+  pathname: string,
+): ParsedFilterParams {
+  const fromPath = parseCategorySlugFromDealsPath(pathname);
+  return {
+    ...parsed,
+    categoryFilter: fromPath ?? parsed.categoryFilter,
+  };
+}
+
+/** Full replace for `useOptimistic` — incoming navigation target wins. */
+function optimisticFilterReducer(
+  _current: ParsedFilterParams,
+  next: ParsedFilterParams,
+): ParsedFilterParams {
+  return next;
+}
 
 function applyToParams(
   prev: URLSearchParams,
   updates: Partial<{
     searchQuery: string;
     storeFilter: string;
-    brandFilter: string;
+    brandFilters: string[];
     categoryFilter: string;
     minDiscount: string;
     minPrice: string;
     excludeCategorySlug: string;
-    specFilters: Record<string, string>;
-    variantFilters: Record<string, string>;
+    specFilters: Record<string, string[]>;
     sort: SortOption;
     offset: number;
-  }>
+  }>,
 ): URLSearchParams {
   const next = new URLSearchParams(prev);
 
@@ -40,31 +64,33 @@ function applyToParams(
 
   if (updates.searchQuery !== undefined) set("q", updates.searchQuery);
   if (updates.storeFilter !== undefined) set("store", updates.storeFilter);
-  if (updates.brandFilter !== undefined) set("brand", updates.brandFilter);
-  if (updates.categoryFilter !== undefined) set("category", updates.categoryFilter);
+  if (updates.brandFilters !== undefined) {
+    next.delete("brand");
+    for (const b of updates.brandFilters) {
+      const t = b.trim();
+      if (t) next.append("brand", t);
+    }
+  }
+  if (updates.categoryFilter !== undefined)
+    set("category", updates.categoryFilter);
   if (updates.minDiscount !== undefined) set("min_discount", updates.minDiscount);
   if (updates.minPrice !== undefined) set("min_price", updates.minPrice);
   if (updates.excludeCategorySlug !== undefined)
     set("exclude_category_slug", updates.excludeCategorySlug);
-  if (updates.sort !== undefined) set("sort", updates.sort === "newest" ? "" : updates.sort);
-  if (updates.offset !== undefined) set("offset", updates.offset === 0 ? "" : String(updates.offset));
+  if (updates.sort !== undefined)
+    set("sort", updates.sort === "discount" ? "" : updates.sort);
+  if (updates.offset !== undefined)
+    set("offset", updates.offset === 0 ? "" : String(updates.offset));
 
   if (updates.specFilters !== undefined) {
-    // Remove existing spec_ params
-    [...next.entries()].forEach(([key]) => {
+    Array.from(next.keys()).forEach((key) => {
       if (key.startsWith(SPEC_PREFIX)) next.delete(key);
     });
-    Object.entries(updates.specFilters).forEach(([k, v]) => {
-      if (v) next.set(`${SPEC_PREFIX}${k}`, v);
-    });
-  }
-
-  if (updates.variantFilters !== undefined) {
-    [...next.entries()].forEach(([key]) => {
-      if (key.startsWith(VARIANT_PREFIX)) next.delete(key);
-    });
-    Object.entries(updates.variantFilters).forEach(([k, v]) => {
-      if (v) next.set(`${VARIANT_PREFIX}${k}`, v);
+    Object.entries(updates.specFilters).forEach(([k, vals]) => {
+      for (const v of vals) {
+        const t = v.trim();
+        if (t) next.append(`${SPEC_PREFIX}${k}`, t);
+      }
     });
   }
 
@@ -79,140 +105,171 @@ export function useFilterParams(options?: {
   const pathname = usePathname();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const base = parseFilterParamsFromURL(searchParams);
-  const categoryFromPath = parseCategorySlugFromDealsPath(pathname);
-  const state = {
-    ...base,
-    categoryFilter: categoryFromPath ?? base.categoryFilter,
-  };
+
+  const searchParamsString = searchParams.toString();
+  const canonical = useMemo((): ParsedFilterParams => {
+    const base = parseFilterParamsFromURL(
+      new URLSearchParams(searchParamsString),
+    );
+    const categoryFromPath = parseCategorySlugFromDealsPath(pathname);
+    return {
+      ...base,
+      categoryFilter: categoryFromPath ?? base.categoryFilter,
+    };
+  }, [searchParamsString, pathname]);
+
+  const [display, addOptimistic] = useOptimistic(
+    canonical,
+    optimisticFilterReducer,
+  );
+
+  const beginReplace = useCallback(
+    (nextParams: URLSearchParams, targetPathname: string) => {
+      const merged = mergeCategoryFromPath(
+        parseFilterParamsFromURL(nextParams),
+        targetPathname,
+      );
+      const qs = nextParams.toString();
+      // useOptimistic setter must run inside startTransition (or an Action).
+      startTransition(() => {
+        addOptimistic(merged);
+        router.replace(qs ? `${targetPathname}?${qs}` : targetPathname);
+      });
+    },
+    [router, addOptimistic, startTransition],
+  );
 
   const updateParams = useCallback(
     (
       updates: Partial<{
         searchQuery: string;
         storeFilter: string;
-        brandFilter: string;
+        brandFilters: string[];
         categoryFilter: string;
         minDiscount: string;
         minPrice: string;
         excludeCategorySlug: string;
-        specFilters: Record<string, string>;
-        variantFilters: Record<string, string>;
+        specFilters: Record<string, string[]>;
         sort: SortOption;
         offset: number;
-      }>
+      }>,
     ) => {
       const next = applyToParams(
-        new URLSearchParams(searchParams.toString()),
-        updates
+        new URLSearchParams(searchParamsString),
+        updates,
       );
-      const qs = next.toString();
-      startTransition(() => {
-        router.replace(qs ? `${pathname}?${qs}` : pathname);
-      });
+      beginReplace(next, pathname);
     },
-    [searchParams, pathname, router]
+    [searchParamsString, pathname, beginReplace],
   );
 
   const setSearchQuery = useCallback(
     (v: string) => updateParams({ searchQuery: v, offset: 0 }),
-    [updateParams]
+    [updateParams],
   );
   const setStoreFilter = useCallback(
     (v: string) => updateParams({ storeFilter: v, offset: 0 }),
-    [updateParams]
+    [updateParams],
   );
-  const setBrandFilter = useCallback(
-    (v: string) => updateParams({ brandFilter: v, offset: 0 }),
-    [updateParams]
+  const toggleBrandFilter = useCallback(
+    (value: string) => {
+      const v = value.trim();
+      if (!v) return;
+      const cur = display.brandFilters;
+      const idx = cur.indexOf(v);
+      const nextBrands = idx >= 0 ? cur.filter((x) => x !== v) : [...cur, v];
+      updateParams({ brandFilters: nextBrands, offset: 0 });
+    },
+    [updateParams, display.brandFilters],
+  );
+  const clearBrandFilters = useCallback(
+    () => updateParams({ brandFilters: [], offset: 0 }),
+    [updateParams],
   );
   const setCategoryFilter = useCallback(
     (v: string) => {
-      const raw = new URLSearchParams(searchParams.toString());
+      const raw = new URLSearchParams(searchParamsString);
       raw.delete("category");
       const next = applyToParams(raw, {
         categoryFilter: "",
         specFilters: {},
-        variantFilters: {},
         offset: 0,
       });
-      const qs = next.toString();
-      const path = v ? buildDealsCategoryPath(v, categoryTree) : "/deals";
-      startTransition(() => {
-        router.replace(qs ? `${path}?${qs}` : path);
-      });
+      const targetPath = v ? buildDealsCategoryPath(v, categoryTree) : "/deals";
+      beginReplace(next, targetPath);
     },
-    [searchParams, router, categoryTree]
+    [searchParamsString, beginReplace, categoryTree],
   );
   const setMinDiscount = useCallback(
     (v: string) => updateParams({ minDiscount: v, offset: 0 }),
-    [updateParams]
+    [updateParams],
   );
-  const setSpecFilter = useCallback(
+  const toggleSpecFilter = useCallback(
     (key: string, value: string) => {
-      const next = { ...state.specFilters };
-      if (value === "") delete next[key];
-      else next[key] = value;
+      const v = value.trim();
+      if (!v) return;
+      const cur = display.specFilters[key] ?? [];
+      const idx = cur.indexOf(v);
+      const nextVals = idx >= 0 ? cur.filter((x) => x !== v) : [...cur, v];
+      const next = { ...display.specFilters };
+      if (nextVals.length === 0) delete next[key];
+      else next[key] = nextVals;
       updateParams({ specFilters: next, offset: 0 });
     },
-    [updateParams, state.specFilters]
+    [updateParams, display.specFilters],
   );
-  const clearSpecFilter = useCallback((key: string) => setSpecFilter(key, ""), [setSpecFilter]);
-  const setVariantFilter = useCallback(
-    (key: string, value: string) => {
-      const next = { ...state.variantFilters };
-      if (value === "") delete next[key];
-      else next[key] = value;
-      updateParams({ variantFilters: next, offset: 0 });
+  const clearSpecFilter = useCallback(
+    (key: string) => {
+      const next = { ...display.specFilters };
+      delete next[key];
+      updateParams({ specFilters: next, offset: 0 });
     },
-    [updateParams, state.variantFilters]
+    [updateParams, display.specFilters],
   );
-  const clearVariantFilter = useCallback(
-    (key: string) => setVariantFilter(key, ""),
-    [setVariantFilter]
+  const setSort = useCallback(
+    (v: SortOption) => updateParams({ sort: v, offset: 0 }),
+    [updateParams],
   );
-  const setSort = useCallback((v: SortOption) => updateParams({ sort: v, offset: 0 }), [updateParams]);
-  const setOffset = useCallback((v: number) => updateParams({ offset: v }), [updateParams]);
+  const setOffset = useCallback(
+    (v: number) => updateParams({ offset: v }),
+    [updateParams],
+  );
 
   const clearAllFilters = useCallback(() => {
-    if (pathname.startsWith("/deals/c/")) {
-      startTransition(() => router.replace("/deals"));
-      return;
-    }
     updateParams({
       searchQuery: "",
       storeFilter: "",
-      brandFilter: "",
+      brandFilters: [],
       categoryFilter: "",
       minDiscount: "",
       minPrice: "",
       excludeCategorySlug: "",
       specFilters: {},
-      variantFilters: {},
       offset: 0,
     });
-  }, [pathname, router, updateParams]);
+  }, [updateParams]);
 
-  // When search clears but URL has sort=relevance, sync URL to newest
+  // Canonical URL only: when search clears but `sort=relevance` remains, fix the URL.
   useEffect(() => {
-    const rawSort = searchParams.get("sort");
-    if (base.searchQuery.trim() === "" && rawSort === "relevance") {
-      updateParams({ sort: "newest" });
+    const params = new URLSearchParams(searchParamsString);
+    const rawSort = params.get("sort");
+    const q = params.get("q") ?? "";
+    if (q.trim() === "" && rawSort === "relevance") {
+      updateParams({ sort: "discount" });
     }
-  }, [base.searchQuery, searchParams, updateParams]);
+  }, [searchParamsString, updateParams]);
 
   return {
-    ...state,
+    ...display,
     isPending,
     setSearchQuery,
     setStoreFilter,
-    setBrandFilter,
+    toggleBrandFilter,
+    clearBrandFilters,
     setCategoryFilter,
     setMinDiscount,
-    setSpecFilter,
+    toggleSpecFilter,
     clearSpecFilter,
-    setVariantFilter,
-    clearVariantFilter,
     setSort,
     setOffset,
     clearAllFilters,

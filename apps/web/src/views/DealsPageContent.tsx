@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import posthog from "posthog-js";
 import { DEFAULT_PAGE_SIZE } from "../api";
 import type {
@@ -11,9 +12,12 @@ import type {
   BrandFacet,
 } from "../api";
 import { useFilterParams } from "../hooks/useFilterParams";
+import { usePendingTimeout } from "../hooks/usePendingTimeout";
 import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { buildDealDetailHref } from "@/lib/dealsBackHref";
+import { storeDealDetailBackHref } from "@/lib/dealDetailBackStorage";
+import { Button } from "@/components/ui/button";
 import {
   Toolbar,
   FilterSidebar,
@@ -36,6 +40,8 @@ type Props = {
   dealsListPath: string;
   /** Optional GEO intro (e.g. `/deals/c/...` routes from `getCategorySeo().intro`). */
   categoryIntro?: string;
+  /** Server-rendered slots at page bottom (e.g. curated SEO hub links after grid + browse footer). */
+  children?: ReactNode;
 };
 
 export function DealsPageContent({
@@ -46,40 +52,53 @@ export function DealsPageContent({
   categoryTree,
   dealsListPath,
   categoryIntro,
+  children,
 }: Props) {
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
 
+  const pathname = usePathname();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const searchParamsString = searchParams.toString();
   const filterParams = useFilterParams({ categoryTree });
   const {
     isPending: isFilterPending,
     searchQuery,
     storeFilter,
-    brandFilter,
+    brandFilters,
     categoryFilter,
     minDiscount,
     specFilters,
-    variantFilters,
     sort,
     offset,
     setSearchQuery,
     setStoreFilter,
-    setBrandFilter,
+    toggleBrandFilter,
     setMinDiscount,
-    setSpecFilter,
+    toggleSpecFilter,
     clearSpecFilter,
-    setVariantFilter,
-    clearVariantFilter,
     setSort,
     setOffset,
     clearAllFilters,
   } = filterParams;
 
-  const resultsPending = isFilterPending;
+  const { isPending: resultsPending, timedOut, clearTimeoutState } =
+    usePendingTimeout(isFilterPending, 15_000, {
+      pathname,
+      searchParams: searchParamsString,
+      sort,
+      offset,
+    });
+
+  const handleRetryResults = () => {
+    clearTimeoutState();
+    router.refresh();
+  };
 
   const activeFilterCount =
-    [storeFilter, brandFilter, minDiscount].filter(Boolean).length +
-    Object.values(specFilters).filter(Boolean).length +
-    Object.values(variantFilters).filter(Boolean).length;
+    [storeFilter, minDiscount].filter(Boolean).length +
+    brandFilters.length +
+    Object.values(specFilters).reduce((n, a) => n + a.length, 0);
 
   const activeFilters = useMemo(() => {
     const chips: { key: string; label: string; onRemove: () => void }[] = [];
@@ -90,13 +109,13 @@ export function DealsPageContent({
         onRemove: () => setStoreFilter(""),
       });
     }
-    if (brandFilter) {
+    brandFilters.forEach((b) => {
       chips.push({
-        key: "brand",
-        label: `Brand: ${brandFilter}`,
-        onRemove: () => setBrandFilter(""),
+        key: `brand:${b}`,
+        label: `Brand: ${b}`,
+        onRemove: () => toggleBrandFilter(b),
       });
-    }
+    });
     if (minDiscount) {
       chips.push({
         key: "min_discount",
@@ -104,39 +123,28 @@ export function DealsPageContent({
         onRemove: () => setMinDiscount(""),
       });
     }
-    Object.entries(specFilters).forEach(([key, value]) => {
-      if (value) {
-        const facet = facets?.spec_facets?.find((f) => f.key === key);
-        const label = facet?.label ?? key;
+    Object.entries(specFilters).forEach(([key, values]) => {
+      const facet = facets?.spec_facets?.find((f) => f.key === key);
+      const label = facet?.label ?? key;
+      values.forEach((value) => {
         chips.push({
-          key: `spec_${key}`,
+          key: `spec_${key}:${value}`,
           label: `${label}: ${value}`,
-          onRemove: () => setSpecFilter(key, ""),
+          onRemove: () => toggleSpecFilter(key, value),
         });
-      }
-    });
-    Object.entries(variantFilters).forEach(([key, value]) => {
-      if (value) {
-        chips.push({
-          key: `variant_${key}`,
-          label: `${key}: ${value}`,
-          onRemove: () => setVariantFilter(key, ""),
-        });
-      }
+      });
     });
     return chips;
   }, [
     storeFilter,
-    brandFilter,
+    brandFilters,
     minDiscount,
     specFilters,
-    variantFilters,
     facets?.spec_facets,
     setStoreFilter,
-    setBrandFilter,
+    toggleBrandFilter,
     setMinDiscount,
-    setSpecFilter,
-    setVariantFilter,
+    toggleSpecFilter,
   ]);
 
   const handleStoreChange = (value: string) => {
@@ -144,36 +152,47 @@ export function DealsPageContent({
       posthog.capture("filter_applied", { filter_type: "store", value });
     setStoreFilter(value);
   };
-  const handleBrandChange = (value: string) => {
-    if (value)
-      posthog.capture("filter_applied", { filter_type: "brand", value });
-    setBrandFilter(value);
+  const handleToggleBrand = (value: string) => {
+    const v = value.trim();
+    if (!v) return;
+    const cur = brandFilters;
+    const idx = cur.indexOf(v);
+    const added = idx < 0;
+    const nextCount = added ? cur.length + 1 : cur.length - 1;
+    posthog.capture("filter_applied", {
+      filter_type: "brand",
+      value: v,
+      selected_count: nextCount,
+      action: added ? "add" : "remove",
+    });
+    toggleBrandFilter(v);
   };
   const handleMinDiscountChange = (value: string) => {
     if (value)
       posthog.capture("filter_applied", { filter_type: "min_discount", value });
     setMinDiscount(value);
   };
-  const handleSpecFilterChange = (key: string, value: string) => {
-    if (value)
-      posthog.capture("filter_applied", {
-        filter_type: "spec",
-        spec_key: key,
-        value,
-      });
-    setSpecFilter(key, value);
-  };
-  const handleVariantFilterChange = (key: string, value: string) => {
-    if (value)
-      posthog.capture("filter_applied", {
-        filter_type: "variant",
-        variant_key: key,
-        value,
-      });
-    setVariantFilter(key, value);
+  const handleToggleSpecFilter = (key: string, value: string) => {
+    const v = value.trim();
+    if (!v) return;
+    const cur = specFilters[key] ?? [];
+    const idx = cur.indexOf(v);
+    const added = idx < 0;
+    const nextCount = added ? cur.length + 1 : cur.length - 1;
+    posthog.capture("filter_applied", {
+      filter_type: "spec",
+      spec_key: key,
+      value: v,
+      selected_count: nextCount,
+      action: added ? "add" : "remove",
+    });
+    toggleSpecFilter(key, v);
   };
   const handleClearAllFilters = () => {
-    posthog.capture("filters_cleared");
+    posthog.capture("filters_cleared", {
+      had_category_path: pathname.startsWith("/deals/c/"),
+      had_hub_path: pathname.startsWith("/deals/hub/"),
+    });
     clearAllFilters();
   };
   const handlePageChange = (newOffset: number) => {
@@ -193,20 +212,16 @@ export function DealsPageContent({
     stores,
     brandFacets,
     storeFilter,
-    brandFilter,
+    brandFilters,
     categoryFilter,
     minDiscount,
     specFilters,
-    variantFilters,
     specFacets: facets?.spec_facets ?? [],
-    variantFacets: facets?.variant_facets ?? [],
     onStoreChange: handleStoreChange,
-    onBrandChange: handleBrandChange,
+    onToggleBrand: handleToggleBrand,
     onMinDiscountChange: handleMinDiscountChange,
-    onSpecFilterChange: handleSpecFilterChange,
+    onToggleSpecFilter: handleToggleSpecFilter,
     onClearSpecFilter: clearSpecFilter,
-    onVariantFilterChange: handleVariantFilterChange,
-    onClearVariantFilter: clearVariantFilter,
   };
 
   return (
@@ -214,8 +229,8 @@ export function DealsPageContent({
       <div className="flex gap-8">
         <aside className="hidden lg:block w-60 flex-shrink-0">
           <div className="sticky top-6 max-h-[calc(100vh-3rem)] flex flex-col min-h-[500px]">
-            <h2 className="text-sm font-semibold text-foreground mb-4 flex-shrink-0">
-              Filters
+            <h2 className="mb-4 flex-shrink-0 font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
+              {"// Filters"}
             </h2>
             <div className="overflow-y-auto pr-1 -mr-1 grow">
               <FilterSidebar {...filterSidebarProps} />
@@ -250,6 +265,26 @@ export function DealsPageContent({
             onClearAll={handleClearAllFilters}
           />
 
+          {timedOut ? (
+            <div
+              className="mb-4 flex flex-col gap-3 rounded-[var(--radius)] border border-destructive/40 bg-destructive/10 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+              role="alert"
+            >
+              <p className="text-sm text-muted-foreground">
+                Results couldn&apos;t be updated. Your filters are still applied.
+              </p>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="shrink-0"
+                onClick={handleRetryResults}
+              >
+                Try again
+              </Button>
+            </div>
+          ) : null}
+
           <div className="relative" aria-busy={resultsPending}>
             {resultsPending && (
               <div
@@ -270,7 +305,7 @@ export function DealsPageContent({
               )}
             >
               {totalCount > 0 && (
-                <div className="border-b-2 border-border/50 mb-4">
+                <div className="mb-4 border-b border-foreground/15">
                   <Pagination
                     totalCount={totalCount}
                     limit={DEFAULT_PAGE_SIZE}
@@ -284,13 +319,14 @@ export function DealsPageContent({
                 <DealGrid
                   deals={deals}
                   getHref={(d) => buildDealDetailHref(d.id, dealsListPath)}
+                  onDealNavigate={() => storeDealDetailBackHref(dealsListPath)}
                 />
               ) : (
                 <EmptyState />
               )}
 
               {totalCount > 0 && (
-                <div className="border-t-2 border-border/50 mt-8">
+                <div className="mt-8 border-t border-foreground/15">
                   <Pagination
                     totalCount={totalCount}
                     limit={DEFAULT_PAGE_SIZE}
@@ -314,6 +350,12 @@ export function DealsPageContent({
         rootCategories={categoryTree}
         categoryTree={categoryTree}
       />
+
+      {children ? (
+        <div className="mt-10 space-y-10 border-t border-foreground/15 pt-10">
+          {children}
+        </div>
+      ) : null}
     </div>
   );
 }

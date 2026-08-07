@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { fetchDeal, fetchPriceHistory, fetchCategoryTree } from "@/api";
 import { JsonLd } from "@/components/JsonLd";
@@ -8,16 +9,17 @@ import {
   findCategoryWithAncestors,
 } from "@/lib/categoryTree";
 import { buildDealsCategoryPath } from "@/lib/dealsCategoryPath";
-import { sanitizeDealsListBackHref } from "@/lib/dealsBackHref";
 import { buildBreadcrumbJsonLd, buildProductJsonLd } from "@/lib/jsonLd";
 import { absoluteUrl } from "@/lib/siteUrl";
+import { RelatedDeals } from "@/components/RelatedDeals";
 import { DealDetailContent } from "./DealDetailContent";
+import DealDetailLoading from "./loading";
 
-export const revalidate = 60;
+/** 4h — must match PUBLIC_ISR_REVALIDATE_SECONDS in @/lib/revalidate (literal required by Next.js). */
+export const revalidate = 14400;
 
 type Props = {
   params: Promise<{ id: string }>;
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -69,27 +71,18 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 }
 
-export default async function DealPage({ params, searchParams }: Props) {
-  const [{ id }, sp] = await Promise.all([params, searchParams]);
+export default async function DealPage({ params }: Props) {
+  const { id } = await params;
   const dealId = parseInt(id, 10);
   if (isNaN(dealId)) notFound();
 
-  const fromRaw =
-    typeof sp.from === "string"
-      ? sp.from
-      : Array.isArray(sp.from)
-        ? sp.from[0]
-        : undefined;
-  const backToDealsHref = sanitizeDealsListBackHref(fromRaw);
-
-  const [deal, priceHistory] = await Promise.all([
-    fetchDeal(dealId),
-    fetchPriceHistory(dealId),
-  ]).catch(() => [null, null]);
+  const [deal, priceHistory, categoryTree] = await Promise.all([
+    fetchDeal(dealId).catch(() => null),
+    fetchPriceHistory(dealId).catch(() => null),
+    fetchCategoryTree().catch(() => []),
+  ]);
 
   if (!deal) notFound();
-
-  const categoryTree = await fetchCategoryTree().catch(() => []);
 
   const categorySlug = categorySlugFromCanonicalPath(
     categoryTree,
@@ -131,14 +124,19 @@ export default async function DealPage({ params, searchParams }: Props) {
   return (
     <>
       <JsonLd data={buildBreadcrumbJsonLd(breadcrumbItems)} />
-      <JsonLd data={buildProductJsonLd(deal)} />
-      <DealDetailContent
-        deal={deal}
-        priceHistory={priceHistory ?? undefined}
-        backToDealsHref={backToDealsHref}
-        categoryBrowseHref={categoryBrowseHref}
-        categoryBrowseLabel={categoryBrowseLabel}
-      />
+      <JsonLd data={buildProductJsonLd(deal, priceHistory)} />
+      <Suspense fallback={<DealDetailLoading />}>
+        <DealDetailContent
+          deal={deal}
+          priceHistory={priceHistory ?? undefined}
+          categoryTree={categoryTree}
+          categoryBrowseHref={categoryBrowseHref}
+          categoryBrowseLabel={categoryBrowseLabel}
+        />
+        <div className="mx-auto max-w-3xl px-4 pb-10 sm:px-6">
+          <RelatedDeals deal={deal} categorySlug={categorySlug ?? undefined} />
+        </div>
+      </Suspense>
     </>
   );
 }

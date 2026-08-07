@@ -1,7 +1,7 @@
 import type { ScrapeResult } from "../types.js";
 import type { EnrichResult } from "./jensonusa.js";
 import * as cheerio from "cheerio";
-import { SCRAPER_MAX_PRODUCTS } from "../config.js";
+import { BROWSER_USER_AGENT, SCRAPER_MAX_PRODUCTS } from "../config.js";
 import {
   buildVariantOptions,
   type ShopifyProductWithOptions,
@@ -10,8 +10,24 @@ import {
 
 const BASE_URL = "https://ridebicycles.com";
 const PER_PAGE = 250;
-/** Minimum discount vs compare-at price (e.g. 0.1 = 10% off). */
-const MIN_DISCOUNT_FRACTION = 0.1;
+/** Minimum discount vs compare-at price (e.g. 0.15 = 15% off). */
+const MIN_DISCOUNT_FRACTION = 0.15;
+/** Delay between collection pages (ridebicycles.com rate-limits burst requests). */
+const RIDEBICYCLES_PAGE_DELAY_MS = Math.max(
+  0,
+  Number(process.env.RIDEBICYCLES_PAGE_DELAY_MS) || 500,
+);
+const RIDEBICYCLES_FETCH_MAX_ATTEMPTS = 3;
+const RIDEBICYCLES_RETRY_BASE_MS = 2000;
+const RETRYABLE_HTTP_STATUS = new Set([403, 429, 503]);
+/**
+ * Maximum plausible discount fraction. Ride Bicycles uses compare_at_price on
+ * some bulk/case variants to show the case price, not a "was" price — which
+ * produces artificially extreme discounts (e.g. $1.49 spoke vs $88.79 box).
+ * Anything above this threshold is almost certainly a data artifact, not a
+ * real clearance sale.
+ */
+const MAX_DISCOUNT_FRACTION = 0.75;
 
 type ShopifyVariant = ShopifyVariantWithOptions;
 type ShopifyProduct = ShopifyProductWithOptions;
@@ -29,6 +45,43 @@ interface ShopifyCollectionResponse {
   products: ShopifyProduct[];
 }
 
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * HTTP fetch for ridebicycles.com with browser-like UA, Referer, and retries on 403/429/503.
+ */
+async function fetchRideBicycles(
+  url: string,
+  accept: string,
+  label: string,
+): Promise<Response> {
+  let lastRes: Response | null = null;
+  for (let attempt = 1; attempt <= RIDEBICYCLES_FETCH_MAX_ATTEMPTS; attempt++) {
+    const res = await fetch(url, {
+      headers: {
+        Accept: accept,
+        "User-Agent": BROWSER_USER_AGENT,
+        Referer: `${BASE_URL}/`,
+      },
+    });
+    if (res.ok) return res;
+    lastRes = res;
+    if (
+      RETRYABLE_HTTP_STATUS.has(res.status) &&
+      attempt < RIDEBICYCLES_FETCH_MAX_ATTEMPTS
+    ) {
+      await sleep(RIDEBICYCLES_RETRY_BASE_MS * 2 ** (attempt - 1));
+      continue;
+    }
+    throw new Error(`${label} ${res.status}: ${res.statusText}`);
+  }
+  throw new Error(
+    `${label} ${lastRes!.status}: ${lastRes!.statusText}`,
+  );
+}
+
 /**
  * Fetch one page of products from Shopify collection JSON API.
  * Strips query params from collectionUrl to get base path (products.json ignores filter app params).
@@ -42,15 +95,11 @@ async function fetchPage(
   const pathname = url.pathname.replace(/\/$/, "");
   const jsonUrl = `${origin}${pathname}/products.json?limit=${PER_PAGE}&page=${page}`;
 
-  const res = await fetch(jsonUrl, {
-    headers: {
-      Accept: "application/json",
-      "User-Agent": "MTBDealBot/1.0 (+https://github.com/mtb-aggregator)",
-    },
-  });
-  if (!res.ok) {
-    throw new Error(`products.json ${res.status}: ${res.statusText}`);
-  }
+  const res = await fetchRideBicycles(
+    jsonUrl,
+    "application/json",
+    `products.json page=${page}`,
+  );
   const data = (await res.json()) as ShopifyCollectionResponse;
   return data.products ?? [];
 }
@@ -65,8 +114,8 @@ function isGiftCard(product: ShopifyProduct): boolean {
 
 /**
  * Scrape Ride Bicycles deals via Shopify's collection products.json API.
- * Filters for in-stock variants with compare-at price and at least 10% off (MIN_DISCOUNT_FRACTION; rb_stock_status/rb_discount_relative are not honored by API).
- * No browser required; uses fetch + JSON.
+ * Filters for in-stock variants with compare-at price and at least 15% off (MIN_DISCOUNT_FRACTION; rb_stock_status/rb_discount_relative are not honored by API).
+ * No browser required; uses fetch + JSON with browser-like headers and paced pagination.
  */
 export async function scrapeRideBicycles(
   collectionUrl: string,
@@ -77,6 +126,9 @@ export async function scrapeRideBicycles(
 
   let page = 1;
   while (true) {
+    if (page > 1 && RIDEBICYCLES_PAGE_DELAY_MS > 0) {
+      await sleep(RIDEBICYCLES_PAGE_DELAY_MS);
+    }
     const products = await fetchPage(collectionUrl, page);
     if (products.length === 0) break;
 
@@ -105,6 +157,10 @@ export async function scrapeRideBicycles(
         const maxPriceForMinDiscount =
           compareAtPrice * (1 - MIN_DISCOUNT_FRACTION);
         if (currentPrice > maxPriceForMinDiscount) continue;
+
+        const minPriceForMaxDiscount =
+          compareAtPrice * (1 - MAX_DISCOUNT_FRACTION);
+        if (currentPrice < minPriceForMaxDiscount) continue;
 
         const productUrl = `${origin}/products/${product.handle}`;
         const imageUrl =
@@ -220,28 +276,26 @@ async function fetchProductDetail(
 ): Promise<ShopifyProductDetail> {
   const jsonUrl = `${origin}/products/${handle}.json`;
 
-  const res = await fetch(jsonUrl, {
-    headers: {
-      Accept: "application/json",
-      "User-Agent": "MTBDealBot/1.0 (+https://github.com/mtb-aggregator)",
-    },
-  });
-  if (!res.ok) {
-    throw new Error(`product.json ${res.status}: ${res.statusText}`);
-  }
+  const res = await fetchRideBicycles(
+    jsonUrl,
+    "application/json",
+    `product.json handle=${handle}`,
+  );
   const data = (await res.json()) as ShopifyProductDetailResponse;
   return data.product ?? {};
 }
 
 async function fetchProductHtml(productUrl: string): Promise<string | null> {
-  const res = await fetch(productUrl, {
-    headers: {
-      Accept: "text/html",
-      "User-Agent": "MTBDealBot/1.0 (+https://github.com/mtb-aggregator)",
-    },
-  });
-  if (!res.ok) return null;
-  return res.text();
+  try {
+    const res = await fetchRideBicycles(
+      productUrl,
+      "text/html",
+      "product.html",
+    );
+    return res.text();
+  } catch {
+    return null;
+  }
 }
 
 /**

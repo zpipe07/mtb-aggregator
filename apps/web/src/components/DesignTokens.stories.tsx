@@ -2,8 +2,8 @@ import type { Meta, StoryObj } from "@storybook/react";
 import { Button } from "./ui/button";
 
 /**
- * Design tokens from [docs/DESIGN.md](../../../docs/DESIGN.md).
- * High-Tech Workshop meets Deep Woods.
+ * Reference swatches — production tokens are Workshop Modern (see docs/DESIGN.md).
+ * For full prototype UI see WorkshopModernPreview.
  */
 function DesignTokensDoc() {
   return (
@@ -30,10 +30,10 @@ function DesignTokensDoc() {
           <div className="space-y-2">
             <div
               className="h-20 rounded-lg border border-border"
-              style={{ backgroundColor: "#FF5E00" }}
+              style={{ backgroundColor: "#C7E635" }}
             />
-            <p className="text-sm font-medium text-foreground">Hazard Orange</p>
-            <p className="text-xs text-muted-foreground">#FF5E00 · primary, CTAs</p>
+            <p className="text-sm font-medium text-foreground">Electric lime</p>
+            <p className="text-xs text-muted-foreground">Primary / CTAs · #C7E635</p>
           </div>
         </div>
       </section>

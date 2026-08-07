@@ -1,5 +1,6 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "./ui/button";
+import { cn } from "@/lib/utils";
 
 type PaginationProps = {
   totalCount: number;
@@ -52,24 +53,24 @@ export function Pagination({
 
   return (
     <nav
-      className="flex flex-col gap-3 py-4 border-t-2 border-border/50 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-4"
+      className="flex flex-col gap-3 border-t border-foreground/15 py-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-4"
       aria-label="Deals pagination"
     >
-      <p className="shrink-0 text-xs text-muted-foreground sm:text-sm">
-        Page {currentPage} of {totalPages} ({totalCount} deals)
+      <p className="shrink-0 font-mono text-[10px] font-semibold tracking-[0.12em] text-muted-foreground uppercase sm:text-[11px]">
+        Page {currentPage} / {totalPages} · {totalCount} deals
       </p>
-      <div className="flex min-w-0 w-full items-stretch gap-1 sm:w-auto sm:justify-end">
+      <div className="flex w-full min-w-0 items-stretch gap-1 sm:w-auto sm:justify-end">
         <Button
           type="button"
           variant="outline"
           size="sm"
           onClick={() => onPageChange(Math.max(0, offset - limit))}
           disabled={!hasPrev}
-          className="shrink-0 max-sm:px-2.5 sm:min-w-[4.5rem]"
+          className="max-sm:px-2.5 shrink-0 font-mono text-[10px] font-semibold tracking-[0.12em] sm:min-w-[4.5rem]"
           aria-label="Previous page"
         >
           <ChevronLeft className="size-4 sm:hidden" aria-hidden />
-          <span className="hidden sm:inline">Previous</span>
+          <span className="max-sm:sr-only">‹ PREV</span>
         </Button>
         <div
           className="flex min-w-0 flex-1 items-center justify-center gap-1 overflow-x-auto overscroll-x-contain px-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
@@ -80,7 +81,7 @@ export function Pagination({
             p === null ? (
               <span
                 key={`ellipsis-${i}`}
-                className="shrink-0 px-1 text-muted-foreground sm:px-2"
+                className="shrink-0 px-1 font-mono text-muted-foreground sm:px-2"
                 aria-hidden
               >
                 …
@@ -89,14 +90,18 @@ export function Pagination({
               <Button
                 key={p}
                 type="button"
-                variant={p === currentPage ? "default" : "outline"}
+                variant="outline"
                 size="sm"
                 onClick={() => goToPage(p)}
                 aria-label={
                   p === currentPage ? `Page ${p} (current)` : `Page ${p}`
                 }
                 aria-current={p === currentPage ? "page" : undefined}
-                className="min-w-8 shrink-0 px-2 sm:min-w-[2.25rem] sm:px-3"
+                className={cn(
+                  "min-w-8 shrink-0 px-2 font-mono text-[11px] font-bold tabular-nums sm:min-w-[2.25rem] sm:px-3",
+                  p === currentPage &&
+                    "border-foreground bg-foreground text-primary hover:bg-foreground/90 hover:text-primary",
+                )}
               >
                 {p}
               </Button>
@@ -109,10 +114,10 @@ export function Pagination({
           size="sm"
           onClick={() => onPageChange(offset + limit)}
           disabled={!hasNext}
-          className="shrink-0 max-sm:px-2.5 sm:min-w-[4.5rem]"
+          className="max-sm:px-2.5 shrink-0 font-mono text-[10px] font-semibold tracking-[0.12em] sm:min-w-[4.5rem]"
           aria-label="Next page"
         >
-          <span className="hidden sm:inline">Next</span>
+          <span className="max-sm:sr-only">NEXT ›</span>
           <ChevronRight className="size-4 sm:hidden" aria-hidden />
         </Button>
       </div>

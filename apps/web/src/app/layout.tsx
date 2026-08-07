@@ -60,10 +60,8 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{
             __html: `
               (function() {
-                var stored = localStorage.getItem('theme');
-                var dark = stored === 'dark' || (!stored && window.matchMedia('(prefers-color-scheme: dark)').matches);
-                if (dark) document.documentElement.classList.add('dark');
-                else document.documentElement.classList.remove('dark');
+                /* Workshop Modern ships a single light theme; legacy dark tokens looked green/orange. */
+                document.documentElement.classList.remove('dark');
               })();
             `,
           }}

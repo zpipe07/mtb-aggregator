@@ -7,6 +7,7 @@ import {
   fetchStores,
   fetchCategoryTree,
   DEFAULT_PAGE_SIZE,
+  normalizeFacetsResponse,
   type FacetsResponse,
 } from "@/api";
 import { parseFilterParamsFromSearch } from "@/lib/filterParams";
@@ -19,12 +20,15 @@ import {
 } from "@/lib/categoryTree";
 import { buildDealsCategoryPath } from "@/lib/dealsCategoryPath";
 import { categoryMetadataForSlug, getCategorySeo } from "@/lib/categorySeo";
-import { buildBreadcrumbJsonLd, buildItemListJsonLd } from "@/lib/jsonLd";
+import { buildBreadcrumbJsonLd, buildProductItemListJsonLd, buildAggregateOfferJsonLd } from "@/lib/jsonLd";
 import { absoluteUrl } from "@/lib/siteUrl";
 import { DealsPageContent } from "@/views/DealsPageContent";
+import { SeoHubLinksForCategory } from "@/components/SeoHubLinks";
+import { CategoryBrandLinks } from "@/components/BrandLinks";
 import CategoryDealsLoading from "./loading";
 
-export const revalidate = 60;
+/** 4h — must match {@link PUBLIC_ISR_REVALIDATE_SECONDS} in @/lib/revalidate. */
+export const revalidate = 14400;
 
 type Props = {
   params: Promise<{ slug: string[] }>;
@@ -79,7 +83,10 @@ export default async function CategoryDealsPage({ params, searchParams }: Props)
     limit: DEFAULT_PAGE_SIZE,
     offset: filterParams.offset,
     store: filterParams.storeFilter || undefined,
-    brand: filterParams.brandFilter || undefined,
+    brands:
+      filterParams.brandFilters.length > 0
+        ? filterParams.brandFilters
+        : undefined,
     category_slug: categorySlug,
     min_discount: filterParams.minDiscount
       ? parseFloat(filterParams.minDiscount) || undefined
@@ -92,10 +99,6 @@ export default async function CategoryDealsPage({ params, searchParams }: Props)
       Object.keys(filterParams.specFilters).length > 0
         ? filterParams.specFilters
         : undefined,
-    variantFilters:
-      Object.keys(filterParams.variantFilters).length > 0
-        ? filterParams.variantFilters
-        : undefined,
     q: filterParams.searchQuery.trim() || undefined,
     sort: filterParams.sort,
     group_variants: true,
@@ -103,7 +106,10 @@ export default async function CategoryDealsPage({ params, searchParams }: Props)
 
   const facetsParams = {
     store: filterParams.storeFilter || undefined,
-    brand: filterParams.brandFilter || undefined,
+    brands:
+      filterParams.brandFilters.length > 0
+        ? filterParams.brandFilters
+        : undefined,
     category_slug: categorySlug,
     min_discount: filterParams.minDiscount
       ? parseFloat(filterParams.minDiscount) || undefined
@@ -112,16 +118,12 @@ export default async function CategoryDealsPage({ params, searchParams }: Props)
       Object.keys(filterParams.specFilters).length > 0
         ? filterParams.specFilters
         : undefined,
-    variantFilters:
-      Object.keys(filterParams.variantFilters).length > 0
-        ? filterParams.variantFilters
-        : undefined,
     q: filterParams.searchQuery.trim() || undefined,
   };
 
   const facetsForBrandOptionsPromise: Promise<FacetsResponse | null> =
-    filterParams.brandFilter
-      ? fetchFacets({ ...facetsParams, brand: undefined })
+    filterParams.brandFilters.length > 0
+      ? fetchFacets({ ...facetsParams, brands: undefined })
       : Promise.resolve(null);
 
   const [dealsResponse, facetsResponse, facetsForBrandOptions, stores] =
@@ -134,18 +136,10 @@ export default async function CategoryDealsPage({ params, searchParams }: Props)
 
   const deals = dealsResponse.deals ?? [];
   const totalCount = dealsResponse.total_count ?? 0;
-  const facetsBase = facetsResponse ?? {
-    spec_facets: [],
-    brand_facets: [],
-    variant_facets: [],
-    price_range: { min: 0, max: 0 },
-    total_matching: 0,
-  };
-  const facets = {
-    ...facetsBase,
-    brand_facets:
-      facetsForBrandOptions?.brand_facets ?? facetsBase.brand_facets,
-  };
+  const facets = normalizeFacetsResponse(
+    facetsResponse,
+    facetsForBrandOptions?.brand_facets,
+  );
 
   const dealsListPath = searchParamsRecordToDealsCategoryListPath(
     pathname,
@@ -178,16 +172,24 @@ export default async function CategoryDealsPage({ params, searchParams }: Props)
     <>
       <JsonLd data={buildBreadcrumbJsonLd(breadcrumbItems)} />
       <JsonLd
-        data={buildItemListJsonLd({
+        data={buildProductItemListJsonLd({
           name: seo.title,
           description: seo.description,
           totalCount,
-          deals: deals.map((d) => ({
-            id: d.id,
-            product_name: d.product_name,
-          })),
+          deals,
         })}
       />
+      {facets.price_range.max > 0 ? (
+        <JsonLd
+          data={buildAggregateOfferJsonLd({
+            name: seo.title,
+            pageUrl: absoluteUrl(pathname),
+            lowPrice: facets.price_range.min,
+            highPrice: facets.price_range.max,
+            offerCount: totalCount,
+          })}
+        />
+      ) : null}
       <Suspense fallback={<CategoryDealsLoading />}>
         <DealsPageContent
           deals={deals}
@@ -197,7 +199,14 @@ export default async function CategoryDealsPage({ params, searchParams }: Props)
           categoryTree={categoryTree}
           dealsListPath={dealsListPath}
           categoryIntro={seo.intro}
-        />
+        >
+          <SeoHubLinksForCategory categorySlug={categorySlug} />
+          <CategoryBrandLinks
+            categorySlug={categorySlug}
+            categoryTree={categoryTree}
+            brandFacets={facets.brand_facets}
+          />
+        </DealsPageContent>
       </Suspense>
     </>
   );

@@ -11,13 +11,20 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
+import { ExternalLink } from "lucide-react";
 import { track } from "@vercel/analytics";
 import posthog from "posthog-js";
-import type { Deal } from "@/api";
-import type { PriceHistoryResponse } from "@/api";
+import type { CategoryTreeNode, Deal, PriceHistoryResponse } from "@/api";
 import { isCategoryBrowseRedundantWithBack } from "@/lib/dealsBackHref";
-import { cn } from "@/lib/utils";
+import { dealsListSurfaceFromListHref } from "@/lib/dealsListSurface";
+import { computeDealScore, pricePositionLabel } from "@/lib/dealScore";
+import { cn, focusRing } from "@/lib/utils";
+import { formatMoney } from "@/lib/formatMoney";
 import { Button } from "@/components/ui/button";
+import { useDealDetailListContext } from "./DealDetailBackNav";
+
+const monoMicro =
+  "font-mono text-[10px] font-semibold uppercase tracking-[0.14em]";
 
 function formatDate(iso: string) {
   try {
@@ -41,24 +48,58 @@ function formatAxisDate(iso: string) {
   }
 }
 
+function CardCropMarks() {
+  return (
+    <>
+      <span
+        aria-hidden
+        className="pointer-events-none absolute left-1.5 top-1.5 z-10 size-3 border-l border-t border-foreground"
+      />
+      <span
+        aria-hidden
+        className="pointer-events-none absolute bottom-1.5 right-1.5 z-10 size-3 border-b border-r border-foreground"
+      />
+    </>
+  );
+}
+
+function SectionLabel({ kicker, title }: { kicker: string; title: string }) {
+  return (
+    <div className="mb-4 flex flex-wrap items-end gap-3">
+      <span className={cn(monoMicro, "text-muted-foreground pb-0.5")}>
+        {kicker}
+      </span>
+      <h2 className="text-lg font-semibold tracking-tight text-foreground">
+        {title}
+      </h2>
+      <span className="mb-0.5 h-px min-w-8 flex-1 max-w-xs bg-border" />
+    </div>
+  );
+}
+
 type Props = {
   deal: Deal;
   priceHistory?: PriceHistoryResponse | null;
-  /** Preserves `/deals` query when opening a deal from the filtered list (`?from=`). */
-  backToDealsHref?: string;
-  /** When `canonical_category` resolves and `backToDealsHref` is a different path, link to `/deals/c/...`. */
+  categoryTree: CategoryTreeNode[];
   categoryBrowseHref?: string;
   categoryBrowseLabel?: string;
 };
 
-export function DealDetailContent({
+function DealDetailContentInner({
   deal,
   priceHistory,
-  backToDealsHref = "/deals",
+  categoryTree,
   categoryBrowseHref,
   categoryBrowseLabel,
 }: Props) {
   const viewUrl = deal.affiliate_url || deal.product_url;
+  const { backToDealsHref, backToDealsLabel } =
+    useDealDetailListContext(categoryTree);
+  const listSurface = dealsListSurfaceFromListHref(backToDealsHref);
+  const showCategoryChip =
+    categoryBrowseHref != null &&
+    categoryBrowseLabel != null &&
+    !isCategoryBrowseRedundantWithBack(backToDealsHref, categoryBrowseHref);
   const discountPct =
     deal.discount_pct != null
       ? Math.round(deal.discount_pct)
@@ -68,11 +109,24 @@ export function DealDetailContent({
         ? Math.round((1 - deal.current_price / deal.original_price) * 100)
         : null;
 
+  const savings =
+    deal.original_price != null &&
+    deal.original_price > deal.current_price &&
+    !(
+      deal.price_range?.length === 2 &&
+      deal.price_range[0] !== deal.price_range[1]
+    )
+      ? deal.original_price - deal.current_price
+      : null;
+
   const chartData =
-    priceHistory?.points.map((p) => ({
+    (priceHistory?.points ?? []).map((p) => ({
       ...p,
       dateLabel: formatAxisDate(p.recorded_at),
-    })) ?? [];
+    }));
+
+  const dealScore = computeDealScore(deal, priceHistory);
+  const priceLabel = pricePositionLabel(deal, priceHistory);
 
   useEffect(() => {
     posthog.capture("deal_detail_viewed", {
@@ -82,269 +136,450 @@ export function DealDetailContent({
       current_price: deal.current_price,
       discount_pct: discountPct,
       price_dropped: priceHistory?.price_dropped ?? false,
+      list_surface: listSurface,
     });
   }, []);
 
   return (
-    <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8">
-      <div className="mb-6 space-y-2">
+    <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
+      <nav aria-label="Deal navigation" className="mb-6">
         <Link
           href={backToDealsHref}
-          className="text-sm text-muted-foreground hover:text-foreground inline-block"
+          className={cn(
+            "inline-block rounded-sm font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground hover:text-foreground",
+            focusRing,
+          )}
         >
-          ← Back to deals
+          {backToDealsLabel}
         </Link>
-        {categoryBrowseHref &&
-        categoryBrowseLabel &&
-        !isCategoryBrowseRedundantWithBack(backToDealsHref, categoryBrowseHref) ? (
-          <p className="text-sm text-muted-foreground">
-            <Link
-              href={categoryBrowseHref}
-              className="font-medium text-foreground underline-offset-4 hover:underline"
-            >
-              {categoryBrowseLabel}
-            </Link>
-            <span className="font-normal"> — more deals in this category</span>
-          </p>
-        ) : null}
-      </div>
+      </nav>
 
-      <div className="bg-card rounded-xl shadow-lg border border-border overflow-hidden">
-        <div className="p-6">
-          <div className="flex gap-6 flex-wrap">
-            <div className="w-40 h-40 flex-shrink-0 bg-muted rounded-lg overflow-hidden">
-              {deal.image_url ? (
-                <img
-                  src={deal.image_url}
-                  alt={deal.product_name}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm">
-                  No image
-                </div>
-              )}
-            </div>
-            <div className="min-w-0 flex-1">
-              {deal.brand && (
-                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                  {deal.brand}
-                </span>
-              )}
-              <h1 className="font-semibold text-foreground text-xl mt-0.5">
-                {deal.product_name}
-              </h1>
-              <p className="text-sm text-muted-foreground mt-1">
-                {deal.store_name}
-              </p>
-              <div className="mt-2 flex flex-wrap items-baseline gap-2">
-                <span className="text-2xl font-bold text-foreground">
-                  ${deal.current_price.toFixed(2)}
-                </span>
-                {deal.original_price != null &&
-                  deal.original_price > deal.current_price && (
-                    <span className="text-base text-muted-foreground line-through">
-                      ${deal.original_price.toFixed(2)}
-                    </span>
-                  )}
-                {discountPct != null && discountPct > 0 && (
-                  <span className="bg-red-100 text-red-800 text-sm font-medium px-2 py-0.5 rounded dark:bg-red-900/30 dark:text-red-400">
-                    {discountPct}% off
-                  </span>
-                )}
-                {priceHistory?.price_dropped && (
-                  <span className="bg-emerald-100 text-emerald-800 text-sm font-medium px-2 py-0.5 rounded dark:bg-emerald-900/30 dark:text-emerald-400">
-                    Price dropped
-                  </span>
+      <div className="relative pt-3">
+        <span
+          className={cn(
+            "absolute right-4 top-0 z-10 max-w-[14rem] truncate rounded-t-sm border border-foreground border-b-0 bg-primary px-2 py-0.5",
+            monoMicro,
+            "tabular-nums text-foreground",
+          )}
+          title={deal.store_name}
+        >
+          {"// "}
+          {deal.store_name.toUpperCase()}
+        </span>
+
+        <article
+          className={cn(
+            "relative overflow-hidden rounded-sm border border-foreground bg-card",
+            "shadow-sm transition-shadow hover:shadow-md",
+          )}
+        >
+          <CardCropMarks />
+          <div className="p-5 sm:p-6">
+            <div className="flex flex-col gap-6 sm:flex-row sm:gap-8">
+              <div className="mx-auto w-40 shrink-0 overflow-hidden rounded-sm border border-foreground bg-muted sm:mx-0 sm:w-44">
+                {deal.image_url ? (
+                  <img
+                    src={deal.image_url}
+                    alt={deal.product_name}
+                    className="aspect-square h-full w-full object-cover"
+                  />
+                ) : (
+                  <div className="flex aspect-square w-full items-center justify-center text-sm text-muted-foreground">
+                    No image
+                  </div>
                 )}
               </div>
-              <Button asChild className="mt-4">
-                <a
-                  href={viewUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={() =>
-                    track("view_at_store", {
-                      deal_id: deal.id,
-                      store: deal.store_name,
-                      brand: deal.brand ?? "",
-                    })
-                  }
-                >
-                  Snag the Deal
-                </a>
-              </Button>
-              {deal.price_range != null &&
-                deal.price_range.length === 2 &&
-                deal.price_range[0] !== deal.price_range[1] && (
-                  <p className="text-sm text-muted-foreground mt-2">
-                    From ${deal.price_range[0].toFixed(2)} to $
-                    {deal.price_range[1].toFixed(2)} across variants
+              <div className="min-w-0 flex-1">
+                {deal.brand && (
+                  <p className={cn(monoMicro, "text-muted-foreground")}>
+                    {"// "}
+                    {deal.brand}
                   </p>
                 )}
-            </div>
-          </div>
+                <h1 className="mt-1 text-2xl font-semibold leading-snug tracking-tight text-foreground">
+                  {deal.product_name}
+                </h1>
 
-          {deal.variants != null && deal.variants.length > 1 && (
-            <div className="mt-8 border-t border-border pt-6">
-              <h2 className="font-medium text-foreground mb-3">Variants</h2>
-              <div className="overflow-x-auto rounded-xl border border-border bg-muted/20">
-                <table className="w-full min-w-[min(100%,20rem)] text-sm">
-                  <thead>
-                    <tr className="border-b border-border bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
-                      <th className="px-3 py-2.5 font-medium">Options</th>
-                      <th className="px-3 py-2.5 font-medium text-right">
-                        Price
-                      </th>
-                      <th className="px-3 py-2.5 font-medium text-right w-[7.5rem]">
-                        Availability
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border/80">
-                    {deal.variants.map((v) => (
-                      <tr
-                        key={v.id}
-                        className="transition-colors hover:bg-muted/30"
+                <div className="mt-4 flex flex-wrap items-center gap-2">
+                  {discountPct != null && discountPct > 0 && (
+                    <span
+                      className={cn(
+                        "inline-block rounded-sm bg-primary px-2 py-1 font-mono text-sm font-semibold tabular-nums text-foreground",
+                        "shadow-[2px_2px_0_var(--foreground)]",
+                      )}
+                      style={{ transform: "rotate(-2deg)" }}
+                    >
+                      −{discountPct}%
+                    </span>
+                  )}
+                  {priceHistory?.price_dropped && (
+                    <span
+                      className={cn(
+                        "inline-flex items-center rounded-sm border border-foreground/40 bg-card px-2 py-0.5",
+                        monoMicro,
+                        "text-foreground",
+                      )}
+                    >
+                      PRICE DROP
+                    </span>
+                  )}
+                  {dealScore.score >= 40 ? (
+                    <span
+                      className={cn(
+                        "inline-flex items-center rounded-sm border border-foreground/40 bg-primary/15 px-2 py-0.5",
+                        monoMicro,
+                        "text-foreground",
+                      )}
+                    >
+                      {dealScore.displayLabel.toUpperCase()}
+                    </span>
+                  ) : null}
+                  {priceLabel ? (
+                    <span className="text-xs text-muted-foreground">
+                      {priceLabel}
+                    </span>
+                  ) : null}
+                </div>
+
+                <div
+                  className={cn(
+                    "mt-4 flex flex-wrap items-end gap-3 border-t border-border pt-4",
+                    savings != null && savings > 0 ? "justify-between" : "",
+                  )}
+                >
+                  {savings != null && savings > 0 ? (
+                    <div className="space-y-0.5">
+                      <span
+                        className={cn(monoMicro, "text-muted-foreground block")}
                       >
-                        <td className="px-3 py-3 align-top">
-                          {v.variant_options &&
-                          Object.keys(v.variant_options).length > 0 ? (
-                            <div className="flex flex-wrap gap-1.5">
-                              {Object.entries(v.variant_options).map(
-                                ([k, val]) => (
-                                  <span
-                                    key={k}
-                                    className="inline-flex items-baseline gap-1 rounded-md border border-border/80 bg-background/80 px-2 py-1 text-xs shadow-sm"
-                                  >
-                                    <span className="text-muted-foreground">
-                                      {k}
-                                    </span>
-                                    <span className="font-medium text-foreground">
-                                      {val}
-                                    </span>
-                                  </span>
-                                ),
-                              )}
-                            </div>
-                          ) : (
-                            <span className="text-muted-foreground">—</span>
+                        save
+                      </span>
+                      <span className="font-mono text-sm font-medium leading-none tabular-nums text-muted-foreground">
+                        ${formatMoney(savings)}
+                      </span>
+                    </div>
+                  ) : null}
+                  <div
+                    className={cn(
+                      "min-w-0 space-y-0.5",
+                      savings != null && savings > 0
+                        ? "text-right sm:ml-auto"
+                        : "text-left",
+                    )}
+                  >
+                    {deal.original_price != null &&
+                      deal.original_price > deal.current_price &&
+                      !(deal.price_range && deal.price_range.length === 2) && (
+                        <span
+                          className={cn(
+                            monoMicro,
+                            "block tabular-nums text-muted-foreground line-through",
                           )}
-                        </td>
-                        <td className="px-3 py-3 align-top text-right tabular-nums">
-                          <span className="font-semibold text-foreground">
-                            ${v.current_price.toFixed(2)}
-                          </span>
-                          {v.original_price != null &&
-                            v.original_price > v.current_price && (
-                              <span className="block text-xs text-muted-foreground line-through">
-                                ${v.original_price.toFixed(2)}
-                              </span>
-                            )}
-                        </td>
-                        <td className="px-3 py-3 align-top text-right">
-                          <span
-                            className={cn(
-                              "inline-flex rounded-full px-2 py-0.5 text-xs font-medium",
-                              v.is_in_stock
-                                ? "bg-emerald-500/15 text-emerald-800 dark:text-emerald-400"
-                                : "bg-muted text-muted-foreground",
-                            )}
-                          >
-                            {v.is_in_stock ? "In stock" : "Out of stock"}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <p className="text-xs text-muted-foreground mt-3">
-                Prices and availability are from the retailer; open the deal to
-                select a variant on the store site.
-              </p>
-            </div>
-          )}
+                        >
+                          was ${formatMoney(deal.original_price)}
+                        </span>
+                      )}
+                    {deal.price_range != null &&
+                    deal.price_range.length === 2 &&
+                    deal.price_range[0] !== deal.price_range[1] ? (
+                      <span className="font-mono text-2xl font-semibold tabular-nums text-foreground sm:text-3xl">
+                        ${formatMoney(deal.price_range[0])} – $
+                        {formatMoney(deal.price_range[1])}
+                      </span>
+                    ) : (
+                      <span className="font-mono text-2xl font-semibold tabular-nums text-foreground sm:text-3xl">
+                        ${formatMoney(deal.current_price)}
+                      </span>
+                    )}
+                  </div>
+                </div>
 
-          {priceHistory && (
-            <div className="mt-8">
-              <h2 className="font-medium text-foreground mb-3">
-                Price history
-              </h2>
-              {chartData.length === 0 && (
-                <p className="text-muted-foreground text-sm">No history yet.</p>
-              )}
-              {chartData.length === 1 && (
-                <p className="text-muted-foreground text-sm">
-                  One price recorded: ${chartData[0].price.toFixed(2)} on{" "}
-                  {formatDate(chartData[0].recorded_at)}.
-                </p>
-              )}
-              {chartData.length >= 2 && (
-                <>
-                  <div className="flex flex-wrap gap-4 text-sm mb-3">
-                    <span className="text-muted-foreground">
-                      Lowest:{" "}
-                      <strong>${priceHistory.lowest_price.toFixed(2)}</strong>
+                <Button asChild className="mt-5" size="lg">
+                  <a
+                    href={viewUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => {
+                      track("view_at_store", {
+                        deal_id: deal.id,
+                        store: deal.store_name,
+                        brand: deal.brand ?? "",
+                        list_surface: listSurface,
+                      });
+                      posthog.capture("deal_outbound_click", {
+                        deal_id: deal.id,
+                        store: deal.store_name,
+                        brand: deal.brand ?? "",
+                        list_surface: listSurface,
+                        cta: "snag_retailer",
+                      });
+                    }}
+                  >
+                    <span className="relative z-[1] inline-flex items-center gap-2">
+                      Snag the Deal
+                      <ExternalLink
+                        aria-hidden
+                        className="size-4 shrink-0"
+                        strokeWidth={2.25}
+                      />
+                      <span className="sr-only"> (opens in new tab)</span>
                     </span>
-                    <span className="text-muted-foreground">
-                      Highest:{" "}
-                      <strong>${priceHistory.highest_price.toFixed(2)}</strong>
-                    </span>
-                    <span className="text-muted-foreground">
-                      Average:{" "}
-                      <strong>${priceHistory.avg_price.toFixed(2)}</strong>
-                    </span>
-                  </div>
-                  <div className="h-64 w-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart
-                        data={chartData}
-                        margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
-                      >
-                        <CartesianGrid
-                          strokeDasharray="3 3"
-                          stroke="var(--color-border)"
-                        />
-                        <XAxis
-                          dataKey="dateLabel"
-                          tick={{ fontSize: 12 }}
-                          stroke="var(--color-muted-foreground)"
-                        />
-                        <YAxis
-                          tick={{ fontSize: 12 }}
-                          stroke="var(--color-muted-foreground)"
-                          tickFormatter={(v) => `$${v}`}
-                          domain={["dataMin - 5", "dataMax + 5"]}
-                        />
-                        <Tooltip
-                          formatter={(value: number) => [
-                            `$${value.toFixed(2)}`,
-                            "Price",
-                          ]}
-                          labelFormatter={(_, payload) =>
-                            payload?.[0]?.payload?.recorded_at
-                              ? formatDate(payload[0].payload.recorded_at)
-                              : ""
-                          }
-                        />
-                        <Line
-                          type="monotone"
-                          dataKey="price"
-                          stroke="var(--color-foreground)"
-                          strokeWidth={2}
-                          dot={{ fill: "var(--color-foreground)", r: 3 }}
-                          activeDot={{ r: 5 }}
-                        />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </div>
-                </>
-              )}
+                  </a>
+                </Button>
+                {deal.price_range != null &&
+                  deal.price_range.length === 2 &&
+                  deal.price_range[0] !== deal.price_range[1] && (
+                    <p className={cn(monoMicro, "mt-3 text-muted-foreground")}>
+                      From ${formatMoney(deal.price_range[0])} to $
+                      {formatMoney(deal.price_range[1])} across variants
+                    </p>
+                  )}
+                {showCategoryChip ? (
+                  <p className="mt-4 max-w-full">
+                    <Link
+                      href={categoryBrowseHref}
+                      title={categoryBrowseLabel}
+                      className={cn(
+                        "inline-block max-w-full truncate rounded-sm font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground hover:text-foreground hover:underline hover:underline-offset-4",
+                        focusRing,
+                      )}
+                    >
+                      More in {categoryBrowseLabel}
+                    </Link>
+                  </p>
+                ) : null}
+              </div>
             </div>
-          )}
-        </div>
+
+            {deal.variants != null && deal.variants.length > 1 && (
+              <div className="mt-8 border-t border-border pt-8">
+                <SectionLabel kicker="// 01" title="Variants" />
+                <div className="overflow-x-auto rounded-sm border border-foreground bg-card">
+                  <table className="w-full min-w-[min(100%,20rem)] text-sm">
+                    <thead>
+                      <tr className="border-b border-foreground bg-secondary/80 text-left">
+                        <th
+                          className={cn(
+                            monoMicro,
+                            "px-3 py-2.5 font-semibold text-foreground",
+                          )}
+                        >
+                          Options
+                        </th>
+                        <th
+                          className={cn(
+                            monoMicro,
+                            "px-3 py-2.5 text-right font-semibold text-foreground",
+                          )}
+                        >
+                          Price
+                        </th>
+                        <th
+                          className={cn(
+                            monoMicro,
+                            "w-[7.5rem] px-3 py-2.5 text-right font-semibold text-foreground",
+                          )}
+                        >
+                          Availability
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {deal.variants.map((v) => (
+                        <tr
+                          key={v.id}
+                          className="transition-colors hover:bg-muted/40"
+                        >
+                          <td className="px-3 py-3 align-top">
+                            {v.variant_options &&
+                            Object.keys(v.variant_options).length > 0 ? (
+                              <div className="flex flex-wrap gap-1.5">
+                                {Object.entries(v.variant_options).map(
+                                  ([k, val]) => (
+                                    <span
+                                      key={k}
+                                      className={cn(
+                                        "inline-flex items-baseline gap-1 rounded-sm border border-foreground/40 bg-card px-2 py-0.5",
+                                        monoMicro,
+                                      )}
+                                    >
+                                      <span className="text-muted-foreground">
+                                        {k}
+                                      </span>
+                                      <span className="font-medium text-foreground">
+                                        {val}
+                                      </span>
+                                    </span>
+                                  ),
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-muted-foreground">—</span>
+                            )}
+                          </td>
+                          <td className="px-3 py-3 align-top text-right tabular-nums">
+                            <span className="font-mono font-semibold text-foreground">
+                              ${v.current_price.toFixed(2)}
+                            </span>
+                            {v.original_price != null &&
+                              v.original_price > v.current_price && (
+                                <span className="font-mono text-xs text-muted-foreground line-through block">
+                                  ${v.original_price.toFixed(2)}
+                                </span>
+                              )}
+                          </td>
+                          <td className="px-3 py-3 align-top text-right">
+                            <span
+                              className={cn(
+                                "inline-flex rounded-sm border px-2 py-0.5",
+                                monoMicro,
+                                v.is_in_stock
+                                  ? "border-foreground/40 bg-primary/15 text-foreground"
+                                  : "border-border bg-muted text-muted-foreground",
+                              )}
+                            >
+                              {v.is_in_stock ? "IN STOCK" : "OUT"}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <p className={cn(monoMicro, "mt-3 text-muted-foreground")}>
+                  Prices and availability are from the retailer; open the deal
+                  to select a variant on the store site.
+                </p>
+              </div>
+            )}
+
+            {priceHistory && (
+              <div className="mt-8 border-t border-border pt-8">
+                <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+                  <SectionLabel kicker="// 02" title="Price history" />
+                  <Link
+                    href={`/deals/${deal.id}/price-history`}
+                    className={cn(
+                      "font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground hover:text-foreground",
+                      focusRing,
+                    )}
+                  >
+                    Full price tracker →
+                  </Link>
+                </div>
+                {chartData.length === 0 && (
+                  <p className="text-sm text-muted-foreground">
+                    No history yet.
+                  </p>
+                )}
+                {chartData.length === 1 && (
+                  <p className="text-sm text-muted-foreground">
+                    One price recorded: ${chartData[0].price.toFixed(2)} on{" "}
+                    {formatDate(chartData[0].recorded_at)}.
+                  </p>
+                )}
+                {chartData.length >= 2 && (
+                  <>
+                    <div className="mb-4 flex flex-wrap gap-4 font-mono text-xs font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+                      <span>
+                        LOW{" "}
+                        <strong className="text-foreground tabular-nums">
+                          ${priceHistory.lowest_price.toFixed(2)}
+                        </strong>
+                      </span>
+                      <span>
+                        HIGH{" "}
+                        <strong className="text-foreground tabular-nums">
+                          ${priceHistory.highest_price.toFixed(2)}
+                        </strong>
+                      </span>
+                      <span>
+                        AVG{" "}
+                        <strong className="text-foreground tabular-nums">
+                          ${priceHistory.avg_price.toFixed(2)}
+                        </strong>
+                      </span>
+                    </div>
+                    <div className="h-64 w-full rounded-sm border border-foreground/40 bg-card/50 p-2">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart
+                          data={chartData}
+                          margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
+                        >
+                          <CartesianGrid
+                            strokeDasharray="3 3"
+                            stroke="var(--color-border)"
+                          />
+                          <XAxis
+                            dataKey="dateLabel"
+                            tick={{
+                              fontSize: 11,
+                              fontFamily: "var(--font-mono)",
+                            }}
+                            stroke="var(--color-muted-foreground)"
+                          />
+                          <YAxis
+                            tick={{
+                              fontSize: 11,
+                              fontFamily: "var(--font-mono)",
+                            }}
+                            stroke="var(--color-muted-foreground)"
+                            tickFormatter={(v) => `$${formatMoney(v)}`}
+                            domain={["dataMin - 5", "dataMax + 5"]}
+                          />
+                          <Tooltip
+                            formatter={(value: number) => [
+                              `$${value.toFixed(2)}`,
+                              "Price",
+                            ]}
+                            labelFormatter={(_, payload) =>
+                              payload?.[0]?.payload?.recorded_at
+                                ? formatDate(payload[0].payload.recorded_at)
+                                : ""
+                            }
+                            contentStyle={{
+                              borderRadius: "2px",
+                              border: "1px solid var(--color-border)",
+                              backgroundColor: "var(--color-card)",
+                              color: "var(--color-foreground)",
+                              fontFamily: "var(--font-mono)",
+                              fontSize: "12px",
+                              boxShadow:
+                                "var(--shadow-sm, 0 1px 2px rgb(0 0 0 / 0.06))",
+                            }}
+                            labelStyle={{
+                              color: "var(--color-muted-foreground)",
+                              marginBottom: "4px",
+                            }}
+                            itemStyle={{
+                              color: "var(--color-foreground)",
+                            }}
+                          />
+                          <Line
+                            type="monotone"
+                            dataKey="price"
+                            stroke="var(--color-primary)"
+                            strokeWidth={2}
+                            dot={false}
+                            activeDot={{
+                              r: 5,
+                              fill: "var(--color-foreground)",
+                            }}
+                          />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+        </article>
       </div>
     </div>
   );
+}
+
+export function DealDetailContent(props: Props) {
+  return <DealDetailContentInner {...props} />;
 }

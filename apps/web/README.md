@@ -5,7 +5,7 @@ React frontend for the MTB deal aggregator. Built with Next.js 15 (App Router), 
 ## Tech Stack
 
 - **Next.js 15** — App Router, SSR/ISR
-- **React 18** — UI
+- **React 19** — UI (`useOptimistic` for deal filters)
 - **Tailwind v4** — styling (CSS variables, semantic tokens)
 - **shadcn/ui** — Button, Input, Select, Card, **Drawer** ([Vaul](https://github.com/emilkowalski/vaul)) primitives; add `Sheet` via `pnpm dlx shadcn@latest add sheet` if you need a Radix Dialog slide-over
 - **TanStack Query** — admin dashboard data fetching
@@ -13,27 +13,35 @@ React frontend for the MTB deal aggregator. Built with Next.js 15 (App Router), 
 
 ## Features
 
-- **SSR/ISR** — Home, `/categories`, deals list, and deal detail pages are server-rendered for SEO
+- **Home page deals** — **Recent price drops** row (`GET /deals?sort=price_drop`, 6 deals; hidden when empty) plus four category-scoped rows (MTB, eMTB, components, gear) in horizontal [`DealCarousel`](src/components/DealCarousel.tsx) scrollers; config in [`src/lib/homeDealSections.ts`](src/lib/homeDealSections.ts). Category rows fetch `GET /deals?sort=value&category_slug=…` (`$40` min for bikes, `$25` for components/gear). Empty rows are hidden. PostHog `home_section` includes `price_drops` for the price-drop carousel.
+- **SSR/ISR** — Home, `/categories`, deals list, and deal detail pages are server-rendered for SEO. Public routes use **4h ISR** ([`src/lib/revalidate.ts`](src/lib/revalidate.ts)), aligned with the API scrape cadence (~4h), to limit Vercel ISR writes while keeping listing data as fresh as the pipeline allows. **Admin → Cache** (`/admin/cache`) can on-demand purge a specific path (e.g. `/deals?sort=price_drop`) or the `public-data` fetch cache tag after deploys (requires `ADMIN_PASSWORD` on the web app).
+- **Custom 404** — [`NotFoundContent`](src/components/NotFoundContent.tsx) replaces the default Next.js 404 (Workshop Modern styling, `noindex`). Public `notFound()` calls use [`(public)/not-found.tsx`](src/app/(public)/not-found.tsx) inside the site chrome; unmatched URLs use root [`not-found.tsx`](src/app/not-found.tsx).
 - **Categories hub counts** — The categories page shows **`product_count`** from `GET /categories/tree` (one per distinct `product_group_key`, matching the grouped deals list). Other UI still uses **`deal_count`** (listing rows) where noted in code, e.g. sitemap category paths and `categoryHasDeals` chips
-- **Structured data (JSON-LD)** — `WebSite` + `SearchAction` and `ItemList` on the home page; `BreadcrumbList` + `ItemList` on `/deals` and `/deals/c/[...slug]`; `CollectionPage` (with `hasPart` for each top-level department) on `/categories`; `BreadcrumbList` + `Product` + `Offer` on deal detail. Implemented via [`src/components/JsonLd.tsx`](src/components/JsonLd.tsx) and [`src/lib/jsonLd.ts`](src/lib/jsonLd.ts)
+- **Structured data (JSON-LD)** — `WebSite` + `SearchAction` and `ItemList` on the home page; `BreadcrumbList` + `ItemList` (with embedded `Product` on category/hub/brand pages) + optional `AggregateOffer` on `/deals/c/[...slug]`, **`/deals/hub/[slug]`**, and **`/deals/brand/[slug]`**; `CollectionPage` on `/categories`; `BreadcrumbList` + `Product` + `Offer` (with price-history bounds when available) on deal detail and **`/deals/[id]/price-history`**. See [`src/lib/jsonLd.ts`](src/lib/jsonLd.ts)
+- **Branding** — Public nav renders the trail-drop logo via [`TheDropperLogo`](src/components/TheDropperLogo.tsx) (inline SVG, `currentColor`; Storybook: `Components/TheDropperLogo`). Standalone artwork: [`public/the-dropper-logo.svg`](public/the-dropper-logo.svg); square icon variant [`public/the-dropper-icon.svg`](public/the-dropper-icon.svg) is the source for `favicon.png` / `favicon-light.png`. See [docs/DESIGN.md](../../docs/DESIGN.md).
 - **Default social image** — Root layout sets Open Graph and Twitter images to [`public/the-dropper-logo-horizontal.png`](public/the-dropper-logo-horizontal.png); deal pages override with the listing image when available
 - **llms.txt** — [`public/llms.txt`](public/llms.txt) and [`public/llms-full.txt`](public/llms-full.txt) describe the site for AI crawlers (GEO)
-- **Sitemap & robots** — [`src/app/sitemap.ts`](src/app/sitemap.ts) (revalidated hourly): `/`, `/deals`, `/categories`, every `/deals/c/...` from `GET /categories/tree`, and deal detail URLs from `GET /deals` (paginated; caps at 48k deal URLs). [`src/app/robots.ts`](src/app/robots.ts) allows crawlers on public routes and disallows `/admin/`. Requires API at build/runtime for full URL lists; falls back to static routes if the API is unreachable
+- **Sitemap & robots** — [`src/app/sitemap.ts`](src/app/sitemap.ts): static routes, `/deals/c/...`, indexable **`/deals/hub/...`** and **`/deals/brand/...`** (≥3 deals), and deal URLs (48k cap; `lastModified` from `last_scraped`). [`src/app/robots.ts`](src/app/robots.ts) disallows `/admin/`; admin layout also sets `noindex`. **Google Shopping feed:** [`/feed/google-shopping.xml`](src/app/feed/google-shopping.xml/route.ts)
 - **Canonical category URLs** — [`src/middleware.ts`](src/middleware.ts) 308-redirects `/deals?category=<slug>` to `/deals/c/...`, preserving other query params. Home category cards link directly to `/deals/c/...` via [`src/lib/dealsCategoryPath.ts`](src/lib/dealsCategoryPath.ts). After taxonomy migrations (e.g. `022`), regenerate [`packages/shared/categories.export.json`](../../packages/shared/categories.export.json) so middleware’s static tree matches production `GET /categories/tree` (unknown slugs still fall back to legacy path parsing).
-- **GEO / category intros** — `/deals/c/[...slug]` passes optional `intro` from [`src/lib/categorySeo.ts`](src/lib/categorySeo.ts) into `DealsPageContent` above the filter chips. **Deal detail** resolves `canonical_category` to a category slug via [`src/lib/categoryTree.ts`](src/lib/categoryTree.ts) and, when it would not duplicate “Back to deals” (same pathname), shows a link to `/deals/c/...` with the path label (`Parent › Child — more deals in this category`). Hidden when `from=` already points at that category list
-- **SEO / internal links** — Public navigations use `<Link>` from `next/link` (crawlable `<a>` tags, prefetch-on-hover). Deal cards and category cards link to internal routes; `router.push` is reserved for programmatic actions (e.g. home search form submit). From the deals list, deal URLs include `?from=<encoded list path>` so “Back to deals” restores the current filters; values are validated server-side to `/deals`, `/deals?...`, or `/deals/c/...` (category routes).
-- **Navigation feedback** — Route-level `loading.tsx` skeletons for cross-route navigations; on `/deals` and `/deals/c/[...slug]`, same-route URL updates (filters, sort, pagination, toolbar search) wrap `router.replace` in `useTransition` and show a dimmed results area with a spinner until the RSC payload arrives
-- **Deals filters** — Brand options on `/deals` come from `GET /facets` `brand_facets` (scoped to category and other filters), not the global `/brands` list
-- **Deals categories** — Category selection is **above** the product grid (`DealsCategoryNav`): breadcrumbs (All + ancestors) and a chip row that shows **subcategories** when the current category has children (drill down), or **sibling** categories when it is a leaf (so users can switch peers without going up). At the site root with no category selected, chips list top-level categories. **`DealsBrowseFooter`** at the bottom lists crawlable `<Link>`s to each top-level department (cross-linking for SEO). Store, brand, discount, and spec/variant filters are only in the **sidebar** (desktop) or **filter drawer** (mobile). **SEO category URLs** use `/deals/c/<segments>` where each segment is derived from the **category tree** (child slug minus `parent.slug + "-"`), so a single logical segment can contain hyphens (e.g. `components-wheels-tires` → `/deals/c/components/wheels-tires`, not `/deals/c/components/wheels/tires`). [`src/lib/dealsCategoryPath.ts`](src/lib/dealsCategoryPath.ts) implements this; [`src/middleware.ts`](src/middleware.ts) uses a static tree from [`packages/shared/categories.export.json`](../../packages/shared/categories.export.json) for `?category=` redirects. The legacy `?category=<slug>` query on `/deals` still works; programmatic category changes prefer the `/deals/c/...` form. **`deal_count`** on each node from `GET /categories/tree` (subtree rollup of in-stock, visible listings) drives: hiding category chips / home cards / footer links when zero; omitting those paths from [`sitemap.ts`](src/app/sitemap.ts); and `noindex` on category pages with no inventory (metadata on `/deals/c/[...slug]`).
-- **Dark mode** — Toggle in nav header; defaults to system preference (`prefers-color-scheme`), persists choice in `localStorage`
-- **PostHog** — With `NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN` set, [`instrumentation-client.ts`](src/instrumentation-client.ts) initializes PostHog. Deals page category changes emit `filter_applied` with `filter_type: "category"` plus `nav_source` (`breadcrumb` | `chip` | `all_clear`) and `category_slug` when a slug is selected; `value` is the category slug or empty when cleared
-- **Branding** — Primary logo is `public/logo.png` (admin UI). Favicons: `public/favicon.png` / `public/favicon-light.png` via `metadata.icons` in `src/app/layout.tsx` (paired with `prefers-color-scheme`). The public nav uses `logo-light.png` in dark mode (`NavHeader`). Other assets in `public/` are optional (e.g. alternate wordmarks).
-- **Admin** — `/admin/llm-profiles`: LLM prompt profiles with a **Field library** tab (CRUD `llm_extraction_field_defs`) and a composition editor for profiles backed by migration `019` (`profile_fields`), including overrides and inline custom fields; legacy raw JSON editing remains for profiles without composition rows. Field types include `multi_enum` (migration `020`) for multiple values per key in `metadata.llm_specs`
+- **GEO / category intros** — Category intros from [`src/lib/categorySeo.ts`](src/lib/categorySeo.ts). **SEO hubs** ([`src/lib/seoHubs.ts`](src/lib/seoHubs.ts)) and **brand pages** ([`src/lib/brandSeo.ts`](src/lib/brandSeo.ts)) at `/deals/hub/[slug]`, `/deals/brand/[slug]`, and `/deals/brand/[slug]/c/...`. Hub/brand shortcut links at page bottom when inventory allows. **Deal detail** back nav uses **sessionStorage** ([`src/lib/dealDetailBackStorage.ts`](src/lib/dealDetailBackStorage.ts)); middleware strips legacy `?from=`. **`/deals/[id]/price-history`** price-tracker page. **Deal score** via [`src/lib/dealScore.ts`](src/lib/dealScore.ts)
+- **SEO / internal links** — Public navigations use `<Link>` from `next/link` (crawlable `<a>` tags, prefetch-on-hover). Deal cards link to canonical `/deals/[id]`; list context for “Back to deals” is stored in **sessionStorage** on click (middleware 308-strips legacy `?from=` query params). Related deals on detail pages link same-brand/category listings ([`src/components/RelatedDeals.tsx`](src/components/RelatedDeals.tsx)).
+- **Navigation feedback** — Route-level `loading.tsx` skeletons for cross-route navigations mirror **Workshop Modern** shells (`border-foreground`, square deal media, SKU tab, open-frame search placeholder); shared pieces live in [`src/components/skeletons/`](src/components/skeletons/). On `/deals` and `/deals/c/[...slug]`, same-route URL updates (filters, sort, pagination, toolbar search) wrap work in `useTransition` and show a dimmed results area with a spinner until the RSC payload arrives; **`useFilterParams`** uses **`useOptimistic`** with a memoized URL **canonical** state — the optimistic setter runs in the **same** `startTransition` as `router.replace` (per [React](https://react.dev/reference/react/useOptimistic)), then reconciles when the URL updates
+- **Deals filters** — Brand and spec filters use **multi-select checkbox groups** in the sidebar/drawer. URL state uses repeated query params (e.g. `?brand=SRAM&brand=Shimano&spec_tire_width=2.3&spec_tire_width=2.4`): OR within the same facet key, AND across keys. Brand options on `/deals` come from `GET /facets` `brand_facets` (scoped to category and other filters), not the global `/brands` list; when any brand is selected, the app also requests facets **without** `brand` so the full brand list stays available (same pattern as before). **Clear all** resets query-backed filters (search, store, brands, specs, discount, pagination, legacy `category` query) while **keeping** the `/deals/c/...` path when you are browsing a category (category is browsing context; use breadcrumbs/nav to leave the category)
+- **Deals categories** — Primary category browsing is the **`DealsMegaMenu`** under **Deals** in [`NavHeader`](src/components/NavHeader.tsx): a full-width mega menu on desktop (hover or chevron toggle) and an expandable panel in the mobile nav, listing the full category tree from `GET /categories/tree` so any category is one click away. On category pages, **`DealsCategoryNav`** shows compact breadcrumbs only (no chip drill-down). Category links **reset pagination** (`offset` dropped) while preserving other query filters; same-route filter/sort changes also reset page via **`useFilterParams`**. **`DealsBrowseFooter`** at the bottom lists crawlable `<Link>`s to each top-level department (cross-linking for SEO). Store, brand, discount, and spec filters are only in the **sidebar** (desktop) or **filter drawer** (mobile). **SEO category URLs** use `/deals/c/<segments>` where each segment is derived from the **category tree** (child slug minus `parent.slug + "-"`), so a single logical segment can contain hyphens (e.g. `components-wheels-tires` → `/deals/c/components/wheels-tires`, not `/deals/c/components/wheels/tires`). [`src/lib/dealsCategoryPath.ts`](src/lib/dealsCategoryPath.ts) implements this; [`src/middleware.ts`](src/middleware.ts) uses a static tree from [`packages/shared/categories.export.json`](../../packages/shared/categories.export.json) for `?category=` redirects. The legacy `?category=<slug>` query on `/deals` still works; programmatic category changes prefer the `/deals/c/...` form. **`deal_count`** on each node from `GET /categories/tree` (subtree rollup of in-stock, visible listings) drives: dimming empty categories in the mega menu / home cards / footer links when zero; omitting those paths from [`sitemap.ts`](src/app/sitemap.ts); and `noindex` on category pages with no inventory (metadata on `/deals/c/[...slug]`).
+- **Dark mode** — **`html` never receives the `dark` class** (blocking script in `layout.tsx` + `ThemeProvider`). Workshop Modern is **light-only** on the canvas; legacy `.dark` variables in `globals.css` keep lime primary/focus if `.dark` ever appears (e.g. browser tools). `ThemeContext` remains for API stability. `localStorage.theme` is ignored for the document class until a future dark Workshop theme ships.
+- **PostHog** — With `NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN` set, [`instrumentation-client.ts`](src/instrumentation-client.ts) initializes PostHog. Deals page category changes emit `filter_applied` with `filter_type: "category"` plus `nav_source` (`breadcrumb` | `chip` | `all_clear` | `mega_menu`) and `category_slug` when a slug is selected; `value` is the category slug or empty when cleared. Toggling **brand** or **spec** checkboxes emits `filter_applied` with `filter_type` (`brand` | `spec`), `value`, `action` (`add` | `remove`), and `selected_count` (number of selected values for that facet after the toggle; brand uses total selected brands). Clearing filters emits `filters_cleared` with `had_category_path` (`true` when the URL path was under `/deals/c/...` before the clear) and **`had_hub_path`** (`true` when under `/deals/hub/...`). When filter/sort/pagination navigation stays pending longer than ~15s, **`deals_transition_timeout`** fires with `duration_ms`, `pathname`, `search_params`, `sort`, and `offset`. **Retailer outbound clicks** from deal cards and deal detail emit **`deal_outbound_click`** (`cta`, `deal_id`, `store`, `brand`, **`list_surface`**: `hub` | `category` | `deals_list` | `home` | `other`). **`deal_card_click`** and **`deal_detail_viewed`** include **`list_surface`** where applicable; home carousels also send optional **`home_section`** (`mtb` | `emtb` | `components` | `gear`).
+- **Legal / affiliates** — [`src/components/AffiliateDisclosure.tsx`](src/components/AffiliateDisclosure.tsx) in the public footer: compensated links may earn commission; links to [`/policies`](src/app/(public)/policies/page.tsx) and [`/returns`](src/app/(public)/returns/page.tsx) for Merchant Center–aligned shipping/returns disclosure (aggregator does not fulfill orders).
+- **Admin** — `/admin/llm-profiles`: LLM prompt profiles with a **Field library** tab (CRUD `llm_extraction_field_defs`) and a composition editor for profiles backed by migration `019` (`profile_fields`), including overrides and inline custom fields; legacy raw JSON editing remains for profiles without composition rows. When the API sets `category_id`, profile detail shows **effective extraction schema** (merged with ancestor categories—the runtime schema for enrichment/facets). Field types include `multi_enum` (migration `020`) for multiple values per key in `metadata.llm_specs`
 - **Admin categories** — `/admin/categories`: optional per-category **description** (LLM classification rubrics; not the same as SEO copy in [`src/lib/categorySeo.ts`](src/lib/categorySeo.ts)). Returned on `GET /categories/tree` and used by the API when building the LLM category classifier prompt
+- **Admin Data Browser** — `/admin/data`: `GET /admin/listings` supports `category_slug` (subtree on `category_id`, same as public `GET /deals`) via the structured **Category (public)** picker; the legacy **Canonical path (exact)** dropdown still matches `canonical_category` for drift triage. Sort includes **Recently enriched** (`sort=last_enriched`) to review listings by `last_enriched_at`; the table shows last enriched timestamps. Listing detail modal: **CategoryPicker** saves via `PATCH /admin/listings/:id/category` (syncs variant siblings; may suggest a taxonomy rule to create); bulk toolbar **Set category** uses `POST /admin/listings/bulk-set-category`; spec overrides use profile-driven widgets (`enum` → select, `multi_enum` → checkboxes) from `GET /admin/categories/:id/profile-fields`. Row actions include **Run LLM specs** (PDP-independent classify + extraction); toolbar supports **bulk LLM specs** with the same filters as bulk classify/enrich
+- **Admin Operations** — `/admin/operations`: alongside **Re-enrich** and **Re-classify**, **LLM specs only** calls `POST /llm-specs-now` with the selected store / canonical-path / confidence filters plus optional inclusion of listings with empty scraped specs. **Database maintenance** lists incremental migration status (`GET /admin/db/migrations`) and can run pending migrations (`POST /admin/db/migrate`) or the idempotent store seed (`POST /admin/db/seed`); in production the API must set `ALLOW_ADMIN_DB_OPS=1` for run actions
+- **Admin Insights** — `/admin/insights`: pipeline health charts from `GET /admin/metrics/pipeline` — enrichment backlog (total, stale-since-scrape, never enriched), freshness histogram by `last_enriched_at`, daily scrape upserts and enrich job throughput (14/30/90-day window), and per-store backlog table with enricher support flags
+- **Admin Cache** — `/admin/cache`: on-demand ISR / fetch cache purge for public pages. Enter a path or full URL (e.g. `/deals?sort=price_drop`); Next.js revalidates by **pathname** so all sort/filter variants of `/deals` are cleared together. Quick presets, tag purge, and optional full-site purge. Uses `POST /admin/api/revalidate` on the Next.js app (Bearer `ADMIN_PASSWORD`; set the same env var on Vercel as on the API)
 
 ## Linting & security (ESLint)
 
 - **`pnpm run lint`** — `next lint` using [`eslint.config.mjs`](eslint.config.mjs): extends `next/core-web-vitals`, `next/typescript`, and [`eslint-plugin-security`](https://github.com/eslint-community/eslint-plugin-security) (`security/recommended`). CI runs this on every PR.
+- **`pnpm run test`** — [`vitest`](https://vitest.dev/) unit tests (e.g. [`src/lib/filterParams.test.ts`](src/lib/filterParams.test.ts)); `pnpm run test:watch` for watch mode.
 - **`pnpm exec tsc --noEmit`** — TypeScript check without emit (also in CI).
 - **`pnpm run seo:smoke`** — Fast assertions on JSON-LD builders ([`scripts/seo-smoke.ts`](scripts/seo-smoke.ts)); runs in CI (shift-left SEO checks without a live server).
 
@@ -41,22 +49,62 @@ React frontend for the MTB deal aggregator. Built with Next.js 15 (App Router), 
 
 GitHub Actions runs **Lighthouse CI** against `http://127.0.0.1:3000/` and `/deals` after a production build **when** repository **Actions → Variables** defines `API_URL` (same value the web build uses so pages can render with data). Config: [`lighthouserc.json`](lighthouserc.json). Reports are written under `apps/web/.lighthouseci/` (gitignored). Tune thresholds in `ci.assert.assertions` if the SEO score gate is too strict for your templates.
 
-**Optional MCP (local):** [`.cursor/mcp.json`](../../.cursor/mcp.json) can register `google-searchconsole-mcp` and `pagespeed-insights-mcp` for Search Console and PageSpeed Insights from the IDE. For Google Search Console, run `npx google-searchconsole-mcp`’s one-time auth (`gsc-mcp-auth`) per machine.
+**Optional MCP (local):** [`.cursor/mcp.json`](../../.cursor/mcp.json) can register `google-searchconsole-mcp` and `pagespeed-insights-mcp` for Search Console and PageSpeed Insights from the IDE.
+
+- **Google Search Console MCP** — Stop anything on port 3000, then run `npx --yes --package=google-searchconsole-mcp gsc-mcp-auth` once (tokens in `~/.gsc-mcp/tokens/`).
+- **PageSpeed Insights MCP** — The `pagespeed-insights-mcp` package requires **`GOOGLE_API_KEY`** at startup (`Environment validation failed` if unset). In [Google Cloud Console](https://console.cloud.google.com/apis/credentials), enable **PageSpeed Insights API**, create an **API key**, then in **Cursor → Settings → MCP** edit the `pagespeed-insights` server and set env **`GOOGLE_API_KEY`**. **Do not put the key in [`.cursor/mcp.json`](../../.cursor/mcp.json)** (committed config); use Cursor’s MCP env UI or a local-only override so the key never lands in git. Restrict the key to that API in Google Cloud when possible. The repo sets **`NODE_ENV=production`** for this server so it does not load the `pino-pretty` transport (which is missing under `npx` and causes `unable to determine transport target for "pino-pretty"`). If you override env in Cursor, keep **`NODE_ENV=production`** (or install `pino-pretty` globally—prefer `NODE_ENV`).
 
 **Bing:** Submit the same sitemap URL in [Bing Webmaster Tools](https://www.bing.com/webmasters) for Bing/Copilot coverage (manual one-time setup).
+
 - The **`security/detect-object-injection`** rule is noisy for safe dynamic record access in React/TS; it is left at **warn** so builds still succeed—review warnings in admin/data-heavy components when changing those patterns.
 
 ## Development
 
 ```bash
 pnpm run dev          # Next.js dev server (port 3000)
+pnpm run test         # Vitest (filter URL parsing, etc.)
 pnpm run storybook    # Storybook (port 6006)
-pnpm run build        # Production build
+pnpm run build        # Production build (runs prebuild → compiles @mtb-aggregator/logging)
 ```
+
+`pnpm run build` runs **`prebuild`** first to compile the workspace `@mtb-aggregator/logging` package (required on Vercel/CI where `dist/` is not committed). Same pattern as `apps/scraper`.
 
 The API must be running for data. Configure `NEXT_PUBLIC_API_URL` (client) or `API_URL` (server) or use the default proxy (`/api` → `http://localhost:8080`).
 
-**Canonical site URL (SEO):** Set `NEXT_PUBLIC_SITE_URL` to your public origin (e.g. `https://example.com`) so `metadataBase`, Open Graph `url`, and canonical links resolve correctly. On Vercel, `VERCEL_URL` is used when unset. Local dev defaults to `http://localhost:3000` (set `NEXT_PUBLIC_SITE_URL` if you use another port). See [`src/lib/siteUrl.ts`](src/lib/siteUrl.ts).
+**Canonical site URL (SEO):** Set `NEXT_PUBLIC_SITE_URL` to your public origin (e.g. `https://thedropper.shop`) so `metadataBase`, Open Graph `url`, canonical links, [`sitemap.ts`](src/app/sitemap.ts), and [`robots.ts`](src/app/robots.ts) resolve correctly.
+
+- **Vercel Production:** `NEXT_PUBLIC_SITE_URL` is **required** — the app throws if it is unset (see [`src/lib/siteUrl.ts`](src/lib/siteUrl.ts)). Do **not** rely on `VERCEL_URL` in production; it is the deployment hostname and would poison canonicals and sitemap URLs.
+- **Vercel Preview:** When unset, the origin falls back to `https://${VERCEL_URL}` so preview deployments still work.
+- **Local dev:** Defaults to `http://localhost:3000` (set `NEXT_PUBLIC_SITE_URL` if you use another port). GitHub Actions sets `NEXT_PUBLIC_SITE_URL` for CI builds — see [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml).
+
+**Avantlink homepage verification (optional):** Set `NEXT_PUBLIC_AVANTLINK_VERIFY_SCRIPT_SRC` in Vercel (Production only, or Preview if you verify there) to the exact script URL Avantlink gives you (`http://` or `https://...affiliate_app_confirm.php?mode=js&authResponse=...`). Do **not** paste that URL into tracked source—it trips secret scanners. The homepage injects that tag via static HTML (not `next/script`), with a **literal** `&` between query parameters in the source—React’s normal `src={url}` escapes `&` as `&amp;`, which some verifiers mistakenly reject. Remove the variable after Avantlink confirms.
+
+### Production checklist (apex canonical: `https://thedropper.shop`)
+
+Do these in order after changing DNS/domains or fixing indexing issues:
+
+1. **Vercel — Environment variables**  
+   **Settings → Environment Variables:** `NEXT_PUBLIC_SITE_URL` = `https://thedropper.shop` for **Production** only (leave Preview unset so previews use `VERCEL_URL`). Redeploy production.
+
+2. **Vercel — Domains**  
+   **Settings → Domains:** `thedropper.shop` = **primary** (not “redirect to”). `www.thedropper.shop` = **Redirect** to `https://thedropper.shop` with status **308**.
+
+3. **Porkbun — DNS** (or match whatever Vercel shows under Domains → your hostname → **DNS records**)
+   - **Apex `@`:** **ALIAS** to `cname.vercel-dns.com` (preferred at Porkbun), or **A** to `76.76.21.21`.
+   - **`www`:** **CNAME** to `cname.vercel-dns.com`.
+   - Remove conflicting legacy **A**/**AAAA**/**CNAME** on `@` or `www` (parking, old host). Keep MX/TXT as needed.
+
+4. **Google Search Console**  
+   **Sitemaps:** remove `https://www.thedropper.shop/sitemap.xml` if present; add `https://thedropper.shop/sitemap.xml`. Use **Indexing → Pages → Validate fix** on affected buckets after the redeploy.
+
+5. **Verify** (expect 200/308 and apex in HTML — not `*.vercel.app`):
+
+   ```bash
+   curl -sI https://www.thedropper.shop/ | head -n 5
+   curl -sI https://thedropper.shop/deals | head -n 5
+   curl -s https://thedropper.shop/ | grep -E 'rel="canonical"|property="og:url"'
+   curl -s https://thedropper.shop/robots.txt
+   ```
 
 ## Custom domain (Vercel + DNS at Porkbun or any registrar)
 
@@ -82,18 +130,22 @@ Use this when the site should load at your own domain (e.g. `https://example.com
 
 ## Sentry (error monitoring)
 
-When `NEXT_PUBLIC_SENTRY_DSN` is set, the app loads Sentry on the client, server, and edge ([`@sentry/nextjs`](https://docs.sentry.io/platforms/javascript/guides/nextjs/)). Files: `src/instrumentation.ts`, `src/instrumentation-client.ts`, `src/sentry.server.config.ts`, `src/sentry.edge.config.ts`, `src/app/global-error.tsx`.
+When `NEXT_PUBLIC_SENTRY_DSN` is set, the app loads Sentry on the client, server, and edge ([`@sentry/nextjs`](https://docs.sentry.io/platforms/javascript/guides/nextjs/)). Files: `src/instrumentation.ts`, `src/instrumentation-client.ts`, `src/sentry.server.config.ts`, `src/sentry.edge.config.ts`, `src/app/global-error.tsx`, and **`src/app/(public)/deals/error.tsx`** (deals browse server fetch failures during client navigation, with URL filter context). Stuck deals transitions without a thrown error are reported as Sentry warnings from **`usePendingTimeout`** in `DealsPageContent`.
 
-| Variable | Purpose |
-|----------|---------|
-| `NEXT_PUBLIC_SENTRY_DSN` | Required to enable Sentry (same DSN in Sentry’s Next.js wizard) |
-| `SENTRY_ENVIRONMENT` | e.g. `production`; client also gets `NEXT_PUBLIC_SENTRY_ENVIRONMENT` or mapped `VERCEL_ENV` via `next.config.ts` |
-| `SENTRY_RELEASE` / `VERCEL_GIT_COMMIT_SHA` | Release grouping; client uses `NEXT_PUBLIC_SENTRY_RELEASE` populated at build from those |
-| `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT` | Optional; enable source map upload on `next build` (e.g. Vercel env or CI) |
+| Variable                                            | Purpose                                                                                                          |
+| --------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `NEXT_PUBLIC_SENTRY_DSN`                            | Required to enable Sentry (same DSN in Sentry’s Next.js wizard)                                                  |
+| `SENTRY_ENVIRONMENT`                                | e.g. `production`; client also gets `NEXT_PUBLIC_SENTRY_ENVIRONMENT` or mapped `VERCEL_ENV` via `next.config.ts` |
+| `SENTRY_RELEASE` / `VERCEL_GIT_COMMIT_SHA`          | Release grouping; client uses `NEXT_PUBLIC_SENTRY_RELEASE` populated at build from those                         |
+| `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT` | Optional; enable source map upload on `next build` (e.g. Vercel env or CI)                                       |
 
 Without `SENTRY_AUTH_TOKEN`, builds skip source map upload (`sourcemaps.disable` in `next.config.ts`); errors still report, stacks are less readable.
 
 **Convention:** With `NEXT_PUBLIC_SENTRY_DSN` set, do not rely on `console.error` alone for user-impacting failures—ensure they reach Sentry (Next defaults + `global-error.tsx`; in `try/catch` that handles fatally without rethrowing, call `Sentry.captureException`). See [docs/ARCHITECTURE.md](../../docs/ARCHITECTURE.md#error-monitoring-sentry).
+
+## Logging
+
+Server-side startup logs use `@mtb-aggregator/logging` in `src/instrumentation.ts`. HTTP access logging is handled by Vercel; tune app logs with `LOG_LEVEL`, `LOG_FORMAT`. See [docs/LOGGING.md](../../docs/LOGGING.md).
 
 ## Component Library
 
@@ -111,12 +163,15 @@ Add more: `pnpm dlx shadcn@latest add <component>`
 
 ### Composed Components (`src/components/`)
 
-DealCard, CategoryCard, DealsCategoryNav, DealsBrowseFooter, Pagination, SearchBar, FilterInput, etc. — built from primitives. CategoryCard supports optional `imageSrc` for home page category imagery (`stock-bikes.jpg`, `stock-components.jpg`, etc. in `public/`).
+DealCard, DealCarousel, CategoryCard, DealsMegaMenu, DealsCategoryNav, DealsBrowseFooter, Pagination, SearchBar, FilterSelect (with `minDiscountFilterOptions` for stepped min discount), etc. — built from primitives. **DealCard** shows the retailer on the top tab (not SKU), uses a shorter **16:9** image on mobile (square from `sm` up), and pairs **Snag this deal** (retailer, `size="lg"`, full-width) with **View details** (internal PDP) in a vertically stacked footer when `href` is set; the details link carries the value prop in **`title`** (hover) and **`aria-label`** (assistive tech), not extra body copy. PostHog (when enabled): `deal_card_click` with `cta: "view_details"` (plus Vercel `deal_card_click`). CategoryCard supports optional `imageSrc` for home page category imagery (`stock-bikes.jpg`, `stock-components.jpg`, etc. in `public/`).
+
+**Forms — labels:** Every interactive filter/control should have a programmatic name. `FilterSelect` pairs `label htmlFor` with `Select id` (`useId()`, optional `controlId`). Brand/spec facets use [`CheckboxGroup`](src/components/ui/checkbox-group.tsx) (shadcn `Checkbox` + `Label`, `fieldset`/`legend`, ids from `sanitizeForHtmlId`). `CategoryDrillDown` wraps the tree in `fieldset`/`legend` instead of a loose `<label>`. Admin toolbars that look label-free use `sr-only` labels (see Data browser filters).
 
 ### Storybook
 
 - Run `pnpm run storybook` to develop components in isolation
 - Add `*.stories.tsx` for new components (CSF3 format)
 - Theme toolbar for light/dark palette iteration
+- **Design / Workshop Modern Preview** ([`src/components/WorkshopModernPreview.stories.tsx`](src/components/WorkshopModernPreview.stories.tsx)) is the live preview for the Direction C redesign proposal in [`docs/DESIGN_REDESIGN.md`](../../docs/DESIGN_REDESIGN.md). It overrides theme tokens **inside the story root only** so the new "Concrete & Lime" palette + Geist Sans × Geist Mono pairing are visible without affecting the rest of the app. Once primitives are approved there, they migrate into `src/components/ui/` and `globals.css` gets the matching token swap.
 
-See [docs/ARCHITECTURE.md](../../docs/ARCHITECTURE.md#component-library) for details. Visual identity and copy: [docs/DESIGN.md](../../docs/DESIGN.md).
+See [docs/ARCHITECTURE.md](../../docs/ARCHITECTURE.md#component-library) for details. Visual identity and copy: [docs/DESIGN.md](../../docs/DESIGN.md). Active redesign proposal: [docs/DESIGN_REDESIGN.md](../../docs/DESIGN_REDESIGN.md).

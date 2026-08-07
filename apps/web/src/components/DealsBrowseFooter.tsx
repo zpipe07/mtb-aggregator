@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import type { CategoryTreeNode } from "@/api";
 import { categoryHasDeals } from "@/lib/categoryTree";
 import { buildDealsBrowseHref } from "@/lib/dealsBrowseHref";
+import { cn, focusRing } from "@/lib/utils";
 
 type Props = {
   /** Top-level categories only (e.g. from `categoryTree` roots). */
@@ -26,17 +27,20 @@ export function DealsBrowseFooterInner({
   return (
     <nav
       aria-label="Browse top categories"
-      className="mt-10 pt-6 border-t border-border"
+      className="mt-10 border-t border-foreground/15 pt-6"
     >
-      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
-        Browse by department
+      <p className="mb-2 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+        {"// browse by department"}
       </p>
       <ul className="flex flex-wrap gap-x-3 gap-y-1 text-sm">
         {sorted.map((node) => (
           <li key={node.slug}>
             <Link
               href={buildDealsBrowseHref(node.slug, searchParams, categoryTree)}
-              className="text-muted-foreground hover:text-foreground underline-offset-4 hover:underline"
+              className={cn(
+                "rounded-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline",
+                focusRing,
+              )}
             >
               {node.name}
             </Link>

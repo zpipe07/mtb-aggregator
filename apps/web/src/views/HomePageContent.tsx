@@ -4,14 +4,19 @@ import { useState, FormEvent, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import posthog from "posthog-js";
 import Link from "next/link";
-import { SearchBar } from "../components/SearchBar";
-import { DealGrid } from "../components/DealGrid";
+import { SearchBar, SEARCH_FRAME_MIN_H } from "../components/SearchBar";
+import { DealCarousel } from "../components/DealCarousel";
 import { CategoryCard } from "../components/CategoryCard";
-import { CategoryTreeNode, type Deal } from "../api";
+import { StatTicker } from "../components/StatTicker";
+import { CategoryTreeNode } from "../api";
 import { categoryHasDeals } from "../lib/categoryTree";
 import { CATEGORY_IMAGES } from "../lib/categoryImages";
 import { buildDealsCategoryPath } from "../lib/dealsCategoryPath";
+import type { Deal } from "../api";
+import type { HomeDealSection } from "../lib/homeDealSections";
+import { HOME_PRICE_DROPS_SECTION_ID } from "../lib/homeDealSections";
 import { Button } from "../components/ui/button";
+import { cn, focusRing } from "@/lib/utils";
 
 /** Curated category labels for home page CTAs when API has few/empty categories */
 const FALLBACK_CATEGORIES: { path: string; label: string }[] = [
@@ -25,7 +30,12 @@ const FALLBACK_CATEGORIES: { path: string; label: string }[] = [
   { path: "components-drivetrain-pedals", label: "Pedals" },
 ];
 
-function buildCategoryCards(categoryTree: CategoryTreeNode[]) {
+function buildCategoryCards(categoryTree: CategoryTreeNode[]): {
+  path: string;
+  label: string;
+  imageSrc?: string;
+  dealCount?: number;
+}[] {
   if (categoryTree.length === 0) {
     return FALLBACK_CATEGORIES.map(({ path, label }) => ({
       path,
@@ -45,20 +55,38 @@ function buildCategoryCards(categoryTree: CategoryTreeNode[]) {
     path: category.slug,
     label: category.name,
     imageSrc: CATEGORY_IMAGES[category.slug] ?? undefined,
+    dealCount: category.deal_count,
   }));
 }
 
 type Props = {
   categoryTree: CategoryTreeNode[];
-  topDeals: Deal[];
+  priceDropDeals: Deal[];
+  dealSections: HomeDealSection[];
+  storeCount: number;
+  dealCount: number;
+  lastUpdated: string;
 };
 
-export function HomePageContent({ categoryTree, topDeals }: Props) {
+export function HomePageContent({
+  categoryTree,
+  priceDropDeals,
+  dealSections,
+  storeCount,
+  dealCount,
+  lastUpdated,
+}: Props) {
   const router = useRouter();
   const [searchValue, setSearchValue] = useState("");
   const [isPending, startTransition] = useTransition();
 
   const categoryCards = buildCategoryCards(categoryTree);
+  const visibleDealSections = dealSections.filter(
+    (section) => section.deals.length > 0,
+  );
+  const showPriceDrops = priceDropDeals.length > 0;
+  const dealDetailHref = (dealId: number) => `/deals/${dealId}`;
+  const sectionOffset = showPriceDrops ? 2 : 1;
 
   const handleSearchSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -76,71 +104,163 @@ export function HomePageContent({ categoryTree, topDeals }: Props) {
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 lg:py-12">
+    <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:py-12">
       {/* Hero */}
-      <section className="text-center mb-12 lg:mb-16">
-        <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground tracking-tight">
-          Dialed-in deals.
-        </h1>
-        <p className="mt-4 text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto">
-          We scanned 50+ shops so you didn&apos;t have to.
+      <section className="mb-12 text-center lg:mb-16">
+        <div className="inline-block text-left">
+          <h1 className="text-5xl font-semibold leading-[0.95] tracking-[-0.025em] text-foreground md:text-6xl">
+            <span className="block">Stop searching.</span>
+            <span className="relative inline-block">
+              <span className="relative z-10">Start shredding.</span>
+              <span
+                aria-hidden
+                className="absolute inset-x-0 bottom-1 -z-0 h-3 bg-primary opacity-70"
+              />
+            </span>
+          </h1>
+        </div>
+        <p className="mx-auto mt-4 max-w-md text-base text-muted-foreground">
+          We scan the sale pages from top MTB retailers so you&apos;re not
+          bouncing between sites.
         </p>
-        <form onSubmit={handleSearchSubmit} className="mt-8 max-w-xl mx-auto">
-          <div className="flex flex-col sm:flex-row gap-2">
+        <form
+          onSubmit={handleSearchSubmit}
+          className="mx-auto mt-8 flex max-w-2xl flex-col gap-3 sm:flex-row sm:items-end"
+        >
+          <div className="min-w-0 flex-1">
             <SearchBar
               value={searchValue}
               onChange={setSearchValue}
               placeholder="Search deals…"
             />
-            <Button type="submit" disabled={isPending}>
+          </div>
+          <div className="flex shrink-0 flex-col gap-2 sm:flex-row sm:items-stretch">
+            <Button
+              type="submit"
+              disabled={isPending}
+              className={cn(SEARCH_FRAME_MIN_H, "sm:min-w-[8rem]")}
+            >
               {isPending ? "Searching…" : "Search"}
             </Button>
-
-            <Button variant="outline" className="" asChild>
+            <Button variant="outline" asChild className={cn(SEARCH_FRAME_MIN_H, "sm:min-w-[8rem]")}>
               <Link href="/deals">View all deals</Link>
             </Button>
           </div>
         </form>
+        <StatTicker
+          storeCount={storeCount}
+          dealCount={dealCount}
+          lastUpdated={lastUpdated}
+        />
       </section>
+
+      {showPriceDrops ? (
+        <section className="mb-12 lg:mb-16">
+          <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+            <div className="flex flex-wrap items-end gap-4">
+              <span className="pb-0.5 font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                {"// 01"}
+              </span>
+              <h2 className="text-2xl font-semibold tracking-[-0.02em] text-foreground">
+                Recent price drops
+              </h2>
+              <span className="mb-0.5 hidden h-px min-w-8 max-w-xs flex-1 bg-border sm:block" />
+            </div>
+            <Link
+              href="/deals?sort=price_drop"
+              className={cn(
+                "rounded-sm font-mono text-xs font-semibold tracking-wide text-muted-foreground hover:text-foreground",
+                focusRing,
+              )}
+            >
+              View all →
+            </Link>
+          </div>
+          <DealCarousel
+            deals={priceDropDeals}
+            getHref={(deal) => dealDetailHref(deal.id)}
+            homeSection={HOME_PRICE_DROPS_SECTION_ID}
+            ariaLabel="Recent price drops"
+          />
+        </section>
+      ) : null}
 
       {/* Quick-access category cards */}
       <section className="mb-12 lg:mb-16">
-        <h2 className="text-xl font-semibold text-foreground mb-6">
-          Shop by category
-        </h2>
-        <div className="grid grid-cols-1 grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
-          {categoryCards.map(({ path, label, imageSrc }) => (
+        <div className="mb-6 flex flex-wrap items-end gap-4">
+          <span className="pb-0.5 font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+            {showPriceDrops ? "// 02" : "// 01"}
+          </span>
+          <h2 className="text-2xl font-semibold tracking-[-0.02em] text-foreground">
+            Shop by category
+          </h2>
+          <span className="mb-0.5 h-px min-w-8 flex-1 bg-border" />
+        </div>
+        <div className="grid grid-cols-2 gap-2 sm:gap-4 lg:grid-cols-4">
+          {categoryCards.map(({ path, label, imageSrc, dealCount }) => (
             <CategoryCard
               key={path}
               label={label}
               to={buildDealsCategoryPath(path, categoryTree)}
               imageSrc={imageSrc}
+              dealCount={dealCount}
             />
           ))}
         </div>
       </section>
 
-      {/* Top deals */}
-      <section>
-        <div className="flex flex-wrap items-center justify-between gap-2 mb-6">
-          <h2 className="text-xl font-semibold text-foreground">
-            Top deals of the day
-          </h2>
-          <Link
-            href="/deals"
-            className="text-sm font-medium text-muted-foreground hover:text-foreground"
-          >
-            View all deals
-          </Link>
+      {/* Top deals by category */}
+      {visibleDealSections.length > 0 ? (
+        <div className="space-y-10 lg:space-y-12">
+          {visibleDealSections.map((section, index) => (
+            <section key={section.id}>
+              <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+                <div className="flex flex-wrap items-end gap-4">
+                  <span className="pb-0.5 font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                    {`// ${String(index + sectionOffset + 1).padStart(2, "0")}`}
+                  </span>
+                  <h2 className="text-2xl font-semibold tracking-[-0.02em] text-foreground">
+                    {section.title}
+                  </h2>
+                  <span className="mb-0.5 hidden h-px min-w-8 max-w-xs flex-1 bg-border sm:block" />
+                </div>
+                <Link
+                  href={buildDealsCategoryPath(
+                    section.categorySlug,
+                    categoryTree,
+                  )}
+                  className={cn(
+                    "rounded-sm font-mono text-xs font-semibold tracking-wide text-muted-foreground hover:text-foreground",
+                    focusRing,
+                  )}
+                >
+                  View all →
+                </Link>
+              </div>
+              <DealCarousel
+                deals={section.deals}
+                getHref={(deal) => dealDetailHref(deal.id)}
+                homeSection={section.id}
+                ariaLabel={section.title}
+              />
+            </section>
+          ))}
         </div>
-        {topDeals.length > 0 ? (
-          <DealGrid deals={topDeals} getHref={(deal) => `/deals/${deal.id}`} />
-        ) : (
-          <p className="text-muted-foreground py-8">
+      ) : (
+        <section>
+          <div className="mb-6 flex flex-wrap items-end gap-4">
+            <span className="pb-0.5 font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+              {showPriceDrops ? "// 03" : "// 02"}
+            </span>
+            <h2 className="text-2xl font-semibold tracking-[-0.02em] text-foreground">
+              Top deals of the day
+            </h2>
+          </div>
+          <p className="py-8 text-muted-foreground">
             No deals available right now.
           </p>
-        )}
-      </section>
+        </section>
+      )}
     </div>
   );
 }

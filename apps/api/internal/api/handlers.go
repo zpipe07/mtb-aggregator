@@ -11,6 +11,7 @@ import (
 
 	"github.com/mtb-aggregator/api/internal/db"
 	"github.com/mtb-aggregator/api/internal/llm"
+	"github.com/mtb-aggregator/api/internal/llmlisting"
 	"github.com/mtb-aggregator/api/internal/normalization"
 	"github.com/mtb-aggregator/api/internal/scraper"
 	"github.com/mtb-aggregator/api/internal/taxonomy"
@@ -23,6 +24,27 @@ type Handlers struct {
 	LLM         *llm.Client
 }
 
+// parseNonEmptyQueryMulti returns trimmed, non-empty, de-duplicated values from repeated query params (order preserved).
+func parseNonEmptyQueryMulti(vals []string) []string {
+	if len(vals) == 0 {
+		return nil
+	}
+	seen := make(map[string]struct{})
+	var out []string
+	for _, v := range vals {
+		t := strings.TrimSpace(v)
+		if t == "" {
+			continue
+		}
+		if _, ok := seen[t]; ok {
+			continue
+		}
+		seen[t] = struct{}{}
+		out = append(out, t)
+	}
+	return out
+}
+
 func (h *Handlers) GetDeals(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
@@ -33,8 +55,8 @@ func (h *Handlers) GetDeals(w http.ResponseWriter, r *http.Request) {
 	if s := r.URL.Query().Get("store"); s != "" {
 		params.StoreName = s
 	}
-	if s := r.URL.Query().Get("brand"); s != "" {
-		params.Brand = s
+	if b := parseNonEmptyQueryMulti(r.URL.Query()["brand"]); len(b) > 0 {
+		params.Brands = b
 	}
 	if s := r.URL.Query().Get("category"); s != "" {
 		params.Category = s
@@ -55,6 +77,11 @@ func (h *Handlers) GetDeals(w http.ResponseWriter, r *http.Request) {
 			params.MinPrice = &f
 		}
 	}
+	if s := r.URL.Query().Get("max_price"); s != "" {
+		if f, err := strconv.ParseFloat(s, 64); err == nil {
+			params.MaxPrice = &f
+		}
+	}
 	if s := r.URL.Query().Get("exclude_category_slug"); s != "" {
 		params.ExcludeCategorySlug = strings.TrimSpace(s)
 	}
@@ -63,6 +90,15 @@ func (h *Handlers) GetDeals(w http.ResponseWriter, r *http.Request) {
 	}
 	if s := r.URL.Query().Get("sort"); s != "" {
 		params.Sort = s
+	}
+	if s := r.URL.Query().Get("price_dropped"); s == "1" || s == "true" {
+		v := true
+		params.PriceDropped = &v
+	}
+	if s := r.URL.Query().Get("price_drop_within_days"); s != "" {
+		if n, err := strconv.Atoi(s); err == nil && n > 0 {
+			params.PriceDropWithinDays = n
+		}
 	}
 	if s := r.URL.Query().Get("limit"); s != "" {
 		if n, err := strconv.Atoi(s); err == nil && n > 0 {
@@ -74,34 +110,28 @@ func (h *Handlers) GetDeals(w http.ResponseWriter, r *http.Request) {
 			params.Offset = n
 		}
 	}
-	// Parse spec filters: spec_<key>=<value> for multiple, or legacy spec_key/spec_value
-	params.SpecFilters = make(map[string]string)
+	// Parse spec filters: repeated spec_<key>=<value> (OR within key, AND across keys).
+	params.SpecFilters = make(map[string][]string)
 	for key, vals := range r.URL.Query() {
-		if strings.HasPrefix(key, "spec_") && len(vals) > 0 && vals[0] != "" {
-			specKey := strings.TrimPrefix(key, "spec_")
-			specKey = strings.TrimSpace(specKey)
-			if specKey != "" {
-				params.SpecFilters[specKey] = strings.TrimSpace(vals[0])
+		if !strings.HasPrefix(key, "spec_") {
+			continue
+		}
+		specKey := strings.TrimSpace(strings.TrimPrefix(key, "spec_"))
+		if specKey == "" {
+			continue
+		}
+		for _, v := range vals {
+			if t := strings.TrimSpace(v); t != "" {
+				params.SpecFilters[specKey] = append(params.SpecFilters[specKey], t)
 			}
 		}
 	}
-	// Legacy: if no spec_ params, fall back to spec_key/spec_value
-	if len(params.SpecFilters) == 0 {
-		if s := r.URL.Query().Get("spec_key"); s != "" {
-			params.SpecKey = strings.TrimSpace(s)
-		}
-		if s := r.URL.Query().Get("spec_value"); s != "" {
-			params.SpecValue = strings.TrimSpace(s)
-		}
-	}
-	params.VariantFilters = make(map[string]string)
-	for key, vals := range r.URL.Query() {
-		if strings.HasPrefix(key, "variant_") && len(vals) > 0 && vals[0] != "" {
-			vk := strings.TrimPrefix(key, "variant_")
-			vk = strings.TrimSpace(vk)
-			if vk != "" {
-				params.VariantFilters[vk] = strings.TrimSpace(vals[0])
-			}
+	for k, sl := range params.SpecFilters {
+		deduped := parseNonEmptyQueryMulti(sl)
+		if len(deduped) == 0 {
+			delete(params.SpecFilters, k)
+		} else {
+			params.SpecFilters[k] = deduped
 		}
 	}
 	if r.URL.Query().Get("group_variants") == "1" || r.URL.Query().Get("group_variants") == "true" {
@@ -267,8 +297,8 @@ func (h *Handlers) GetFacets(w http.ResponseWriter, r *http.Request) {
 	if s := r.URL.Query().Get("store"); s != "" {
 		params.StoreName = strings.TrimSpace(s)
 	}
-	if s := r.URL.Query().Get("brand"); s != "" {
-		params.Brand = strings.TrimSpace(s)
+	if b := parseNonEmptyQueryMulti(r.URL.Query()["brand"]); len(b) > 0 {
+		params.Brands = b
 	}
 	if s := r.URL.Query().Get("category"); s != "" {
 		params.Category = strings.TrimSpace(s)
@@ -284,31 +314,42 @@ func (h *Handlers) GetFacets(w http.ResponseWriter, r *http.Request) {
 			params.MinDiscount = &f
 		}
 	}
+	if s := r.URL.Query().Get("min_price"); s != "" {
+		if f, err := strconv.ParseFloat(s, 64); err == nil {
+			params.MinPrice = &f
+		}
+	}
+	if s := r.URL.Query().Get("max_price"); s != "" {
+		if f, err := strconv.ParseFloat(s, 64); err == nil {
+			params.MaxPrice = &f
+		}
+	}
 	if s := r.URL.Query().Get("q"); s != "" {
 		params.Search = strings.TrimSpace(s)
 	}
-	// Parse spec_<key>=<value> params for multiple spec filters
-	params.SpecFilters = make(map[string]string)
+	params.SpecFilters = make(map[string][]string)
 	for key, vals := range r.URL.Query() {
-		if strings.HasPrefix(key, "spec_") && len(vals) > 0 && vals[0] != "" {
-			specKey := strings.TrimPrefix(key, "spec_")
-			specKey = strings.TrimSpace(specKey)
-			if specKey != "" {
-				params.SpecFilters[specKey] = strings.TrimSpace(vals[0])
+		if !strings.HasPrefix(key, "spec_") {
+			continue
+		}
+		specKey := strings.TrimSpace(strings.TrimPrefix(key, "spec_"))
+		if specKey == "" {
+			continue
+		}
+		for _, v := range vals {
+			if t := strings.TrimSpace(v); t != "" {
+				params.SpecFilters[specKey] = append(params.SpecFilters[specKey], t)
 			}
 		}
 	}
-	params.VariantFilters = make(map[string]string)
-	for key, vals := range r.URL.Query() {
-		if strings.HasPrefix(key, "variant_") && len(vals) > 0 && vals[0] != "" {
-			vk := strings.TrimPrefix(key, "variant_")
-			vk = strings.TrimSpace(vk)
-			if vk != "" {
-				params.VariantFilters[vk] = strings.TrimSpace(vals[0])
-			}
+	for k, sl := range params.SpecFilters {
+		deduped := parseNonEmptyQueryMulti(sl)
+		if len(deduped) == 0 {
+			delete(params.SpecFilters, k)
+		} else {
+			params.SpecFilters[k] = deduped
 		}
 	}
-
 	result, err := h.DB.GetFacets(r.Context(), params)
 	if err != nil {
 		log.Printf("[api] GetFacets error: %v", err)
@@ -317,6 +358,12 @@ func (h *Handlers) GetFacets(w http.ResponseWriter, r *http.Request) {
 	}
 	if result == nil {
 		result = &db.GetFacetsResult{}
+	}
+	if result.SpecFacets == nil {
+		result.SpecFacets = []db.SpecFacet{}
+	}
+	if result.BrandFacets == nil {
+		result.BrandFacets = []db.BrandFacet{}
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -431,6 +478,31 @@ func (h *Handlers) GetAdminDashboard(w http.ResponseWriter, r *http.Request) {
 		"enrichment_pct":             enrichmentPct,
 		"store_types_with_enrichers": db.StoreTypesWithEnrichers,
 	})
+}
+
+// GetAdminPipelineMetrics returns scrape/enrich pipeline health for admin insights.
+// Query: days (default 30, max 90) — window for recent job history charts.
+func (h *Handlers) GetAdminPipelineMetrics(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	days := 30
+	if s := r.URL.Query().Get("days"); s != "" {
+		if n, err := strconv.Atoi(s); err == nil && n > 0 {
+			days = n
+		}
+	}
+
+	metrics, err := h.DB.GetPipelineMetrics(r.Context(), days)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(metrics)
 }
 
 // GetStoreTypesWithEnrichers returns store_type values that support PDP enrichment (for showing Enrich button in UI).
@@ -764,7 +836,7 @@ func (h *Handlers) PostAdminCancelEnrichJob(w http.ResponseWriter, r *http.Reque
 	}
 }
 
-// GetAdminListings returns paginated listings for the admin data browser. Query: store_id, brand, has_canonical_category, has_enrichment, category (substring on any retailer or canonical segment), canonical_category, q, sort, limit, offset.
+// GetAdminListings returns paginated listings for the admin data browser. Query: store_id, brand, has_canonical_category, has_enrichment, category (substring on any retailer or canonical segment), category_slug (subtree on category_id; same as GET /deals), canonical_category (exact path; ignored when category_slug is set), q, sort (newest, discount, price_asc, price_desc, relevance, last_enriched), limit, offset, llm_confidence_below.
 func (h *Handlers) GetAdminListings(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
@@ -793,6 +865,9 @@ func (h *Handlers) GetAdminListings(w http.ResponseWriter, r *http.Request) {
 	}
 	if s := r.URL.Query().Get("category"); s != "" {
 		params.Category = strings.TrimSpace(s)
+	}
+	if s := r.URL.Query().Get("category_slug"); s != "" {
+		params.CategorySlug = strings.TrimSpace(s)
 	}
 	if s := r.URL.Query().Get("canonical_category"); s != "" {
 		params.CanonicalCategory = strings.TrimSpace(s)
@@ -865,6 +940,81 @@ func (h *Handlers) PatchAdminListingHidden(w http.ResponseWriter, r *http.Reques
 	json.NewEncoder(w).Encode(map[string]bool{"ok": true})
 }
 
+// PatchAdminListingCategory sets canonical category from admin picker. Body: {"category_id": 5}.
+func (h *Handlers) PatchAdminListingCategory(w http.ResponseWriter, r *http.Request, id int) {
+	if r.Method != http.MethodPatch {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var body struct {
+		CategoryID *int `json:"category_id"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		http.Error(w, "invalid json", http.StatusBadRequest)
+		return
+	}
+	if body.CategoryID == nil || *body.CategoryID <= 0 {
+		http.Error(w, "category_id required", http.StatusBadRequest)
+		return
+	}
+	cat, err := h.DB.GetCategoryByID(r.Context(), *body.CategoryID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if cat == nil {
+		http.Error(w, "category not found", http.StatusNotFound)
+		return
+	}
+	siblingsUpdated, err := h.DB.UpdateListingCategoryManual(r.Context(), id, *body.CategoryID)
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			http.Error(w, "not found", http.StatusNotFound)
+			return
+		}
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	resp := map[string]interface{}{
+		"ok":                true,
+		"siblings_updated":  siblingsUpdated,
+	}
+	listing, err := h.DB.GetAdminListingByID(r.Context(), id)
+	if err == nil && listing != nil && len(listing.CategoryPath) > 0 {
+		path, _ := h.DB.GetCategoryPathNamesRootToLeaf(r.Context(), *body.CategoryID)
+		mapped := taxonomy.Map(listing.CategoryPath)
+		if mapped == nil || !canonicalPathsEqual(mapped, path) {
+			kw := strings.ToLower(strings.TrimSpace(strings.Join(listing.CategoryPath, " ")))
+			if kw != "" {
+				breadcrumb := strings.Join(listing.CategoryPath, " > ")
+				target := strings.Join(path, " > ")
+				resp["suggested_mapping"] = map[string]interface{}{
+					"raw_keywords": []string{kw},
+					"canonical":    path,
+					"reason": fmt.Sprintf(
+						"Store breadcrumb %q doesn't map to the selected category (%s)",
+						breadcrumb, target,
+					),
+				}
+			}
+		}
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(resp)
+}
+
+func canonicalPathsEqual(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
+}
+
 // PostAdminListingLLMOverrides sets manual overrides for LLM-derived specs (admin). Body: {"mtb_class": "Trail", ...}.
 func (h *Handlers) PostAdminListingLLMOverrides(w http.ResponseWriter, r *http.Request, id int) {
 	if r.Method != http.MethodPost {
@@ -921,7 +1071,7 @@ func (h *Handlers) PostAdminEnrichListing(w http.ResponseWriter, r *http.Request
 		http.Error(w, "scraper not configured", http.StatusServiceUnavailable)
 		return
 	}
-	productURL, storeType, err := h.DB.GetListingEnrichmentInfo(r.Context(), id)
+	storeID, productURL, storeType, storeSKU, err := h.DB.GetListingEnrichmentInfo(r.Context(), id)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -959,137 +1109,110 @@ func (h *Handlers) PostAdminEnrichListing(w http.ResponseWriter, r *http.Request
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	h.runLLMCategoryClassification(r.Context(), id)
-	h.runLLMExtractionIfApplicable(r.Context(), id)
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	if err := applyJensonPDPAfterEnrich(r.Context(), h.DB, storeID, storeType, storeSKU, result.Variants, nil); err != nil {
+		log.Printf("[admin] jenson variant fan-out listing %d: %v", id, err)
+	}
+	if err := applyCompetitiveCyclistPDPAfterEnrich(r.Context(), h.DB, id, storeID, storeType, storeSKU, productURL, result.Variants, nil); err != nil {
+		log.Printf("[admin] competitivecyclist variant fan-out listing %d: %v", id, err)
+	}
+	if err := applyUniversalCyclesPDPAfterEnrich(r.Context(), h.DB, id, storeType, result.Variants, nil); err != nil {
+		log.Printf("[admin] universalcycles variant fan-out listing %d: %v", id, err)
+	}
+	if err := applyFoxRacingPDPAfterEnrich(r.Context(), h.DB, storeID, storeType, storeSKU, result.Variants, nil); err != nil {
+		log.Printf("[admin] foxracing variant fan-out listing %d: %v", id, err)
+	}
+	if err := applyBellPDPAfterEnrich(r.Context(), h.DB, storeID, storeType, productURL, result.Variants, nil); err != nil {
+		log.Printf("[admin] bell variant fan-out listing %d: %v", id, err)
+	}
+	if err := applyGiroPDPAfterEnrich(r.Context(), h.DB, storeID, storeType, productURL, result.Variants, nil); err != nil {
+		log.Printf("[admin] giro variant fan-out listing %d: %v", id, err)
+	}
+	var llmWarnings []string
+	if w := h.runLLMCategoryClassification(r.Context(), id); w != "" {
+		llmWarnings = append(llmWarnings, w)
+	}
+	if w := h.runLLMExtractionIfApplicable(r.Context(), id); w != "" {
+		llmWarnings = append(llmWarnings, w)
+	}
+	resp := map[string]interface{}{
 		"ok":            true,
 		"category_path": result.CategoryPath,
 		"unavailable":   result.Unavailable,
-	})
+	}
+	if len(llmWarnings) > 0 {
+		resp["llm_warnings"] = llmWarnings
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(resp)
+}
+
+// PostAdminListingLLMSpecs runs LLM category classification (when enabled) and prompt-profile extraction
+// from data already stored on the listing (no PDP scrape). Query allow_empty_specs=1 skips requiring non-empty metadata.specs.
+func (h *Handlers) PostAdminListingLLMSpecs(w http.ResponseWriter, r *http.Request, id int) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if h.LLM == nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusServiceUnavailable)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "OpenAI client not configured"})
+		return
+	}
+	ctx := r.Context()
+	listing, err := h.DB.GetListingForLLM(ctx, id)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if listing == nil {
+		http.Error(w, "not found", http.StatusNotFound)
+		return
+	}
+	if r.URL.Query().Get("allow_empty_specs") != "1" && !llmlisting.MetadataHasNonEmptySpecs(listing.Metadata) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]string{
+			"error": "listing has empty metadata.specs; enrich PDP first or pass allow_empty_specs=1",
+		})
+		return
+	}
+	var llmWarnings []string
+	if w := h.runLLMCategoryClassification(ctx, id); w != "" {
+		llmWarnings = append(llmWarnings, w)
+	}
+	if w := h.runLLMExtractionIfApplicable(ctx, id); w != "" {
+		llmWarnings = append(llmWarnings, w)
+	}
+	resp := map[string]interface{}{"ok": true}
+	if len(llmWarnings) > 0 {
+		resp["llm_warnings"] = llmWarnings
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(resp)
 }
 
 // runLLMCategoryClassification runs LLM category classification to refine canonical_category.
-func (h *Handlers) runLLMCategoryClassification(ctx context.Context, listingID int) {
-	if h.LLM == nil {
-		return
+// Returns a non-empty warning string on LLM failure (logged and reported to Sentry).
+func (h *Handlers) runLLMCategoryClassification(ctx context.Context, listingID int) string {
+	err := llmlisting.ClassificationStep(ctx, h.DB, h.LLM, listingID)
+	if err == nil {
+		return ""
 	}
-	cfg, err := h.DB.GetCategoryClassifier(ctx)
-	if err != nil || cfg == nil || !cfg.Enabled {
-		return
-	}
-	pathRows, err := h.DB.GetAllCategoryPathsWithDescriptions(ctx)
-	if err != nil || len(pathRows) == 0 {
-		return
-	}
-	validPaths, categoryDesc := db.ClassifierPathsFromTreeRows(pathRows, llm.CategoryPathSeparator)
-	listing, err := h.DB.GetListingForCategoryClassification(ctx, listingID)
-	if err != nil || listing == nil {
-		return
-	}
-	var meta struct {
-		Description string                 `json:"description"`
-		Specs       map[string]interface{} `json:"specs"`
-	}
-	_ = json.Unmarshal(listing.Metadata, &meta)
-	specs := make(map[string]string)
-	if meta.Specs != nil {
-		for k, v := range meta.Specs {
-			if v != nil {
-				specs[k] = fmt.Sprint(v)
-			}
-		}
-	}
-	input := llm.ClassifyInput{
-		ProductName:  listing.ProductName,
-		Description:  meta.Description,
-		Specs:        specs,
-		CategoryPath: listing.CategoryPath,
-	}
-	config := llm.ClassifyConfig{
-		SystemPrompt:         cfg.SystemPrompt,
-		ValidCategories:      validPaths,
-		CategoryDescriptions: categoryDesc,
-		ConfidenceThreshold:  cfg.ConfidenceThreshold,
-	}
-	result, err := h.LLM.Classify(ctx, config, input)
-	if err != nil {
-		log.Printf("[admin] listing %d: LLM classify failed: %v", listingID, err)
-		return
-	}
-	if result == nil {
-		return
-	}
-	llmCategory := map[string]interface{}{
-		"canonical_category": result.CanonicalCategory,
-		"confidence":         result.Confidence,
-		"reasoning":          result.Reasoning,
-	}
-	if result.Confidence >= config.ConfidenceThreshold {
-		if err := h.DB.UpdateListingCanonicalCategory(ctx, listingID, result.CanonicalCategory, llmCategory); err != nil {
-			log.Printf("[admin] listing %d: failed to update category: %v", listingID, err)
-		} else {
-			log.Printf("[admin] listing %d: LLM classified as %v (conf=%.2f)", listingID, result.CanonicalCategory, result.Confidence)
-		}
-	} else {
-		_ = h.DB.UpdateListingLLMCategoryMetadata(ctx, listingID, llmCategory)
-	}
+	llmlisting.HandleLLMStepError(err, nil, nil, listingID, "classify", "api", "admin_enrich")
+	return fmt.Sprintf("LLM classify failed: %v", err)
 }
 
 // runLLMExtractionIfApplicable runs LLM spec extraction for a listing if a matching profile exists.
 // Non-fatal: logs errors but does not fail the enrichment. Used by PostAdminEnrichListing.
-func (h *Handlers) runLLMExtractionIfApplicable(ctx context.Context, listingID int) {
-	if h.LLM == nil {
-		return
+// Returns a non-empty warning string on LLM failure.
+func (h *Handlers) runLLMExtractionIfApplicable(ctx context.Context, listingID int) string {
+	err := llmlisting.SpecExtractionStep(ctx, h.DB, h.LLM, listingID)
+	if err == nil {
+		return ""
 	}
-	listing, err := h.DB.GetListingForLLM(ctx, listingID)
-	if err != nil || listing == nil {
-		return
-	}
-	if len(listing.CanonicalCategory) == 0 {
-		return
-	}
-	profile, err := h.DB.GetLLMPromptProfileForCategory(ctx, listing.CanonicalCategory)
-	if err != nil || profile == nil {
-		return
-	}
-	var meta struct {
-		Description string                 `json:"description"`
-		Specs       map[string]interface{} `json:"specs"`
-	}
-	_ = json.Unmarshal(listing.Metadata, &meta)
-	specs := make(map[string]string)
-	if meta.Specs != nil {
-		for k, v := range meta.Specs {
-			if v != nil {
-				specs[k] = fmt.Sprint(v)
-			}
-		}
-	}
-	input := llm.ExtractInput{
-		ProductName:  listing.ProductName,
-		Description:  meta.Description,
-		Specs:        specs,
-		CategoryPath: listing.CanonicalCategory,
-	}
-	var llmProfile llm.Profile
-	if err := json.Unmarshal(profile.ExtractionSchema, &llmProfile.ExtractionSchema); err != nil {
-		log.Printf("[admin] listing %d: invalid extraction_schema: %v", listingID, err)
-		return
-	}
-	llmProfile.SystemPrompt = profile.SystemPrompt
-	result, err := h.LLM.Extract(ctx, llmProfile, input)
-	if err != nil {
-		log.Printf("[admin] listing %d: LLM extract failed: %v", listingID, err)
-		return
-	}
-	if result == nil {
-		return
-	}
-	if err := h.DB.UpdateListingLLMSpecs(ctx, listingID, result); err != nil {
-		log.Printf("[admin] listing %d: failed to save LLM specs: %v", listingID, err)
-		return
-	}
+	llmlisting.HandleLLMStepError(err, nil, nil, listingID, "extract", "api", "admin_enrich")
+	return fmt.Sprintf("LLM extract failed: %v", err)
 }
 
 // reloadTaxonomyFromDB loads category_mappings from DB into the taxonomy in-memory cache.

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import {
   useAdminStores,
   useAdminDashboard,
@@ -8,8 +8,19 @@ import {
   useEnrichJobs,
   useScrapeJob,
   useEnrichJob,
+  useCanonicalCategoryPaths,
+  useDBMigrations,
 } from "./hooks/queries";
-import { useTriggerScrape, useTriggerEnrich, useCancelScrapeJob, useCancelEnrichJob } from "./hooks/mutations";
+import {
+  useTriggerScrape,
+  useTriggerEnrich,
+  useCancelScrapeJob,
+  useCancelEnrichJob,
+  useRunCategoryClassifier,
+  useTriggerLLMSpecs,
+  useRunDBMigrate,
+  useRunDBSeed,
+} from "./hooks/mutations";
 import type { ScrapeJob, EnrichJob } from "./api";
 
 const PAGE_SIZE = 20;
@@ -54,14 +65,24 @@ function statusColor(status: string): string {
 }
 
 export function Operations() {
+  const enrichControlsId = useId();
+  const ec = (s: string) => `${enrichControlsId}-${s}`;
   const [scrapeStoreType, setScrapeStoreType] = useState<string>("");
   const [enrichForce, setEnrichForce] = useState(false);
+  const [enrichMode, setEnrichMode] = useState<
+    "enrich" | "classify" | "llm_specs"
+  >("enrich");
+  const [enrichStore, setEnrichStore] = useState("");
+  const [enrichCanonical, setEnrichCanonical] = useState("");
+  const [enrichLlmBelow, setEnrichLlmBelow] = useState("");
+  const [llmSpecsAllowEmpty, setLLmSpecsAllowEmpty] = useState(false);
   const [jobOffset, setJobOffset] = useState(0);
   const [enrichJobOffset, setEnrichJobOffset] = useState(0);
   const [selectedJobId, setSelectedJobId] = useState<number | null>(null);
   const [selectedEnrichJobId, setSelectedEnrichJobId] = useState<number | null>(null);
 
   const { data: stores = [] } = useAdminStores();
+  const { data: canonicalPaths = [] } = useCanonicalCategoryPaths();
   const { data: dashboardData } = useAdminDashboard();
   const scraperReachable = dashboardData?.scraper_reachable ?? false;
 
@@ -79,8 +100,20 @@ export function Operations() {
 
   const scrapeMutation = useTriggerScrape();
   const enrichMutation = useTriggerEnrich();
+  const classifyRunMutation = useRunCategoryClassifier();
+  const llmSpecsMutation = useTriggerLLMSpecs();
   const cancelScrapeMutation = useCancelScrapeJob();
   const cancelEnrichMutation = useCancelEnrichJob();
+  const dbMigrateMutation = useRunDBMigrate();
+  const dbSeedMutation = useRunDBSeed();
+
+  const {
+    data: dbMigrationsData,
+    isPending: dbMigrationsLoading,
+    isError: dbMigrationsError,
+    error: dbMigrationsErrorObj,
+    refetch: refetchDBMigrations,
+  } = useDBMigrations();
 
   const loading = useAdminStores().isPending && stores.length === 0;
   const error = jobsError ? (jobsErrorObj?.message ?? "Failed to load jobs") : null;
@@ -113,17 +146,40 @@ export function Operations() {
     <div>
       <h2 className="text-xl font-semibold text-stone-800 mb-4">Operations</h2>
 
-      {(scrapeMutation.isError || enrichMutation.isError || cancelScrapeMutation.isError || cancelEnrichMutation.isError || error) && (
+      {(scrapeMutation.isError ||
+        enrichMutation.isError ||
+        llmSpecsMutation.isError ||
+        classifyRunMutation.isError ||
+        cancelScrapeMutation.isError ||
+        cancelEnrichMutation.isError ||
+        dbMigrateMutation.isError ||
+        dbSeedMutation.isError ||
+        dbMigrationsError ||
+        error) && (
         <div className="mb-4 rounded border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
-          {scrapeMutation.error?.message ?? enrichMutation.error?.message ?? cancelScrapeMutation.error?.message ?? cancelEnrichMutation.error?.message ?? error}
+          {scrapeMutation.error?.message ??
+            enrichMutation.error?.message ??
+            llmSpecsMutation.error?.message ??
+            classifyRunMutation.error?.message ??
+            cancelScrapeMutation.error?.message ??
+            cancelEnrichMutation.error?.message ??
+            dbMigrateMutation.error?.message ??
+            dbSeedMutation.error?.message ??
+            dbMigrationsErrorObj?.message ??
+            error}
           <button
             type="button"
             onClick={() => {
               scrapeMutation.reset();
               enrichMutation.reset();
+              llmSpecsMutation.reset();
+              classifyRunMutation.reset();
               cancelScrapeMutation.reset();
               cancelEnrichMutation.reset();
+              dbMigrateMutation.reset();
+              dbSeedMutation.reset();
               if (jobsError) refetchJobs();
+              if (dbMigrationsError) refetchDBMigrations();
             }}
             className="ml-2 underline"
           >
@@ -167,32 +223,282 @@ export function Operations() {
         </div>
 
         <div className="rounded-lg border border-stone-200 bg-white p-4 shadow-sm">
-          <h3 className="text-sm font-medium text-stone-800 mb-3">Trigger enrichment</h3>
-          <div className="flex flex-wrap items-center gap-2">
-            <label className="flex items-center gap-1.5 text-sm text-stone-700">
-              <input
-                type="checkbox"
-                checked={enrichForce}
-                onChange={(e) => setEnrichForce(e.target.checked)}
-                className="rounded border-stone-300"
-              />
-              Force re-enrich all
-            </label>
+          <h3 className="text-sm font-medium text-stone-800 mb-3">Trigger enrichment / re-classify / LLM specs</h3>
+          <div className="flex flex-col gap-2 text-sm text-stone-700">
+            <div className="flex flex-wrap gap-4">
+              <label className="inline-flex items-center gap-1.5">
+                <input
+                  type="radio"
+                  name="enrichMode"
+                  checked={enrichMode === "enrich"}
+                  onChange={() => setEnrichMode("enrich")}
+                />
+                Re-enrich (PDP + LLM)
+              </label>
+              <label className="inline-flex items-center gap-1.5">
+                <input
+                  type="radio"
+                  name="enrichMode"
+                  checked={enrichMode === "classify"}
+                  onChange={() => setEnrichMode("classify")}
+                />
+                Re-classify only (LLM)
+              </label>
+              <label className="inline-flex items-center gap-1.5">
+                <input
+                  type="radio"
+                  name="enrichMode"
+                  checked={enrichMode === "llm_specs"}
+                  onChange={() => setEnrichMode("llm_specs")}
+                />
+                LLM specs only (no PDP)
+              </label>
+            </div>
+            <div className="flex flex-wrap items-end gap-2">
+              <div>
+                <label htmlFor={ec("enrich-store")} className="block text-xs text-stone-500 mb-0.5">
+                  Store (optional)
+                </label>
+                <select
+                  id={ec("enrich-store")}
+                  value={enrichStore}
+                  onChange={(e) => setEnrichStore(e.target.value)}
+                  className="rounded border border-stone-300 px-2 py-1.5 text-stone-900 min-w-[10rem]"
+                >
+                  <option value="">All with enricher</option>
+                  {stores.map((s) => (
+                    <option key={s.id} value={s.store_type}>
+                      {s.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label htmlFor={ec("enrich-canonical")} className="block text-xs text-stone-500 mb-0.5">
+                  Canonical path (optional)
+                </label>
+                <select
+                  id={ec("enrich-canonical")}
+                  value={enrichCanonical}
+                  onChange={(e) => setEnrichCanonical(e.target.value)}
+                  className="rounded border border-stone-300 px-2 py-1.5 text-stone-900 max-w-xs"
+                >
+                  <option value="">Any</option>
+                  {canonicalPaths.map((p) => (
+                    <option key={p} value={p}>
+                      {p}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label htmlFor={ec("enrich-llm")} className="block text-xs text-stone-500 mb-0.5">
+                  LLM conf. &lt;
+                </label>
+                <input
+                  id={ec("enrich-llm")}
+                  type="number"
+                  min={0}
+                  max={1}
+                  step={0.05}
+                  value={enrichLlmBelow}
+                  onChange={(e) => setEnrichLlmBelow(e.target.value)}
+                  placeholder="0.7"
+                  className="w-20 rounded border border-stone-300 px-2 py-1.5"
+                />
+              </div>
+            </div>
+            {enrichMode === "llm_specs" && (
+              <label className="inline-flex items-center gap-1.5 text-xs text-stone-600 max-w-xl">
+                <input
+                  type="checkbox"
+                  checked={llmSpecsAllowEmpty}
+                  onChange={(e) => setLLmSpecsAllowEmpty(e.target.checked)}
+                  className="rounded border-stone-300"
+                />
+                Include listings without scraped specs (queries allow_empty_specs=1 semantics)
+              </label>
+            )}
+            {enrichMode === "enrich" && (
+              <label className="inline-flex items-center gap-1.5">
+                <input
+                  type="checkbox"
+                  checked={enrichForce}
+                  onChange={(e) => setEnrichForce(e.target.checked)}
+                  className="rounded border-stone-300"
+                />
+                Force (skip 7-day staleness filter)
+              </label>
+            )}
             <button
               type="button"
-              onClick={() =>
-                enrichMutation.mutate(
-                  { force: enrichForce },
-                  { onSuccess: () => setEnrichJobOffset(0) }
-                )
+              onClick={() => {
+                const pathArr =
+                  enrichCanonical.trim() === ""
+                    ? undefined
+                    : enrichCanonical.split(" > ").map((s) => s.trim()).filter(Boolean);
+                let below: number | undefined;
+                if (enrichLlmBelow.trim() !== "") {
+                  const n = parseFloat(enrichLlmBelow);
+                  if (!Number.isNaN(n) && n >= 0 && n <= 1) below = n;
+                }
+                const onDone = () => setEnrichJobOffset(0);
+                if (enrichMode === "enrich") {
+                  enrichMutation.mutate(
+                    {
+                      force: enrichForce,
+                      store: enrichStore || undefined,
+                      canonical_category: enrichCanonical || undefined,
+                      llm_confidence_below: below,
+                    },
+                    { onSuccess: onDone },
+                  );
+                } else if (enrichMode === "llm_specs") {
+                  llmSpecsMutation.mutate(
+                    {
+                      store: enrichStore || undefined,
+                      canonical_category: enrichCanonical || undefined,
+                      llm_confidence_below: below,
+                      allow_empty_specs: llmSpecsAllowEmpty || undefined,
+                    },
+                    { onSuccess: onDone },
+                  );
+                } else {
+                  classifyRunMutation.mutate(
+                    {
+                      store: enrichStore || undefined,
+                      canonical_category: pathArr,
+                      llm_confidence_below: below,
+                    },
+                    { onSuccess: onDone },
+                  );
+                }
+              }}
+              disabled={
+                enrichMutation.isPending ||
+                classifyRunMutation.isPending ||
+                llmSpecsMutation.isPending
               }
-              disabled={enrichMutation.isPending}
-              className="rounded bg-stone-800 px-3 py-2 text-sm font-medium text-white hover:bg-stone-700 disabled:opacity-50"
+              className="self-start rounded bg-stone-800 px-3 py-2 text-sm font-medium text-white hover:bg-stone-700 disabled:opacity-50"
             >
-              {enrichMutation.isPending ? "Running…" : "Run"}
+              {enrichMutation.isPending ||
+              classifyRunMutation.isPending ||
+              llmSpecsMutation.isPending
+                ? "Running…"
+                : "Run"}
             </button>
+            {classifyRunMutation.isSuccess &&
+              classifyRunMutation.data &&
+              "async" in classifyRunMutation.data &&
+              classifyRunMutation.data.async && (
+                <p className="text-xs text-green-700 mt-2 max-w-md">
+                  Re-classify job #{classifyRunMutation.data.job_id} started in the background. Status
+                  appears in Enrichment job history below.
+                </p>
+              )}
+            {llmSpecsMutation.isSuccess &&
+              llmSpecsMutation.data?.async &&
+              typeof llmSpecsMutation.data.job_id === "number" && (
+                <p className="text-xs text-green-700 mt-2 max-w-md">
+                  LLM specs job #{llmSpecsMutation.data.job_id} started in the background. Status appears
+                  in Enrichment job history below.
+                </p>
+              )}
           </div>
         </div>
+      </div>
+
+      <div className="mb-6 rounded-lg border border-stone-200 bg-white p-4 shadow-sm">
+        <h3 className="text-sm font-medium text-stone-800 mb-1">Database maintenance</h3>
+        <p className="text-xs text-stone-500 mb-3">
+          Run incremental SQL migrations and idempotent store seed data. Migrations are tracked in{" "}
+          <code className="text-stone-600">schema_migrations</code>.
+        </p>
+        {dbMigrationsData && !dbMigrationsData.ops_allowed && (
+          <p className="mb-3 text-xs text-amber-700 rounded border border-amber-200 bg-amber-50 px-2 py-1.5">
+            DB run actions are disabled in production unless{" "}
+            <code className="text-amber-800">ALLOW_ADMIN_DB_OPS=1</code> is set on the API.
+          </p>
+        )}
+        <div className="flex flex-wrap items-center gap-2 mb-4">
+          <button
+            type="button"
+            onClick={() => dbMigrateMutation.mutate(undefined)}
+            disabled={
+              dbMigrateMutation.isPending ||
+              dbSeedMutation.isPending ||
+              dbMigrationsLoading ||
+              dbMigrationsData?.ops_allowed === false ||
+              (dbMigrationsData?.pending_count ?? 0) === 0
+            }
+            className="rounded bg-stone-800 px-3 py-2 text-sm font-medium text-white hover:bg-stone-700 disabled:opacity-50"
+          >
+            {dbMigrateMutation.isPending
+              ? "Running migrations…"
+              : `Run pending migrations${dbMigrationsData ? ` (${dbMigrationsData.pending_count})` : ""}`}
+          </button>
+          <button
+            type="button"
+            onClick={() => dbSeedMutation.mutate(undefined)}
+            disabled={
+              dbMigrateMutation.isPending ||
+              dbSeedMutation.isPending ||
+              dbMigrationsLoading ||
+              dbMigrationsData?.ops_allowed === false
+            }
+            className="rounded border border-stone-300 px-3 py-2 text-sm text-stone-800 hover:bg-stone-50 disabled:opacity-50"
+          >
+            {dbSeedMutation.isPending ? "Running seed…" : "Run seed"}
+          </button>
+          <button
+            type="button"
+            onClick={() => refetchDBMigrations()}
+            disabled={dbMigrationsLoading}
+            className="rounded border border-stone-300 px-3 py-2 text-sm text-stone-600 hover:bg-stone-50 disabled:opacity-50"
+          >
+            Refresh
+          </button>
+        </div>
+        {dbMigrateMutation.isSuccess && dbMigrateMutation.data && (
+          <p className="text-xs text-green-700 mb-3">
+            Applied {dbMigrateMutation.data.applied.length} migration
+            {dbMigrateMutation.data.applied.length === 1 ? "" : "s"}
+            {dbMigrateMutation.data.applied.length > 0
+              ? `: ${dbMigrateMutation.data.applied.join(", ")}`
+              : " (none pending)"}
+          </p>
+        )}
+        {dbSeedMutation.isSuccess && (
+          <p className="text-xs text-green-700 mb-3">Seed completed successfully.</p>
+        )}
+        {dbMigrationsLoading ? (
+          <p className="text-sm text-stone-500">Loading migration status…</p>
+        ) : dbMigrationsData ? (
+          <div className="overflow-x-auto max-h-48 overflow-y-auto rounded border border-stone-100">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="border-b border-stone-200 bg-stone-50 sticky top-0">
+                  <th className="px-3 py-1.5 text-left font-medium text-stone-600">Migration</th>
+                  <th className="px-3 py-1.5 text-left font-medium text-stone-600">Status</th>
+                  <th className="px-3 py-1.5 text-left font-medium text-stone-600">Applied at</th>
+                </tr>
+              </thead>
+              <tbody>
+                {dbMigrationsData.migrations.map((m) => (
+                  <tr key={m.filename} className="border-b border-stone-100">
+                    <td className="px-3 py-1.5 font-mono text-stone-800">{m.filename}</td>
+                    <td className={`px-3 py-1.5 ${m.applied ? "text-green-700" : "text-amber-700"}`}>
+                      {m.applied ? "Applied" : "Pending"}
+                    </td>
+                    <td className="px-3 py-1.5 text-stone-600">
+                      {m.applied_at ? formatDate(m.applied_at) : "—"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : null}
       </div>
 
       <div className="rounded-lg border border-stone-200 bg-white shadow-sm overflow-hidden">
@@ -280,7 +586,7 @@ export function Operations() {
                 <th className="px-4 py-2 text-right font-medium text-stone-600">Processed</th>
                 <th className="px-4 py-2 text-right font-medium text-stone-600">Enriched</th>
                 <th className="px-4 py-2 text-right font-medium text-stone-600">Errors</th>
-                <th className="px-4 py-2 text-left font-medium text-stone-600">Mode</th>
+                <th className="px-4 py-2 text-left font-medium text-stone-600">Type / mode</th>
               </tr>
             </thead>
             <tbody>
@@ -289,6 +595,7 @@ export function Operations() {
                 const durationStr = ms != null ? `${(ms / 1000).toFixed(1)}s` : "—";
                 const errCount = job.errors?.length ?? 0;
                 const storeLabel = job.store_type ?? "All";
+                const jt = (job.job_type && job.job_type !== "") ? job.job_type : "enrich";
                 return (
                   <tr
                     key={job.id}
@@ -308,7 +615,10 @@ export function Operations() {
                         "—"
                       )}
                     </td>
-                    <td className="px-4 py-2 text-stone-600">{job.force_mode ? "Force" : "Normal"}</td>
+                    <td className="px-4 py-2 text-stone-600">
+                      {jt}
+                      {jt === "enrich" && (job.force_mode ? " · force" : " · normal")}
+                    </td>
                   </tr>
                 );
               })}

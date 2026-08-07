@@ -6,8 +6,10 @@ import { getCategorySeo } from "@/lib/categorySeo";
 import { buildDealsCategoryPath } from "@/lib/dealsCategoryPath";
 import { absoluteUrl } from "@/lib/siteUrl";
 import { CategoriesPageContent } from "@/views/CategoriesPageContent";
+import { SeoHubLinksGlobal } from "@/components/SeoHubLinks";
 
-export const revalidate = 60;
+/** 4h — must match {@link PUBLIC_ISR_REVALIDATE_SECONDS} in @/lib/revalidate. */
+export const revalidate = 14400;
 
 const pageDescription =
   "See every mountain bike category on The Dropper—bikes, components, gear, and accessories—with live deal counts. Pick a category to browse filtered deals.";
@@ -49,7 +51,9 @@ export default async function CategoriesPage() {
   return (
     <>
       <JsonLd data={collectionJsonLd} />
-      <CategoriesPageContent categoryTree={categoryTree} />
+      <CategoriesPageContent categoryTree={categoryTree}>
+        <SeoHubLinksGlobal />
+      </CategoriesPageContent>
     </>
   );
 }

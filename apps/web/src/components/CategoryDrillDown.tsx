@@ -1,4 +1,5 @@
 import { useCallback, useState } from "react";
+import { cn } from "@/lib/utils";
 import { Button } from "./ui/button";
 
 type TreeNode = {
@@ -215,10 +216,10 @@ export function CategoryDrillDown({
   }
 
   return (
-    <div className={className}>
-      <label className="block text-sm font-medium text-muted-foreground mb-1">
+    <fieldset className={cn("border-0 p-0 m-0 min-w-0", className)}>
+      <legend className="block w-full px-0 text-sm font-medium text-muted-foreground mb-1">
         {label}
-      </label>
+      </legend>
       <div className="space-y-0.5">
         <Button
           type="button"
@@ -232,6 +233,6 @@ export function CategoryDrillDown({
           {tree.map((node) => renderNode(node, 0))}
         </div>
       </div>
-    </div>
+    </fieldset>
   );
 }

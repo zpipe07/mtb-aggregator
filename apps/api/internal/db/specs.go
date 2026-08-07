@@ -16,14 +16,15 @@ import (
 type GetFacetsParams struct {
 	StoreID           *int
 	StoreName         string
-	Brand             string
+	Brands            []string // OR within brands (ILIKE ANY)
 	Category          string
 	CanonicalCategory string // legacy: "Bikes > Mountain"
 	CategorySlug      string // preferred: slug for subtree filter
 	MinDiscount       *float64
+	MinPrice          *float64 // minimum current_price (inclusive)
+	MaxPrice          *float64 // maximum current_price (inclusive)
 	Search            string
-	SpecFilters       map[string]string // key -> value, e.g. {"wheel_size": "29"}
-	VariantFilters    map[string]string // variant option key -> value (e.g. Size -> Large)
+	SpecFilters map[string][]string // key -> values; OR within key
 	// CategoryFilterIDs is populated by GetFacets from CategorySlug or CanonicalCategory for WHERE clause.
 	CategoryFilterIDs []int
 }
@@ -54,25 +55,12 @@ type PriceRange struct {
 	Max float64 `json:"max"`
 }
 
-// VariantFacetValue is one option for a variant dimension (e.g. size).
-type VariantFacetValue struct {
-	Value string `json:"value"`
-	Count int    `json:"count"`
-}
-
-// VariantFacet groups values under a variant option name (e.g. "Size").
-type VariantFacet struct {
-	Key    string              `json:"key"`
-	Values []VariantFacetValue `json:"values"`
-}
-
 // GetFacetsResult is the response for GET /facets.
 type GetFacetsResult struct {
-	SpecFacets    []SpecFacet    `json:"spec_facets"`
-	BrandFacets   []BrandFacet   `json:"brand_facets"`
-	VariantFacets []VariantFacet `json:"variant_facets"`
-	PriceRange    PriceRange     `json:"price_range"`
-	TotalMatching int            `json:"total_matching"`
+	SpecFacets    []SpecFacet  `json:"spec_facets"`
+	BrandFacets   []BrandFacet `json:"brand_facets"`
+	PriceRange    PriceRange   `json:"price_range"`
+	TotalMatching int          `json:"total_matching"`
 }
 
 // filterableField holds display config for a profile field that appears as a filter.
@@ -105,6 +93,18 @@ func parseFilterableFields(extractionSchema json.RawMessage) []filterableField {
 		return out[i].key < out[j].key
 	})
 	return out
+}
+
+// listingVisibilityGate limits queries to in-stock, non-hidden listings (same rules as GET /deals).
+const listingVisibilityGate = " AND l.is_in_stock = true AND l.hidden = false"
+
+// facetsListingGate prefixes facet WHERE clauses with the same visibility rules as public GET /deals
+// (in-stock, not hidden). whereFromBuild is the suffix from buildFacetsWhereClause (may be empty).
+func facetsListingGate(whereFromBuild string) string {
+	if whereFromBuild == "" {
+		return listingVisibilityGate
+	}
+	return listingVisibilityGate + whereFromBuild
 }
 
 // GetFacets returns facets (spec keys/values, brands, price range) for the given filter context.
@@ -143,23 +143,14 @@ func (db *DB) GetFacets(ctx context.Context, params GetFacetsParams) (*GetFacets
 
 	var specFiltersForWhere map[string][]string
 	if profile != nil {
-		specFiltersForWhere = make(map[string][]string)
-		for k, v := range params.SpecFilters {
-			if k != "" && v != "" {
-				specFiltersForWhere[k] = []string{v}
-			}
-		}
+		specFiltersForWhere = normalizeSpecFiltersMap(params.SpecFilters)
 	}
 	if specFiltersForWhere == nil {
 		specFiltersForWhere = map[string][]string{}
 	}
 
 	where, args := buildFacetsWhereClause(params, specFiltersForWhere, true)
-	if where == "" {
-		where = " AND l.is_in_stock = true"
-	} else {
-		where = " AND l.is_in_stock = true" + where
-	}
+	where = facetsListingGate(where)
 
 	baseFrom := `
 		FROM store_listings l
@@ -199,11 +190,7 @@ func (db *DB) GetFacets(ctx context.Context, params GetFacetsParams) (*GetFacets
 				break
 			}
 			specWhere, specArgs := buildFacetsWhereClause(params, specFiltersOmit(specFiltersForWhere, f.key), true)
-			if specWhere == "" {
-				specWhere = " AND l.is_in_stock = true"
-			} else {
-				specWhere = " AND l.is_in_stock = true" + specWhere
-			}
+			specWhere = facetsListingGate(specWhere)
 			baseFromSpec := `
 		FROM store_listings l
 		JOIN stores s ON s.id = l.store_id
@@ -268,13 +255,9 @@ func (db *DB) GetFacets(ctx context.Context, params GetFacetsParams) (*GetFacets
 
 	// Brand facets — exclude brand filter so users can see/switch alternatives (faceted search).
 	brandParams := params
-	brandParams.Brand = ""
+	brandParams.Brands = nil
 	brandWhere, brandArgs := buildFacetsWhereClause(brandParams, specFiltersForWhere, true)
-	if brandWhere == "" {
-		brandWhere = " AND l.is_in_stock = true"
-	} else {
-		brandWhere = " AND l.is_in_stock = true" + brandWhere
-	}
+	brandWhere = facetsListingGate(brandWhere)
 	brandBaseFrom := `
 		FROM store_listings l
 		JOIN stores s ON s.id = l.store_id
@@ -306,96 +289,9 @@ func (db *DB) GetFacets(ctx context.Context, params GetFacetsParams) (*GetFacets
 		return nil, err
 	}
 
-	// Variant option facets (Shopify variant_options JSON). Per dimension key, omit that key's
-	// variant filter when aggregating values so users can switch options (faceted search).
-	var variantFacets []VariantFacet
-	discParams := params
-	discParams.VariantFilters = nil
-	discWhere, discArgs := buildFacetsWhereClause(discParams, specFiltersForWhere, true)
-	if discWhere == "" {
-		discWhere = " AND l.is_in_stock = true"
-	} else {
-		discWhere = " AND l.is_in_stock = true" + discWhere
-	}
-	discQuery := `
-SELECT DISTINCT kv.key
-FROM store_listings l
-JOIN stores s ON s.id = l.store_id
-CROSS JOIN LATERAL jsonb_each_text(COALESCE(l.variant_options, '{}'::jsonb)) AS kv(key, value)
-WHERE 1=1` + discWhere + `
-AND l.variant_options IS NOT NULL
-AND jsonb_typeof(l.variant_options) = 'object'
-AND trim(kv.value) <> ''
-ORDER BY kv.key`
-	vkRows, err := db.pool.Query(ctx, discQuery, discArgs...)
-	if err != nil {
-		return nil, fmt.Errorf("facets variant keys: %w", err)
-	}
-	var variantKeys []string
-	for vkRows.Next() {
-		var k string
-		if err := vkRows.Scan(&k); err != nil {
-			vkRows.Close()
-			return nil, err
-		}
-		variantKeys = append(variantKeys, k)
-	}
-	vkRows.Close()
-	if err := vkRows.Err(); err != nil {
-		return nil, err
-	}
-
-	for _, vk := range variantKeys {
-		vp := params
-		vp.VariantFilters = variantFiltersOmit(params.VariantFilters, vk)
-		vWhere, vArgs := buildFacetsWhereClause(vp, specFiltersForWhere, true)
-		if vWhere == "" {
-			vWhere = " AND l.is_in_stock = true"
-		} else {
-			vWhere = " AND l.is_in_stock = true" + vWhere
-		}
-		keyArg := len(vArgs) + 1
-		variantPerKeyQuery := `
-SELECT kv.value, COUNT(DISTINCT l.id) as cnt
-FROM store_listings l
-JOIN stores s ON s.id = l.store_id
-CROSS JOIN LATERAL jsonb_each_text(COALESCE(l.variant_options, '{}'::jsonb)) AS kv(key, value)
-WHERE 1=1` + vWhere + `
-AND l.variant_options IS NOT NULL
-AND jsonb_typeof(l.variant_options) = 'object'
-AND trim(kv.value) <> ''
-AND lower(kv.key) = lower($` + fmt.Sprint(keyArg) + `)
-GROUP BY kv.value
-ORDER BY cnt DESC
-LIMIT 50`
-		vArgs = append(vArgs, vk)
-		vrows, err := db.pool.Query(ctx, variantPerKeyQuery, vArgs...)
-		if err != nil {
-			return nil, fmt.Errorf("facets variant options for %s: %w", vk, err)
-		}
-		var vals []VariantFacetValue
-		for vrows.Next() {
-			var v string
-			var c int
-			if err := vrows.Scan(&v, &c); err != nil {
-				vrows.Close()
-				return nil, err
-			}
-			vals = append(vals, VariantFacetValue{Value: v, Count: c})
-		}
-		vrows.Close()
-		if err := vrows.Err(); err != nil {
-			return nil, err
-		}
-		if len(vals) > 0 {
-			variantFacets = append(variantFacets, VariantFacet{Key: vk, Values: vals})
-		}
-	}
-
 	return &GetFacetsResult{
 		SpecFacets:    specFacets,
 		BrandFacets:   brandFacets,
-		VariantFacets: variantFacets,
 		PriceRange:    priceRange,
 		TotalMatching: totalMatching,
 	}, nil
@@ -412,24 +308,6 @@ func specFiltersOmit(specFilters map[string][]string, omitKey string) map[string
 			continue
 		}
 		out[k] = v
-	}
-	return out
-}
-
-// variantFiltersOmit returns a copy of filters without the given variant dimension (case-insensitive key match).
-func variantFiltersOmit(filters map[string]string, omitKey string) map[string]string {
-	if len(filters) == 0 || omitKey == "" {
-		return filters
-	}
-	out := make(map[string]string)
-	for k, v := range filters {
-		if strings.EqualFold(k, omitKey) {
-			continue
-		}
-		out[k] = v
-	}
-	if len(out) == len(filters) {
-		return filters
 	}
 	return out
 }
@@ -493,9 +371,15 @@ func buildFacetsWhereClause(params GetFacetsParams, specFilters map[string][]str
 		args = append(args, params.StoreName)
 		argNum++
 	}
-	if params.Brand != "" {
-		sb.WriteString(fmt.Sprintf(" AND l.brand ILIKE $%d", argNum))
-		args = append(args, params.Brand)
+	var brands []string
+	for _, b := range params.Brands {
+		if t := strings.TrimSpace(b); t != "" {
+			brands = append(brands, t)
+		}
+	}
+	if len(brands) > 0 {
+		sb.WriteString(fmt.Sprintf(" AND l.brand ILIKE ANY($%d::text[])", argNum))
+		args = append(args, pq.Array(brands))
 		argNum++
 	}
 	if params.Category != "" {
@@ -527,13 +411,21 @@ func buildFacetsWhereClause(params GetFacetsParams, specFilters map[string][]str
 		args = append(args, *params.MinDiscount)
 		argNum++
 	}
+	if params.MinPrice != nil && *params.MinPrice > 0 {
+		sb.WriteString(fmt.Sprintf(" AND l.current_price >= $%d", argNum))
+		args = append(args, *params.MinPrice)
+		argNum++
+	}
+	if params.MaxPrice != nil && *params.MaxPrice > 0 {
+		sb.WriteString(fmt.Sprintf(" AND l.current_price <= $%d", argNum))
+		args = append(args, *params.MaxPrice)
+		argNum++
+	}
 	if params.Search != "" {
 		sb.WriteString(fmt.Sprintf(" AND l.search_vector @@ plainto_tsquery('english', $%d)", argNum))
 		args = append(args, params.Search)
 		argNum++
 	}
-	appendVariantFilters(&sb, &args, &argNum, params.VariantFilters)
-
 	return sb.String(), args
 }
 

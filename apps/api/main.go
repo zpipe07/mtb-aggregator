@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -20,6 +21,7 @@ import (
 	"github.com/mtb-aggregator/api/internal/brand"
 	"github.com/mtb-aggregator/api/internal/db"
 	"github.com/mtb-aggregator/api/internal/llm"
+	"github.com/mtb-aggregator/api/internal/logutil"
 	"github.com/mtb-aggregator/api/internal/normalization"
 	"github.com/mtb-aggregator/api/internal/scheduler"
 	"github.com/mtb-aggregator/api/internal/scraper"
@@ -35,7 +37,7 @@ func sentryRelease() string {
 }
 
 // initSentry configures error reporting when SENTRY_DSN is set. Returns whether Sentry is active.
-func initSentry() bool {
+func initSentry(logger *slog.Logger) bool {
 	dsn := strings.TrimSpace(os.Getenv("SENTRY_DSN"))
 	if dsn == "" {
 		return false
@@ -46,10 +48,10 @@ func initSentry() bool {
 		Release:          sentryRelease(),
 		TracesSampleRate: 0,
 	}); err != nil {
-		log.Printf("[sentry] init failed: %v", err)
+		logger.Error("sentry init failed", logutil.ErrAttr(err))
 		return false
 	}
-	log.Println("[sentry] initialized")
+	logger.Info("sentry initialized")
 	return true
 }
 
@@ -91,12 +93,29 @@ func (r *responseRecorder) WriteHeader(code int) {
 	r.ResponseWriter.WriteHeader(code)
 }
 
-func loggingMiddleware(next http.Handler) http.Handler {
+func accessLoggingMiddleware(logger *slog.Logger, next http.Handler) http.Handler {
+	if !logutil.HTTPAccessEnabled() {
+		return next
+	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 		rec := &responseRecorder{ResponseWriter: w, status: http.StatusOK}
 		next.ServeHTTP(rec, r)
-		log.Printf("[http] %s %s %s %d %v", r.RemoteAddr, r.Method, r.URL.Path, rec.status, time.Since(start))
+		if r.URL.Path == "/health" {
+			return
+		}
+		attrs := []any{
+			"method", r.Method,
+			"path", r.URL.Path,
+			"status", rec.status,
+			"duration_ms", time.Since(start).Milliseconds(),
+			"client_ip", logutil.ClientIP(r),
+			"request_id", logutil.RequestID(r),
+		}
+		if q := r.URL.RawQuery; q != "" {
+			attrs = append(attrs, "query", q)
+		}
+		logger.Info("request", attrs...)
 	})
 }
 
@@ -240,92 +259,104 @@ func loadNormalizationFromDB(ctx context.Context, database *db.DB) error {
 }
 
 func main() {
-	log.Println("[startup] initializing API")
+	logutil.Init("api")
+	startupLog := logutil.Logger("startup")
+	securityLog := logutil.Logger("security")
+	taxonomyLog := logutil.Logger("taxonomy")
+	normalizationLog := logutil.Logger("normalization")
+	jobsLog := logutil.Logger("jobs")
+	httpLog := logutil.Logger("http")
+	scrapeNowLog := logutil.Logger("scrape-now")
+	enrichNowLog := logutil.Logger("enrich-now")
+	llmSpecsNowLog := logutil.Logger("llm-specs-now")
+	shutdownLog := logutil.Logger("shutdown")
+
+	startupLog.Info("initializing API")
 
 	// Load .env from cwd or monorepo root so ENRICH_BATCH_SIZE etc. are set when running locally
 	if err := godotenv.Load(); err != nil {
-		log.Printf("[startup] .env from cwd: %v (using env vars)", err)
+		startupLog.Info("no .env in cwd; using env vars", logutil.ErrAttr(err))
 	} else {
-		log.Println("[startup] loaded .env from cwd")
+		startupLog.Info("loaded .env from cwd")
 	}
 	if p, err := filepath.Abs("../../.env"); err == nil && p != "" {
 		if err := godotenv.Load(p); err != nil {
-			log.Printf("[startup] .env from monorepo root: %v", err)
+			startupLog.Debug("no .env at monorepo root", logutil.ErrAttr(err))
 		} else {
-			log.Println("[startup] loaded .env from monorepo root")
+			startupLog.Info("loaded .env from monorepo root")
 		}
 	}
 
-	sentryEnabled := initSentry()
+	sentryEnabled := initSentry(logutil.Logger("sentry"))
 
 	if err := brand.Load(""); err != nil {
-		log.Printf("[brand] could not load aliases (brand normalization disabled): %v", err)
+		logutil.Logger("brand").Warn("could not load aliases; brand normalization disabled", logutil.ErrAttr(err))
 	}
 	// Taxonomy is loaded from DB (loadTaxonomyFromDB); taxonomy.Load() from JSON is no longer used.
 
 	connString := os.Getenv("DATABASE_URL")
 	if connString == "" {
 		connString = "postgres://mtb:mtb@localhost:5432/mtb_deals?sslmode=disable"
-		log.Println("[startup] using default DATABASE_URL")
+		startupLog.Info("using default DATABASE_URL")
 	} else {
-		log.Println("[startup] DATABASE_URL set from env")
+		startupLog.Info("DATABASE_URL set from env")
 	}
 
 	scraperURL := os.Getenv("SCRAPER_SERVICE_URL")
 	if scraperURL == "" {
 		scraperURL = "http://localhost:3000"
 	}
-	log.Printf("[startup] scraper service URL: %s", scraperURL)
+	startupLog.Info("scraper service configured", "url", scraperURL)
 
 	if isProduction() && strings.TrimSpace(os.Getenv("CRON_SECRET")) == "" && strings.TrimSpace(os.Getenv("ALLOW_OPEN_CRON")) != "1" {
-		log.Println("[security] CRON_SECRET unset in production: POST /scrape-now and /enrich-now require admin Bearer or set CRON_SECRET for X-Cron-Secret")
+		securityLog.Warn("CRON_SECRET unset in production: POST /scrape-now, /enrich-now, and /llm-specs-now require admin Bearer or set CRON_SECRET for X-Cron-Secret")
 	}
 	if isProduction() && strings.TrimSpace(os.Getenv("SCRAPER_SERVICE_SECRET")) == "" {
-		log.Println("[security] SCRAPER_SERVICE_SECRET unset in production: set the same value on API and scraper to authenticate POST /scrape and /enrich")
+		securityLog.Warn("SCRAPER_SERVICE_SECRET unset in production: set the same value on API and scraper to authenticate POST /scrape and /enrich")
 	}
 
 	database, err := db.New(connString)
 	if err != nil {
-		log.Fatalf("[startup] database: %v", err)
+		log.Fatalf("database: %v", err)
 	}
 	defer database.Close()
-	log.Println("[startup] database connected")
+	startupLog.Info("database connected")
 
 	// Seed category_mappings from JSON if table is empty, then load taxonomy from DB
 	ctx := context.Background()
 	if seeded, err := seedCategoryMappingsFromFile(ctx, database); err != nil {
-		log.Printf("[taxonomy] seed from file: %v", err)
+		taxonomyLog.Error("seed from file failed", logutil.ErrAttr(err))
 	} else if seeded {
-		log.Println("[taxonomy] seeded category_mappings from JSON")
+		taxonomyLog.Info("seeded category_mappings from JSON")
 	}
 	if err := loadTaxonomyFromDB(ctx, database); err != nil {
-		log.Printf("[taxonomy] load from DB: %v", err)
+		taxonomyLog.Error("load from DB failed", logutil.ErrAttr(err))
 	} else {
-		log.Println("[taxonomy] loaded category mappings from DB")
+		taxonomyLog.Info("loaded category mappings from DB")
 	}
 
 	if seeded, err := seedSpecKeyAliasesFromFile(ctx, database); err != nil {
-		log.Printf("[normalization] seed spec_key_aliases from file: %v", err)
+		normalizationLog.Error("seed spec_key_aliases from file failed", logutil.ErrAttr(err))
 	} else if seeded {
-		log.Println("[normalization] seeded spec_key_aliases from JSON")
+		normalizationLog.Info("seeded spec_key_aliases from JSON")
 	}
 	if err := loadNormalizationFromDB(ctx, database); err != nil {
-		log.Printf("[normalization] load from DB: %v", err)
+		normalizationLog.Error("load from DB failed", logutil.ErrAttr(err))
 	} else {
-		log.Println("[normalization] loaded spec key aliases and normalization rules from DB")
+		normalizationLog.Info("loaded spec key aliases and normalization rules from DB")
 	}
 
 	if err := database.MarkStaleJobs(ctx); err != nil {
-		log.Printf("[jobs] mark stale jobs: %v", err)
+		jobsLog.Error("mark stale jobs failed", logutil.ErrAttr(err))
 	} else {
-		log.Println("[jobs] marked any orphaned running jobs as stale")
+		jobsLog.Info("marked any orphaned running jobs as stale")
 	}
 
 	scraperClient := scraper.NewClient(scraperURL)
 	llmClient := llm.New("", "")
 	sched := scheduler.New(database, scraperURL, llmClient)
 	handlers := &api.Handlers{DB: database, ScraperURL: scraperURL, Scraper: scraperClient, LLM: llmClient}
-	log.Println("[startup] scheduler and handlers initialized")
+	startupLog.Info("scheduler and handlers initialized")
 
 	// Cron: once a day at midnight (configurable via SCRAPE_CRON_SPEC, "disabled" = use external cron)
 	cronSpec := os.Getenv("SCRAPE_CRON_SPEC")
@@ -334,9 +365,9 @@ func main() {
 	}
 	if !strings.EqualFold(cronSpec, "disabled") {
 		sched.Start(cronSpec, "cron")
-		log.Printf("[startup] scrape cron started: %s", cronSpec)
+		startupLog.Info("scrape cron started", "spec", cronSpec)
 	} else {
-		log.Println("[startup] scrape cron disabled (use external cron for /scrape-now)")
+		startupLog.Info("scrape cron disabled (use external cron for /scrape-now)")
 	}
 
 	// Enrichment cron: nightly at 2am (ENRICH_CRON_SPEC, "disabled" = use external cron)
@@ -346,9 +377,9 @@ func main() {
 	}
 	if !strings.EqualFold(enrichCronSpec, "disabled") {
 		sched.StartEnrichment(enrichCronSpec)
-		log.Printf("[startup] enrich cron started: %s", enrichCronSpec)
+		startupLog.Info("enrich cron started", "spec", enrichCronSpec)
 	} else {
-		log.Println("[startup] enrichment cron disabled (use external cron for /enrich-now)")
+		startupLog.Info("enrichment cron disabled (use external cron for /enrich-now)")
 	}
 
 	// Catch-up: if the process missed scheduled jobs (was down during cron time,
@@ -362,12 +393,12 @@ func main() {
 	// Manual trigger: POST /scrape-now (optional ?store=). Auth: valid CRON_SECRET, or admin Bearer, or (non-production only) open cron.
 	http.HandleFunc("/scrape-now", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
-			log.Printf("[scrape-now] rejected: method %s", r.Method)
+			scrapeNowLog.Warn("rejected request", "method", r.Method)
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 			return
 		}
 		if !validateCronOrAdmin(r) {
-			log.Printf("[scrape-now] forbidden: %s", r.RemoteAddr)
+			scrapeNowLog.Warn("forbidden", "client_ip", logutil.ClientIP(r))
 			http.Error(w, "forbidden", http.StatusForbidden)
 			return
 		}
@@ -376,7 +407,7 @@ func main() {
 		if storeType != "" {
 			storeLog = storeType
 		}
-		log.Printf("[scrape-now] triggered manually for %s", storeLog)
+		scrapeNowLog.Info("triggered manually", "store", storeLog)
 		sched.RunScrapeJob(storeType, "manual")
 		w.Header().Set("Content-Type", "application/json")
 		w.Write([]byte(`{"status":"ok"}`))
@@ -385,25 +416,71 @@ func main() {
 	// Manual trigger: POST /enrich-now (?force=1 re-enriches all). Same auth as /scrape-now.
 	http.HandleFunc("/enrich-now", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
-			log.Printf("[enrich-now] rejected: method %s", r.Method)
+			enrichNowLog.Warn("rejected request", "method", r.Method)
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 			return
 		}
 		if !validateCronOrAdmin(r) {
-			log.Printf("[enrich-now] forbidden: %s", r.RemoteAddr)
+			enrichNowLog.Warn("forbidden", "client_ip", logutil.ClientIP(r))
 			http.Error(w, "forbidden", http.StatusForbidden)
 			return
 		}
 		force := r.URL.Query().Get("force") == "1"
 		store := strings.TrimSpace(r.URL.Query().Get("store"))
+		var canonPath []string
+		if c := strings.TrimSpace(r.URL.Query().Get("canonical_category")); c != "" {
+			for _, p := range strings.Split(c, " > ") {
+				if t := strings.TrimSpace(p); t != "" {
+					canonPath = append(canonPath, t)
+				}
+			}
+		}
+		var confBelow *float64
+		if s := strings.TrimSpace(r.URL.Query().Get("llm_confidence_below")); s != "" {
+			if v, err := strconv.ParseFloat(s, 64); err == nil && v >= 0 && v <= 1 {
+				confBelow = &v
+			}
+		}
 		storeLog := "all stores"
 		if store != "" {
 			storeLog = store
 		}
-		log.Printf("[enrich-now] triggered manually for %s (force=%v)", storeLog, force)
-		sched.RunEnrichmentJobForStore(store, force, "manual")
+		enrichNowLog.Info("triggered manually", "store", storeLog, "force", force, "canonical", canonPath, "llm_below", confBelow)
+		go func() {
+			if len(canonPath) > 0 || confBelow != nil {
+				sched.RunEnrichmentWithFilter(db.EnrichmentFilter{
+					StoreType:          store,
+					CanonicalCategory:  canonPath,
+					LlmConfidenceBelow: confBelow,
+				}, force, "manual")
+			} else {
+				sched.RunEnrichmentJobForStore(store, force, "manual")
+			}
+		}()
 		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`{"status":"ok"}`))
+		w.WriteHeader(http.StatusAccepted)
+		w.Write([]byte(`{"status":"ok","async":true}`))
+	})
+
+	// POST /llm-specs-now (?store=&canonical_category=&llm_confidence_below=&allow_empty_specs=1) — classify + extract from DB only (async enrich job).
+	http.HandleFunc("/llm-specs-now", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			llmSpecsNowLog.Warn("rejected request", "method", r.Method)
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		if !validateCronOrAdmin(r) {
+			llmSpecsNowLog.Warn("forbidden", "client_ip", logutil.ClientIP(r))
+			http.Error(w, "forbidden", http.StatusForbidden)
+			return
+		}
+		store := strings.TrimSpace(r.URL.Query().Get("store"))
+		storeLog := "all stores"
+		if store != "" {
+			storeLog = store
+		}
+		llmSpecsNowLog.Info("triggered", "store", storeLog)
+		handlers.PostLLMSpecsNow(w, r)
 	})
 
 	// REST API
@@ -427,6 +504,10 @@ func main() {
 	http.HandleFunc("/admin/auth", api.PostAuthHandler)
 	// Admin: GET /admin/dashboard — aggregate stats, store health, scraper status (admin auth required)
 	http.HandleFunc("/admin/dashboard", api.AdminRequired(handlers.GetAdminDashboard))
+	// Admin: GET /admin/metrics/pipeline — scrape/enrich backlog, freshness, job history (admin auth required)
+	http.HandleFunc("/admin/metrics/pipeline", api.AdminRequired(handlers.GetAdminPipelineMetrics))
+	// Admin: GET /admin/metrics/enrichment-steps — per-step backlog, success rates, confidence
+	http.HandleFunc("/admin/metrics/enrichment-steps", api.AdminRequired(handlers.GetAdminEnrichmentStepMetrics))
 	// Admin: GET /admin/store-types — allowed store types for dropdown
 	http.HandleFunc("/admin/store-types", api.AdminRequired(api.GetStoreTypes))
 	// Admin: GET /admin/store-types-with-enrichers — store types that support enrichment (for Enrich button)
@@ -529,7 +610,37 @@ func main() {
 		handlers.GetAdminEnrichJobByID(w, r, id)
 	}))
 
-	// Admin: GET /admin/listings — data browser (query: store_id, brand, has_canonical_category, has_enrichment, category, canonical_category, q, sort, limit, offset)
+	// Admin: POST /admin/listings/bulk-classify, bulk-enrich
+	http.HandleFunc("/admin/listings/bulk-classify", api.AdminRequired(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/admin/listings/bulk-classify" {
+			http.NotFound(w, r)
+			return
+		}
+		handlers.PostAdminListingsBulkClassify(w, r)
+	}))
+	http.HandleFunc("/admin/listings/bulk-enrich", api.AdminRequired(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/admin/listings/bulk-enrich" {
+			http.NotFound(w, r)
+			return
+		}
+		handlers.PostAdminListingsBulkEnrich(w, r)
+	}))
+
+	http.HandleFunc("/admin/listings/bulk-llm-specs", api.AdminRequired(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/admin/listings/bulk-llm-specs" {
+			http.NotFound(w, r)
+			return
+		}
+		handlers.PostAdminListingsBulkLLMSpecs(w, r)
+	}))
+	http.HandleFunc("/admin/listings/bulk-set-category", api.AdminRequired(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/admin/listings/bulk-set-category" {
+			http.NotFound(w, r)
+			return
+		}
+		handlers.PostAdminListingsBulkSetCategory(w, r)
+	}))
+	// Admin: GET /admin/listings — data browser (query: store_id, brand, has_canonical_category, has_enrichment, category, category_slug, canonical_category, q, sort [newest|last_enriched|discount|price_asc|price_desc|relevance], limit, offset, llm_confidence_below)
 	http.HandleFunc("/admin/listings", api.AdminRequired(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/admin/listings" {
 			http.NotFound(w, r)
@@ -551,6 +662,22 @@ func main() {
 			http.Error(w, "invalid id", http.StatusBadRequest)
 			return
 		}
+		if len(parts) > 1 && parts[1] == "enrichment/retry" {
+			if r.Method != http.MethodPost {
+				http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+				return
+			}
+			handlers.PostAdminListingEnrichmentRetry(w, r, id)
+			return
+		}
+		if len(parts) > 1 && parts[1] == "llm-specs" {
+			if r.Method != http.MethodPost {
+				http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+				return
+			}
+			handlers.PostAdminListingLLMSpecs(w, r, id)
+			return
+		}
 		if len(parts) > 1 && parts[1] == "enrich" {
 			if r.Method != http.MethodPost {
 				http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
@@ -565,6 +692,10 @@ func main() {
 				return
 			}
 			handlers.PostAdminListingLLMOverrides(w, r, id)
+			return
+		}
+		if len(parts) > 1 && parts[1] == "category" {
+			handlers.PatchAdminListingCategory(w, r, id)
 			return
 		}
 		if r.Method == http.MethodPatch {
@@ -641,6 +772,28 @@ func main() {
 			return
 		}
 		handlers.PostAdminRenormalizeSpecs(w, r)
+	}))
+	// Admin: GET /admin/db/migrations — list migration status; POST /admin/db/migrate, /admin/db/seed
+	http.HandleFunc("/admin/db/migrations", api.AdminRequired(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/admin/db/migrations" {
+			http.NotFound(w, r)
+			return
+		}
+		handlers.GetAdminDBMigrations(w, r)
+	}))
+	http.HandleFunc("/admin/db/migrate", api.AdminRequired(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/admin/db/migrate" {
+			http.NotFound(w, r)
+			return
+		}
+		handlers.PostAdminDBMigrate(w, r)
+	}))
+	http.HandleFunc("/admin/db/seed", api.AdminRequired(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/admin/db/seed" {
+			http.NotFound(w, r)
+			return
+		}
+		handlers.PostAdminDBSeed(w, r)
 	}))
 	// Admin: GET /admin/normalization/unmapped — unmapped category paths (dashboard)
 	http.HandleFunc("/admin/normalization/unmapped", api.AdminRequired(func(w http.ResponseWriter, r *http.Request) {
@@ -953,8 +1106,8 @@ func main() {
 	}
 
 	go func() {
-		log.Printf("[startup] API listening on port %s", port)
-		handler := loggingMiddleware(corsMiddleware(http.DefaultServeMux))
+		startupLog.Info("API listening", "port", port)
+		handler := accessLoggingMiddleware(httpLog, corsMiddleware(http.DefaultServeMux))
 		if sentryEnabled {
 			sentryHandler := sentryhttp.New(sentryhttp.Options{})
 			handler = sentryHandler.Handle(handler)
@@ -967,10 +1120,10 @@ func main() {
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
 	s := <-sig
-	log.Printf("[shutdown] received signal %v", s)
+	shutdownLog.Info("received signal", "signal", s.String())
 	sched.Stop()
 	if sentryEnabled {
 		sentry.Flush(2 * time.Second)
 	}
-	log.Println("[shutdown] complete")
+	shutdownLog.Info("shutdown complete")
 }
