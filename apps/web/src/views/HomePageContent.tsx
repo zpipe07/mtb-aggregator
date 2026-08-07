@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, FormEvent, useTransition } from "react";
+import { useState, FormEvent, useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import posthog from "posthog-js";
 import Link from "next/link";
@@ -66,6 +66,8 @@ type Props = {
   storeCount: number;
   dealCount: number;
   lastUpdated: string;
+  /** Server-rendered curated hub links for crawl discovery. */
+  hubLinks?: ReactNode;
 };
 
 export function HomePageContent({
@@ -75,6 +77,7 @@ export function HomePageContent({
   storeCount,
   dealCount,
   lastUpdated,
+  hubLinks,
 }: Props) {
   const router = useRouter();
   const [searchValue, setSearchValue] = useState("");
@@ -261,6 +264,12 @@ export function HomePageContent({
           </p>
         </section>
       )}
+
+      {hubLinks ? (
+        <section className="mt-12 border-t border-foreground/15 pt-10 lg:mt-16">
+          {hubLinks}
+        </section>
+      ) : null}
     </div>
   );
 }

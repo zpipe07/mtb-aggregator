@@ -8,6 +8,7 @@ import {
   buildProductJsonLd,
   buildProductItemListJsonLd,
   buildAggregateOfferJsonLd,
+  buildFaqPageJsonLd,
 } from "../src/lib/jsonLd";
 import { computeDealScore } from "../src/lib/dealScore";
 import { brandToSlug, resolveBrandFromSlug } from "../src/lib/brandPages";
@@ -63,6 +64,14 @@ const aggregate = buildAggregateOfferJsonLd({
   offerCount: 10,
 });
 assert.equal(aggregate["@type"], "AggregateOffer");
+
+const faq = buildFaqPageJsonLd([
+  { question: "Q?", answer: "A." },
+]);
+assert.ok(faq);
+assert.equal(faq!["@type"], "FAQPage");
+assert.equal((faq!.mainEntity as unknown[]).length, 1);
+assert.equal(buildFaqPageJsonLd([]), null);
 
 assert.equal(brandToSlug("RockShox"), "rockshox");
 assert.equal(resolveBrandFromSlug("fox", ["Fox", "SRAM"]), "Fox");

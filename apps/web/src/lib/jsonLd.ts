@@ -172,6 +172,27 @@ export function buildBreadcrumbJsonLd(
   };
 }
 
+type FaqItem = { question: string; answer: string };
+
+/** FAQPage structured data for hub pages with buyer-intent Q&A. */
+export function buildFaqPageJsonLd(
+  items: FaqItem[],
+): Record<string, unknown> | null {
+  if (items.length === 0) return null;
+  return {
+    "@context": CTX,
+    "@type": "FAQPage",
+    mainEntity: items.map((item) => ({
+      "@type": "Question",
+      name: item.question,
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: item.answer,
+      },
+    })),
+  };
+}
+
 export type CollectionPageRootPart = {
   name: string;
   url: string;

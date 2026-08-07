@@ -20,8 +20,10 @@ import {
   getSeoHubBySlug,
   hubMeetsIndexThreshold,
 } from "@/lib/seoHubs";
-import { buildBreadcrumbJsonLd, buildProductItemListJsonLd, buildAggregateOfferJsonLd } from "@/lib/jsonLd";
+import { buildBreadcrumbJsonLd, buildProductItemListJsonLd, buildAggregateOfferJsonLd, buildFaqPageJsonLd } from "@/lib/jsonLd";
 import { absoluteUrl } from "@/lib/siteUrl";
+import { SeoHubFaq } from "@/components/SeoHubFaq";
+import { SeoHubRelatedLinks } from "@/components/SeoHubRelatedLinks";
 import { DealsPageContent } from "@/views/DealsPageContent";
 import HubDealsLoading from "./loading";
 
@@ -118,6 +120,9 @@ export default async function SeoHubDealsPage({ params, searchParams }: Props) {
     { name: hub.title, path: pathname },
   ];
 
+  const faqJsonLd =
+    hub.faq && hub.faq.length > 0 ? buildFaqPageJsonLd(hub.faq) : null;
+
   return (
     <>
       <JsonLd data={buildBreadcrumbJsonLd(breadcrumbItems)} />
@@ -140,6 +145,7 @@ export default async function SeoHubDealsPage({ params, searchParams }: Props) {
           })}
         />
       ) : null}
+      {faqJsonLd ? <JsonLd data={faqJsonLd} /> : null}
       <Suspense fallback={<HubDealsLoading />}>
         <DealsPageContent
           deals={deals}
@@ -149,7 +155,12 @@ export default async function SeoHubDealsPage({ params, searchParams }: Props) {
           categoryTree={categoryTree}
           dealsListPath={dealsListPath}
           categoryIntro={hub.intro}
-        />
+          belowIntro={
+            hub.faq?.length ? <SeoHubFaq items={hub.faq} /> : undefined
+          }
+        >
+          <SeoHubRelatedLinks hub={hub} />
+        </DealsPageContent>
       </Suspense>
     </>
   );
