@@ -86,6 +86,9 @@ jobs:
       - name: Build scraper
         run: pnpm --filter @mtb-aggregator/scraper run build
 
+      - name: Verify Playwright Docker image version
+        run: pnpm --filter @mtb-aggregator/scraper run check:playwright-docker
+
       - name: Scraper tests
         run: pnpm --filter @mtb-aggregator/scraper run test
 

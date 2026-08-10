@@ -1,4 +1,5 @@
-FROM mcr.microsoft.com/playwright:v1.58.2-jammy
+# Keep tag in sync with playwright in apps/scraper/package.json (CI enforces via check-playwright-docker-sync.sh).
+FROM mcr.microsoft.com/playwright:v1.62.1-jammy
 
 WORKDIR /app
 
