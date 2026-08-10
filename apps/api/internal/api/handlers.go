@@ -137,6 +137,9 @@ func (h *Handlers) GetDeals(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Query().Get("group_variants") == "1" || r.URL.Query().Get("group_variants") == "true" {
 		params.GroupVariants = true
 	}
+	if r.URL.Query().Get("exclude_home_demoted") == "1" || r.URL.Query().Get("exclude_home_demoted") == "true" {
+		params.ExcludeHomeDemoted = true
+	}
 
 	result, err := h.DB.GetDeals(r.Context(), params)
 	if err != nil {
@@ -863,6 +866,9 @@ func (h *Handlers) GetAdminListings(w http.ResponseWriter, r *http.Request) {
 	if s := r.URL.Query().Get("hidden"); s != "" {
 		params.Hidden = boolPtr(s == "1" || strings.EqualFold(s, "true"))
 	}
+	if s := r.URL.Query().Get("home_demoted"); s != "" {
+		params.HomeDemoted = boolPtr(s == "1" || strings.EqualFold(s, "true"))
+	}
 	if s := r.URL.Query().Get("category"); s != "" {
 		params.Category = strings.TrimSpace(s)
 	}
@@ -910,31 +916,45 @@ func (h *Handlers) GetAdminListings(w http.ResponseWriter, r *http.Request) {
 
 func boolPtr(b bool) *bool { return &b }
 
-// PatchAdminListingHidden sets the hidden flag for a listing (admin). Body: {"hidden": true|false}.
+// PatchAdminListingHidden sets listing visibility flags (admin). Body: {"hidden": true|false} and/or {"home_demoted": true|false}.
 func (h *Handlers) PatchAdminListingHidden(w http.ResponseWriter, r *http.Request, id int) {
 	if r.Method != http.MethodPatch {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 	var body struct {
-		Hidden *bool `json:"hidden"`
+		Hidden      *bool `json:"hidden"`
+		HomeDemoted *bool `json:"home_demoted"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		http.Error(w, "invalid json", http.StatusBadRequest)
 		return
 	}
-	if body.Hidden == nil {
-		http.Error(w, "hidden field required", http.StatusBadRequest)
+	if body.Hidden == nil && body.HomeDemoted == nil {
+		http.Error(w, "hidden or home_demoted field required", http.StatusBadRequest)
 		return
 	}
-	err := h.DB.SetListingHidden(r.Context(), id, *body.Hidden)
-	if err != nil {
-		if strings.Contains(err.Error(), "not found") {
-			http.Error(w, "not found", http.StatusNotFound)
+	if body.Hidden != nil {
+		err := h.DB.SetListingHidden(r.Context(), id, *body.Hidden)
+		if err != nil {
+			if strings.Contains(err.Error(), "not found") {
+				http.Error(w, "not found", http.StatusNotFound)
+				return
+			}
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+	}
+	if body.HomeDemoted != nil {
+		err := h.DB.SetListingHomeDemoted(r.Context(), id, *body.HomeDemoted)
+		if err != nil {
+			if strings.Contains(err.Error(), "not found") {
+				http.Error(w, "not found", http.StatusNotFound)
+				return
+			}
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 	}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]bool{"ok": true})

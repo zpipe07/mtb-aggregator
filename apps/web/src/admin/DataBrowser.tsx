@@ -24,6 +24,7 @@ import {
   useEnrichListing,
   useRunListingLLMSpecs,
   useSetListingHidden,
+  useSetListingHomeDemoted,
   useSetListingCategory,
   useSetListingLLMOverrides,
   usePostBulkListingsClassify,
@@ -510,6 +511,7 @@ export function DataBrowser() {
   const [hasEnrichment, setHasEnrichment] = useState<boolean | null>(null);
   const [inStock, setInStock] = useState<boolean | null>(null);
   const [visibility, setVisibility] = useState<"all" | "visible" | "hidden">("all");
+  const [homeDemotedFilter, setHomeDemotedFilter] = useState<"all" | "eligible" | "demoted">("all");
   const [category, setCategory] = useState("");
   const [q, setQ] = useState("");
   const [sort, setSort] = useState("newest");
@@ -547,6 +549,10 @@ export function DataBrowser() {
     has_enrichment: hasEnrichment ?? undefined,
     in_stock: inStock ?? undefined,
     hidden: visibility === "all" ? undefined : visibility === "hidden",
+    home_demoted:
+      homeDemotedFilter === "all"
+        ? undefined
+        : homeDemotedFilter === "demoted",
     category: category || undefined,
     category_slug: categorySlugFromPicker,
     canonical_category: categorySlugFromPicker
@@ -565,6 +571,7 @@ export function DataBrowser() {
   const enrichMutation = useEnrichListing();
   const listingLLMMutation = useRunListingLLMSpecs();
   const setHiddenMutation = useSetListingHidden();
+  const setHomeDemotedMutation = useSetListingHomeDemoted();
   const setCategoryMutation = useSetListingCategory();
 
   useEffect(() => {
@@ -635,6 +642,11 @@ export function DataBrowser() {
     setHiddenMutation.mutate({ id: selectedId, hidden });
   }
 
+  function handleSetHomeDemoted(homeDemoted: boolean) {
+    if (selectedId == null) return;
+    setHomeDemotedMutation.mutate({ id: selectedId, homeDemoted });
+  }
+
   function bulkConfirmPhrase(m: "classify" | "enrich" | "llm_specs" | "set_category") {
     if (m === "classify") return "reclassify";
     if (m === "enrich") return "re-enrich";
@@ -650,6 +662,7 @@ export function DataBrowser() {
         enrichMutation.isError ||
         listingLLMMutation.isError ||
         setHiddenMutation.isError ||
+        setHomeDemotedMutation.isError ||
         setCategoryMutation.isError ||
         setLLMOverridesMutation.isError ||
         bulkClassifyMutation.isError ||
@@ -664,6 +677,8 @@ export function DataBrowser() {
               ? listingLLMMutation.error?.message ?? "LLM specs failed"
               : setHiddenMutation.isError
               ? setHiddenMutation.error?.message ?? "Update failed"
+              : setHomeDemotedMutation.isError
+              ? setHomeDemotedMutation.error?.message ?? "Home demote update failed"
               : setCategoryMutation.isError
                 ? setCategoryMutation.error?.message ?? "Category update failed"
               : setLLMOverridesMutation.isError
@@ -800,6 +815,22 @@ export function DataBrowser() {
           <option value="all">Visibility: all</option>
           <option value="visible">Visible only</option>
           <option value="hidden">Hidden only</option>
+        </select>
+        <label htmlFor={filterId("home-demoted")} className="sr-only">
+          Home page
+        </label>
+        <select
+          id={filterId("home-demoted")}
+          value={homeDemotedFilter}
+          onChange={(e) => {
+            setHomeDemotedFilter(e.target.value as "all" | "eligible" | "demoted");
+            setOffset(0);
+          }}
+          className="rounded border border-stone-300 px-3 py-2 text-sm"
+        >
+          <option value="all">Home: all</option>
+          <option value="eligible">Home eligible</option>
+          <option value="demoted">Home demoted</option>
         </select>
         <label htmlFor={filterId("category-contains")} className="sr-only">
           Category contains
@@ -1152,13 +1183,15 @@ export function DataBrowser() {
                     return (
                     <tr
                       key={row.id}
-                      className={`border-b border-stone-100 hover:bg-stone-50 cursor-pointer ${row.hidden ? "opacity-60 bg-stone-50" : ""} ${diff ? "bg-amber-50" : ""}`}
+                      className={`border-b border-stone-100 hover:bg-stone-50 cursor-pointer ${row.hidden ? "opacity-60 bg-stone-50" : ""} ${row.home_demoted ? "bg-violet-50/60" : ""} ${diff ? "bg-amber-50" : ""}`}
                       onClick={() => setSelectedId(row.id)}
                       title={diff ? "LLM suggested a different category" : undefined}
                     >
                       <td className="px-2 py-2 text-center" onClick={(e) => e.stopPropagation()}>
                         {row.hidden ? (
                           <span className="text-stone-400" title="Hidden from public feed">Hidden</span>
+                        ) : row.home_demoted ? (
+                          <span className="text-violet-600" title="Demoted from home page top deals">Home−</span>
                         ) : (
                           <span className="text-stone-300" title="Visible">—</span>
                         )}
@@ -1264,14 +1297,29 @@ export function DataBrowser() {
               <h3 className="text-lg font-semibold text-stone-800">Listing detail</h3>
               <div className="flex items-center gap-2">
                 {detail && (
-                  <button
-                    type="button"
-                    onClick={() => handleSetHidden(!detail.hidden)}
-                    disabled={setHiddenMutation.isPending}
-                    className="rounded border border-stone-300 px-3 py-1.5 text-sm hover:bg-stone-50 disabled:opacity-50"
-                  >
-                    {setHiddenMutation.isPending ? "…" : detail.hidden ? "Unhide" : "Hide"}
-                  </button>
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => handleSetHomeDemoted(!detail.home_demoted)}
+                      disabled={setHomeDemotedMutation.isPending}
+                      className="rounded border border-violet-300 px-3 py-1.5 text-sm text-violet-900 hover:bg-violet-50 disabled:opacity-50"
+                      title="Exclude from or restore to home page top-deal sections"
+                    >
+                      {setHomeDemotedMutation.isPending
+                        ? "…"
+                        : detail.home_demoted
+                          ? "Restore to home"
+                          : "Demote from home"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleSetHidden(!detail.hidden)}
+                      disabled={setHiddenMutation.isPending}
+                      className="rounded border border-stone-300 px-3 py-1.5 text-sm hover:bg-stone-50 disabled:opacity-50"
+                    >
+                      {setHiddenMutation.isPending ? "…" : detail.hidden ? "Unhide" : "Hide"}
+                    </button>
+                  </>
                 )}
                 <button
                   type="button"
@@ -1330,6 +1378,8 @@ export function DataBrowser() {
                   <dd>
                     {detail.hidden ? (
                       <span className="text-amber-600 font-medium">Hidden (excluded from public feed)</span>
+                    ) : detail.home_demoted ? (
+                      <span className="text-violet-700 font-medium">Demoted from home page top deals</span>
                     ) : (
                       <span className="text-green-600">Visible</span>
                     )}
