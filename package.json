@@ -7,7 +7,8 @@
     "dev": "make dev",
     "db:up": "make db-up",
     "db:down": "make db-down",
-    "db:migrate": "make db-migrate"
+    "db:migrate": "make db-migrate",
+    "check:build-versions": "bash scripts/check-build-version-sync.sh"
   },
   "packageManager": "pnpm@9.14.2",
   "engines": {
@@ -29,6 +30,7 @@
       "picomatch@4.0.3": "4.0.4",
       "vite": "^6.4.3",
       "postcss": "^8.5.12",
+      "nanoid": "^3.3.17",
       "protobufjs": "^7.6.1",
       "fast-uri": "^3.1.5",
       "ws": "^8.21.0",

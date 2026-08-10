@@ -37,6 +37,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Verify Docker and CI tool versions
+        run: pnpm run check:build-versions
+
       - name: Secret scan
         uses: gitleaks/gitleaks-action@v2
         env:

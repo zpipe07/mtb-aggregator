@@ -10,6 +10,7 @@
     "build": "tsc",
     "start": "node dist/server.js",
     "pretest": "pnpm run build:deps",
+    "check:playwright-docker": "bash ../../scripts/check-build-version-sync.sh",
     "test": "vitest run",
     "test:watch": "vitest"
   },
