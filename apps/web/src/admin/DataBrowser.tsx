@@ -31,6 +31,7 @@ import {
   usePostBulkListingsEnrich,
   usePostBulkListingsLLMSpecs,
   usePostBulkListingsSetCategory,
+  usePostBulkListingsSetHomeDemoted,
   useCreateTaxonomyMapping,
 } from "./hooks/mutations";
 import type {
@@ -522,7 +523,7 @@ export function DataBrowser() {
   /** Path from CategoryPicker — maps to category_slug (subtree / same as public /deals). */
   const [pickedCategoryPath, setPickedCategoryPath] = useState<string[]>([]);
   const [bulkModal, setBulkModal] = useState<
-    "classify" | "enrich" | "llm_specs" | "set_category" | null
+    "classify" | "enrich" | "llm_specs" | "set_category" | "demote_home" | "restore_home" | null
   >(null);
   const [bulkConfirmText, setBulkConfirmText] = useState("");
   const [bulkAllowEmptySpecs, setBulkAllowEmptySpecs] = useState(false);
@@ -598,6 +599,7 @@ export function DataBrowser() {
 
   const bulkLLMSpecsMutation = usePostBulkListingsLLMSpecs();
   const bulkSetCategoryMutation = usePostBulkListingsSetCategory();
+  const bulkSetHomeDemotedMutation = usePostBulkListingsSetHomeDemoted();
   const createTaxonomyMappingMutation = useCreateTaxonomyMapping();
 
   function buildBulkFilterBody(): AdminBulkListingsFilterBody {
@@ -607,6 +609,10 @@ export function DataBrowser() {
       has_enrichment: hasEnrichment ?? undefined,
       in_stock: inStock ?? undefined,
       hidden: visibility === "all" ? undefined : visibility === "hidden",
+      home_demoted:
+        homeDemotedFilter === "all"
+          ? undefined
+          : homeDemotedFilter === "demoted",
       category: category || undefined,
       category_slug: categorySlugFromPicker,
       canonical_category: categorySlugFromPicker
@@ -647,10 +653,14 @@ export function DataBrowser() {
     setHomeDemotedMutation.mutate({ id: selectedId, homeDemoted });
   }
 
-  function bulkConfirmPhrase(m: "classify" | "enrich" | "llm_specs" | "set_category") {
+  function bulkConfirmPhrase(
+    m: "classify" | "enrich" | "llm_specs" | "set_category" | "demote_home" | "restore_home",
+  ) {
     if (m === "classify") return "reclassify";
     if (m === "enrich") return "re-enrich";
     if (m === "set_category") return "set-category";
+    if (m === "demote_home") return "demote-home";
+    if (m === "restore_home") return "restore-home";
     return "bulk-llm-specs";
   }
 
@@ -669,6 +679,7 @@ export function DataBrowser() {
         bulkEnrichMutation.isError ||
         bulkLLMSpecsMutation.isError ||
         bulkSetCategoryMutation.isError ||
+        bulkSetHomeDemotedMutation.isError ||
         createTaxonomyMappingMutation.isError) && (
         <div className="mb-4 rounded border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
           {enrichMutation.isError
@@ -692,6 +703,9 @@ export function DataBrowser() {
                     : bulkSetCategoryMutation.isError
                       ? bulkSetCategoryMutation.error?.message ??
                         "Bulk set category failed"
+                      : bulkSetHomeDemotedMutation.isError
+                        ? bulkSetHomeDemotedMutation.error?.message ??
+                          "Bulk home demote update failed"
                       : createTaxonomyMappingMutation.isError
                         ? createTaxonomyMappingMutation.error?.message ??
                           "Create taxonomy rule failed"
@@ -708,6 +722,7 @@ export function DataBrowser() {
               bulkEnrichMutation.reset();
               bulkLLMSpecsMutation.reset();
               bulkSetCategoryMutation.reset();
+              bulkSetHomeDemotedMutation.reset();
               createTaxonomyMappingMutation.reset();
               if (isError) refetch();
             }}
@@ -967,6 +982,26 @@ export function DataBrowser() {
           >
             Set category ({totalCount.toLocaleString()})
           </button>
+          <button
+            type="button"
+            onClick={() => {
+              setBulkConfirmText("");
+              setBulkModal("demote_home");
+            }}
+            className="rounded border border-violet-500 bg-white px-3 py-1.5 text-violet-800 hover:bg-violet-50"
+          >
+            Demote from home ({totalCount.toLocaleString()})
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setBulkConfirmText("");
+              setBulkModal("restore_home");
+            }}
+            className="rounded border border-stone-500 bg-white px-3 py-1.5 text-stone-700 hover:bg-stone-50"
+          >
+            Restore on home ({totalCount.toLocaleString()})
+          </button>
           {bulkJobId && bulkJob && (
             <span className="text-stone-600">
               Job #{bulkJobId}{" "}
@@ -1005,7 +1040,11 @@ export function DataBrowser() {
                   ? "Re-enrich all matching"
                   : bulkModal === "set_category"
                     ? "Set category for all matching"
-                    : "LLM specs — all matching"}
+                    : bulkModal === "demote_home"
+                      ? "Demote from home — all matching"
+                      : bulkModal === "restore_home"
+                        ? "Restore on home — all matching"
+                        : "LLM specs — all matching"}
             </h3>
             <p className="text-sm text-stone-600">
               This will affect up to {totalCount.toLocaleString()} listing
@@ -1014,7 +1053,11 @@ export function DataBrowser() {
                 ? "Re-enrich scrapes each PDP; it is slower and heavier than re-classify."
                 : bulkModal === "set_category"
                   ? "Assigns the selected canonical category to every listing in the current filter. Manual overrides are not re-classified by LLM."
-                  : bulkModal === "llm_specs"
+                  : bulkModal === "demote_home"
+                    ? "Excludes every matching listing from home page top-deal sections. They remain visible on /deals."
+                    : bulkModal === "restore_home"
+                      ? "Makes every matching listing eligible for home page top-deal sections again."
+                      : bulkModal === "llm_specs"
                   ? "Runs LLM category + prompt extraction using data already stored (no PDP fetch). Defaults to listings that have scraped specs."
                   : ""}
             </p>
@@ -1070,6 +1113,7 @@ export function DataBrowser() {
                   bulkEnrichMutation.isPending ||
                   bulkLLMSpecsMutation.isPending ||
                   bulkSetCategoryMutation.isPending ||
+                  bulkSetHomeDemotedMutation.isPending ||
                   (bulkModal === "set_category" &&
                     adminCategoryIdForPath(categoryTree, bulkSetCategoryPath) ==
                       null) ||
@@ -1091,6 +1135,16 @@ export function DataBrowser() {
                       });
                       setBulkFlash(
                         `Updated category on ${r.updated.toLocaleString()} of ${r.total.toLocaleString()} listing${r.total === 1 ? "" : "s"}.`,
+                      );
+                      setBulkModal(null);
+                      void refetch();
+                    } else if (bulkModal === "demote_home" || bulkModal === "restore_home") {
+                      const r = await bulkSetHomeDemotedMutation.mutateAsync({
+                        ...body,
+                        home_demoted: bulkModal === "demote_home",
+                      });
+                      setBulkFlash(
+                        `${bulkModal === "demote_home" ? "Demoted" : "Restored"} ${r.updated.toLocaleString()} of ${r.total.toLocaleString()} listing${r.total === 1 ? "" : "s"} on the home page.`,
                       );
                       setBulkModal(null);
                       void refetch();
@@ -1138,7 +1192,8 @@ export function DataBrowser() {
                 {bulkClassifyMutation.isPending ||
                 bulkEnrichMutation.isPending ||
                 bulkLLMSpecsMutation.isPending ||
-                bulkSetCategoryMutation.isPending
+                bulkSetCategoryMutation.isPending ||
+                bulkSetHomeDemotedMutation.isPending
                   ? "Running…"
                   : "Confirm"}
               </button>

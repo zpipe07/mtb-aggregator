@@ -24,6 +24,7 @@ type bulkListingsFilterBody struct {
 	HasEnrichment        *bool    `json:"has_enrichment"`
 	InStock              *bool    `json:"in_stock"`
 	Hidden               *bool    `json:"hidden"`
+	HomeDemoted          *bool    `json:"home_demoted"`
 	Category             string   `json:"category"`
 	CategorySlug         string   `json:"category_slug"`
 	CanonicalCategory    string   `json:"canonical_category"`
@@ -41,6 +42,7 @@ func (b bulkListingsFilterBody) toGetAdminListingsParams() db.GetAdminListingsPa
 		HasEnrichment:        b.HasEnrichment,
 		InStock:              b.InStock,
 		Hidden:               b.Hidden,
+		HomeDemoted:          b.HomeDemoted,
 		Category:             b.Category,
 		CategorySlug:         strings.TrimSpace(b.CategorySlug),
 		CanonicalCategory:    b.CanonicalCategory,
@@ -519,6 +521,57 @@ func (h *Handlers) PostAdminListingsBulkSetCategory(w http.ResponseWriter, r *ht
 		return
 	}
 	updated, err := h.DB.BulkSetListingsCategory(r.Context(), body.CategoryID, ids)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
+		"ok":      true,
+		"updated": updated,
+		"total":   total,
+	})
+}
+
+type bulkSetHomeDemotedBody struct {
+	bulkListingsFilterBody
+	HomeDemoted bool `json:"home_demoted"`
+}
+
+// PostAdminListingsBulkSetHomeDemoted sets home_demoted for all listings matching the filter.
+func (h *Handlers) PostAdminListingsBulkSetHomeDemoted(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var body bulkSetHomeDemotedBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		http.Error(w, "invalid json", http.StatusBadRequest)
+		return
+	}
+	params := body.toGetAdminListingsParams()
+	maxN := adminBulkMaxListings()
+	ids, total, err := h.DB.ListAdminListingIDsByFilter(r.Context(), params, false, false, maxN)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if total > maxN {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"error": fmt.Sprintf("filter matches %d listings (max per run is %d); narrow filters", total, maxN),
+		})
+		return
+	}
+	if len(ids) == 0 {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"ok": true, "updated": 0, "total": 0,
+		})
+		return
+	}
+	updated, err := h.DB.BulkSetListingsHomeDemoted(r.Context(), body.HomeDemoted, ids)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

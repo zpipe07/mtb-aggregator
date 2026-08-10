@@ -1703,6 +1703,7 @@ export interface AdminBulkListingsFilterBody {
   has_enrichment?: boolean;
   in_stock?: boolean;
   hidden?: boolean;
+  home_demoted?: boolean;
   category?: string;
   category_slug?: string;
   canonical_category?: string;
@@ -1791,6 +1792,37 @@ export async function postAdminListingsBulkSetCategory(
   if (!res.ok) {
     const msg =
       typeof data?.error === "string" ? data.error : "Bulk set category failed";
+    throw new Error(msg);
+  }
+  return data;
+}
+
+export interface BulkSetHomeDemotedBody extends AdminBulkListingsFilterBody {
+  home_demoted: boolean;
+}
+
+export interface BulkSetHomeDemotedResult {
+  ok: boolean;
+  updated: number;
+  total: number;
+}
+
+export async function postAdminListingsBulkSetHomeDemoted(
+  body: BulkSetHomeDemotedBody,
+): Promise<BulkSetHomeDemotedResult> {
+  const res = await fetch(`${getApiBase()}/admin/listings/bulk-set-home-demoted`, {
+    method: "POST",
+    headers: adminHeaders(),
+    body: JSON.stringify(body),
+  });
+  const data = (await res.json().catch(() => ({}))) as BulkSetHomeDemotedResult & {
+    error?: string;
+  };
+  if (!res.ok) {
+    const msg =
+      typeof data?.error === "string"
+        ? data.error
+        : "Bulk home demote update failed";
     throw new Error(msg);
   }
   return data;

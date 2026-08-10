@@ -48,6 +48,7 @@ import {
   postAdminListingsBulkEnrich,
   postAdminListingsBulkLLMSpecs,
   postAdminListingsBulkSetCategory,
+  postAdminListingsBulkSetHomeDemoted,
   createAdminCategory,
   updateAdminCategory,
   deleteAdminCategory,
@@ -702,6 +703,17 @@ export function usePostBulkListingsSetCategory() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: postAdminListingsBulkSetCategory,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminListingKeys.all });
+      queryClient.invalidateQueries({ queryKey: dealKeys.all });
+    },
+  });
+}
+
+export function usePostBulkListingsSetHomeDemoted() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: postAdminListingsBulkSetHomeDemoted,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: adminListingKeys.all });
       queryClient.invalidateQueries({ queryKey: dealKeys.all });
