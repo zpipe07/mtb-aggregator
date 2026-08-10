@@ -71,6 +71,7 @@ export default async function Home() {
       sort: "price_drop",
       limit: HOME_PRICE_DROPS_LIMIT,
       offset: 0,
+      exclude_home_demoted: true,
     }),
     ...HOME_DEAL_SECTIONS.map((section) =>
       fetchDeals({
@@ -79,6 +80,7 @@ export default async function Home() {
         category_slug: section.categorySlug,
         limit: HOME_DEAL_SECTION_LIMIT,
         offset: 0,
+        exclude_home_demoted: true,
       }),
     ),
   ]);

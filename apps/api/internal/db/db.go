@@ -289,6 +289,7 @@ type AdminListing struct {
 	CreatedAt      string `json:"created_at"`
 	LastEnrichedAt string `json:"last_enriched_at"`
 	Hidden         bool   `json:"hidden"`
+	HomeDemoted    bool   `json:"home_demoted"`
 	CategoryID     *int   `json:"category_id,omitempty"`
 	CategoryName   string `json:"category_name,omitempty"`
 }
@@ -301,6 +302,7 @@ type GetAdminListingsParams struct {
 	HasEnrichment         *bool   // true = last_enriched_at IS NOT NULL; false = NULL; nil = any
 	InStock               *bool   // true = is_in_stock; false = out of stock; nil = any
 	Hidden                *bool   // true = hidden only; false = visible only; nil = any
+	HomeDemoted           *bool   // true = home-demoted only; false = eligible for home; nil = any
 	Category              string
 	CanonicalCategory     string
 	// CategorySlug matches categories.slug; filter is l.category_id = ANY(subtree IDs), same as GET /deals?category_slug=.
@@ -369,7 +371,7 @@ func (db *DB) GetAdminListings(ctx context.Context, params GetAdminListingsParam
 
 	query := `
 		SELECT l.id, l.store_id, s.name, l.store_sku, l.product_name, l.current_price, l.original_price,
-			l.product_url, l.affiliate_url, l.image_url, l.brand, COALESCE(l.category_path, '{}'), COALESCE(l.canonical_category, '{}'), l.metadata, l.is_in_stock, l.hidden, l.last_scraped::text,
+			l.product_url, l.affiliate_url, l.image_url, l.brand, COALESCE(l.category_path, '{}'), COALESCE(l.canonical_category, '{}'), l.metadata, l.is_in_stock, l.hidden, l.home_demoted, l.last_scraped::text,
 			l.created_at::text, l.last_enriched_at::text,
 			COUNT(*) OVER() AS total_count
 		FROM store_listings l
@@ -419,6 +421,11 @@ func (db *DB) GetAdminListings(ctx context.Context, params GetAdminListingsParam
 	if params.Hidden != nil {
 		query += fmt.Sprintf(" AND l.hidden = $%d", argNum)
 		args = append(args, *params.Hidden)
+		argNum++
+	}
+	if params.HomeDemoted != nil {
+		query += fmt.Sprintf(" AND l.home_demoted = $%d", argNum)
+		args = append(args, *params.HomeDemoted)
 		argNum++
 	}
 	if params.categoryFilterIDs != nil {
@@ -501,7 +508,7 @@ func (db *DB) GetAdminListings(ctx context.Context, params GetAdminListingsParam
 		var meta []byte
 		var createdAt, lastEnrichedAt []byte
 		if err := rows.Scan(&a.ID, &a.StoreID, &a.StoreName, &a.StoreSKU, &a.ProductName, &a.CurrentPrice, &a.OriginalPrice,
-			&a.ProductURL, &a.AffiliateURL, &a.ImageURL, &a.Brand, &cp, &canCat, &meta, &a.IsInStock, &a.Hidden, &lastScraped,
+			&a.ProductURL, &a.AffiliateURL, &a.ImageURL, &a.Brand, &cp, &canCat, &meta, &a.IsInStock, &a.Hidden, &a.HomeDemoted, &lastScraped,
 			&createdAt, &lastEnrichedAt, &totalCount); err != nil {
 			return nil, 0, err
 		}
@@ -573,6 +580,11 @@ func buildAdminListingsFilter(query string, params GetAdminListingsParams, argNu
 	if params.Hidden != nil {
 		query += fmt.Sprintf(" AND l.hidden = $%d", argNum)
 		args = append(args, *params.Hidden)
+		argNum++
+	}
+	if params.HomeDemoted != nil {
+		query += fmt.Sprintf(" AND l.home_demoted = $%d", argNum)
+		args = append(args, *params.HomeDemoted)
 		argNum++
 	}
 	if params.categoryFilterIDs != nil {
@@ -697,7 +709,7 @@ func (db *DB) GetAdminListingByID(ctx context.Context, id int) (*AdminListing, e
 	var categoryName *string
 	err := db.pool.QueryRow(ctx, `
 		SELECT l.id, l.store_id, s.name, l.store_sku, l.product_name, l.current_price, l.original_price,
-			l.product_url, l.affiliate_url, l.image_url, l.brand, COALESCE(l.category_path, '{}'), COALESCE(l.canonical_category, '{}'), l.metadata, l.is_in_stock, l.hidden, l.last_scraped::text,
+			l.product_url, l.affiliate_url, l.image_url, l.brand, COALESCE(l.category_path, '{}'), COALESCE(l.canonical_category, '{}'), l.metadata, l.is_in_stock, l.hidden, l.home_demoted, l.last_scraped::text,
 			l.created_at::text, l.last_enriched_at::text,
 			l.category_id, c.name
 		FROM store_listings l
@@ -705,7 +717,7 @@ func (db *DB) GetAdminListingByID(ctx context.Context, id int) (*AdminListing, e
 		LEFT JOIN categories c ON c.id = l.category_id
 		WHERE l.id = $1
 	`, id).Scan(&a.ID, &a.StoreID, &a.StoreName, &a.StoreSKU, &a.ProductName, &a.CurrentPrice, &a.OriginalPrice,
-		&a.ProductURL, &a.AffiliateURL, &a.ImageURL, &a.Brand, &cp, &canCat, &meta, &a.IsInStock, &a.Hidden, &lastScraped,
+		&a.ProductURL, &a.AffiliateURL, &a.ImageURL, &a.Brand, &cp, &canCat, &meta, &a.IsInStock, &a.Hidden, &a.HomeDemoted, &lastScraped,
 		&createdAt, &lastEnrichedAt, &categoryID, &categoryName)
 	if err != nil {
 		if err.Error() == "no rows in result set" {
@@ -755,6 +767,18 @@ func (db *DB) HideStaleListings(ctx context.Context, storeID int, scrapeStartedA
 	return int(cmd.RowsAffected()), nil
 }
 
+// SetListingHomeDemoted sets whether a listing is excluded from home page top-deal sections.
+func (db *DB) SetListingHomeDemoted(ctx context.Context, id int, homeDemoted bool) error {
+	cmd, err := db.pool.Exec(ctx, `UPDATE store_listings SET home_demoted = $1 WHERE id = $2`, homeDemoted, id)
+	if err != nil {
+		return err
+	}
+	if cmd.RowsAffected() == 0 {
+		return fmt.Errorf("listing not found")
+	}
+	return nil
+}
+
 // SetListingHidden sets the hidden flag for a listing by id. Returns error if not found.
 func (db *DB) SetListingHidden(ctx context.Context, id int, hidden bool) error {
 	cmd, err := db.pool.Exec(ctx, `UPDATE store_listings SET hidden = $1 WHERE id = $2`, hidden, id)
@@ -785,8 +809,9 @@ type GetDealsParams struct {
 	PriceDropWithinDays   int    // recency window for price_dropped / sort=price_drop (default 7)
 	Limit             int
 	Offset            int
-	SpecFilters   map[string][]string // spec key -> values; OR within key, AND across keys
-	GroupVariants bool                // one row per product group (Shopify variants collapsed)
+	SpecFilters        map[string][]string // spec key -> values; OR within key, AND across keys
+	GroupVariants      bool                // one row per product group (Shopify variants collapsed)
+	ExcludeHomeDemoted bool                // when true, omit listings demoted from home page top-deal sections
 }
 
 // GetDealsResult includes deals and total count for pagination

@@ -135,6 +135,8 @@ export async function fetchDeals(
   max_price?: number;
   /** Exclude listings in this category subtree (e.g. `accessories`). */
   exclude_category_slug?: string;
+  /** Exclude listings demoted from home page top-deal sections. */
+  exclude_home_demoted?: boolean;
   q?: string;
   sort?: string;
   /** When true, only listings with a scrape-to-scrape price decrease within the recency window. */
@@ -168,6 +170,8 @@ export async function fetchDeals(
     search.set("max_price", String(params.max_price));
   if (params?.exclude_category_slug)
     search.set("exclude_category_slug", params.exclude_category_slug);
+  if (params?.exclude_home_demoted)
+    search.set("exclude_home_demoted", "true");
   if (params?.q) search.set("q", params.q);
   if (params?.sort) search.set("sort", params.sort);
   if (params?.price_dropped) search.set("price_dropped", "true");

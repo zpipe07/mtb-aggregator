@@ -39,6 +39,7 @@ Override the migrations directory: `MIGRATIONS_DIR=path/to/migrations make db-mi
 | `027_gear_eyewear.sql` | Gear: `gear-eyewear` + Sunglasses/Goggles children; priority mappings; product-name backfill for misfiled eyewear |
 | `028_listing_enrichment_pipeline.sql` | `listing_enrichment` per-step state, `pdp_snapshots`, `enrichment_events`; backfill from `last_enriched_at` |
 | `032_bb_headset_shelves.sql` | Components: `components-drivetrain-bottom-brackets` + `components-cockpit-headsets`; priority mappings; product-name backfill; LLM profiles for `bb_standard` / `headset_standard` |
+| `033_listing_home_demoted.sql` | `store_listings.home_demoted` — admin can exclude listings from home page top-deal sections without hiding from `/deals` |
 
 After 019, run **`make backfill-field-library`** once (from repo root) to rename ambiguous `type` / `material` keys in `extraction_schema` and `metadata.llm_specs`, seed shared defs, and populate `llm_prompt_profile_fields`.
 

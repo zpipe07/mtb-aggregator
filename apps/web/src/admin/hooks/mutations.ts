@@ -11,6 +11,7 @@ import {
   enrichListing,
   runListingLLMSpecs,
   setListingHidden,
+  setListingHomeDemoted,
   setListingCategory,
   setListingLLMOverrides,
   runLLMExtractionForCategory,
@@ -229,6 +230,19 @@ export function useSetListingHidden() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ id, hidden }: { id: number; hidden: boolean }) => setListingHidden(id, hidden),
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: adminListingKeys.all });
+      queryClient.invalidateQueries({ queryKey: adminListingKeys.detail(id) });
+      queryClient.invalidateQueries({ queryKey: dealKeys.all });
+    },
+  });
+}
+
+export function useSetListingHomeDemoted() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, homeDemoted }: { id: number; homeDemoted: boolean }) =>
+      setListingHomeDemoted(id, homeDemoted),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: adminListingKeys.all });
       queryClient.invalidateQueries({ queryKey: adminListingKeys.detail(id) });

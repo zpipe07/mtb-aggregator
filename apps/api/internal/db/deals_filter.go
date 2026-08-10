@@ -105,6 +105,9 @@ func (db *DB) dealsFilterSQL(ctx context.Context, params GetDealsParams, startAr
 		args = append(args, params.Search)
 		argNum++
 	}
+	if params.ExcludeHomeDemoted {
+		sb.WriteString(" AND l.home_demoted = false")
+	}
 	return sb.String(), args, argNum, nil
 }
 
