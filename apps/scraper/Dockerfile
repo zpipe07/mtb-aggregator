@@ -1,4 +1,4 @@
-# Keep tag in sync with playwright in apps/scraper/package.json (CI enforces via check-playwright-docker-sync.sh).
+# Keep tag in sync with playwright in apps/scraper/package.json (CI enforces via scripts/check-build-version-sync.sh).
 FROM mcr.microsoft.com/playwright:v1.62.1-jammy
 
 WORKDIR /app
@@ -9,8 +9,8 @@ COPY packages/shared ./packages/shared
 COPY packages/logging ./packages/logging
 COPY apps/scraper/package.json ./apps/scraper/
 
-# Install pnpm
-RUN corepack enable && corepack prepare pnpm@latest --activate
+# Install pnpm (pin matches root package.json packageManager — CI enforces)
+RUN corepack enable && corepack prepare pnpm@9.14.2 --activate
 RUN pnpm install --frozen-lockfile || pnpm install
 
 # Copy scraper source

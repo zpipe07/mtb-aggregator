@@ -7,7 +7,8 @@
     "dev": "make dev",
     "db:up": "make db-up",
     "db:down": "make db-down",
-    "db:migrate": "make db-migrate"
+    "db:migrate": "make db-migrate",
+    "check:build-versions": "bash scripts/check-build-version-sync.sh"
   },
   "packageManager": "pnpm@9.14.2",
   "engines": {

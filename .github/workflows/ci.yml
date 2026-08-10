@@ -37,6 +37,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Verify Docker and CI tool versions
+        run: pnpm run check:build-versions
+
       - name: Secret scan
         uses: gitleaks/gitleaks-action@v2
         env:
@@ -85,9 +88,6 @@ jobs:
 
       - name: Build scraper
         run: pnpm --filter @mtb-aggregator/scraper run build
-
-      - name: Verify Playwright Docker image version
-        run: pnpm --filter @mtb-aggregator/scraper run check:playwright-docker
 
       - name: Scraper tests
         run: pnpm --filter @mtb-aggregator/scraper run test
