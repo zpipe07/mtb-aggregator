@@ -19,7 +19,7 @@ pnpm monorepo with three apps and one shared package:
 
 ## Development Setup
 
-**Prerequisites:** Docker (for Postgres), Node.js >=20, pnpm, Go 1.25+
+**Prerequisites:** Docker (for Postgres), Node.js >=20, pnpm, Go 1.26+
 
 **First-time setup:**
 
