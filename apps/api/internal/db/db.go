@@ -783,6 +783,18 @@ func (db *DB) BulkSetListingsHomeDemoted(ctx context.Context, homeDemoted bool, 
 	return int(tag.RowsAffected()), nil
 }
 
+// BulkSetListingsHidden sets hidden for many listings by id.
+func (db *DB) BulkSetListingsHidden(ctx context.Context, hidden bool, listingIDs []int) (updated int, err error) {
+	if len(listingIDs) == 0 {
+		return 0, nil
+	}
+	tag, err := db.pool.Exec(ctx, `UPDATE store_listings SET hidden = $1 WHERE id = ANY($2)`, hidden, pq.Array(listingIDs))
+	if err != nil {
+		return 0, err
+	}
+	return int(tag.RowsAffected()), nil
+}
+
 // SetListingHomeDemoted sets whether a listing is excluded from home page top-deal sections.
 func (db *DB) SetListingHomeDemoted(ctx context.Context, id int, homeDemoted bool) error {
 	cmd, err := db.pool.Exec(ctx, `UPDATE store_listings SET home_demoted = $1 WHERE id = $2`, homeDemoted, id)

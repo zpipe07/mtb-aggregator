@@ -583,3 +583,54 @@ func (h *Handlers) PostAdminListingsBulkSetHomeDemoted(w http.ResponseWriter, r 
 		"total":   total,
 	})
 }
+
+type bulkSetHiddenBody struct {
+	bulkListingsFilterBody
+	Hidden bool `json:"hidden"`
+}
+
+// PostAdminListingsBulkSetHidden sets hidden for all listings matching the filter.
+func (h *Handlers) PostAdminListingsBulkSetHidden(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var body bulkSetHiddenBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		http.Error(w, "invalid json", http.StatusBadRequest)
+		return
+	}
+	params := body.toGetAdminListingsParams()
+	maxN := adminBulkMaxListings()
+	ids, total, err := h.DB.ListAdminListingIDsByFilter(r.Context(), params, false, false, maxN)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if total > maxN {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"error": fmt.Sprintf("filter matches %d listings (max per run is %d); narrow filters", total, maxN),
+		})
+		return
+	}
+	if len(ids) == 0 {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"ok": true, "updated": 0, "total": 0,
+		})
+		return
+	}
+	updated, err := h.DB.BulkSetListingsHidden(r.Context(), body.Hidden, ids)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
+		"ok":      true,
+		"updated": updated,
+		"total":   total,
+	})
+}

@@ -1828,6 +1828,35 @@ export async function postAdminListingsBulkSetHomeDemoted(
   return data;
 }
 
+export interface BulkSetHiddenBody extends AdminBulkListingsFilterBody {
+  hidden: boolean;
+}
+
+export interface BulkSetHiddenResult {
+  ok: boolean;
+  updated: number;
+  total: number;
+}
+
+export async function postAdminListingsBulkSetHidden(
+  body: BulkSetHiddenBody,
+): Promise<BulkSetHiddenResult> {
+  const res = await fetch(`${getApiBase()}/admin/listings/bulk-set-hidden`, {
+    method: "POST",
+    headers: adminHeaders(),
+    body: JSON.stringify(body),
+  });
+  const data = (await res.json().catch(() => ({}))) as BulkSetHiddenResult & {
+    error?: string;
+  };
+  if (!res.ok) {
+    const msg =
+      typeof data?.error === "string" ? data.error : "Bulk hide update failed";
+    throw new Error(msg);
+  }
+  return data;
+}
+
 export async function postAdminListingsBulkLLMSpecs(
   body: AdminBulkListingsFilterBody,
 ): Promise<BulkListingsResult> {
