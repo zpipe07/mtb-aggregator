@@ -6,6 +6,7 @@ import {
   buildVariantOptions,
   type ShopifyProductWithOptions,
   type ShopifyVariantWithOptions,
+  resolveShopifyCategoryPath,
 } from "./shopify-helpers.js";
 
 const BASE_URL = "https://worldwidecyclery.com";
@@ -153,7 +154,7 @@ export async function enrichWorldwideCyclery(
     const rawSpecs = detail.body_html
       ? extractSpecsFromHtml(detail.body_html)
       : null;
-    const categoryPath = html ? extractBreadcrumbsFromHtml(html) : null;
+    const categoryPath = resolveShopifyCategoryPath(detail.product_type, html);
     const description = detail.body_html
       ? extractDescriptionFromHtml(detail.body_html)
       : null;
@@ -207,100 +208,6 @@ async function fetchWorldwideProductHtml(
   return res.text();
 }
 
-/**
- * Extract category breadcrumbs from product page HTML.
- * Tries: (1) JSON-LD BreadcrumbList, (2) DOM breadcrumb links, (3) Collection links section.
- */
-function extractBreadcrumbsFromHtml(html: string): string[] | null {
-  const $ = cheerio.load(html);
-  const clean = (text: string | null | undefined): string =>
-    (text || "").replace(/\s+/g, " ").trim();
-
-  // 1. JSON-LD BreadcrumbList (common in Shopify for SEO)
-  let result: string[] | null = null;
-  $('script[type="application/ld+json"]').each((_, el) => {
-    if (result) return;
-    try {
-      const parsed = JSON.parse($(el).html() ?? "{}");
-      const candidates = Array.isArray(parsed)
-        ? parsed
-        : parsed["@graph"]
-          ? parsed["@graph"]
-          : [parsed];
-      for (const json of candidates) {
-        if (
-          json?.["@type"] === "BreadcrumbList" &&
-          Array.isArray(json.itemListElement)
-        ) {
-          const items: string[] = [];
-          for (const el2 of json.itemListElement) {
-            const name = el2.name ?? el2.item?.name;
-            if (name) items.push(clean(String(name)));
-          }
-          if (items.length >= 2) {
-            let trimmed = items.slice(0, -1); // exclude product name
-            if (trimmed[0] && /^home$/i.test(trimmed[0]))
-              trimmed = trimmed.slice(1);
-            if (trimmed.length > 0) {
-              result = trimmed;
-              return;
-            }
-          }
-        }
-      }
-    } catch {
-      /* ignore parse errors */
-    }
-  });
-  if (result) return result;
-
-  // 2. DOM breadcrumb links (nav, ol.breadcrumb, etc.)
-  const breadcrumbSelectors = [
-    'nav[aria-label="Breadcrumb"] a',
-    'nav[aria-label="breadcrumb"] a',
-    ".breadcrumb a",
-    ".breadcrumbs a",
-    "[class*='breadcrumb'] a",
-    "ol[class*='breadcrumb'] li a",
-  ];
-  for (const sel of breadcrumbSelectors) {
-    const items: string[] = [];
-    $(sel).each((_, el) => {
-      const t = clean($(el).text());
-      if (t) items.push(t);
-    });
-    if (items.length >= 2) {
-      let trimmed = items.slice(0, -1);
-      if (trimmed[0] && /^home$/i.test(trimmed[0])) trimmed = trimmed.slice(1);
-      if (trimmed.length > 0) return trimmed;
-    }
-  }
-
-  // 3. Collection links (Shopify product pages often list collections like "Collections: Link1, Link2")
-  const collectionsLabel = $('*:contains("Collections:")').first();
-  if (collectionsLabel.length) {
-    const container = collectionsLabel.closest("div, section, p");
-    const links = (container.length ? container : collectionsLabel).find(
-      "a[href*='/collections/']",
-    );
-    const items: string[] = [];
-    links.each((_, el) => {
-      const t = clean($(el).text());
-      if (t && t.length < 100) items.push(t);
-    });
-    if (items.length > 0) {
-      // Prefer the most specific (longest) collection path; split "Cat1 / Cat2" into array if desired
-      const best = items.reduce((a, b) => (a.length >= b.length ? a : b));
-      const parts = best
-        .split(/\s*\/\s*/)
-        .map((p) => clean(p))
-        .filter(Boolean);
-      return parts.length > 0 ? parts : [best];
-    }
-  }
-
-  return null;
-}
 
 /**
  * Extract description text from body_html by stripping spec tables/dl and returning
