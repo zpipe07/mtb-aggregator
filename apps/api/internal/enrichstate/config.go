@@ -41,3 +41,13 @@ func LoadConfigFromEnv() Config {
 	}
 	return cfg
 }
+
+// CircuitBreakerThreshold returns consecutive PDP failures before skipping a store this job.
+func CircuitBreakerThreshold() int {
+	if s := os.Getenv("ENRICH_CIRCUIT_BREAKER_THRESHOLD"); s != "" {
+		if n, err := strconv.Atoi(s); err == nil && n > 0 {
+			return n
+		}
+	}
+	return 5
+}

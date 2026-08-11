@@ -94,6 +94,9 @@ func (sch *Scheduler) buildEnrichmentPipeline(llmState *llmlisting.QuotaJobState
 		Snapshots: db.EnrichmentSnapshotStore{DB: sch.db},
 		Events:    db.EnrichmentEventRecorder{DB: sch.db},
 		Scraper:   sch.scraper,
+		CircuitBreaker: enrichstate.NewCircuitBreaker(
+			enrichstate.CircuitBreakerThreshold(),
+		),
 		LLM: quotaLLMRunner{
 			inner:   schedulerLLMRunner{pool: sch.db, client: sch.llm},
 			state:   llmState,

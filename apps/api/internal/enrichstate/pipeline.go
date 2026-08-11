@@ -35,6 +35,7 @@ type Pipeline struct {
 	Config           Config
 	Fanout           VariantFanout
 	BeforeClaimBatch func(step Step)
+	CircuitBreaker   *CircuitBreaker
 }
 
 // RunJob executes PDP, classify, and extract passes until batch limits or timeout.
@@ -75,11 +76,23 @@ func (p *Pipeline) RunJob(ctx context.Context, filter ClaimFilter, force bool, b
 				if ctx.Err() != nil {
 					return processed, succeeded, errStrs
 				}
+				if step == StepPDP && p.CircuitBreaker != nil && p.CircuitBreaker.IsTripped(item.StoreType) {
+					continue
+				}
 				stepProcessed++
 				processed++
 				ok, stepErr := p.runOne(ctx, step, item, force, jobID, now, cfg)
 				if stepErr != nil {
 					errStrs = append(errStrs, "listing "+strconv.Itoa(item.ListingID)+": "+string(step)+": "+stepErr.Error())
+				}
+				if step == StepPDP && p.CircuitBreaker != nil {
+					if ok {
+						p.CircuitBreaker.RecordSuccess(item.StoreType)
+					} else {
+						if p.CircuitBreaker.RecordFailure(item.StoreType) {
+							errStrs = append(errStrs, "circuit breaker tripped for store "+item.StoreType+": skipping remaining PDP")
+						}
+					}
 				}
 				if ok {
 					succeeded++

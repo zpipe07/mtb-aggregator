@@ -57,6 +57,8 @@ cd apps/web && pnpm run dev
 - `CORS_ORIGINS` — comma-separated allowed origins (defaults to `*`); when using a custom Vercel domain, include `https://yourdomain.com` (and `https://www...` if used) if not using `*`
 - `SCRAPE_CRON_SPEC` / `ENRICH_CRON_SPEC` — override cron schedules (set to `disabled` to use external cron)
 - **`ENRICH_MAX_LISTINGS`** — optional cap on listings processed **per step per enrich job** (default unlimited). Each of the three passes (PDP, classify, extract) gets its own budget so a large PDP backlog can't starve the LLM passes; e.g. `100` allows up to 300 listings per job total
+- **`ENRICH_CALL_TIMEOUT`** (API) — per-listing timeout for `POST /enrich` scraper calls (default **`3m`**; scraper wall-clock default **`120s`** via **`ENRICH_TIMEOUT_MS`**)
+- **`ENRICH_CIRCUIT_BREAKER_THRESHOLD`** (API) — consecutive PDP failures for one store before skipping remaining PDP work in the current enrich job (default **`5`**; set **`0`** to disable)
 - When in-process cron is enabled, startup **catch-up** runs scrape/enrich if the last DB job is more than 24h old (see [apps/api/README.md](apps/api/README.md))
 - `NEXT_PUBLIC_API_URL` — client-side API base (defaults to `/api`); `API_URL` for server-side (full URL)
 - `NEXT_PUBLIC_SITE_URL` — public web origin for Next.js `metadataBase`, canonical URLs, Open Graph, sitemap, and `robots.txt` sitemap line (**required on Vercel Production**; Preview falls back to `VERCEL_URL` when unset)
