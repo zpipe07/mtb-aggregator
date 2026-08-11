@@ -27,7 +27,7 @@ const RETRY_DELAY_MS = 15000;
 
 /** Build next page URL by incrementing the pn (page number) param. JensonUSA uses pn, zero-indexed: pn=0 is page 1. */
 function buildNextPageUrl(currentUrl: string): string | null {
-  if (!currentUrl.includes("jensonusa.com/clearance")) return null;
+  if (!currentUrl.includes("jensonusa.com/sale")) return null;
   try {
     const u = new URL(currentUrl);
     const pn = parseInt(u.searchParams.get("pn") || "0", 10);
@@ -48,9 +48,8 @@ export async function scrapeJensonUSA(url: string): Promise<ScrapeResult[]> {
     const page = await context.newPage();
 
     try {
-      // Use ps=100 for clearance to get more items per page (fewer page requests)
       let currentUrl = url;
-      if (url.includes("jensonusa.com/clearance") && !url.includes("ps=")) {
+      if (url.includes("jensonusa.com/sale") && !url.includes("ps=")) {
         currentUrl = url.includes("?") ? `${url}&ps=100` : `${url}?ps=100`;
       }
 

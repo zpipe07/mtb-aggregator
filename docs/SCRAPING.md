@@ -81,7 +81,7 @@ Manual scrape (scraper must be running):
 ```bash
 curl -X POST http://localhost:3000/scrape \
   -H "Content-Type: application/json" \
-  -d '{"url": "https://www.jensonusa.com/clearance", "store": "jensonusa"}'
+  -d '{"url": "https://www.jensonusa.com/sale", "store": "jensonusa"}'
 ```
 
 ## Notes
