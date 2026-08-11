@@ -49,6 +49,7 @@ import {
   postAdminListingsBulkLLMSpecs,
   postAdminListingsBulkSetCategory,
   postAdminListingsBulkSetHomeDemoted,
+  postAdminListingsBulkSetHidden,
   createAdminCategory,
   updateAdminCategory,
   deleteAdminCategory,
@@ -714,6 +715,17 @@ export function usePostBulkListingsSetHomeDemoted() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: postAdminListingsBulkSetHomeDemoted,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminListingKeys.all });
+      queryClient.invalidateQueries({ queryKey: dealKeys.all });
+    },
+  });
+}
+
+export function usePostBulkListingsSetHidden() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: postAdminListingsBulkSetHidden,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: adminListingKeys.all });
       queryClient.invalidateQueries({ queryKey: dealKeys.all });

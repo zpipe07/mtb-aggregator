@@ -32,6 +32,7 @@ import {
   usePostBulkListingsLLMSpecs,
   usePostBulkListingsSetCategory,
   usePostBulkListingsSetHomeDemoted,
+  usePostBulkListingsSetHidden,
   useCreateTaxonomyMapping,
 } from "./hooks/mutations";
 import type {
@@ -523,7 +524,7 @@ export function DataBrowser() {
   /** Path from CategoryPicker — maps to category_slug (subtree / same as public /deals). */
   const [pickedCategoryPath, setPickedCategoryPath] = useState<string[]>([]);
   const [bulkModal, setBulkModal] = useState<
-    "classify" | "enrich" | "llm_specs" | "set_category" | "demote_home" | "restore_home" | null
+    "classify" | "enrich" | "llm_specs" | "set_category" | "demote_home" | "restore_home" | "hide_all" | null
   >(null);
   const [bulkConfirmText, setBulkConfirmText] = useState("");
   const [bulkAllowEmptySpecs, setBulkAllowEmptySpecs] = useState(false);
@@ -600,6 +601,7 @@ export function DataBrowser() {
   const bulkLLMSpecsMutation = usePostBulkListingsLLMSpecs();
   const bulkSetCategoryMutation = usePostBulkListingsSetCategory();
   const bulkSetHomeDemotedMutation = usePostBulkListingsSetHomeDemoted();
+  const bulkSetHiddenMutation = usePostBulkListingsSetHidden();
   const createTaxonomyMappingMutation = useCreateTaxonomyMapping();
 
   function buildBulkFilterBody(): AdminBulkListingsFilterBody {
@@ -654,13 +656,14 @@ export function DataBrowser() {
   }
 
   function bulkConfirmPhrase(
-    m: "classify" | "enrich" | "llm_specs" | "set_category" | "demote_home" | "restore_home",
+    m: "classify" | "enrich" | "llm_specs" | "set_category" | "demote_home" | "restore_home" | "hide_all",
   ) {
     if (m === "classify") return "reclassify";
     if (m === "enrich") return "re-enrich";
     if (m === "set_category") return "set-category";
     if (m === "demote_home") return "demote-home";
     if (m === "restore_home") return "restore-home";
+    if (m === "hide_all") return "hide-all";
     return "bulk-llm-specs";
   }
 
@@ -680,6 +683,7 @@ export function DataBrowser() {
         bulkLLMSpecsMutation.isError ||
         bulkSetCategoryMutation.isError ||
         bulkSetHomeDemotedMutation.isError ||
+        bulkSetHiddenMutation.isError ||
         createTaxonomyMappingMutation.isError) && (
         <div className="mb-4 rounded border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
           {enrichMutation.isError
@@ -706,6 +710,9 @@ export function DataBrowser() {
                       : bulkSetHomeDemotedMutation.isError
                         ? bulkSetHomeDemotedMutation.error?.message ??
                           "Bulk home demote update failed"
+                      : bulkSetHiddenMutation.isError
+                        ? bulkSetHiddenMutation.error?.message ??
+                          "Bulk hide update failed"
                       : createTaxonomyMappingMutation.isError
                         ? createTaxonomyMappingMutation.error?.message ??
                           "Create taxonomy rule failed"
@@ -723,6 +730,7 @@ export function DataBrowser() {
               bulkLLMSpecsMutation.reset();
               bulkSetCategoryMutation.reset();
               bulkSetHomeDemotedMutation.reset();
+              bulkSetHiddenMutation.reset();
               createTaxonomyMappingMutation.reset();
               if (isError) refetch();
             }}
@@ -1002,6 +1010,16 @@ export function DataBrowser() {
           >
             Restore on home ({totalCount.toLocaleString()})
           </button>
+          <button
+            type="button"
+            onClick={() => {
+              setBulkConfirmText("");
+              setBulkModal("hide_all");
+            }}
+            className="rounded border border-red-700 bg-white px-3 py-1.5 text-red-900 hover:bg-red-50"
+          >
+            Hide all ({totalCount.toLocaleString()})
+          </button>
           {bulkJobId && bulkJob && (
             <span className="text-stone-600">
               Job #{bulkJobId}{" "}
@@ -1044,6 +1062,8 @@ export function DataBrowser() {
                       ? "Demote from home — all matching"
                       : bulkModal === "restore_home"
                         ? "Restore on home — all matching"
+                        : bulkModal === "hide_all"
+                          ? "Hide all matching"
                         : "LLM specs — all matching"}
             </h3>
             <p className="text-sm text-stone-600">
@@ -1057,6 +1077,8 @@ export function DataBrowser() {
                     ? "Excludes every matching listing from home page top-deal sections. They remain visible on /deals."
                     : bulkModal === "restore_home"
                       ? "Makes every matching listing eligible for home page top-deal sections again."
+                      : bulkModal === "hide_all"
+                        ? "Removes every matching listing from the public deals feed. Hidden listings remain in the admin data browser."
                       : bulkModal === "llm_specs"
                   ? "Runs LLM category + prompt extraction using data already stored (no PDP fetch). Defaults to listings that have scraped specs."
                   : ""}
@@ -1114,6 +1136,7 @@ export function DataBrowser() {
                   bulkLLMSpecsMutation.isPending ||
                   bulkSetCategoryMutation.isPending ||
                   bulkSetHomeDemotedMutation.isPending ||
+                  bulkSetHiddenMutation.isPending ||
                   (bulkModal === "set_category" &&
                     adminCategoryIdForPath(categoryTree, bulkSetCategoryPath) ==
                       null) ||
@@ -1145,6 +1168,16 @@ export function DataBrowser() {
                       });
                       setBulkFlash(
                         `${bulkModal === "demote_home" ? "Demoted" : "Restored"} ${r.updated.toLocaleString()} of ${r.total.toLocaleString()} listing${r.total === 1 ? "" : "s"} on the home page.`,
+                      );
+                      setBulkModal(null);
+                      void refetch();
+                    } else if (bulkModal === "hide_all") {
+                      const r = await bulkSetHiddenMutation.mutateAsync({
+                        ...body,
+                        hidden: true,
+                      });
+                      setBulkFlash(
+                        `Hidden ${r.updated.toLocaleString()} of ${r.total.toLocaleString()} listing${r.total === 1 ? "" : "s"}.`,
                       );
                       setBulkModal(null);
                       void refetch();
@@ -1193,7 +1226,8 @@ export function DataBrowser() {
                 bulkEnrichMutation.isPending ||
                 bulkLLMSpecsMutation.isPending ||
                 bulkSetCategoryMutation.isPending ||
-                bulkSetHomeDemotedMutation.isPending
+                bulkSetHomeDemotedMutation.isPending ||
+                bulkSetHiddenMutation.isPending
                   ? "Running…"
                   : "Confirm"}
               </button>

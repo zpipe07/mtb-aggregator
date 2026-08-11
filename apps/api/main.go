@@ -647,6 +647,13 @@ func main() {
 		}
 		handlers.PostAdminListingsBulkSetHomeDemoted(w, r)
 	}))
+	http.HandleFunc("/admin/listings/bulk-set-hidden", api.AdminRequired(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/admin/listings/bulk-set-hidden" {
+			http.NotFound(w, r)
+			return
+		}
+		handlers.PostAdminListingsBulkSetHidden(w, r)
+	}))
 	// Admin: GET /admin/listings — data browser (query: store_id, brand, has_canonical_category, has_enrichment, category, category_slug, canonical_category, q, sort [newest|last_enriched|discount|price_asc|price_desc|relevance], limit, offset, llm_confidence_below)
 	http.HandleFunc("/admin/listings", api.AdminRequired(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/admin/listings" {
