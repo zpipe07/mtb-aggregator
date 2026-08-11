@@ -91,7 +91,7 @@ Runs up to 50 listings per batch. Enrichment also runs nightly at 2am (configura
 # Start the scraper first, then:
 curl -X POST http://localhost:3000/scrape \
   -H "Content-Type: application/json" \
-  -d '{"url": "https://www.jensonusa.com/clearance", "store": "jensonusa"}'
+  -d '{"url": "https://www.jensonusa.com/sale", "store": "jensonusa"}'
 ```
 
 ### Docker

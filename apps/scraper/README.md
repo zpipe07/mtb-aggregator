@@ -472,5 +472,5 @@ Fixtures under `src/parsers/__fixtures__/` must be **gitleaks-safe** before comm
 ```bash
 curl -X POST http://localhost:3000/scrape \
   -H "Content-Type: application/json" \
-  -d '{"url": "https://www.jensonusa.com/clearance", "store": "jensonusa"}'
+  -d '{"url": "https://www.jensonusa.com/sale", "store": "jensonusa"}'
 ```
