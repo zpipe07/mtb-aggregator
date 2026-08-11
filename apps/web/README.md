@@ -40,7 +40,7 @@ React frontend for the MTB deal aggregator. Built with Next.js 15 (App Router), 
 
 ## Linting & security (ESLint)
 
-- **`pnpm run lint`** — `next lint` using [`eslint.config.mjs`](eslint.config.mjs): extends `next/core-web-vitals`, `next/typescript`, and [`eslint-plugin-security`](https://github.com/eslint-community/eslint-plugin-security) (`security/recommended`). CI runs this on every PR.
+- **`pnpm run lint`** — `eslint .` using [`eslint.config.mjs`](eslint.config.mjs): extends `eslint-config-next` (`core-web-vitals` + `typescript`) and [`eslint-plugin-security`](https://github.com/eslint-community/eslint-plugin-security) (`security/recommended`). CI runs this on every PR.
 - **`pnpm run test`** — [`vitest`](https://vitest.dev/) unit tests (e.g. [`src/lib/filterParams.test.ts`](src/lib/filterParams.test.ts)); `pnpm run test:watch` for watch mode.
 - **`pnpm exec tsc --noEmit`** — TypeScript check without emit (also in CI).
 - **`pnpm run seo:smoke`** — Fast assertions on JSON-LD builders ([`scripts/seo-smoke.ts`](scripts/seo-smoke.ts)); runs in CI (shift-left SEO checks without a live server).

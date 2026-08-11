@@ -1,17 +1,26 @@
-import { dirname } from "node:path";
-import { fileURLToPath } from "node:url";
-import { FlatCompat } from "@eslint/eslintrc";
+import { defineConfig, globalIgnores } from "eslint/config";
+import nextVitals from "eslint-config-next/core-web-vitals";
+import nextTs from "eslint-config-next/typescript";
 import eslintPluginSecurity from "eslint-plugin-security";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-const compat = new FlatCompat({
-  baseDirectory: __dirname,
-});
-
-/** @type {import("eslint").Linter.Config[]} */
-export default [
-  ...compat.extends("next/core-web-vitals", "next/typescript"),
+export default defineConfig([
+  ...nextVitals,
+  ...nextTs,
   eslintPluginSecurity.configs.recommended,
-];
+  {
+    rules: {
+      // react-hooks v7 (via eslint-config-next@16) adds compiler rules that did not
+      // exist under eslint-config-next@15; keep CI parity until addressed separately.
+      "react-hooks/set-state-in-effect": "off",
+      "react-hooks/refs": "off",
+      "react-hooks/preserve-manual-memoization": "off",
+    },
+  },
+  globalIgnores([
+    ".next/**",
+    "out/**",
+    "build/**",
+    "storybook-static/**",
+    "next-env.d.ts",
+  ]),
+]);
