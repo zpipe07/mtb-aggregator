@@ -10,6 +10,7 @@
     "build": "tsc",
     "start": "node dist/server.js",
     "pretest": "pnpm run build:deps",
+    "check:playwright-docker": "bash ../../scripts/check-build-version-sync.sh",
     "test": "vitest run",
     "test:watch": "vitest"
   },
@@ -17,12 +18,12 @@
     "@mtb-aggregator/logging": "workspace:*",
     "@sentry/node": "^10.45.0",
     "cheerio": "^1.2.0",
-    "dotenv": "^16.4.5",
+    "dotenv": "^17.4.2",
     "express": "^5.2.1",
-    "playwright": "^1.49.0",
+    "playwright": "^1.62.1",
     "playwright-extra": "^4.3.6",
     "puppeteer-extra-plugin-stealth": "^2.11.2",
-    "zod": "^3.24.0"
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/express": "^5.0.6",

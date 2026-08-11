@@ -11,6 +11,7 @@ import {
   enrichListing,
   runListingLLMSpecs,
   setListingHidden,
+  setListingHomeDemoted,
   setListingCategory,
   setListingLLMOverrides,
   runLLMExtractionForCategory,
@@ -47,6 +48,7 @@ import {
   postAdminListingsBulkEnrich,
   postAdminListingsBulkLLMSpecs,
   postAdminListingsBulkSetCategory,
+  postAdminListingsBulkSetHomeDemoted,
   createAdminCategory,
   updateAdminCategory,
   deleteAdminCategory,
@@ -229,6 +231,19 @@ export function useSetListingHidden() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ id, hidden }: { id: number; hidden: boolean }) => setListingHidden(id, hidden),
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: adminListingKeys.all });
+      queryClient.invalidateQueries({ queryKey: adminListingKeys.detail(id) });
+      queryClient.invalidateQueries({ queryKey: dealKeys.all });
+    },
+  });
+}
+
+export function useSetListingHomeDemoted() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, homeDemoted }: { id: number; homeDemoted: boolean }) =>
+      setListingHomeDemoted(id, homeDemoted),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: adminListingKeys.all });
       queryClient.invalidateQueries({ queryKey: adminListingKeys.detail(id) });
@@ -688,6 +703,17 @@ export function usePostBulkListingsSetCategory() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: postAdminListingsBulkSetCategory,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminListingKeys.all });
+      queryClient.invalidateQueries({ queryKey: dealKeys.all });
+    },
+  });
+}
+
+export function usePostBulkListingsSetHomeDemoted() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: postAdminListingsBulkSetHomeDemoted,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: adminListingKeys.all });
       queryClient.invalidateQueries({ queryKey: dealKeys.all });

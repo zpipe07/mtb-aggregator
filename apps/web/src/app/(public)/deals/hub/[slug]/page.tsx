@@ -20,7 +20,12 @@ import {
   getSeoHubBySlug,
   hubMeetsIndexThreshold,
 } from "@/lib/seoHubs";
-import { buildBreadcrumbJsonLd, buildProductItemListJsonLd, buildAggregateOfferJsonLd, buildFaqPageJsonLd } from "@/lib/jsonLd";
+import {
+  buildBreadcrumbJsonLd,
+  buildProductItemListJsonLd,
+  buildAggregateOfferJsonLd,
+  buildFaqPageJsonLd,
+} from "@/lib/jsonLd";
 import { absoluteUrl } from "@/lib/siteUrl";
 import { SeoHubFaq } from "@/components/SeoHubFaq";
 import { SeoHubRelatedLinks } from "@/components/SeoHubRelatedLinks";
@@ -86,21 +91,29 @@ export default async function SeoHubDealsPage({ params, searchParams }: Props) {
 
   const dealsParams = buildFetchDealsParamsFromHubAndFilters(hub, filterParams);
 
-  const facetsParams = buildFetchFacetsParamsFromHubAndFilters(hub, filterParams);
+  const facetsParams = buildFetchFacetsParamsFromHubAndFilters(
+    hub,
+    filterParams,
+  );
 
   const facetsForBrandOptionsPromise: Promise<FacetsResponse | null> =
     filterParams.brandFilters.length > 0
       ? fetchFacets({ ...facetsParams, brands: undefined })
       : Promise.resolve(null);
 
-  const [dealsResponse, facetsResponse, facetsForBrandOptions, stores, categoryTree] =
-    await Promise.all([
-      fetchDeals(dealsParams),
-      fetchFacets(facetsParams),
-      facetsForBrandOptionsPromise,
-      fetchStores(),
-      fetchCategoryTree(),
-    ]);
+  const [
+    dealsResponse,
+    facetsResponse,
+    facetsForBrandOptions,
+    stores,
+    categoryTree,
+  ] = await Promise.all([
+    fetchDeals(dealsParams),
+    fetchFacets(facetsParams),
+    facetsForBrandOptionsPromise,
+    fetchStores(),
+    fetchCategoryTree(),
+  ]);
 
   const deals = dealsResponse.deals ?? [];
   const totalCount = dealsResponse.total_count ?? 0;
@@ -155,10 +168,8 @@ export default async function SeoHubDealsPage({ params, searchParams }: Props) {
           categoryTree={categoryTree}
           dealsListPath={dealsListPath}
           categoryIntro={hub.intro}
-          belowIntro={
-            hub.faq?.length ? <SeoHubFaq items={hub.faq} /> : undefined
-          }
         >
+          {hub.faq?.length ? <SeoHubFaq items={hub.faq} /> : null}
           <SeoHubRelatedLinks hub={hub} />
         </DealsPageContent>
       </Suspense>

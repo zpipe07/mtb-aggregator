@@ -569,6 +569,7 @@ export interface AdminListing {
   metadata?: Record<string, unknown>;
   is_in_stock: boolean;
   hidden?: boolean;
+  home_demoted?: boolean;
   discount_pct?: number | null;
   last_scraped: string;
   created_at?: string;
@@ -587,6 +588,7 @@ export async function fetchAdminListings(params?: {
   has_enrichment?: boolean;
   in_stock?: boolean;
   hidden?: boolean;
+  home_demoted?: boolean;
   category?: string;
   /** Subtree filter on category_id — same semantics as GET /deals?category_slug= */
   category_slug?: string;
@@ -611,6 +613,8 @@ export async function fetchAdminListings(params?: {
     search.set("in_stock", params.in_stock ? "true" : "false");
   if (params?.hidden != null)
     search.set("hidden", params.hidden ? "true" : "false");
+  if (params?.home_demoted != null)
+    search.set("home_demoted", params.home_demoted ? "true" : "false");
   if (params?.category) search.set("category", params.category);
   if (params?.category_slug)
     search.set("category_slug", params.category_slug);
@@ -714,15 +718,15 @@ export async function fetchCategoryProfileFields(
   return Array.isArray(data.fields) ? data.fields : [];
 }
 
-/** Set hidden flag for a listing. Hidden listings are excluded from the public deals feed. */
-export async function setListingHidden(
+/** Set hidden and/or home_demoted flags for a listing. */
+export async function patchAdminListing(
   id: number,
-  hidden: boolean,
+  patch: { hidden?: boolean; home_demoted?: boolean },
 ): Promise<void> {
   const res = await fetch(`${getApiBase()}/admin/listings/${id}`, {
     method: "PATCH",
     headers: adminHeaders(),
-    body: JSON.stringify({ hidden }),
+    body: JSON.stringify(patch),
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
@@ -734,6 +738,22 @@ export async function setListingHidden(
           : "Update failed";
     throw new Error(msg);
   }
+}
+
+/** Set hidden flag for a listing. Hidden listings are excluded from the public deals feed. */
+export async function setListingHidden(
+  id: number,
+  hidden: boolean,
+): Promise<void> {
+  return patchAdminListing(id, { hidden });
+}
+
+/** Demote or restore a listing on the home page top-deal sections. */
+export async function setListingHomeDemoted(
+  id: number,
+  homeDemoted: boolean,
+): Promise<void> {
+  return patchAdminListing(id, { home_demoted: homeDemoted });
 }
 
 /** Set LLM overrides for a listing. Body is the overrides map e.g. { mtb_class: "Trail" }. Pass null for a key to clear. */
@@ -1683,6 +1703,7 @@ export interface AdminBulkListingsFilterBody {
   has_enrichment?: boolean;
   in_stock?: boolean;
   hidden?: boolean;
+  home_demoted?: boolean;
   category?: string;
   category_slug?: string;
   canonical_category?: string;
@@ -1771,6 +1792,37 @@ export async function postAdminListingsBulkSetCategory(
   if (!res.ok) {
     const msg =
       typeof data?.error === "string" ? data.error : "Bulk set category failed";
+    throw new Error(msg);
+  }
+  return data;
+}
+
+export interface BulkSetHomeDemotedBody extends AdminBulkListingsFilterBody {
+  home_demoted: boolean;
+}
+
+export interface BulkSetHomeDemotedResult {
+  ok: boolean;
+  updated: number;
+  total: number;
+}
+
+export async function postAdminListingsBulkSetHomeDemoted(
+  body: BulkSetHomeDemotedBody,
+): Promise<BulkSetHomeDemotedResult> {
+  const res = await fetch(`${getApiBase()}/admin/listings/bulk-set-home-demoted`, {
+    method: "POST",
+    headers: adminHeaders(),
+    body: JSON.stringify(body),
+  });
+  const data = (await res.json().catch(() => ({}))) as BulkSetHomeDemotedResult & {
+    error?: string;
+  };
+  if (!res.ok) {
+    const msg =
+      typeof data?.error === "string"
+        ? data.error
+        : "Bulk home demote update failed";
     throw new Error(msg);
   }
   return data;

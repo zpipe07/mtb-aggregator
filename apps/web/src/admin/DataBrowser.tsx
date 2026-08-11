@@ -24,12 +24,14 @@ import {
   useEnrichListing,
   useRunListingLLMSpecs,
   useSetListingHidden,
+  useSetListingHomeDemoted,
   useSetListingCategory,
   useSetListingLLMOverrides,
   usePostBulkListingsClassify,
   usePostBulkListingsEnrich,
   usePostBulkListingsLLMSpecs,
   usePostBulkListingsSetCategory,
+  usePostBulkListingsSetHomeDemoted,
   useCreateTaxonomyMapping,
 } from "./hooks/mutations";
 import type {
@@ -510,6 +512,7 @@ export function DataBrowser() {
   const [hasEnrichment, setHasEnrichment] = useState<boolean | null>(null);
   const [inStock, setInStock] = useState<boolean | null>(null);
   const [visibility, setVisibility] = useState<"all" | "visible" | "hidden">("all");
+  const [homeDemotedFilter, setHomeDemotedFilter] = useState<"all" | "eligible" | "demoted">("all");
   const [category, setCategory] = useState("");
   const [q, setQ] = useState("");
   const [sort, setSort] = useState("newest");
@@ -520,7 +523,7 @@ export function DataBrowser() {
   /** Path from CategoryPicker — maps to category_slug (subtree / same as public /deals). */
   const [pickedCategoryPath, setPickedCategoryPath] = useState<string[]>([]);
   const [bulkModal, setBulkModal] = useState<
-    "classify" | "enrich" | "llm_specs" | "set_category" | null
+    "classify" | "enrich" | "llm_specs" | "set_category" | "demote_home" | "restore_home" | null
   >(null);
   const [bulkConfirmText, setBulkConfirmText] = useState("");
   const [bulkAllowEmptySpecs, setBulkAllowEmptySpecs] = useState(false);
@@ -547,6 +550,10 @@ export function DataBrowser() {
     has_enrichment: hasEnrichment ?? undefined,
     in_stock: inStock ?? undefined,
     hidden: visibility === "all" ? undefined : visibility === "hidden",
+    home_demoted:
+      homeDemotedFilter === "all"
+        ? undefined
+        : homeDemotedFilter === "demoted",
     category: category || undefined,
     category_slug: categorySlugFromPicker,
     canonical_category: categorySlugFromPicker
@@ -565,6 +572,7 @@ export function DataBrowser() {
   const enrichMutation = useEnrichListing();
   const listingLLMMutation = useRunListingLLMSpecs();
   const setHiddenMutation = useSetListingHidden();
+  const setHomeDemotedMutation = useSetListingHomeDemoted();
   const setCategoryMutation = useSetListingCategory();
 
   useEffect(() => {
@@ -591,6 +599,7 @@ export function DataBrowser() {
 
   const bulkLLMSpecsMutation = usePostBulkListingsLLMSpecs();
   const bulkSetCategoryMutation = usePostBulkListingsSetCategory();
+  const bulkSetHomeDemotedMutation = usePostBulkListingsSetHomeDemoted();
   const createTaxonomyMappingMutation = useCreateTaxonomyMapping();
 
   function buildBulkFilterBody(): AdminBulkListingsFilterBody {
@@ -600,6 +609,10 @@ export function DataBrowser() {
       has_enrichment: hasEnrichment ?? undefined,
       in_stock: inStock ?? undefined,
       hidden: visibility === "all" ? undefined : visibility === "hidden",
+      home_demoted:
+        homeDemotedFilter === "all"
+          ? undefined
+          : homeDemotedFilter === "demoted",
       category: category || undefined,
       category_slug: categorySlugFromPicker,
       canonical_category: categorySlugFromPicker
@@ -635,10 +648,19 @@ export function DataBrowser() {
     setHiddenMutation.mutate({ id: selectedId, hidden });
   }
 
-  function bulkConfirmPhrase(m: "classify" | "enrich" | "llm_specs" | "set_category") {
+  function handleSetHomeDemoted(homeDemoted: boolean) {
+    if (selectedId == null) return;
+    setHomeDemotedMutation.mutate({ id: selectedId, homeDemoted });
+  }
+
+  function bulkConfirmPhrase(
+    m: "classify" | "enrich" | "llm_specs" | "set_category" | "demote_home" | "restore_home",
+  ) {
     if (m === "classify") return "reclassify";
     if (m === "enrich") return "re-enrich";
     if (m === "set_category") return "set-category";
+    if (m === "demote_home") return "demote-home";
+    if (m === "restore_home") return "restore-home";
     return "bulk-llm-specs";
   }
 
@@ -650,12 +672,14 @@ export function DataBrowser() {
         enrichMutation.isError ||
         listingLLMMutation.isError ||
         setHiddenMutation.isError ||
+        setHomeDemotedMutation.isError ||
         setCategoryMutation.isError ||
         setLLMOverridesMutation.isError ||
         bulkClassifyMutation.isError ||
         bulkEnrichMutation.isError ||
         bulkLLMSpecsMutation.isError ||
         bulkSetCategoryMutation.isError ||
+        bulkSetHomeDemotedMutation.isError ||
         createTaxonomyMappingMutation.isError) && (
         <div className="mb-4 rounded border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
           {enrichMutation.isError
@@ -664,6 +688,8 @@ export function DataBrowser() {
               ? listingLLMMutation.error?.message ?? "LLM specs failed"
               : setHiddenMutation.isError
               ? setHiddenMutation.error?.message ?? "Update failed"
+              : setHomeDemotedMutation.isError
+              ? setHomeDemotedMutation.error?.message ?? "Home demote update failed"
               : setCategoryMutation.isError
                 ? setCategoryMutation.error?.message ?? "Category update failed"
               : setLLMOverridesMutation.isError
@@ -677,6 +703,9 @@ export function DataBrowser() {
                     : bulkSetCategoryMutation.isError
                       ? bulkSetCategoryMutation.error?.message ??
                         "Bulk set category failed"
+                      : bulkSetHomeDemotedMutation.isError
+                        ? bulkSetHomeDemotedMutation.error?.message ??
+                          "Bulk home demote update failed"
                       : createTaxonomyMappingMutation.isError
                         ? createTaxonomyMappingMutation.error?.message ??
                           "Create taxonomy rule failed"
@@ -693,6 +722,7 @@ export function DataBrowser() {
               bulkEnrichMutation.reset();
               bulkLLMSpecsMutation.reset();
               bulkSetCategoryMutation.reset();
+              bulkSetHomeDemotedMutation.reset();
               createTaxonomyMappingMutation.reset();
               if (isError) refetch();
             }}
@@ -800,6 +830,22 @@ export function DataBrowser() {
           <option value="all">Visibility: all</option>
           <option value="visible">Visible only</option>
           <option value="hidden">Hidden only</option>
+        </select>
+        <label htmlFor={filterId("home-demoted")} className="sr-only">
+          Home page
+        </label>
+        <select
+          id={filterId("home-demoted")}
+          value={homeDemotedFilter}
+          onChange={(e) => {
+            setHomeDemotedFilter(e.target.value as "all" | "eligible" | "demoted");
+            setOffset(0);
+          }}
+          className="rounded border border-stone-300 px-3 py-2 text-sm"
+        >
+          <option value="all">Home: all</option>
+          <option value="eligible">Home eligible</option>
+          <option value="demoted">Home demoted</option>
         </select>
         <label htmlFor={filterId("category-contains")} className="sr-only">
           Category contains
@@ -936,6 +982,26 @@ export function DataBrowser() {
           >
             Set category ({totalCount.toLocaleString()})
           </button>
+          <button
+            type="button"
+            onClick={() => {
+              setBulkConfirmText("");
+              setBulkModal("demote_home");
+            }}
+            className="rounded border border-violet-500 bg-white px-3 py-1.5 text-violet-800 hover:bg-violet-50"
+          >
+            Demote from home ({totalCount.toLocaleString()})
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setBulkConfirmText("");
+              setBulkModal("restore_home");
+            }}
+            className="rounded border border-stone-500 bg-white px-3 py-1.5 text-stone-700 hover:bg-stone-50"
+          >
+            Restore on home ({totalCount.toLocaleString()})
+          </button>
           {bulkJobId && bulkJob && (
             <span className="text-stone-600">
               Job #{bulkJobId}{" "}
@@ -974,7 +1040,11 @@ export function DataBrowser() {
                   ? "Re-enrich all matching"
                   : bulkModal === "set_category"
                     ? "Set category for all matching"
-                    : "LLM specs — all matching"}
+                    : bulkModal === "demote_home"
+                      ? "Demote from home — all matching"
+                      : bulkModal === "restore_home"
+                        ? "Restore on home — all matching"
+                        : "LLM specs — all matching"}
             </h3>
             <p className="text-sm text-stone-600">
               This will affect up to {totalCount.toLocaleString()} listing
@@ -983,7 +1053,11 @@ export function DataBrowser() {
                 ? "Re-enrich scrapes each PDP; it is slower and heavier than re-classify."
                 : bulkModal === "set_category"
                   ? "Assigns the selected canonical category to every listing in the current filter. Manual overrides are not re-classified by LLM."
-                  : bulkModal === "llm_specs"
+                  : bulkModal === "demote_home"
+                    ? "Excludes every matching listing from home page top-deal sections. They remain visible on /deals."
+                    : bulkModal === "restore_home"
+                      ? "Makes every matching listing eligible for home page top-deal sections again."
+                      : bulkModal === "llm_specs"
                   ? "Runs LLM category + prompt extraction using data already stored (no PDP fetch). Defaults to listings that have scraped specs."
                   : ""}
             </p>
@@ -1039,6 +1113,7 @@ export function DataBrowser() {
                   bulkEnrichMutation.isPending ||
                   bulkLLMSpecsMutation.isPending ||
                   bulkSetCategoryMutation.isPending ||
+                  bulkSetHomeDemotedMutation.isPending ||
                   (bulkModal === "set_category" &&
                     adminCategoryIdForPath(categoryTree, bulkSetCategoryPath) ==
                       null) ||
@@ -1060,6 +1135,16 @@ export function DataBrowser() {
                       });
                       setBulkFlash(
                         `Updated category on ${r.updated.toLocaleString()} of ${r.total.toLocaleString()} listing${r.total === 1 ? "" : "s"}.`,
+                      );
+                      setBulkModal(null);
+                      void refetch();
+                    } else if (bulkModal === "demote_home" || bulkModal === "restore_home") {
+                      const r = await bulkSetHomeDemotedMutation.mutateAsync({
+                        ...body,
+                        home_demoted: bulkModal === "demote_home",
+                      });
+                      setBulkFlash(
+                        `${bulkModal === "demote_home" ? "Demoted" : "Restored"} ${r.updated.toLocaleString()} of ${r.total.toLocaleString()} listing${r.total === 1 ? "" : "s"} on the home page.`,
                       );
                       setBulkModal(null);
                       void refetch();
@@ -1107,7 +1192,8 @@ export function DataBrowser() {
                 {bulkClassifyMutation.isPending ||
                 bulkEnrichMutation.isPending ||
                 bulkLLMSpecsMutation.isPending ||
-                bulkSetCategoryMutation.isPending
+                bulkSetCategoryMutation.isPending ||
+                bulkSetHomeDemotedMutation.isPending
                   ? "Running…"
                   : "Confirm"}
               </button>
@@ -1152,13 +1238,15 @@ export function DataBrowser() {
                     return (
                     <tr
                       key={row.id}
-                      className={`border-b border-stone-100 hover:bg-stone-50 cursor-pointer ${row.hidden ? "opacity-60 bg-stone-50" : ""} ${diff ? "bg-amber-50" : ""}`}
+                      className={`border-b border-stone-100 hover:bg-stone-50 cursor-pointer ${row.hidden ? "opacity-60 bg-stone-50" : ""} ${row.home_demoted ? "bg-violet-50/60" : ""} ${diff ? "bg-amber-50" : ""}`}
                       onClick={() => setSelectedId(row.id)}
                       title={diff ? "LLM suggested a different category" : undefined}
                     >
                       <td className="px-2 py-2 text-center" onClick={(e) => e.stopPropagation()}>
                         {row.hidden ? (
                           <span className="text-stone-400" title="Hidden from public feed">Hidden</span>
+                        ) : row.home_demoted ? (
+                          <span className="text-violet-600" title="Demoted from home page top deals">Home−</span>
                         ) : (
                           <span className="text-stone-300" title="Visible">—</span>
                         )}
@@ -1264,14 +1352,29 @@ export function DataBrowser() {
               <h3 className="text-lg font-semibold text-stone-800">Listing detail</h3>
               <div className="flex items-center gap-2">
                 {detail && (
-                  <button
-                    type="button"
-                    onClick={() => handleSetHidden(!detail.hidden)}
-                    disabled={setHiddenMutation.isPending}
-                    className="rounded border border-stone-300 px-3 py-1.5 text-sm hover:bg-stone-50 disabled:opacity-50"
-                  >
-                    {setHiddenMutation.isPending ? "…" : detail.hidden ? "Unhide" : "Hide"}
-                  </button>
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => handleSetHomeDemoted(!detail.home_demoted)}
+                      disabled={setHomeDemotedMutation.isPending}
+                      className="rounded border border-violet-300 px-3 py-1.5 text-sm text-violet-900 hover:bg-violet-50 disabled:opacity-50"
+                      title="Exclude from or restore to home page top-deal sections"
+                    >
+                      {setHomeDemotedMutation.isPending
+                        ? "…"
+                        : detail.home_demoted
+                          ? "Restore to home"
+                          : "Demote from home"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleSetHidden(!detail.hidden)}
+                      disabled={setHiddenMutation.isPending}
+                      className="rounded border border-stone-300 px-3 py-1.5 text-sm hover:bg-stone-50 disabled:opacity-50"
+                    >
+                      {setHiddenMutation.isPending ? "…" : detail.hidden ? "Unhide" : "Hide"}
+                    </button>
+                  </>
                 )}
                 <button
                   type="button"
@@ -1330,6 +1433,8 @@ export function DataBrowser() {
                   <dd>
                     {detail.hidden ? (
                       <span className="text-amber-600 font-medium">Hidden (excluded from public feed)</span>
+                    ) : detail.home_demoted ? (
+                      <span className="text-violet-700 font-medium">Demoted from home page top deals</span>
                     ) : (
                       <span className="text-green-600">Visible</span>
                     )}
@@ -1509,7 +1614,7 @@ export function DataBrowser() {
                             tick={{ fontSize: 10 }}
                             tickFormatter={(v) => `$${formatMoney(v)}`}
                           />
-                          <Tooltip formatter={(v: number) => [`$${v.toFixed(2)}`, "Price"]} labelFormatter={(l) => l} />
+                          <Tooltip formatter={(v) => [`$${Number(v ?? 0).toFixed(2)}`, "Price"]} labelFormatter={(l) => l} />
                           <Line type="monotone" dataKey="price" stroke="#57534e" strokeWidth={2} dot={false} />
                         </LineChart>
                       </ResponsiveContainer>
