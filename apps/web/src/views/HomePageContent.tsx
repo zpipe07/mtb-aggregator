@@ -107,55 +107,58 @@ export function HomePageContent({
   };
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:py-12">
-      {/* Hero */}
-      <section className="mb-12 text-center lg:mb-16">
-        <div className="inline-block text-left">
-          <h1 className="text-5xl font-semibold leading-[0.95] tracking-[-0.025em] text-foreground md:text-6xl">
-            <span className="block">Stop searching.</span>
-            <span className="relative inline-block">
-              <span className="relative z-10">Start shredding.</span>
-              <span
-                aria-hidden
-                className="absolute inset-x-0 bottom-1 -z-0 h-3 bg-primary opacity-70"
+    <>
+      <StatTicker
+        storeCount={storeCount}
+        dealCount={dealCount}
+        lastUpdated={lastUpdated}
+        variant="inverted"
+        fullBleed
+      />
+      <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:py-12">
+        {/* Hero */}
+        <section className="mb-12 text-center lg:mb-16">
+          <div className="inline-block text-left">
+            <h1 className="text-5xl font-semibold leading-[0.95] tracking-[-0.025em] text-foreground md:text-6xl">
+              <span className="block">Every MTB sale.</span>
+              <span className="relative inline-block">
+                <span className="relative z-10">One feed.</span>
+                <span
+                  aria-hidden
+                  className="absolute inset-x-0 bottom-1 -z-0 h-3 bg-primary opacity-70"
+                />
+              </span>
+            </h1>
+          </div>
+          <p className="mx-auto mt-4 max-w-md text-base text-muted-foreground">
+            We scan the sale pages from top MTB retailers so you&apos;re not
+            bouncing between sites.
+          </p>
+          <form
+            onSubmit={handleSearchSubmit}
+            className="mx-auto mt-8 flex max-w-2xl flex-col gap-3 sm:flex-row sm:items-end"
+          >
+            <div className="min-w-0 flex-1">
+              <SearchBar
+                value={searchValue}
+                onChange={setSearchValue}
+                placeholder="Search deals…"
               />
-            </span>
-          </h1>
-        </div>
-        <p className="mx-auto mt-4 max-w-md text-base text-muted-foreground">
-          We scan the sale pages from top MTB retailers so you&apos;re not
-          bouncing between sites.
-        </p>
-        <form
-          onSubmit={handleSearchSubmit}
-          className="mx-auto mt-8 flex max-w-2xl flex-col gap-3 sm:flex-row sm:items-end"
-        >
-          <div className="min-w-0 flex-1">
-            <SearchBar
-              value={searchValue}
-              onChange={setSearchValue}
-              placeholder="Search deals…"
-            />
-          </div>
-          <div className="flex shrink-0 flex-col gap-2 sm:flex-row sm:items-stretch">
-            <Button
-              type="submit"
-              disabled={isPending}
-              className={cn(SEARCH_FRAME_MIN_H, "sm:min-w-[8rem]")}
-            >
-              {isPending ? "Searching…" : "Search"}
-            </Button>
-            <Button variant="outline" asChild className={cn(SEARCH_FRAME_MIN_H, "sm:min-w-[8rem]")}>
-              <Link href="/deals">View all deals</Link>
-            </Button>
-          </div>
-        </form>
-        <StatTicker
-          storeCount={storeCount}
-          dealCount={dealCount}
-          lastUpdated={lastUpdated}
-        />
-      </section>
+            </div>
+            <div className="flex shrink-0 flex-col gap-2 sm:flex-row sm:items-stretch">
+              <Button
+                type="submit"
+                disabled={isPending}
+                className={cn(SEARCH_FRAME_MIN_H, "sm:min-w-[8rem]")}
+              >
+                {isPending ? "Searching…" : "Search"}
+              </Button>
+              <Button variant="outline" asChild className={cn(SEARCH_FRAME_MIN_H, "sm:min-w-[8rem]")}>
+                <Link href="/deals">View all deals</Link>
+              </Button>
+            </div>
+          </form>
+        </section>
 
       {showPriceDrops ? (
         <section className="mb-12 lg:mb-16">
@@ -270,6 +273,7 @@ export function HomePageContent({
           {hubLinks}
         </section>
       ) : null}
-    </div>
+      </div>
+    </>
   );
 }
