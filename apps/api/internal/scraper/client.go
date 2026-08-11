@@ -73,6 +73,15 @@ func NewClient(baseURL string) *Client {
 	}
 }
 
+func enrichCallTimeout() time.Duration {
+	if s := os.Getenv("ENRICH_CALL_TIMEOUT"); s != "" {
+		if d, err := time.ParseDuration(s); err == nil && d > 0 {
+			return d
+		}
+	}
+	return 3 * time.Minute
+}
+
 func (c *Client) setServiceAuth(req *http.Request) {
 	if c.secret != "" {
 		req.Header.Set("X-Scraper-Secret", c.secret)
@@ -112,13 +121,16 @@ func (c *Client) Scrape(ctx context.Context, url, store string) ([]ScrapeResult,
 }
 
 func (c *Client) Enrich(ctx context.Context, productURL, store string) (*EnrichResult, error) {
+	enrichCtx, cancel := context.WithTimeout(ctx, enrichCallTimeout())
+	defer cancel()
+
 	reqBody := map[string]string{"url": productURL, "store": store}
 	jsonBody, err := json.Marshal(reqBody)
 	if err != nil {
 		return nil, fmt.Errorf("marshal request: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+"/enrich", bytes.NewReader(jsonBody))
+	req, err := http.NewRequestWithContext(enrichCtx, http.MethodPost, c.baseURL+"/enrich", bytes.NewReader(jsonBody))
 	if err != nil {
 		return nil, fmt.Errorf("create request: %w", err)
 	}

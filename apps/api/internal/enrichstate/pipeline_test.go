@@ -352,6 +352,65 @@ func TestPipeline_PDPSuccessRecordsSnapshot(t *testing.T) {
 	_ = ok
 }
 
+func TestPipeline_CircuitBreakerSkipsRemainingPDPForStore(t *testing.T) {
+	t.Parallel()
+	items := []WorkItem{
+		{ListingID: 1, StoreType: "jensonusa", ProductURL: "http://x/1"},
+		{ListingID: 2, StoreType: "jensonusa", ProductURL: "http://x/2"},
+		{ListingID: 3, StoreType: "jensonusa", ProductURL: "http://x/3"},
+		{ListingID: 4, StoreType: "giro", ProductURL: "http://x/4"},
+	}
+	state := newFakeStateStore(map[Step][]WorkItem{
+		StepPDP: items,
+	})
+	events := &fakeEvents{}
+	cb := NewCircuitBreaker(2)
+
+	p := &Pipeline{
+		State:          state,
+		Snapshots:      &fakeSnapshots{},
+		Events:         events,
+		Scraper:        fakeScraper{err: errors.New("scraper down")},
+		Config:         DefaultConfig(),
+		CircuitBreaker: cb,
+	}
+	processed, succeeded, errStrs := p.RunJob(context.Background(), ClaimFilter{}, false, 10, 0, nil)
+	if processed != 3 {
+		t.Fatalf("processed=%d want 3 (2 jensonusa failures + 1 giro; third jensonusa skipped)", processed)
+	}
+	if succeeded != 0 {
+		t.Fatalf("succeeded=%d want 0", succeeded)
+	}
+	if !cb.IsTripped("jensonusa") {
+		t.Fatal("expected jensonusa circuit breaker to trip")
+	}
+	if cb.IsTripped("giro") {
+		t.Fatal("giro should not be tripped")
+	}
+	foundTripMsg := false
+	for _, msg := range errStrs {
+		if msg == "circuit breaker tripped for store jensonusa: skipping remaining PDP" {
+			foundTripMsg = true
+			break
+		}
+	}
+	if !foundTripMsg {
+		t.Fatalf("expected circuit breaker trip message in errStrs: %v", errStrs)
+	}
+	st1, _ := state.GetState(context.Background(), 1)
+	st2, _ := state.GetState(context.Background(), 2)
+	st3, _ := state.GetState(context.Background(), 3)
+	if st1 == nil || st1.PDP.Attempts != 1 {
+		t.Fatalf("listing 1 should have one failure, got %+v", st1)
+	}
+	if st2 == nil || st2.PDP.Attempts != 1 {
+		t.Fatalf("listing 2 should have one failure, got %+v", st2)
+	}
+	if st3 != nil && st3.PDP.Attempts > 0 {
+		t.Fatalf("listing 3 should be skipped without failure, got %+v", st3)
+	}
+}
+
 func TestPipeline_SkipClassifyWhenAlreadyDone(t *testing.T) {
 	t.Parallel()
 	now := time.Now()

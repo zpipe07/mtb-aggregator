@@ -5,7 +5,7 @@ import express from "express";
 import { mkdir, writeFile } from "fs/promises";
 import { join } from "path";
 import { runWithBrowser } from "./browser.js";
-import { logScraperStorageStateConfig } from "./config.js";
+import { ENRICH_TIMEOUT_MS, logScraperStorageStateConfig } from "./config.js";
 import { scraperAccessMiddleware, scraperLogger, securityLogger, startupLogger } from "./logging.js";
 import { getParser, getEnricher, PARSERS, ENRICHERS } from "./parsers/index.js";
 import { captureRouteError } from "./sentry-helpers.js";
@@ -141,16 +141,19 @@ app.post("/enrich", scraperServiceAuth, async (req, res) => {
   }
 
   try {
-    const result = await enricher(url);
+    const result = await runEnrichWithTimeout(enricher, url);
     scraperLogger.info({ msg: "enrich completed", store, duration_ms: Date.now() - startedAt });
     return res.json(result);
   } catch (err) {
+    const isTimeout =
+      err instanceof Error && err.message.includes("enrichment wall-clock timeout");
     scraperLogger.error({
       msg: "enrich failed",
       store,
       url,
       err: err instanceof Error ? err.message : String(err),
       duration_ms: Date.now() - startedAt,
+      timeout: isTimeout,
     });
     captureRouteError(err, { route: "enrich", store, url });
     try {
@@ -169,12 +172,36 @@ app.post("/enrich", scraperServiceAuth, async (req, res) => {
         err: logErr instanceof Error ? logErr.message : String(logErr),
       });
     }
-    return res.status(500).json({
+    const status = isTimeout ? 504 : 500;
+    return res.status(status).json({
       error: "Enrich failed",
       message: err instanceof Error ? err.message : String(err),
     });
   }
 });
+
+function runEnrichWithTimeout<T>(
+  enricher: (url: string) => Promise<T>,
+  url: string,
+): Promise<T> {
+  if (ENRICH_TIMEOUT_MS <= 0) {
+    return enricher(url);
+  }
+
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => {
+      reject(new Error(`enrichment wall-clock timeout (${ENRICH_TIMEOUT_MS}ms) exceeded`));
+    }, ENRICH_TIMEOUT_MS);
+    if (typeof timer === "object" && "unref" in timer) {
+      timer.unref();
+    }
+  });
+
+  return Promise.race([enricher(url), timeout]).finally(() => {
+    if (timer) clearTimeout(timer);
+  });
+}
 
 // Debug: capture page HTML for selector development (set DEBUG=1)
 app.post("/scrape-debug", scraperServiceAuth, async (req, res) => {

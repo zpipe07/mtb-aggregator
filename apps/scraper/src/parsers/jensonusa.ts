@@ -455,6 +455,8 @@ export async function enrichJensonUSA(
         console.error("Failed to save screenshot:", screenshotErr);
       }
       throw err;
+    } finally {
+      await context.close().catch(() => {});
     }
   });
 }
