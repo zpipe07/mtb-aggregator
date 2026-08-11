@@ -2,7 +2,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import type { StorybookConfig } from "@storybook/react-vite";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const storybookDir = path.dirname(fileURLToPath(import.meta.url));
 
 const config: StorybookConfig = {
   stories: ["../src/**/*.stories.@(js|jsx|mjs|ts|tsx)"],
@@ -16,7 +16,7 @@ const config: StorybookConfig = {
       ...config.resolve,
       alias: {
         ...(typeof config.resolve?.alias === "object" ? config.resolve.alias : {}),
-        "@": path.resolve(__dirname, "../src"),
+        "@": path.resolve(storybookDir, "../src"),
       },
     };
     config.define = {

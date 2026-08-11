@@ -35,8 +35,8 @@ Speak the language of the trailhead. Avoid generic "Save money!" fluff.
 
 ### Headlines
 
+- "Every MTB sale. One feed."
 - "Dialed-in deals."
-- "Stop searching, start shredding."
 - "Top-tier specs, entry-level prices."
 
 ### Micro-copy
