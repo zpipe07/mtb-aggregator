@@ -8,6 +8,7 @@ import {
   buildVariantOptions,
   type ShopifyProductWithOptions,
   type ShopifyVariantWithOptions,
+  resolveShopifyCategoryPath,
 } from "./shopify-helpers.js";
 
 const BASE_URL = "https://www.evo.com";
@@ -259,7 +260,7 @@ export async function enrichEvo(productUrl: string): Promise<EnrichResult> {
         const rawSpecs = detail.body_html
           ? extractSpecsFromHtml(detail.body_html)
           : null;
-        const categoryPath = html ? extractBreadcrumbsFromHtml(html) : null;
+        const categoryPath = resolveShopifyCategoryPath(detail.product_type, html);
         const description = detail.body_html
           ? extractDescriptionFromHtml(detail.body_html)
           : null;
@@ -280,72 +281,6 @@ export async function enrichEvo(productUrl: string): Promise<EnrichResult> {
       raw_specs: null,
     };
   }
-}
-
-function extractBreadcrumbsFromHtml(html: string): string[] | null {
-  const $ = cheerio.load(html);
-  const clean = (text: string | null | undefined): string =>
-    (text || "").replace(/\s+/g, " ").trim();
-
-  let result: string[] | null = null;
-  $('script[type="application/ld+json"]').each((_, el) => {
-    if (result) return;
-    try {
-      const parsed = JSON.parse($(el).html() ?? "{}");
-      const candidates = Array.isArray(parsed)
-        ? parsed
-        : parsed["@graph"]
-          ? parsed["@graph"]
-          : [parsed];
-      for (const json of candidates) {
-        if (
-          json?.["@type"] === "BreadcrumbList" &&
-          Array.isArray(json.itemListElement)
-        ) {
-          const items: string[] = [];
-          for (const el2 of json.itemListElement) {
-            const name = el2.name ?? el2.item?.name;
-            if (name) items.push(clean(String(name)));
-          }
-          if (items.length >= 2) {
-            let trimmed = items.slice(0, -1);
-            if (trimmed[0] && /^home$/i.test(trimmed[0]))
-              trimmed = trimmed.slice(1);
-            if (trimmed.length > 0) {
-              result = trimmed;
-              return;
-            }
-          }
-        }
-      }
-    } catch {
-      /* ignore parse errors */
-    }
-  });
-  if (result) return result;
-
-  const breadcrumbSelectors = [
-    'nav[aria-label="Breadcrumb"] a',
-    'nav[aria-label="breadcrumb"] a',
-    ".breadcrumb a",
-    ".breadcrumbs a",
-    "[class*='breadcrumb'] a",
-    "ol[class*='breadcrumb'] li a",
-  ];
-  for (const sel of breadcrumbSelectors) {
-    const items: string[] = [];
-    $(sel).each((_, el) => {
-      const t = clean($(el).text());
-      if (t) items.push(t);
-    });
-    if (items.length >= 2) {
-      let trimmed = items.slice(0, -1);
-      if (trimmed[0] && /^home$/i.test(trimmed[0])) trimmed = trimmed.slice(1);
-      if (trimmed.length > 0) return trimmed;
-    }
-  }
-
-  return null;
 }
 
 function extractDescriptionFromHtml(html: string): string | null {

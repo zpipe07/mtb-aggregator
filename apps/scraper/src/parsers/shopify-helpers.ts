@@ -2,6 +2,8 @@
  * Shared Shopify collection JSON shapes for variant options (products.json).
  */
 
+import * as cheerio from "cheerio";
+
 export interface ShopifyVariantWithOptions {
   id: number;
   sku: string | null;
@@ -66,4 +68,109 @@ export function buildVariantOptions(
     }
   }
   return Object.keys(out).length ? out : null;
+}
+
+/**
+ * Prefer Shopify `product_type` from `/products/{handle}.json` for category_path.
+ * HTML breadcrumbs are a fallback when product_type is missing (JSON-LD, DOM, collection links).
+ */
+export function resolveShopifyCategoryPath(
+  productType: string | undefined | null,
+  html: string | null,
+): string[] | null {
+  if (productType && productType.trim()) {
+    return [productType.trim()];
+  }
+  return html ? extractBreadcrumbsFromHtml(html) : null;
+}
+
+/**
+ * Extract category breadcrumbs from product page HTML.
+ * Tries: (1) JSON-LD BreadcrumbList, (2) DOM breadcrumb links, (3) Collection links section.
+ */
+export function extractBreadcrumbsFromHtml(html: string): string[] | null {
+  const $ = cheerio.load(html);
+  const clean = (text: string | null | undefined): string =>
+    (text || "").replace(/\s+/g, " ").trim();
+
+  let result: string[] | null = null;
+  $('script[type="application/ld+json"]').each((_, el) => {
+    if (result) return;
+    try {
+      const parsed = JSON.parse($(el).html() ?? "{}");
+      const candidates = Array.isArray(parsed)
+        ? parsed
+        : parsed["@graph"]
+          ? parsed["@graph"]
+          : [parsed];
+      for (const json of candidates) {
+        if (
+          json?.["@type"] === "BreadcrumbList" &&
+          Array.isArray(json.itemListElement)
+        ) {
+          const items: string[] = [];
+          for (const el2 of json.itemListElement) {
+            const name = el2.name ?? el2.item?.name;
+            if (name) items.push(clean(String(name)));
+          }
+          if (items.length >= 2) {
+            let trimmed = items.slice(0, -1);
+            if (trimmed[0] && /^home$/i.test(trimmed[0]))
+              trimmed = trimmed.slice(1);
+            if (trimmed.length > 0) {
+              result = trimmed;
+              return;
+            }
+          }
+        }
+      }
+    } catch {
+      /* ignore */
+    }
+  });
+  if (result) return result;
+
+  const breadcrumbSelectors = [
+    'nav[aria-label="Breadcrumb"] a',
+    'nav[aria-label="breadcrumb"] a',
+    ".breadcrumb a",
+    ".breadcrumbs a",
+    "[class*='breadcrumb'] a",
+    "ol[class*='breadcrumb'] li a",
+  ];
+  for (const sel of breadcrumbSelectors) {
+    const items: string[] = [];
+    $(sel).each((_, el) => {
+      const t = clean($(el).text());
+      if (t) items.push(t);
+    });
+    if (items.length >= 2) {
+      let trimmed = items.slice(0, -1);
+      if (trimmed[0] && /^home$/i.test(trimmed[0])) trimmed = trimmed.slice(1);
+      if (trimmed.length > 0) return trimmed;
+    }
+  }
+
+  const collectionsLabel = $('*:contains("Collections:")').first();
+  if (collectionsLabel.length) {
+    const container = collectionsLabel.closest("div, section, p");
+    const links = (container.length ? container : collectionsLabel).find(
+      "a[href*='/collections/']",
+    );
+    const items: string[] = [];
+    links.each((_, el) => {
+      const t = clean($(el).text());
+      if (t && t.length < 100) items.push(t);
+    });
+    if (items.length > 0) {
+      const best = items.reduce((a, b) => (a.length >= b.length ? a : b));
+      const parts = best
+        .split(/\s*\/\s*/)
+        .map((p) => clean(p))
+        .filter(Boolean);
+      return parts.length > 0 ? parts : [best];
+    }
+  }
+
+  return null;
 }

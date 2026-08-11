@@ -118,4 +118,32 @@ describe("enrichChromag", () => {
     expect(result.raw_specs).toEqual({ Material: "Aluminum" });
     expect(result.description).toContain("Chromag stem");
   });
+
+  it("prefers product_type from Shopify JSON over HTML breadcrumbs", async () => {
+    vi.mocked(globalThis.fetch)
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            product: {
+              product_type: "Shifters",
+              body_html:
+                "<table><tr><th>Speed</th><td>8</td></tr></table>",
+            },
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          `<html><script type="application/ld+json">{"@type":"BreadcrumbList","itemListElement":[{"name":"Home"},{"name":"Electric Commuter & Urban Bikes"},{"name":"Product"}]}</script></html>`,
+          { status: 200, headers: { "Content-Type": "text/html" } },
+        ),
+      );
+
+    const result = await enrichChromag(
+      "https://us.chromagbikes.com/products/fu50",
+    );
+
+    expect(result.category_path).toEqual(["Shifters"]);
+  });
 });
