@@ -748,19 +748,23 @@ func (db *DB) GetAdminListingByID(ctx context.Context, id int) (*AdminListing, e
 	return &a, nil
 }
 
+// TouchVariantSiblingsLastScraped updates last_scraped on variant rows whose parent
+// was confirmed by the current scrape, so HideStaleListings does not hide them.
+func (db *DB) TouchVariantSiblingsLastScraped(ctx context.Context, storeID int, scrapeStartedAt time.Time) (int, error) {
+	cmd, err := db.pool.Exec(ctx, touchVariantSiblingsLastScrapedSQL, storeID, scrapeStartedAt)
+	if err != nil {
+		return 0, err
+	}
+	return int(cmd.RowsAffected()), nil
+}
+
 // HideStaleListings hides all non-hidden listings for a store whose last_scraped
 // timestamp predates scrapeStartedAt. This catches products that were not
 // returned by the most recent full scrape — meaning they are no longer on sale
 // or have been removed from the store's collection.
 // Returns the number of listings hidden.
 func (db *DB) HideStaleListings(ctx context.Context, storeID int, scrapeStartedAt time.Time) (int, error) {
-	cmd, err := db.pool.Exec(ctx, `
-		UPDATE store_listings
-		SET hidden = true
-		WHERE store_id = $1
-		  AND hidden = false
-		  AND last_scraped < $2
-	`, storeID, scrapeStartedAt)
+	cmd, err := db.pool.Exec(ctx, hideStaleListingsSQL, storeID, scrapeStartedAt)
 	if err != nil {
 		return 0, err
 	}

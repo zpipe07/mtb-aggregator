@@ -419,6 +419,15 @@ func (s *Scheduler) scrapeStore(ctx context.Context, store db.Store, triggeredBy
 	// everything if the scrape silently returned too little.
 	const minResultsForStaleCleanup = 10
 	if validCount >= minResultsForStaleCleanup && ctx.Err() == nil {
+		if strings.EqualFold(store.StoreType, "universalcycles") {
+			touched, err := s.db.TouchVariantSiblingsLastScraped(ctx, store.ID, scrapeStartedAt)
+			if err != nil {
+				schedulerLog.Error("variant sibling touch failed", "store", store.Name, logutil.ErrAttr(err))
+				sentryutil.CaptureError(err, map[string]string{"component": "scheduler", "job": "scrape", "phase": "variant_sibling_touch", "store": store.Name})
+			} else if touched > 0 {
+				schedulerLog.Info("touched variant siblings last_scraped", "store", store.Name, "count", touched)
+			}
+		}
 		hidden, err := s.db.HideStaleListings(ctx, store.ID, scrapeStartedAt)
 		if err != nil {
 			schedulerLog.Error("stale listing cleanup failed", "store", store.Name, logutil.ErrAttr(err))
