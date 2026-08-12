@@ -41,6 +41,7 @@ type Listing struct {
 	Brand              *string
 	CategoryPath       []string
 	CanonicalCategory  []string // MTB taxonomy path e.g. ["Components", "Brakes"]
+	CategoryID         *int     // optional; batch upsert sets this from a pre-resolved cache
 	Metadata           []byte   // JSONB: wheel_size, suspension_travel_mm, model_year, groupset
 	IsInStock          bool
 	// ProductGroupHandle is the Shopify product handle from the scraper; stored in DB as "{store_id}:{handle}".
@@ -203,46 +204,7 @@ func (db *DB) UpsertListing(ctx context.Context, listing Listing) (int, error) {
 	err := db.pool.QueryRow(ctx, `
 		INSERT INTO store_listings (store_id, store_sku, product_name, current_price, original_price, product_url, affiliate_url, image_url, brand, category_path, canonical_category, category_id, metadata, is_in_stock, product_group_key, variant_options, last_scraped)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, NOW())
-		ON CONFLICT (store_id, store_sku) DO UPDATE SET
-			product_name = EXCLUDED.product_name,
-			current_price = EXCLUDED.current_price,
-			original_price = EXCLUDED.original_price,
-			product_url = EXCLUDED.product_url,
-			affiliate_url = CASE WHEN NULLIF(TRIM(EXCLUDED.affiliate_url), '') IS NOT NULL THEN EXCLUDED.affiliate_url ELSE store_listings.affiliate_url END,
-			image_url = EXCLUDED.image_url,
-			brand = EXCLUDED.brand,
-			category_path = CASE WHEN EXCLUDED.category_path IS NOT NULL AND array_length(EXCLUDED.category_path, 1) > 0 THEN EXCLUDED.category_path ELSE store_listings.category_path END,
-			canonical_category = CASE WHEN store_listings.canonical_category IS NOT NULL AND array_length(store_listings.canonical_category, 1) > 0 THEN store_listings.canonical_category ELSE EXCLUDED.canonical_category END,
-			category_id = COALESCE(store_listings.category_id, EXCLUDED.category_id),
-			metadata = CASE
-				WHEN EXCLUDED.metadata IS NULL OR EXCLUDED.metadata = '{}'::jsonb
-				THEN store_listings.metadata
-				WHEN store_listings.metadata IS NULL OR store_listings.metadata = '{}'::jsonb
-				THEN EXCLUDED.metadata
-				ELSE (
-					COALESCE(store_listings.metadata, '{}'::jsonb)
-					|| CASE
-						WHEN EXCLUDED.metadata ? 'description'
-							AND NULLIF(BTRIM(EXCLUDED.metadata->>'description'), '') IS NOT NULL
-						THEN jsonb_build_object('description', EXCLUDED.metadata->'description')
-						ELSE '{}'::jsonb
-					END
-					|| CASE
-						WHEN EXCLUDED.metadata ? 'specs'
-							AND jsonb_typeof(EXCLUDED.metadata->'specs') = 'object'
-							AND EXCLUDED.metadata->'specs' <> '{}'::jsonb
-						THEN jsonb_build_object(
-							'specs',
-							COALESCE(store_listings.metadata->'specs', '{}'::jsonb) || EXCLUDED.metadata->'specs'
-						)
-						ELSE '{}'::jsonb
-					END
-				)
-			END,
-			is_in_stock = EXCLUDED.is_in_stock,
-			product_group_key = COALESCE(EXCLUDED.product_group_key, store_listings.product_group_key),
-			variant_options = COALESCE(EXCLUDED.variant_options, store_listings.variant_options),
-			last_scraped = NOW()
+	`+upsertListingOnConflictSQL+`
 		RETURNING id
 	`, listing.StoreID, listing.StoreSKU, listing.ProductName, listing.CurrentPrice, listing.OriginalPrice,
 		listing.ProductURL, listing.AffiliateURL, listing.ImageURL, listing.Brand, pq.Array(listing.CategoryPath), pq.Array(listing.CanonicalCategory), categoryID, listing.Metadata, listing.IsInStock, productGroupKey, variantOpts).Scan(&id)
@@ -1412,6 +1374,14 @@ func (db *DB) UpdateEnrichJobDetached(id int, status string, processed, enriched
 	ctx, cancel := context.WithTimeout(context.Background(), enrichJobFinalizeDBTimeout)
 	defer cancel()
 	return db.UpdateEnrichJob(ctx, id, status, processed, enriched, errors)
+}
+
+// UpdateScrapeJobDetached persists terminal scrape job state using a fresh context so pgx Exec
+// is not aborted by a canceled work context (scheduler fetch/ingest timeout, etc.).
+func (db *DB) UpdateScrapeJobDetached(id int, status string, listingsFound, listingsUpserted *int, errors, warnings []string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), enrichJobFinalizeDBTimeout)
+	defer cancel()
+	return db.UpdateScrapeJob(ctx, id, status, listingsFound, listingsUpserted, errors, warnings)
 }
 
 // MarkStaleJobs sets status='stale' and completed_at=NOW() for any scrape_jobs and enrich_jobs that are still 'running'.
