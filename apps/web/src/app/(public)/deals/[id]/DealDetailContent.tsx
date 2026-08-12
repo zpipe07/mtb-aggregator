@@ -2,15 +2,6 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
 import { ExternalLink } from "lucide-react";
 import { track } from "@vercel/analytics";
 import posthog from "posthog-js";
@@ -21,6 +12,7 @@ import { computeDealScore, pricePositionLabel } from "@/lib/dealScore";
 import { cn, focusRing } from "@/lib/utils";
 import { formatMoney } from "@/lib/formatMoney";
 import { Button } from "@/components/ui/button";
+import { PriceHistoryChart } from "@/components/PriceHistoryChart";
 import { useDealDetailListContext } from "./DealDetailBackNav";
 
 const monoMicro =
@@ -500,75 +492,7 @@ function DealDetailContentInner({
                         </strong>
                       </span>
                     </div>
-                    <div className="h-64 w-full rounded-sm border border-foreground/40 bg-card/50 p-2">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <LineChart
-                          data={chartData}
-                          margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
-                        >
-                          <CartesianGrid
-                            strokeDasharray="3 3"
-                            stroke="var(--color-border)"
-                          />
-                          <XAxis
-                            dataKey="dateLabel"
-                            tick={{
-                              fontSize: 11,
-                              fontFamily: "var(--font-mono)",
-                            }}
-                            stroke="var(--color-muted-foreground)"
-                          />
-                          <YAxis
-                            tick={{
-                              fontSize: 11,
-                              fontFamily: "var(--font-mono)",
-                            }}
-                            stroke="var(--color-muted-foreground)"
-                            tickFormatter={(v) => `$${formatMoney(v)}`}
-                            domain={["dataMin - 5", "dataMax + 5"]}
-                          />
-                          <Tooltip
-                            formatter={(value) => [
-                              `$${Number(value ?? 0).toFixed(2)}`,
-                              "Price",
-                            ]}
-                            labelFormatter={(_, payload) =>
-                              payload?.[0]?.payload?.recorded_at
-                                ? formatDate(payload[0].payload.recorded_at)
-                                : ""
-                            }
-                            contentStyle={{
-                              borderRadius: "2px",
-                              border: "1px solid var(--color-border)",
-                              backgroundColor: "var(--color-card)",
-                              color: "var(--color-foreground)",
-                              fontFamily: "var(--font-mono)",
-                              fontSize: "12px",
-                              boxShadow:
-                                "var(--shadow-sm, 0 1px 2px rgb(0 0 0 / 0.06))",
-                            }}
-                            labelStyle={{
-                              color: "var(--color-muted-foreground)",
-                              marginBottom: "4px",
-                            }}
-                            itemStyle={{
-                              color: "var(--color-foreground)",
-                            }}
-                          />
-                          <Line
-                            type="monotone"
-                            dataKey="price"
-                            stroke="var(--color-primary)"
-                            strokeWidth={2}
-                            dot={false}
-                            activeDot={{
-                              r: 5,
-                              fill: "var(--color-foreground)",
-                            }}
-                          />
-                        </LineChart>
-                      </ResponsiveContainer>
-                    </div>
+                    <PriceHistoryChart data={chartData} />
                   </>
                 )}
               </div>
