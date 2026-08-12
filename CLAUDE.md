@@ -56,6 +56,7 @@ cd apps/web && pnpm run dev
 - `CRON_SECRET` — shared secret for `POST /scrape-now` / `enrich-now` (header `X-Cron-Secret`); **set in production**. If unset in production (`APP_ENV=production` or `RENDER=true`), those endpoints require admin Bearer unless `ALLOW_OPEN_CRON=1`
 - `CORS_ORIGINS` — comma-separated allowed origins (defaults to `*`); when using a custom Vercel domain, include `https://yourdomain.com` (and `https://www...` if used) if not using `*`
 - `SCRAPE_CRON_SPEC` / `ENRICH_CRON_SPEC` — override cron schedules (set to `disabled` to use external cron)
+- **`SCRAPE_JOB_TIMEOUT`** / **`SCRAPE_INGEST_TIMEOUT`** — scrape fetch vs ingest budgets (defaults **20m** / **15m**); scraper HTTP client aligns with fetch timeout; detached finalize for terminal scrape job status
 - **`ENRICH_MAX_LISTINGS`** — optional cap on listings processed **per step per enrich job** (default unlimited). Each of the three passes (PDP, classify, extract) gets its own budget so a large PDP backlog can't starve the LLM passes; e.g. `100` allows up to 300 listings per job total
 - **`ENRICH_CALL_TIMEOUT`** (API) — per-listing timeout for `POST /enrich` scraper calls (default **`3m`**; scraper wall-clock default **`120s`** via **`ENRICH_TIMEOUT_MS`**)
 - **`ENRICH_CIRCUIT_BREAKER_THRESHOLD`** (API) — consecutive PDP failures for one store before skipping remaining PDP work in the current enrich job (default **`5`**; set **`0`** to disable)

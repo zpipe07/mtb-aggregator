@@ -67,10 +67,18 @@ func NewClient(baseURL string) *Client {
 		baseURL: baseURL,
 		secret:  strings.TrimSpace(os.Getenv("SCRAPER_SERVICE_SECRET")),
 		httpClient: &http.Client{
-			// Scrape can take 10+ min for multi-page clearance (9 pages × ~60s load + delays)
-			Timeout: 15 * time.Minute,
+			Timeout: scrapeHTTPTimeout(),
 		},
 	}
+}
+
+func scrapeHTTPTimeout() time.Duration {
+	if s := os.Getenv("SCRAPE_JOB_TIMEOUT"); s != "" {
+		if d, err := time.ParseDuration(s); err == nil && d > 0 {
+			return d
+		}
+	}
+	return 20 * time.Minute
 }
 
 func enrichCallTimeout() time.Duration {

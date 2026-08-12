@@ -78,6 +78,27 @@ func getScrapeJobTimeout() time.Duration {
 	return 20 * time.Minute
 }
 
+func getScrapeIngestTimeout() time.Duration {
+	if s := os.Getenv("SCRAPE_INGEST_TIMEOUT"); s != "" {
+		if d, err := time.ParseDuration(s); err == nil && d > 0 {
+			return d
+		}
+	}
+	return 15 * time.Minute
+}
+
+// finalizeScrapeJob writes terminal scrape job status using a DB context that is not the (possibly
+// canceled) work context, so timeouts still persist as timed_out/failed/completed.
+func (s *Scheduler) finalizeScrapeJob(jobID int, status string, listingsFound, listingsUpserted *int, errStrs, warnStrs []string, storeName string) {
+	if jobID == 0 {
+		return
+	}
+	if err := s.db.UpdateScrapeJobDetached(jobID, status, listingsFound, listingsUpserted, errStrs, warnStrs); err != nil {
+		schedulerLog.Error("failed to persist scrape job final status", "job_id", jobID, "status", status, logutil.ErrAttr(err))
+		sentryutil.CaptureError(err, map[string]string{"component": "scheduler", "job": "scrape", "phase": "finalize_job", "status": status, "store": storeName})
+	}
+}
+
 // captureEnrichJobListingErrorsAggregate reports one Sentry event when a completed enrich job
 // accumulated many per-listing failures (stored in enrich_jobs.errors but not sent individually).
 func captureEnrichJobListingErrorsAggregate(scope string, processed, enriched int, errStrs []string) {
@@ -169,13 +190,11 @@ func (s *Scheduler) RunScrapeJob(storeType string, triggeredBy string) {
 	}
 
 	for _, store := range stores {
-		storeCtx, cancel := context.WithTimeout(ctx, getScrapeJobTimeout())
-		s.scrapeStore(storeCtx, store, triggeredBy)
-		cancel()
+		s.scrapeStore(store, triggeredBy)
 	}
 }
 
-func (s *Scheduler) scrapeStore(ctx context.Context, store db.Store, triggeredBy string) {
+func (s *Scheduler) scrapeStore(store db.Store, triggeredBy string) {
 	storeType := store.StoreType
 	if storeType == "" {
 		storeType = strings.ToLower(strings.ReplaceAll(store.Name, " ", ""))
@@ -184,7 +203,9 @@ func (s *Scheduler) scrapeStore(ctx context.Context, store db.Store, triggeredBy
 		storeType = "jensonusa"
 	}
 
-	jobID, err := s.db.CreateScrapeJob(ctx, &store.ID, store.Name, triggeredBy)
+	createCtx, createCancel := context.WithTimeout(context.Background(), 10*time.Second)
+	jobID, err := s.db.CreateScrapeJob(createCtx, &store.ID, store.Name, triggeredBy)
+	createCancel()
 	if err != nil {
 		schedulerLog.Error("failed to create scrape job", "store", store.Name, logutil.ErrAttr(err))
 		sentryutil.CaptureError(err, map[string]string{"component": "scheduler", "job": "scrape", "phase": "create_job", "store": store.Name})
@@ -192,6 +213,7 @@ func (s *Scheduler) scrapeStore(ctx context.Context, store db.Store, triggeredBy
 
 	validCount := 0
 	var results []scraper.ScrapeResult
+	var validation scraper.BatchValidationResult
 	defer func() {
 		if r := recover(); r != nil {
 			schedulerLog.Error("panic scraping store", "store", store.Name, "panic", r)
@@ -199,7 +221,7 @@ func (s *Scheduler) scrapeStore(ctx context.Context, store db.Store, triggeredBy
 			if jobID != 0 {
 				errStrs := []string{fmt.Sprintf("panic: %v", r)}
 				found := len(results)
-				_ = s.db.UpdateScrapeJob(ctx, jobID, "failed", &found, &validCount, errStrs, nil)
+				s.finalizeScrapeJob(jobID, "failed", &found, &validCount, errStrs, nil, store.Name)
 			}
 		}
 	}()
@@ -207,35 +229,36 @@ func (s *Scheduler) scrapeStore(ctx context.Context, store db.Store, triggeredBy
 	schedulerLog.Info("scraping store", "store", store.Name, "url", store.ScrapeURL)
 
 	scrapeStartedAt := time.Now()
+	fetchCtx, fetchCancel := context.WithTimeout(context.Background(), getScrapeJobTimeout())
 	if strings.EqualFold(store.StoreType, "competitivecyclist") {
 		icfg := impact.ConfigFromEnv()
 		if !icfg.CatalogConfigured() {
 			err = fmt.Errorf("competitivecyclist requires %s and %s (Impact Partner catalog); Playwright fallback disabled", impact.EnvAccountSID, impact.EnvAuthToken)
 			schedulerLog.Error("scrape failed", "store", store.Name, logutil.ErrAttr(err))
 			sentryutil.CaptureError(err, map[string]string{"component": "scheduler", "job": "scrape", "store": store.Name, "source": "impact-catalog"})
+			fetchCancel()
 			if jobID != 0 {
-				errs := []string{err.Error()}
-				_ = s.db.UpdateScrapeJob(ctx, jobID, "failed", nil, nil, errs, nil)
+				s.finalizeScrapeJob(jobID, "failed", nil, nil, []string{err.Error()}, nil, store.Name)
 			}
 			return
 		}
-		results, err = impact.FetchCompetitiveCyclistScrapeResults(ctx, icfg)
+		results, err = impact.FetchCompetitiveCyclistScrapeResults(fetchCtx, icfg)
 		if err == nil {
 			schedulerLog.Info("impact-catalog returned listings", "store", store.Name, "count", len(results))
 		}
 	} else {
-		results, err = s.scraper.Scrape(ctx, store.ScrapeURL, storeType)
+		results, err = s.scraper.Scrape(fetchCtx, store.ScrapeURL, storeType)
 	}
+	fetchCancel()
 	if err != nil {
 		schedulerLog.Error("scrape failed", "store", store.Name, logutil.ErrAttr(err))
 		sentryutil.CaptureError(err, map[string]string{"component": "scheduler", "job": "scrape", "store": store.Name})
 		if jobID != 0 {
-			errs := []string{err.Error()}
 			status := "failed"
 			if errors.Is(err, context.DeadlineExceeded) {
 				status = "timed_out"
 			}
-			_ = s.db.UpdateScrapeJob(ctx, jobID, status, nil, nil, errs, nil)
+			s.finalizeScrapeJob(jobID, status, nil, nil, []string{err.Error()}, nil, store.Name)
 		}
 		return
 	}
@@ -250,14 +273,16 @@ func (s *Scheduler) scrapeStore(ctx context.Context, store db.Store, triggeredBy
 			map[string]string{"component": "scheduler", "job": "scrape", "store": store.Name},
 		)
 	}
-	if err := s.db.UpdateStoreLastScrapeResultCount(ctx, store.ID, len(results)); err != nil {
+	countCtx, countCancel := context.WithTimeout(context.Background(), 10*time.Second)
+	if err := s.db.UpdateStoreLastScrapeResultCount(countCtx, store.ID, len(results)); err != nil {
 		schedulerLog.Error("failed to update last_scrape_result_count", "store", store.Name, logutil.ErrAttr(err))
 		sentryutil.CaptureError(err, map[string]string{"component": "scheduler", "job": "scrape", "phase": "update_last_count", "store": store.Name})
 	}
+	countCancel()
 
 	// Validate full scrape contract at ingestion boundary - reject bad data before saving.
 	strictMode := os.Getenv("SCRAPER_STRICT_ORIGINAL_PRICE") == "1"
-	validation := scraper.ValidateBatch(results, store.Name, strictMode)
+	validation = scraper.ValidateBatch(results, store.Name, strictMode)
 
 	if len(validation.Errors) > 0 {
 		schedulerLog.Warn("validation errors; invalid results will be skipped", "store", store.Name, "count", len(validation.Errors))
@@ -289,32 +314,101 @@ func (s *Scheduler) scrapeStore(ctx context.Context, store db.Store, triggeredBy
 				warnStrs = append(warnStrs, w.Error())
 			}
 			found := len(results)
-			_ = s.db.UpdateScrapeJob(ctx, jobID, "failed", &found, nil, errStrs, warnStrs)
+			s.finalizeScrapeJob(jobID, "failed", &found, nil, errStrs, warnStrs, store.Name)
 		}
 		return
 	}
 
-	for i, r := range results {
-		if ctx.Err() != nil {
-			schedulerLog.Warn("scrape job timeout; saving partial progress", "store", store.Name, "found", len(results), "upserted", validCount)
-			sentryutil.CaptureError(
-				fmt.Errorf("scrape job timed out for %s (%d found, %d upserted)", store.Name, len(results), validCount),
-				map[string]string{"component": "scheduler", "job": "scrape", "store": store.Name},
-			)
-			if jobID != 0 {
-				found := len(results)
-				errStrs := []string{"job timed out"}
-				_ = s.db.UpdateScrapeJob(ctx, jobID, "timed_out", &found, &validCount, errStrs, nil)
-			}
-			return
+	ingestCtx, ingestCancel := context.WithTimeout(context.Background(), getScrapeIngestTimeout())
+	defer ingestCancel()
+
+	validCount, ingestTimedOut := s.ingestScrapeResults(ingestCtx, store, results)
+	found := len(results)
+	errStrs := validationErrorStrings(validation)
+	warnStrs := validationWarningStrings(validation)
+
+	if ingestTimedOut {
+		schedulerLog.Warn("scrape ingest timeout; saving partial progress", "store", store.Name, "found", found, "upserted", validCount)
+		sentryutil.CaptureError(
+			fmt.Errorf("scrape ingest timed out for %s (%d found, %d upserted)", store.Name, found, validCount),
+			map[string]string{"component": "scheduler", "job": "scrape", "store": store.Name, "phase": "ingest"},
+		)
+		if jobID != 0 {
+			s.finalizeScrapeJob(jobID, "timed_out", &found, &validCount, append(errStrs, "ingest timed out"), warnStrs, store.Name)
 		}
-		// Skip results that failed schema validation
+		return
+	}
+
+	if jobID != 0 {
+		s.finalizeScrapeJob(jobID, "completed", &found, &validCount, errStrs, warnStrs, store.Name)
+	}
+
+	schedulerLog.Info("scrape saved listings", "store", store.Name, "count", validCount)
+
+	// After a successful full scrape, hide any listings that were not re-confirmed
+	// (last_scraped before this run started). This catches products that are no
+	// longer on sale or have been removed from the store's collection — they would
+	// otherwise stay in the DB indefinitely with stale prices.
+	// Guard: only run when we got a meaningful result count to avoid hiding
+	// everything if the scrape silently returned too little.
+	const minResultsForStaleCleanup = 10
+	if validCount >= minResultsForStaleCleanup {
+		cleanupCtx, cleanupCancel := context.WithTimeout(context.Background(), 2*time.Minute)
+		defer cleanupCancel()
+		if strings.EqualFold(store.StoreType, "universalcycles") {
+			touched, err := s.db.TouchVariantSiblingsLastScraped(cleanupCtx, store.ID, scrapeStartedAt)
+			if err != nil {
+				schedulerLog.Error("variant sibling touch failed", "store", store.Name, logutil.ErrAttr(err))
+				sentryutil.CaptureError(err, map[string]string{"component": "scheduler", "job": "scrape", "phase": "variant_sibling_touch", "store": store.Name})
+			} else if touched > 0 {
+				schedulerLog.Info("touched variant siblings last_scraped", "store", store.Name, "count", touched)
+			}
+		}
+		hidden, err := s.db.HideStaleListings(cleanupCtx, store.ID, scrapeStartedAt)
+		if err != nil {
+			schedulerLog.Error("stale listing cleanup failed", "store", store.Name, logutil.ErrAttr(err))
+			sentryutil.CaptureError(err, map[string]string{"component": "scheduler", "job": "scrape", "phase": "stale_cleanup", "store": store.Name})
+		} else if hidden > 0 {
+			schedulerLog.Info("hid stale listings", "store", store.Name, "count", hidden)
+		}
+	}
+}
+
+func validationErrorStrings(validation scraper.BatchValidationResult) []string {
+	errStrs := make([]string, 0, len(validation.Errors))
+	for _, e := range validation.Errors {
+		errStrs = append(errStrs, e.Error())
+	}
+	return errStrs
+}
+
+func validationWarningStrings(validation scraper.BatchValidationResult) []string {
+	warnStrs := make([]string, 0, len(validation.Warnings))
+	for _, w := range validation.Warnings {
+		warnStrs = append(warnStrs, w.Error())
+	}
+	return warnStrs
+}
+
+// ingestScrapeResults batch-upserts validated scrape rows. Returns upserted count and whether
+// ingestCtx expired before all chunks were written.
+func (s *Scheduler) ingestScrapeResults(ctx context.Context, store db.Store, results []scraper.ScrapeResult) (validCount int, timedOut bool) {
+	lastPrices, err := s.db.GetLastPricesForStore(ctx, store.ID)
+	if err != nil {
+		schedulerLog.Error("failed to preload last prices", "store", store.Name, logutil.ErrAttr(err))
+		sentryutil.CaptureError(err, map[string]string{"component": "scheduler", "job": "scrape", "phase": "preload_prices", "store": store.Name})
+		lastPrices = map[string]float64{}
+	}
+
+	listings := make([]db.Listing, 0, len(results))
+	priceBySKU := make(map[string]float64, len(results))
+	categoryCache := make(map[string]*int)
+
+	for i, r := range results {
 		if errs := scraper.ValidateResult(r, i); len(errs) > 0 {
 			continue
 		}
-
-		// Shadow check: flag if price dropped > 90%
-		if lastPrice, ok, _ := s.db.GetLastPrice(ctx, store.ID, r.StoreSKU); ok && lastPrice > 0 {
+		if lastPrice, ok := lastPrices[r.StoreSKU]; ok && lastPrice > 0 {
 			dropPct := (lastPrice - r.CurrentPrice) / lastPrice
 			if dropPct > 0.9 {
 				schedulerLog.Warn("price drop exceeded threshold; skipping listing",
@@ -378,64 +472,53 @@ func (s *Scheduler) scrapeStore(ctx context.Context, store db.Store, triggeredBy
 				listing.AffiliateURL = &x
 			}
 		}
+		if len(canonicalCat) > 0 {
+			key := strings.Join(canonicalCat, "\x00")
+			cached, ok := categoryCache[key]
+			if !ok {
+				id, err := s.db.ResolveCategoryIDFromPath(ctx, canonicalCat)
+				if err != nil {
+					schedulerLog.Error("category resolve failed", "store", store.Name, logutil.ErrAttr(err))
+				} else {
+					categoryCache[key] = id
+				}
+				cached = id
+			}
+			listing.CategoryID = cached
+		}
 
-		id, err := s.db.UpsertListing(ctx, listing)
+		listings = append(listings, listing)
+		priceBySKU[r.StoreSKU] = r.CurrentPrice
+	}
+
+	for start := 0; start < len(listings); start += db.ListingsUpsertBatchSize() {
+		if ctx.Err() != nil {
+			return validCount, true
+		}
+		end := start + db.ListingsUpsertBatchSize()
+		if end > len(listings) {
+			end = len(listings)
+		}
+		chunk := listings[start:end]
+		upserted, err := s.db.UpsertListingsBatch(ctx, chunk)
 		if err != nil {
-			schedulerLog.Error("upsert failed", "store_sku", r.StoreSKU, logutil.ErrAttr(err))
+			schedulerLog.Error("batch upsert failed", "store", store.Name, "chunk_start", start, logutil.ErrAttr(err))
+			sentryutil.CaptureError(err, map[string]string{"component": "scheduler", "job": "scrape", "phase": "batch_upsert", "store": store.Name})
 			continue
 		}
-
-		if err := s.db.InsertPriceHistory(ctx, id, r.CurrentPrice); err != nil {
-			schedulerLog.Error("price history insert failed", "store_sku", r.StoreSKU, logutil.ErrAttr(err))
+		listingIDs := make([]int, len(upserted))
+		prices := make([]float64, len(upserted))
+		for i, u := range upserted {
+			listingIDs[i] = u.ID
+			prices[i] = priceBySKU[u.StoreSKU]
 		}
-
-		validCount++
+		if err := s.db.InsertPriceHistoryBatch(ctx, listingIDs, prices); err != nil {
+			schedulerLog.Error("batch price history insert failed", "store", store.Name, logutil.ErrAttr(err))
+		}
+		validCount += len(upserted)
 	}
 
-	if jobID != 0 {
-		found := len(results)
-		errStrs := make([]string, 0, len(validation.Errors))
-		for _, e := range validation.Errors {
-			errStrs = append(errStrs, e.Error())
-		}
-		warnStrs := make([]string, 0, len(validation.Warnings))
-		for _, w := range validation.Warnings {
-			warnStrs = append(warnStrs, w.Error())
-		}
-		status := "completed"
-		if err := s.db.UpdateScrapeJob(ctx, jobID, status, &found, &validCount, errStrs, warnStrs); err != nil {
-			schedulerLog.Error("failed to update scrape job", "job_id", jobID, logutil.ErrAttr(err))
-			sentryutil.CaptureError(err, map[string]string{"component": "scheduler", "job": "scrape", "phase": "finalize_job", "store": store.Name})
-		}
-	}
-
-	schedulerLog.Info("scrape saved listings", "store", store.Name, "count", validCount)
-
-	// After a successful full scrape, hide any listings that were not re-confirmed
-	// (last_scraped before this run started). This catches products that are no
-	// longer on sale or have been removed from the store's collection — they would
-	// otherwise stay in the DB indefinitely with stale prices.
-	// Guard: only run when we got a meaningful result count to avoid hiding
-	// everything if the scrape silently returned too little.
-	const minResultsForStaleCleanup = 10
-	if validCount >= minResultsForStaleCleanup && ctx.Err() == nil {
-		if strings.EqualFold(store.StoreType, "universalcycles") {
-			touched, err := s.db.TouchVariantSiblingsLastScraped(ctx, store.ID, scrapeStartedAt)
-			if err != nil {
-				schedulerLog.Error("variant sibling touch failed", "store", store.Name, logutil.ErrAttr(err))
-				sentryutil.CaptureError(err, map[string]string{"component": "scheduler", "job": "scrape", "phase": "variant_sibling_touch", "store": store.Name})
-			} else if touched > 0 {
-				schedulerLog.Info("touched variant siblings last_scraped", "store", store.Name, "count", touched)
-			}
-		}
-		hidden, err := s.db.HideStaleListings(ctx, store.ID, scrapeStartedAt)
-		if err != nil {
-			schedulerLog.Error("stale listing cleanup failed", "store", store.Name, logutil.ErrAttr(err))
-			sentryutil.CaptureError(err, map[string]string{"component": "scheduler", "job": "scrape", "phase": "stale_cleanup", "store": store.Name})
-		} else if hidden > 0 {
-			schedulerLog.Info("hid stale listings", "store", store.Name, "count", hidden)
-		}
-	}
+	return validCount, false
 }
 
 // RunEnrichmentJob runs enrichment for listings needing it (all enricher stores, batched until timeout or backlog drained).
