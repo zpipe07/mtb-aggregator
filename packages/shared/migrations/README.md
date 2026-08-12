@@ -40,10 +40,11 @@ Override the migrations directory: `MIGRATIONS_DIR=path/to/migrations make db-mi
 | `028_listing_enrichment_pipeline.sql` | `listing_enrichment` per-step state, `pdp_snapshots`, `enrichment_events`; backfill from `last_enriched_at` |
 | `032_bb_headset_shelves.sql` | Components: `components-drivetrain-bottom-brackets` + `components-cockpit-headsets`; priority mappings; product-name backfill; LLM profiles for `bb_standard` / `headset_standard` |
 | `033_listing_home_demoted.sql` | `store_listings.home_demoted` — admin can exclude listings from home page top-deal sections without hiding from `/deals` |
+| `036_wheels_tubeless.sql` | Components: `components-wheels-tires-tubeless`; priority mappings for tubeless valve/tape/sealant/kit/insert keywords; product-name backfill; classifier rubrics |
 
 After 019, run **`make backfill-field-library`** once (from repo root) to rename ambiguous `type` / `material` keys in `extraction_schema` and `metadata.llm_specs`, seed shared defs, and populate `llm_prompt_profile_fields`.
 
-After 027 or 032, run **`make backfill-canonical-categories`** and **restart the API** so in-memory taxonomy reloads; these migrations also backfill by product name where applicable.
+After 027, 032, or 036, run **`make backfill-canonical-categories`** and **restart the API** so in-memory taxonomy reloads; these migrations also backfill by product name where applicable.
 
 ## Verifying Phase 2 changes (currency, scraper health, category_path)
 

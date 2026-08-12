@@ -10,6 +10,8 @@ How might we help deal-hunters find the right MTB product family in one or two t
 
 **v2 (shipped):** Add `Components → Drivetrain → Bottom Brackets` and `Components → Cockpit → Headsets` with mappings, product-name backfill, and LLM spec profiles for `bb_standard` / `headset_standard` filters (migration `032`). See [bb-headset-shelves.md](./bb-headset-shelves.md).
 
+**v3 (shipped):** Add `Components → Wheels/Tires → Tubeless` with high-priority mappings for valve/tape/sealant/kit/insert keywords and product-name backfill (migration `036`). Tubeless-ready tires stay in **Tires**; install tools stay in **Accessories → Tools**.
+
 **Strategy:** Targeted shelf additions where inventory exists; fix classification quality before deepening the tree. Do not flatten Components/Bikes discipline trees.
 
 ## Key Assumptions to Validate

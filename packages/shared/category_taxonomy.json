@@ -134,6 +134,26 @@
       "canonical": ["Components", "Suspension"]
     },
     {
+      "raw": [
+        "tubeless valve",
+        "tubeless valves",
+        "tubeless valve stem",
+        "tubeless tape",
+        "rim tape",
+        "tire tape",
+        "tubeless sealant",
+        "tire sealant",
+        "tyre sealant",
+        "tubeless kit",
+        "tubeless kits",
+        "tubeless insert",
+        "tire insert",
+        "cushcore",
+        "tubeless systems"
+      ],
+      "canonical": ["Components", "Wheels/Tires", "Tubeless"]
+    },
+    {
       "raw": ["wheel", "wheels", "tire", "tyre", "rim"],
       "canonical": ["Components", "Wheels"]
     },

@@ -221,6 +221,12 @@ const HAND_TUNED: Partial<Record<string, Partial<CategorySeoMeta>>> = {
     intro:
       "MTB tire deals—trail, enduro, and XC rubber when shops run sales.",
   },
+  "components-wheels-tires-tubeless": {
+    description:
+      "Compare tubeless setup deals: valve stems, rim tape, tire sealant, kits, and tire inserts across MTB retailers.",
+    intro:
+      "Shop tubeless valves, sealant, rim tape, and inserts when shops mark them down.",
+  },
   "components-suspension": {
     description:
       "Find deals on fork and shock suspension for mountain bikes. Compare prices across retailers.",
@@ -229,9 +235,9 @@ const HAND_TUNED: Partial<Record<string, Partial<CategorySeoMeta>>> = {
   },
   "components-wheels-tires": {
     description:
-      "Compare mountain bike wheel and tire deals: rims, hubs, wheels, and tires. Find the best prices.",
+      "Compare mountain bike wheel and tire deals: rims, hubs, wheels, tires, and tubeless setup.",
     intro:
-      "Shop wheel and tire deals for MTB and gravel. Compare prices across retailers.",
+      "Shop wheel and tire deals for MTB and gravel—plus tubeless valves, tape, and sealant when shops run sales.",
   },
   "components-cockpit": {
     description:
