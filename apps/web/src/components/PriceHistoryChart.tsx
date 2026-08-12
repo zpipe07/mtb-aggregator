@@ -11,7 +11,6 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { formatMoney } from "@/lib/formatMoney";
 import { cn } from "@/lib/utils";
 
 export type PriceHistoryChartPoint = {
@@ -74,7 +73,7 @@ export function PriceHistoryChart({ data, className }: PriceHistoryChartProps) {
               fontFamily: "var(--font-mono)",
             }}
             stroke="var(--color-muted-foreground)"
-            tickFormatter={(v) => `$${formatMoney(v)}`}
+            tickFormatter={(v) => `$${Math.round(v)}`}
             domain={["dataMin - 5", "dataMax + 5"]}
           />
           <Tooltip
