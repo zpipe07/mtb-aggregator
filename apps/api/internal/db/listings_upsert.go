@@ -58,10 +58,6 @@ const upsertListingOnConflictSQL = `
 			variant_options = COALESCE(EXCLUDED.variant_options, store_listings.variant_options),
 			last_scraped = NOW()`
 
-func upsertListingOnConflictSQLString() string {
-	return strings.TrimSpace(upsertListingOnConflictSQL)
-}
-
 // UpsertedListing is one row returned from UpsertListingsBatch.
 type UpsertedListing struct {
 	ID       int
