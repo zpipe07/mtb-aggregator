@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -118,8 +119,8 @@ func (db *DB) upsertListingsChunk(ctx context.Context, listings []Listing) ([]Up
 	affiliateURLs := make([]pgtype.Text, n)
 	imageURLs := make([]pgtype.Text, n)
 	brands := make([]pgtype.Text, n)
-	categoryPaths := make([][]string, n)
-	canonicalCategories := make([][]string, n)
+	categoryPaths := make([][]byte, n)
+	canonicalCategories := make([][]byte, n)
 	categoryIDs := make([]pgtype.Int4, n)
 	metadata := make([][]byte, n)
 	isInStock := make([]bool, n)
@@ -145,10 +146,18 @@ func (db *DB) upsertListingsChunk(ctx context.Context, listings []Listing) ([]Up
 			brands[i] = pgtype.Text{String: *l.Brand, Valid: true}
 		}
 		if len(l.CategoryPath) > 0 {
-			categoryPaths[i] = l.CategoryPath
+			b, err := json.Marshal(l.CategoryPath)
+			if err != nil {
+				return nil, fmt.Errorf("marshal category_path: %w", err)
+			}
+			categoryPaths[i] = b
 		}
 		if len(l.CanonicalCategory) > 0 {
-			canonicalCategories[i] = l.CanonicalCategory
+			b, err := json.Marshal(l.CanonicalCategory)
+			if err != nil {
+				return nil, fmt.Errorf("marshal canonical_category: %w", err)
+			}
+			canonicalCategories[i] = b
 		}
 		if l.CategoryID != nil {
 			categoryIDs[i] = pgtype.Int4{Int32: int32(*l.CategoryID), Valid: true}
@@ -190,8 +199,8 @@ func (db *DB) upsertListingsChunk(ctx context.Context, listings []Listing) ([]Up
 			u.affiliate_url,
 			u.image_url,
 			u.brand,
-			u.category_path,
-			u.canonical_category,
+			CASE WHEN u.category_path IS NULL THEN NULL ELSE ARRAY(SELECT jsonb_array_elements_text(u.category_path)) END,
+			CASE WHEN u.canonical_category IS NULL THEN NULL ELSE ARRAY(SELECT jsonb_array_elements_text(u.canonical_category)) END,
 			u.category_id,
 			u.metadata,
 			u.is_in_stock,
@@ -208,8 +217,8 @@ func (db *DB) upsertListingsChunk(ctx context.Context, listings []Listing) ([]Up
 			$7::text[],
 			$8::text[],
 			$9::text[],
-			$10::text[][],
-			$11::text[][],
+			$10::jsonb[],
+			$11::jsonb[],
 			$12::int[],
 			$13::jsonb[],
 			$14::bool[],
