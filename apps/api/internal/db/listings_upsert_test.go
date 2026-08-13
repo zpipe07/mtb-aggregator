@@ -6,6 +6,8 @@ import (
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 func TestUpsertListingsBatch_onConflictMatchesSingleRow(t *testing.T) {
@@ -24,6 +26,23 @@ func TestUpsertListingsBatch_onConflictMatchesSingleRow(t *testing.T) {
 	}
 	if ListingsUpsertBatchSize() != 500 {
 		t.Errorf("ListingsUpsertBatchSize() = %d, want 500", ListingsUpsertBatchSize())
+	}
+}
+
+func TestUpsertListingsBatch_nestedArraysUseJSONB(t *testing.T) {
+	src, err := os.ReadFile("listings_upsert.go")
+	if err != nil {
+		t.Fatalf("read listings_upsert.go: %v", err)
+	}
+	s := string(src)
+	if strings.Contains(s, "$10::text[][]") || strings.Contains(s, "$11::text[][]") {
+		t.Fatal("batch upsert must not UNNEST text[][] for category_path/canonical_category (SQLSTATE 42804)")
+	}
+	if !strings.Contains(s, "$10::jsonb[]") || !strings.Contains(s, "$11::jsonb[]") {
+		t.Fatal("batch upsert must bind category_path/canonical_category as jsonb[]")
+	}
+	if !strings.Contains(s, "jsonb_array_elements_text(u.category_path)") {
+		t.Fatal("batch upsert must convert category_path jsonb to text[]")
 	}
 }
 
@@ -76,6 +95,7 @@ func TestUpsertListingsBatch_mergeAndPriceHistory(t *testing.T) {
 			ProductURL:   "http://test.invalid/p/new",
 			IsInStock:    true,
 			Metadata:     []byte("{}"),
+			CategoryPath: []string{"Helmets"},
 		},
 		{
 			StoreID:       storeID,
@@ -151,5 +171,17 @@ func TestUpsertListingsBatch_mergeAndPriceHistory(t *testing.T) {
 	}
 	if histCount != 2 {
 		t.Errorf("price_history rows = %d, want 2", histCount)
+	}
+
+	var catPath pgtype.FlatArray[string]
+	err = d.pool.QueryRow(ctx, `
+		SELECT category_path FROM store_listings
+		WHERE store_id = $1 AND store_sku = 'new-sku'
+	`, storeID).Scan(&catPath)
+	if err != nil {
+		t.Fatalf("select new-sku category_path: %v", err)
+	}
+	if len(catPath) != 1 || catPath[0] != "Helmets" {
+		t.Errorf("new-sku category_path = %#v, want [Helmets]", catPath)
 	}
 }
