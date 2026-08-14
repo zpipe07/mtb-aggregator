@@ -203,6 +203,12 @@ BEGIN
 
   DELETE FROM llm_prompt_profiles WHERE category_id IN (tops_id, bottoms_id);
 
+  -- Drop mappings that still FK to Tops/Bottoms (e.g. sleeve → Tops) before deleting those rows.
+  DELETE FROM category_mappings
+  WHERE category_id IN (tops_id, bottoms_id)
+     OR canonical = ARRAY['Gear', 'Clothing', 'Tops']::text[]
+     OR canonical = ARRAY['Gear', 'Clothing', 'Bottoms']::text[];
+
   -- Classifier rubrics.
   UPDATE categories SET description = 'Bike-specific riding apparel. Use the most specific sub-category: Jerseys, Jackets, Shirts, Shorts, Pants, or Socks. NOT shoes (use Shoes), gloves (use Gloves), or helmets (use Helmets).'
   WHERE slug = 'gear-clothing';
