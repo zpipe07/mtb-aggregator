@@ -42,10 +42,11 @@ Override the migrations directory: `MIGRATIONS_DIR=path/to/migrations make db-mi
 | `033_listing_home_demoted.sql` | `store_listings.home_demoted` — admin can exclude listings from home page top-deal sections without hiding from `/deals` |
 | `036_wheels_tubeless.sql` | Components: `components-wheels-tires-tubeless`; priority mappings for tubeless valve/tape/sealant/kit/insert keywords; product-name backfill; classifier rubrics |
 | `037_flatten_clothing_tops_bottoms.sql` | Gear: flatten Clothing — Jerseys/Jackets/Shirts/Shorts/Pants/Socks directly under `gear-clothing`; remove Tops/Bottoms; priority leaf mappings; product-name backfill; LLM profile path updates |
+| `038_accessories_pumps.sql` | Accessories: `accessories-pumps`; priority mappings for pump/inflator keywords; product-name backfill; classifier rubrics; strip `pump` from Tools mapping |
 
 After 019, run **`make backfill-field-library`** once (from repo root) to rename ambiguous `type` / `material` keys in `extraction_schema` and `metadata.llm_specs`, seed shared defs, and populate `llm_prompt_profile_fields`.
 
-After 027, 032, 036, or 037, run **`make backfill-canonical-categories`** and **restart the API** so in-memory taxonomy reloads; these migrations also backfill by product name where applicable.
+After 027, 032, 036, 037, or 038, run **`make backfill-canonical-categories`** and **restart the API** so in-memory taxonomy reloads; these migrations also backfill by product name where applicable.
 
 ## Verifying Phase 2 changes (currency, scraper health, category_path)
 
