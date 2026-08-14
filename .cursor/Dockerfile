@@ -2,7 +2,7 @@
 FROM ubuntu:24.04
 
 ENV DEBIAN_FRONTEND=noninteractive \
-    GO_VERSION=1.26.5 \
+    GO_VERSION=1.26.6 \
     NODE_MAJOR=20 \
     PNPM_VERSION=9.14.2
 
