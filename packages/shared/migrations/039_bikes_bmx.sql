@@ -208,21 +208,23 @@ WHERE pf.field_def_id = fd.id
 
 -- Append BMX to legacy extraction_schema JSON on profiles that inline intended_use values.
 UPDATE llm_prompt_profiles p
-SET extraction_schema = jsonb_set(
-  p.extraction_schema,
-  '{fields}',
-  (
-    SELECT COALESCE(jsonb_agg(
-      CASE
-        WHEN f->>'key' = 'intended_use'
-          AND f ? 'values'
-          AND jsonb_typeof(f->'values') = 'array'
-          AND NOT (f->'values' ? 'BMX')
-        THEN jsonb_set(f, '{values}', (f->'values') || '"BMX"'::jsonb)
-        ELSE f
-      END
-    ), '[]'::jsonb)
-    FROM jsonb_array_elements(p.extraction_schema->'fields') AS f
+SET
+  extraction_schema = jsonb_set(
+    p.extraction_schema,
+    '{fields}',
+    (
+      SELECT COALESCE(jsonb_agg(
+        CASE
+          WHEN f->>'key' = 'intended_use'
+            AND f ? 'values'
+            AND jsonb_typeof(f->'values') = 'array'
+            AND NOT (f->'values' ? 'BMX')
+          THEN jsonb_set(f, '{values}', (f->'values') || '"BMX"'::jsonb)
+          ELSE f
+        END
+      ), '[]'::jsonb)
+      FROM jsonb_array_elements(p.extraction_schema->'fields') AS f
+    )
   ),
   updated_at = NOW()
 WHERE p.extraction_schema->'fields' IS NOT NULL
