@@ -2,7 +2,7 @@ module github.com/mtb-aggregator/api
 
 go 1.26.0
 
-toolchain go1.26.5
+toolchain go1.26.6
 
 require (
 	github.com/getsentry/sentry-go v0.48.0

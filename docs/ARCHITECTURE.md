@@ -179,7 +179,7 @@ GitHub Actions (`.github/workflows/ci.yml`) runs on every push and PR to `main`:
 
 The CI workflow sets `permissions: contents: read` and `pull-requests: read` so `GITHUB_TOKEN` can list PR commits for **gitleaks** (without this, `pull_request` runs can fail with HTTP 403 from the GitHub API).
 
-**Go patch version:** [`apps/api/go.mod`](../apps/api/go.mod) sets `toolchain go1.26.5` so local and CI builds use a stdlib that satisfies **govulncheck** (security fixes land in patch releases; pinning only `go 1.26` is not enough). CI uses Go **1.26.5**; the API **Dockerfile** uses `golang:1.26.5-alpine`. Root `pnpm run check:build-versions` fails CI if `go.mod` toolchain, API Dockerfile, or CI `go-version` diverge.
+**Go patch version:** [`apps/api/go.mod`](../apps/api/go.mod) sets `toolchain go1.26.6` so local and CI builds use a stdlib that satisfies **govulncheck** (security fixes land in patch releases; pinning only `go 1.26` is not enough). CI uses Go **1.26.6**; the API **Dockerfile** uses `golang:1.26.6-alpine`. Root `pnpm run check:build-versions` fails CI if `go.mod` toolchain, API Dockerfile, or CI `go-version` diverge.
 
 **Dependency hygiene:** Root `package.json` defines `pnpm.overrides` to align transitive packages with patched versions where advisories affected nested dependencies; keep overrides minimal and revisit when upgrading direct deps.
 
@@ -241,3 +241,5 @@ Configure alerts in each Sentry project (email, Slack, etc.).
 - **Project rules (automatic):** [`.cursor/rules/*.mdc`](../.cursor/rules/) — `alwaysApply` and path `globs` only on these `.mdc` files.
 - **Workflow playbooks (manual):** [`.agents/skills/workflows/`](../.agents/skills/workflows/README.md) — longer process skills; invoke with `@` when needed. Meta index: [`using-agent-skills/SKILL.md`](../.agents/skills/workflows/using-agent-skills/SKILL.md).
 - **Repo overview for agents:** [`CLAUDE.md`](../CLAUDE.md) at the repository root.
+- **Cloud agent environment:** [`.cursor/environment.json`](../.cursor/environment.json) + [`.cursor/Dockerfile`](../.cursor/Dockerfile) (Node 20, pnpm, Go 1.26.6). See [AGENTS.md](../AGENTS.md).
+- **Sentry → draft PR (ZAC-210):** [docs/ideas/sentry-to-pr-automation.md](ideas/sentry-to-pr-automation.md) — Cursor Automation on Sentry **issue created** (production, `mtb-aggregator-web` + `mtb-aggregator-api` only). Classify first; operational noise comments on Sentry and stops. Draft PRs include `Fixes <SHORT-ID>`; Sentry resolves when that commit is in a release (GitHub integration). Create the automation in the Agents Window (`/automate`).

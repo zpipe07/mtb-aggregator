@@ -2,11 +2,15 @@
 
 ## Cursor Cloud specific instructions
 
+Cloud agents use [`.cursor/environment.json`](.cursor/environment.json) and [`.cursor/Dockerfile`](.cursor/Dockerfile): Ubuntu 24.04, Node 20, pnpm 9.14.2, Go 1.26.6 at `/usr/local/go`. The install script runs `pnpm install --frozen-lockfile`, builds `@mtb-aggregator/logging`, and `go mod download` in `apps/api`. Do not start Postgres, Playwright, or Docker Compose unless the task needs them.
+
+Sentry → draft PR automation (ZAC-210) is specified in [docs/ideas/sentry-to-pr-automation.md](docs/ideas/sentry-to-pr-automation.md). Create/edit that automation in the Agents Window (`/automate`). For web changes run `pnpm --filter @mtb-aggregator/web exec tsc --noEmit` and `pnpm --filter @mtb-aggregator/web run test`. For API changes run `cd apps/api && go test ./...` (and `go vet ./...` if cheap). If those cannot run, do not open a PR.
+
 ### Prerequisites on the VM
 
-- **Go 1.26+** is required (`apps/api/go.mod` pins `go 1.26.0`). The system Go may be older; use `/usr/local/go/bin` (install Go 1.26.5 if missing).
+- **Go 1.26+** is required (`apps/api/go.mod` pins `go 1.26.0`). Prefer `/usr/local/go/bin` from the cloud Dockerfile (1.26.6). If you are on a VM without that image, install Go 1.26.6 if missing.
 - **Docker** runs Postgres via `docker-compose.yml`. In this environment, start `dockerd` manually if needed and use `sudo docker compose` (or `sudo chmod 666 /var/run/docker.sock`) when the socket is root-only.
-- **Playwright Chromium** must be installed once for the scraper: `pnpm --filter @mtb-aggregator/scraper exec playwright install chromium --with-deps`.
+- **Playwright Chromium** must be installed once for the scraper: `pnpm --filter @mtb-aggregator/scraper exec playwright install chromium --with-deps`. Not part of the default cloud install (Sentry autofix v1 does not touch the scraper).
 
 ### Workspace package build
 
