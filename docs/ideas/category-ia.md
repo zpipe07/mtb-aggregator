@@ -14,6 +14,8 @@ How might we help deal-hunters find the right MTB product family in one or two t
 
 **v4 (shipped):** Flatten **Gear → Clothing** — Jerseys, Jackets, Shirts, Shorts, Pants, and Socks are direct children (migration `037`); high-priority leaf mappings; 308 redirects from old Tops/Bottoms URLs.
 
+**v5 (shipped):** Add **Accessories → Pumps** with high-priority mappings for floor/shock/mini/frame/electric pump and CO2 inflator keywords and product-name backfill (migration `038`). Pump parts and rebuild kits stay in Components or Tools.
+
 **Strategy:** Targeted shelf additions where inventory exists; fix classification quality before deepening the tree. Do not flatten Components/Bikes discipline trees.
 
 ## Key Assumptions to Validate
@@ -35,12 +37,11 @@ How might we help deal-hunters find the right MTB product family in one or two t
 - **Uncategorized backlog** — 720 null `category_id`; orthogonal cleanup pass
 - **Pedals → Cockpit** — Wrong mental model; optional later promote to Components sibling
 - **Rename Gear → Apparel** — High slug/URL churn for marginal label gain
-- **Split Tools** — Mixed inventory; thin leaves
+- **Split Tools further** — Pumps now a sibling (migration `038`); remaining Tools inventory is mixed but acceptable
 
 ## Open Questions
 
 - When to run Clothing leaf reclassify (mappings vs classifier batch vs hybrid)?
-- Pull Pumps out of Tools as Accessories sibling if pump volume grows?
 
 ## Follow-up backlog
 

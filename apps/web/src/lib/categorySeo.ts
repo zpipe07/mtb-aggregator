@@ -337,15 +337,21 @@ const HAND_TUNED: Partial<Record<string, Partial<CategorySeoMeta>>> = {
   },
   accessories: {
     description:
-      "Compare deals on MTB accessories: tools, bags, lights, and more.",
+      "Compare deals on MTB accessories: tools, pumps, bags, lights, and more.",
     intro:
       "Browse accessory deals and compare prices across retailers.",
+  },
+  "accessories-pumps": {
+    description:
+      "Compare deals on bike pumps: floor pumps, mini pumps, shock pumps, and CO2 inflators across MTB retailers.",
+    intro:
+      "Shop floor, mini, shock, and electric pump markdowns. Compare prices before your next ride or suspension tune.",
   },
   "accessories-tools": {
     description:
       "Find deals on bike tools, tool kits, and workshop essentials for mountain bikes.",
     intro:
-      "Compare sale prices on tools and maintenance gear.",
+      "Compare sale prices on multi-tools, chain tools, and maintenance gear — not pumps (see Pumps).",
   },
   "accessories-bags": {
     description:

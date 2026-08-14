@@ -34,6 +34,8 @@ Under **Components → Drivetrain**, **Bottom Brackets** is a dedicated leaf (mi
 
 Under **Components → Wheels/Tires**, **Tubeless** is a dedicated leaf (migration `036`) for valves, rim tape, sealant, kits, and tire inserts. Mappings use **specific** keywords (`tubeless valve`, `rim tape`, `tire sealant`, etc.) — not bare `tubeless`, which would misclassify tubeless-ready tires. The legacy `tube`/`tubes` mapping is substring-based, so paths like `Tubeless Kits` previously landed in **Tubes** until the high-priority Tubeless rule runs first.
 
+Under **Accessories**, **Pumps** is a dedicated leaf (migration `038`) for floor, mini/hand, frame, shock/fork, electric pumps, and CO2 inflators. Mappings use **specific** keywords (`floor pump`, `shock pump`, `mini pump`, etc.) — not bare `pump`, which would misclassify pump parts, pump-track bikes, and saddles. Pump parts and rebuild kits stay in **Components** or **Tools**.
+
 ## Data Flow
 
 1. **Enrichment**: Scraper returns `category_path` (breadcrumb array) from PDP.
