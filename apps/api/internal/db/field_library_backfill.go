@@ -23,7 +23,7 @@ var fieldLibraryCategoryKeyRenames = map[int]map[string]string{
 
 // Library supersets for shared defs (first writer wins via ON CONFLICT DO NOTHING).
 var (
-	fieldLibraryIntendedUseValues = []string{"XC", "Trail", "Enduro", "DH", "Dirt Jump", "Fat Bike", "E-bike"}
+	fieldLibraryIntendedUseValues = []string{"XC", "Trail", "Enduro", "DH", "Dirt Jump", "Fat Bike", "E-bike", "BMX"}
 	fieldLibraryWheelSizeValues   = []string{"32", "29", "27.5", "MX", "26", "24", "22", "20", "16", "700c", "650b"}
 )
 

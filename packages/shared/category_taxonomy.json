@@ -58,6 +58,16 @@
     },
     {
       "raw": [
+        "bmx bike",
+        "bmx bikes",
+        "complete bmx",
+        "freestyle bmx",
+        "bmx / dirt jump"
+      ],
+      "canonical": ["Bikes", "BMX Bikes"]
+    },
+    {
+      "raw": [
         "mountain bike",
         "mtb",
         "mountain bikes",

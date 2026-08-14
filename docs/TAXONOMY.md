@@ -36,6 +36,8 @@ Under **Components → Wheels/Tires**, **Tubeless** is a dedicated leaf (migrati
 
 Under **Accessories**, **Pumps** is a dedicated leaf (migration `038`) for floor, mini/hand, frame, shock/fork, electric pumps, and CO2 inflators. Mappings use **specific** keywords (`floor pump`, `shock pump`, `mini pump`, etc.) — not bare `pump`, which would misclassify pump parts, pump-track bikes, and saddles. Pump parts and rebuild kits stay in **Components** or **Tools**.
 
+Under **Bikes**, **BMX Bikes** is a dedicated leaf (migration `039`) for complete BMX bicycles. Mappings use **specific** keywords (`bmx bike`, `complete bmx`, `freestyle bmx`, `bmx / dirt jump`, etc.) — not bare `bmx`, which would misclassify BMX stems, helmets, and tires. Dirt-jump MTB hardtails stay under **Mountain > Dirt Jump**; youth balance/MTB bikes stay under **Kids**; BMX frames sold alone stay under **Frames**. BMX parts and gear remain in **Components** / **Gear** and can be tagged with `intended_use = BMX` after migration `039` extends the shared enum.
+
 ## Data Flow
 
 1. **Enrichment**: Scraper returns `category_path` (breadcrumb array) from PDP.

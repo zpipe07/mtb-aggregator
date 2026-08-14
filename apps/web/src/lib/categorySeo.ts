@@ -35,6 +35,7 @@ function defaultSeoFromRow(row: ExportCategory): CategorySeoMeta {
   else if (slug === "bikes-gravel") title = "Gravel bike deals";
   else if (slug === "bikes-road") title = "Road bike deals";
   else if (slug === "bikes-kids") title = "Kids bike deals";
+  else if (slug === "bikes-bmx") title = "BMX bike deals";
   else if (slug === "bikes-frames") title = "Bike frame deals";
   else if (slug === "components") title = "Mountain bike component deals";
   else if (slug === "gear") title = "Mountain bike gear deals";
@@ -140,6 +141,13 @@ const HAND_TUNED: Partial<Record<string, Partial<CategorySeoMeta>>> = {
       "Compare fat bike deals. Find fat-tire mountain bikes for snow, sand, and trail.",
     intro:
       "Shop fat bike sale prices—extra traction when the surface gets soft.",
+  },
+  "bikes-bmx": {
+    title: "BMX bike deals",
+    description:
+      "Compare BMX bike deals. Find freestyle, park, and race BMX bikes on sale across retailers.",
+    intro:
+      "Shop complete BMX bikes—20\", 18\", and cruiser builds. Not dirt-jump MTB hardtails (see Mountain > Dirt Jump).",
   },
   "bikes-gravel": {
     intro:
