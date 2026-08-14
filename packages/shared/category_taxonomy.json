@@ -201,7 +201,55 @@
       "canonical": ["Gear", "Protection"]
     },
     {
-      "raw": ["clothing", "jersey", "short", "jacket", "vest", "glove", "sock"],
+      "raw": ["jersey", "jerseys", "cycling jersey", "mtb jersey", "bike jersey"],
+      "canonical": ["Gear", "Clothing", "Jerseys"]
+    },
+    {
+      "raw": [
+        "jacket",
+        "jackets",
+        "windbreaker",
+        "softshell",
+        "rain jacket",
+        "vest",
+        "vests",
+        "gilet"
+      ],
+      "canonical": ["Gear", "Clothing", "Jackets"]
+    },
+    {
+      "raw": [
+        "t-shirt",
+        "t-shirts",
+        "hoodie",
+        "hoodies",
+        "sweatshirt",
+        "flannel",
+        "base layer",
+        "long sleeve"
+      ],
+      "canonical": ["Gear", "Clothing", "Shirts"]
+    },
+    {
+      "raw": [
+        "shorts",
+        "bib shorts",
+        "cycling shorts",
+        "mtb shorts",
+        "liner shorts"
+      ],
+      "canonical": ["Gear", "Clothing", "Shorts"]
+    },
+    {
+      "raw": ["pants", "cycling pants", "bib tights", "cycling tights"],
+      "canonical": ["Gear", "Clothing", "Pants"]
+    },
+    {
+      "raw": ["socks", "cycling socks"],
+      "canonical": ["Gear", "Clothing", "Socks"]
+    },
+    {
+      "raw": ["clothing"],
       "canonical": ["Gear", "Clothing"]
     },
     { "raw": ["shoe", "shoes", "footwear"], "canonical": ["Gear", "Shoes"] },

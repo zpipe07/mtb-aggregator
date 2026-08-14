@@ -287,6 +287,42 @@ const HAND_TUNED: Partial<Record<string, Partial<CategorySeoMeta>>> = {
     intro:
       "Compare sale prices on riding apparel and layers.",
   },
+  "gear-clothing-jerseys": {
+    description:
+      "Compare MTB jersey deals. Find sale prices on trail, enduro, and XC jerseys across retailers.",
+    intro:
+      "Shop technical riding jerseys and compare markdowns across shops.",
+  },
+  "gear-clothing-jackets": {
+    description:
+      "Find deals on MTB jackets, rain shells, and windbreakers. Compare prices across retailers.",
+    intro:
+      "Browse outerwear deals for wet and windy trail days.",
+  },
+  "gear-clothing-shirts": {
+    description:
+      "Compare deals on MTB tees, hoodies, and base layers. Find casual riding apparel on sale.",
+    intro:
+      "Shop casual riding tops and base layers at sale prices.",
+  },
+  "gear-clothing-shorts": {
+    description:
+      "Find the best deals on MTB shorts and bib shorts. Compare prices across retailers.",
+    intro:
+      "Browse baggy trail shorts, liner shorts, and bib deals in one place.",
+  },
+  "gear-clothing-pants": {
+    description:
+      "Compare mountain bike pants and bib tights deals. Find discounts on riding pants.",
+    intro:
+      "Shop full-length riding pants and tights for cooler conditions.",
+  },
+  "gear-clothing-socks": {
+    description:
+      "Find deals on cycling socks. Compare MTB sock sale prices across retailers.",
+    intro:
+      "Browse cycling sock deals for trail and gravity riding.",
+  },
   "gear-shoes": {
     description:
       "Compare mountain bike shoe deals. Find discounts on flat and clipless MTB shoes.",
