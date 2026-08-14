@@ -1,5 +1,5 @@
 {
-  "exportedAt": "2026-03-20T05:02:10Z",
+  "exportedAt": "2026-08-14T03:00:00Z",
   "source": {
     "type": "neon",
     "projectId": "shiny-poetry-05811700"
@@ -537,84 +537,64 @@
       "updated_at": "2026-03-19T16:05:04.928054+00:00"
     },
     {
-      "id": 51,
-      "slug": "gear-clothing-tops",
-      "name": "Tops",
+      "id": 55,
+      "slug": "gear-clothing-jerseys",
+      "name": "Jerseys",
       "parent_id": 17,
       "sort_order": 0,
       "depth": 2,
-      "created_at": "2026-03-19T17:23:50.361697+00:00",
-      "updated_at": "2026-03-19T17:23:50.361697+00:00"
+      "created_at": "2026-03-19T17:27:41.290076+00:00",
+      "updated_at": "2026-08-14T03:00:00.000000+00:00"
     },
     {
-      "id": 52,
-      "slug": "gear-clothing-bottoms",
-      "name": "Bottoms",
+      "id": 56,
+      "slug": "gear-clothing-jackets",
+      "name": "Jackets",
       "parent_id": 17,
       "sort_order": 1,
       "depth": 2,
-      "created_at": "2026-03-19T17:24:43.756054+00:00",
-      "updated_at": "2026-03-19T17:24:43.756054+00:00"
+      "created_at": "2026-03-19T17:28:10.010496+00:00",
+      "updated_at": "2026-08-14T03:00:00.000000+00:00"
+    },
+    {
+      "id": 54,
+      "slug": "gear-clothing-shirts",
+      "name": "Shirts",
+      "parent_id": 17,
+      "sort_order": 2,
+      "depth": 2,
+      "created_at": "2026-03-19T17:27:17.537938+00:00",
+      "updated_at": "2026-08-14T03:00:00.000000+00:00"
+    },
+    {
+      "id": 57,
+      "slug": "gear-clothing-shorts",
+      "name": "Shorts",
+      "parent_id": 17,
+      "sort_order": 3,
+      "depth": 2,
+      "created_at": "2026-03-19T17:29:15.63178+00:00",
+      "updated_at": "2026-08-14T03:00:00.000000+00:00"
+    },
+    {
+      "id": 58,
+      "slug": "gear-clothing-pants",
+      "name": "Pants",
+      "parent_id": 17,
+      "sort_order": 4,
+      "depth": 2,
+      "created_at": "2026-03-19T17:29:37.385732+00:00",
+      "updated_at": "2026-08-14T03:00:00.000000+00:00"
     },
     {
       "id": 53,
       "slug": "gear-clothing-socks",
       "name": "Socks",
       "parent_id": 17,
-      "sort_order": 2,
+      "sort_order": 5,
       "depth": 2,
       "created_at": "2026-03-19T17:25:59.069407+00:00",
-      "updated_at": "2026-03-19T17:25:59.069407+00:00"
-    },
-    {
-      "id": 54,
-      "slug": "gear-clothing-tops-shirts",
-      "name": "Shirts",
-      "parent_id": 51,
-      "sort_order": 0,
-      "depth": 3,
-      "created_at": "2026-03-19T17:27:17.537938+00:00",
-      "updated_at": "2026-03-19T17:27:17.537938+00:00"
-    },
-    {
-      "id": 55,
-      "slug": "gear-clothing-tops-jerseys",
-      "name": "Jerseys",
-      "parent_id": 51,
-      "sort_order": 1,
-      "depth": 3,
-      "created_at": "2026-03-19T17:27:41.290076+00:00",
-      "updated_at": "2026-03-19T17:27:41.290076+00:00"
-    },
-    {
-      "id": 56,
-      "slug": "gear-clothing-tops-jackets",
-      "name": "Jackets",
-      "parent_id": 51,
-      "sort_order": 2,
-      "depth": 3,
-      "created_at": "2026-03-19T17:28:10.010496+00:00",
-      "updated_at": "2026-03-19T17:28:10.010496+00:00"
-    },
-    {
-      "id": 57,
-      "slug": "gear-clothing-bottoms-shorts",
-      "name": "Shorts",
-      "parent_id": 52,
-      "sort_order": 0,
-      "depth": 3,
-      "created_at": "2026-03-19T17:29:15.63178+00:00",
-      "updated_at": "2026-03-19T17:29:15.63178+00:00"
-    },
-    {
-      "id": 58,
-      "slug": "gear-clothing-bottoms-pants",
-      "name": "Pants",
-      "parent_id": 52,
-      "sort_order": 1,
-      "depth": 3,
-      "created_at": "2026-03-19T17:29:37.385732+00:00",
-      "updated_at": "2026-03-19T17:29:37.385732+00:00"
+      "updated_at": "2026-08-14T03:00:00.000000+00:00"
     }
   ]
 }
