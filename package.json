@@ -41,7 +41,7 @@
       "js-yaml": "4.3.1",
       "ip-address": "^10.3.1",
       "sharp": ">=0.35.0",
-      "eslint-plugin-react": "github:jsx-eslint/eslint-plugin-react#c99d3b274efbc593e46563358e7b77cad8d01957"
+      "eslint-plugin-react": "https://codeload.github.com/jsx-eslint/eslint-plugin-react/tar.gz/c99d3b274efbc593e46563358e7b77cad8d01957"
     }
   }
 }

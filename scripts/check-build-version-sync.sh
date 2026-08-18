@@ -112,10 +112,23 @@ check_pnpm_docker() {
   echo "OK pnpm ($pinned) matches scraper Docker corepack pin"
 }
 
+check_lockfile_no_ssh_git_deps() {
+  local lockfile="$ROOT/pnpm-lock.yaml"
+
+  if grep -q 'git@github.com' "$lockfile"; then
+    report_mismatch "pnpm-lock.yaml git SSH dependencies" \
+      "Found git@github.com in $lockfile.\nDependabot lockfile refreshes can rewrite github: overrides to SSH git URLs that fail in CI.\nFix: use https://codeload.github.com/.../tar.gz/<commit> in package.json pnpm.overrides and re-run pnpm install."
+    return
+  fi
+
+  echo "OK pnpm-lock.yaml has no git@github.com SSH dependency URLs"
+}
+
 check_playwright_docker
 check_go_toolchain_docker
 check_go_toolchain_ci
 check_pnpm_docker
+check_lockfile_no_ssh_git_deps
 
 if [[ "$FAILURES" -gt 0 ]]; then
   echo ""
