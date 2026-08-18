@@ -3729,8 +3729,8 @@ packages:
     peerDependencies:
       eslint: ^3.0.0 || ^4.0.0 || ^5.0.0 || ^6.0.0 || ^7.0.0 || ^8.0.0-0 || ^9.0.0 || ^10.0.0
 
-  eslint-plugin-react@git+https://git@github.com:jsx-eslint/eslint-plugin-react.git#c99d3b274efbc593e46563358e7b77cad8d01957:
-    resolution: {commit: c99d3b274efbc593e46563358e7b77cad8d01957, repo: git@github.com:jsx-eslint/eslint-plugin-react.git, type: git}
+  eslint-plugin-react@https://codeload.github.com/jsx-eslint/eslint-plugin-react/tar.gz/c99d3b274efbc593e46563358e7b77cad8d01957:
+    resolution: {tarball: https://codeload.github.com/jsx-eslint/eslint-plugin-react/tar.gz/c99d3b274efbc593e46563358e7b77cad8d01957}
     version: 7.37.5
     engines: {node: '>=4'}
     peerDependencies:
@@ -8334,7 +8334,6 @@ snapshots:
   '@types/node@26.2.0':
     dependencies:
       undici-types: 8.3.0
-    optional: true
 
   '@types/qs@6.15.1': {}
 
@@ -9441,7 +9440,7 @@ snapshots:
       eslint-import-resolver-typescript: 3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.67.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint@10.8.1(jiti@2.7.0)))(eslint@10.8.1(jiti@2.7.0))
       eslint-plugin-import: 2.32.0(@typescript-eslint/parser@8.67.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint-import-resolver-typescript@3.10.1)(eslint@10.8.1(jiti@2.7.0))
       eslint-plugin-jsx-a11y: 6.10.2(eslint@10.8.1(jiti@2.7.0))
-      eslint-plugin-react: git+https://git@github.com:jsx-eslint/eslint-plugin-react.git#c99d3b274efbc593e46563358e7b77cad8d01957(eslint@10.8.1(jiti@2.7.0))
+      eslint-plugin-react: https://codeload.github.com/jsx-eslint/eslint-plugin-react/tar.gz/c99d3b274efbc593e46563358e7b77cad8d01957(eslint@10.8.1(jiti@2.7.0))
       eslint-plugin-react-hooks: 7.1.1(eslint@10.8.1(jiti@2.7.0))
       globals: 16.4.0
       typescript-eslint: 8.67.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3)
@@ -9546,7 +9545,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  eslint-plugin-react@git+https://git@github.com:jsx-eslint/eslint-plugin-react.git#c99d3b274efbc593e46563358e7b77cad8d01957(eslint@10.8.1(jiti@2.7.0)):
+  eslint-plugin-react@https://codeload.github.com/jsx-eslint/eslint-plugin-react/tar.gz/c99d3b274efbc593e46563358e7b77cad8d01957(eslint@10.8.1(jiti@2.7.0)):
     dependencies:
       array-includes: 3.1.9
       array.prototype.findlast: 1.2.5
@@ -10236,7 +10235,7 @@ snapshots:
 
   jest-worker@27.5.1:
     dependencies:
-      '@types/node': 25.9.5
+      '@types/node': 26.2.0
       merge-stream: 2.0.0
       supports-color: 8.1.1
 
@@ -11758,8 +11757,7 @@ snapshots:
 
   undici-types@7.24.6: {}
 
-  undici-types@8.3.0:
-    optional: true
+  undici-types@8.3.0: {}
 
   undici@7.29.0: {}
 
