@@ -18,3 +18,4 @@ export { ErrorMessage } from "./ErrorMessage";
 export { EmptyState } from "./EmptyState";
 export { JsonLd } from "./JsonLd";
 export { DealsBrowseFooter } from "./DealsBrowseFooter";
+export { ScrollToTop } from "./ScrollToTop";
