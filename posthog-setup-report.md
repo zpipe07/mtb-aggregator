@@ -16,6 +16,7 @@ The wizard has completed a deep integration of PostHog analytics into The Droppe
 | `apps/web/src/views/DealsPageContent.tsx` | Added `filter_applied`, `filters_cleared`, `deals_paginated`, `filter_drawer_opened` event captures |
 | `apps/web/src/components/Toolbar.tsx` | Added `sort_changed` event capture |
 | `apps/web/src/app/(public)/deals/[id]/DealDetailContent.tsx` | Added `deal_detail_viewed` event capture (top of store-referral funnel) |
+| `apps/web/src/components/ScrollToTop.tsx` | Added `scroll_to_top_clicked` event capture |
 
 ## Events instrumented
 
@@ -29,6 +30,7 @@ The wizard has completed a deep integration of PostHog analytics into The Droppe
 | `deals_paginated` | User navigates to a new page of results | `apps/web/src/views/DealsPageContent.tsx` |
 | `filter_drawer_opened` | User opens the mobile filter drawer | `apps/web/src/views/DealsPageContent.tsx` |
 | `filters_cleared` | User clears all active filters at once. Property **`had_category_path`**: `true` when the URL was `/deals/c/...` before clearing (category path retained; clears query-backed filters only) | `apps/web/src/views/DealsPageContent.tsx` |
+| `scroll_to_top_clicked` | User clicks the floating scroll-to-top control after scrolling down a page. Property **`pathname`**: current route | `apps/web/src/components/ScrollToTop.tsx` |
 
 ## Next steps
 
