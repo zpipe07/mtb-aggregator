@@ -200,6 +200,14 @@ function getLLMConfidence(metadata: AdminListing["metadata"]): number | null {
   return null;
 }
 
+/** Get LLM spec extraction reasoning from metadata.llm_specs_reasoning. */
+function getLLMSpecsReasoning(metadata: AdminListing["metadata"]): string | null {
+  const obj = getMetadataObj(metadata);
+  if (!obj) return null;
+  const v = obj.llm_specs_reasoning;
+  return typeof v === "string" && v.trim() !== "" ? v : null;
+}
+
 /** Get LLM category classification from metadata.llm_category. */
 function getLLMCategory(metadata: AdminListing["metadata"]): { canonical_category: string[]; confidence: number; reasoning?: string } | null {
   const obj = getMetadataObj(metadata);
@@ -1321,7 +1329,7 @@ export function DataBrowser() {
                       <td className="px-4 py-2 text-stone-600 max-w-16 truncate">
                         {getDisplayedSpec(row.metadata, "wheel_size") ?? "—"}
                       </td>
-                      <td className="px-4 py-2 text-right text-stone-600">
+                      <td className="px-4 py-2 text-right text-stone-600" title={getLLMSpecsReasoning(row.metadata) ?? undefined}>
                         {getLLMConfidence(row.metadata) != null
                           ? `${Math.round(getLLMConfidence(row.metadata)! * 100)}%`
                           : "—"}
@@ -1588,6 +1596,10 @@ export function DataBrowser() {
                     ) : (
                       "—"
                     )}
+                  </dd>
+                  <dt className="text-stone-500">LLM spec reasoning</dt>
+                  <dd className="text-sm text-stone-700 whitespace-pre-wrap">
+                    {getLLMSpecsReasoning(detail.metadata) ?? "—"}
                   </dd>
                 </dl>
                 {(() => {
