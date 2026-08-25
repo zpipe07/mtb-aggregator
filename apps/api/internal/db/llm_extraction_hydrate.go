@@ -24,7 +24,7 @@ func (db *DB) hydrateExtractionSchema(ctx context.Context, profileID int) (json.
 func (db *DB) hydrateExtractionSchemaFrom(ctx context.Context, q profileFieldJoinQuerier, profileID int) (json.RawMessage, error) {
 	rows, err := q.Query(ctx, `
 		SELECT pf.sort_order, pf.overrides, pf.inline_field,
-		       fd.field_key, fd.field_type, fd.description, fd.label, fd.values, fd.filterable
+		       fd.field_key, fd.field_type, fd.description, fd.label, fd.values, fd.filterable, fd.extractable
 		FROM llm_prompt_profile_fields pf
 		LEFT JOIN llm_extraction_field_defs fd ON fd.id = pf.field_def_id
 		WHERE pf.profile_id = $1
@@ -46,8 +46,9 @@ func (db *DB) hydrateExtractionSchemaFrom(ctx context.Context, q profileFieldJoi
 		var label *string
 		var valuesJSON []byte
 		var filterable *bool
+		var extractable *bool
 
-		if err := rows.Scan(&sortOrder, &overrides, &inlineField, &fk, &ftype, &desc, &label, &valuesJSON, &filterable); err != nil {
+		if err := rows.Scan(&sortOrder, &overrides, &inlineField, &fk, &ftype, &desc, &label, &valuesJSON, &filterable, &extractable); err != nil {
 			return nil, err
 		}
 
@@ -69,6 +70,7 @@ func (db *DB) hydrateExtractionSchemaFrom(ctx context.Context, q profileFieldJoi
 				Label:       label,
 				ValuesJSON:  valuesJSON,
 				Filterable:  filterable,
+				Extractable: extractable,
 			}
 			sf, err := mergeDefOverridesToSchemaField(def, overrides, sortOrder)
 			if err != nil {
@@ -103,6 +105,7 @@ type extractionFieldDefRow struct {
 	Label       *string
 	ValuesJSON  []byte
 	Filterable  *bool
+	Extractable *bool
 }
 
 func (d *extractionFieldDefRow) toSchemaField(sortOrder int) llm.SchemaField {
@@ -119,6 +122,10 @@ func (d *extractionFieldDefRow) toSchemaField(sortOrder int) llm.SchemaField {
 		_ = json.Unmarshal(d.ValuesJSON, &sf.Values)
 	}
 	sf.Filterable = d.Filterable
+	if d.Extractable != nil && !*d.Extractable {
+		v := false
+		sf.Extractable = &v
+	}
 	return sf
 }
 
@@ -160,6 +167,10 @@ func applySchemaFieldOverrides(sf *llm.SchemaField, overrides []byte) error {
 			}
 		case "filterable":
 			if err := json.Unmarshal(v, &sf.Filterable); err != nil {
+				return err
+			}
+		case "extractable":
+			if err := json.Unmarshal(v, &sf.Extractable); err != nil {
 				return err
 			}
 		}
@@ -211,10 +222,11 @@ func (db *DB) loadExtractionFieldDefByKey(ctx context.Context, fieldKey string) 
 	var label *string
 	var valuesJSON []byte
 	var filterable *bool
+	var extractable *bool
 	err := db.pool.QueryRow(ctx, `
-		SELECT field_key, field_type, description, label, values, filterable
+		SELECT field_key, field_type, description, label, values, filterable, extractable
 		FROM llm_extraction_field_defs WHERE field_key = $1
-	`, fieldKey).Scan(&d.FieldKey, &d.FieldType, &d.Description, &label, &valuesJSON, &filterable)
+	`, fieldKey).Scan(&d.FieldKey, &d.FieldType, &d.Description, &label, &valuesJSON, &filterable, &extractable)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil
@@ -224,6 +236,7 @@ func (db *DB) loadExtractionFieldDefByKey(ctx context.Context, fieldKey string) 
 	d.Label = label
 	d.ValuesJSON = valuesJSON
 	d.Filterable = filterable
+	d.Extractable = extractable
 	return &d, nil
 }
 

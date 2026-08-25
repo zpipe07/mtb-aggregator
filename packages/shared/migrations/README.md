@@ -44,8 +44,12 @@ Override the migrations directory: `MIGRATIONS_DIR=path/to/migrations make db-mi
 | `037_flatten_clothing_tops_bottoms.sql` | Gear: flatten Clothing — Jerseys/Jackets/Shirts/Shorts/Pants/Socks directly under `gear-clothing`; remove Tops/Bottoms; priority leaf mappings; product-name backfill; LLM profile path updates |
 | `038_accessories_pumps.sql` | Accessories: `accessories-pumps`; priority mappings for pump/inflator keywords; product-name backfill; classifier rubrics; strip `pump` from Tools mapping |
 | `039_bikes_bmx.sql` | Bikes: `bikes-bmx`; priority mappings for BMX bike keywords; product-name backfill; classifier rubrics; `intended_use` enum adds BMX; optional BMX LLM profile |
+| `040_llm_specs_reasoning.sql` | Shared `reasoning` field def for LLM spec extraction audit trail |
+| `041_helmet_spec_extraction.sql` | `extractable` on field defs; helmet coverage rubric + system prompt; helmet `intended_use` override; `clothing_size` non-LLM |
 
 After 019, run **`make backfill-field-library`** once (from repo root) to rename ambiguous `type` / `material` keys in `extraction_schema` and `metadata.llm_specs`, seed shared defs, and populate `llm_prompt_profile_fields`.
+
+After 041, run **`make backfill-clothing-size`** to populate `metadata.llm_specs.clothing_size` from existing `variant_options` Size values.
 
 After 027, 032, 036, 037, 038, or 039, run **`make backfill-canonical-categories`** and **restart the API** so in-memory taxonomy reloads; these migrations also backfill by product name where applicable.
 
