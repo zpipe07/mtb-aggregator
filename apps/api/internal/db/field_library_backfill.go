@@ -181,6 +181,12 @@ func (db *DB) BackfillFieldLibrary(ctx context.Context) (BackfillFieldLibrarySta
 	if err != nil {
 		return st, err
 	}
+	_, err = ensure(tx, "reasoning", "string",
+		"Brief reasoning for the spec extraction",
+		strPtr("Reasoning"), nil, boolPtr(false))
+	if err != nil {
+		return st, err
+	}
 
 	for _, pr := range profiles {
 		var schema llm.ExtractionSchema
@@ -194,7 +200,7 @@ func (db *DB) BackfillFieldLibrary(ctx context.Context) (BackfillFieldLibrarySta
 
 		order := 0
 		for _, f := range schema.Fields {
-			if f.Key == "confidence" {
+			if f.Key == "confidence" || f.Key == "reasoning" {
 				continue
 			}
 

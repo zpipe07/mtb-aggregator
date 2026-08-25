@@ -84,23 +84,9 @@ func (db *DB) hydrateExtractionSchemaFrom(ctx context.Context, q profileFieldJoi
 		return nil, err
 	}
 
-	hasConfidence := false
-	for _, f := range fields {
-		if f.Key == "confidence" {
-			hasConfidence = true
-			break
-		}
-	}
-	if !hasConfidence {
-		conf, err := db.loadExtractionFieldDefByKey(ctx, "confidence")
-		if err != nil {
-			return nil, err
-		}
-		if conf == nil {
-			return nil, fmt.Errorf("missing llm_extraction_field_defs row for field_key=confidence")
-		}
-		sf := conf.toSchemaField(maxSort + 1)
-		fields = append(fields, sf)
+	fields, err = db.appendMetaExtractionFields(ctx, fields, maxSort)
+	if err != nil {
+		return nil, err
 	}
 
 	out, err := json.Marshal(llm.ExtractionSchema{Fields: fields})
@@ -181,13 +167,13 @@ func applySchemaFieldOverrides(sf *llm.SchemaField, overrides []byte) error {
 	return nil
 }
 
-// appendConfidenceToSchemaFields strips any existing confidence field and appends the library
-// confidence definition once (same source as hydrateExtractionSchemaFrom).
-func (db *DB) appendConfidenceToSchemaFields(ctx context.Context, fields []llm.SchemaField) ([]llm.SchemaField, error) {
+// appendMetaExtractionFields strips confidence/reasoning and appends library defs once
+// (same source as hydrateExtractionSchemaFrom).
+func (db *DB) appendMetaExtractionFields(ctx context.Context, fields []llm.SchemaField, baseSort int) ([]llm.SchemaField, error) {
 	filtered := fields[:0]
-	maxSort := 0
+	maxSort := baseSort
 	for _, f := range fields {
-		if f.Key == "confidence" {
+		if f.Key == "confidence" || f.Key == "reasoning" {
 			continue
 		}
 		if f.SortOrder > maxSort {
@@ -195,15 +181,29 @@ func (db *DB) appendConfidenceToSchemaFields(ctx context.Context, fields []llm.S
 		}
 		filtered = append(filtered, f)
 	}
-	conf, err := db.loadExtractionFieldDefByKey(ctx, "confidence")
-	if err != nil {
-		return nil, err
+	for _, key := range []string{"confidence", "reasoning"} {
+		def, err := db.loadExtractionFieldDefByKey(ctx, key)
+		if err != nil {
+			return nil, err
+		}
+		if def == nil {
+			return nil, fmt.Errorf("missing llm_extraction_field_defs row for field_key=%s", key)
+		}
+		maxSort++
+		filtered = append(filtered, def.toSchemaField(maxSort))
 	}
-	if conf == nil {
-		return nil, fmt.Errorf("missing llm_extraction_field_defs row for field_key=confidence")
-	}
-	filtered = append(filtered, conf.toSchemaField(maxSort+1))
 	return filtered, nil
+}
+
+// appendConfidenceToSchemaFields appends confidence and reasoning meta fields for merged profiles.
+func (db *DB) appendConfidenceToSchemaFields(ctx context.Context, fields []llm.SchemaField) ([]llm.SchemaField, error) {
+	maxSort := 0
+	for _, f := range fields {
+		if f.SortOrder > maxSort {
+			maxSort = f.SortOrder
+		}
+	}
+	return db.appendMetaExtractionFields(ctx, fields, maxSort)
 }
 
 func (db *DB) loadExtractionFieldDefByKey(ctx context.Context, fieldKey string) (*extractionFieldDefRow, error) {
