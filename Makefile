@@ -81,6 +81,10 @@ backfill-canonical-categories:
 backfill-llm-specs:
 	cd apps/api && go run ./cmd/backfill-llm-specs
 
+# Copy normalized variant Size into metadata.llm_specs.clothing_size (run after migration 041)
+backfill-clothing-size:
+	cd apps/api && go run ./cmd/backfill-clothing-size
+
 # Clear last_enriched_at on listings whose metadata was wiped by scrape-after-enrich; then run enrich-now FORCE=1
 requeue-wiped-enrichment:
 	cd apps/api && go run ./cmd/requeue-wiped-enrichment

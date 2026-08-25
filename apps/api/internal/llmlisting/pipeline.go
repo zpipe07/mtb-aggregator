@@ -192,6 +192,9 @@ func SpecExtractionStep(ctx context.Context, pool *db.DB, client *llm.Client, li
 		log.Printf("[llmlisting] listing %d: failed to save LLM specs: %v", listingID, err)
 		return nil
 	}
+	if err := pool.SyncClothingSizeFromVariant(ctx, listingID); err != nil {
+		log.Printf("[llmlisting] listing %d: sync clothing_size: %v", listingID, err)
+	}
 	log.Printf("[llmlisting] listing %d: LLM extracted specs", listingID)
 	return nil
 }

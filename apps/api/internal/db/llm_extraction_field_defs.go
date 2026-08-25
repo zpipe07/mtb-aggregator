@@ -21,6 +21,7 @@ type LLMExtractionFieldDef struct {
 	Label       *string         `json:"label,omitempty"`
 	Values      json.RawMessage `json:"values,omitempty"`
 	Filterable  *bool           `json:"filterable,omitempty"`
+	Extractable *bool           `json:"extractable,omitempty"`
 	CreatedAt   time.Time       `json:"created_at"`
 	UpdatedAt   time.Time       `json:"updated_at"`
 }
@@ -32,14 +33,14 @@ func (db *DB) ListLLMExtractionFieldDefs(ctx context.Context, q string) ([]LLMEx
 	var err error
 	if q == "" {
 		rows, err = db.pool.Query(ctx, `
-			SELECT id, field_key, field_type, description, label, values, filterable, created_at, updated_at
+			SELECT id, field_key, field_type, description, label, values, filterable, extractable, created_at, updated_at
 			FROM llm_extraction_field_defs
 			ORDER BY field_key
 		`)
 	} else {
 		pattern := "%" + q + "%"
 		rows, err = db.pool.Query(ctx, `
-			SELECT id, field_key, field_type, description, label, values, filterable, created_at, updated_at
+			SELECT id, field_key, field_type, description, label, values, filterable, extractable, created_at, updated_at
 			FROM llm_extraction_field_defs
 			WHERE field_key ILIKE $1 OR COALESCE(label, '') ILIKE $1
 			ORDER BY field_key
@@ -59,11 +60,13 @@ func scanLLMExtractionFieldDefRows(rows pgx.Rows) ([]LLMExtractionFieldDef, erro
 		var label *string
 		var values []byte
 		var filterable *bool
-		if err := rows.Scan(&d.ID, &d.FieldKey, &d.FieldType, &d.Description, &label, &values, &filterable, &d.CreatedAt, &d.UpdatedAt); err != nil {
+		var extractable *bool
+		if err := rows.Scan(&d.ID, &d.FieldKey, &d.FieldType, &d.Description, &label, &values, &filterable, &extractable, &d.CreatedAt, &d.UpdatedAt); err != nil {
 			return nil, err
 		}
 		d.Label = label
 		d.Filterable = filterable
+		d.Extractable = extractable
 		if len(values) > 0 {
 			d.Values = values
 		}
@@ -78,10 +81,11 @@ func (db *DB) GetLLMExtractionFieldDefByID(ctx context.Context, id int) (*LLMExt
 	var label *string
 	var values []byte
 	var filterable *bool
+	var extractable *bool
 	err := db.pool.QueryRow(ctx, `
-		SELECT id, field_key, field_type, description, label, values, filterable, created_at, updated_at
+		SELECT id, field_key, field_type, description, label, values, filterable, extractable, created_at, updated_at
 		FROM llm_extraction_field_defs WHERE id = $1
-	`, id).Scan(&d.ID, &d.FieldKey, &d.FieldType, &d.Description, &label, &values, &filterable, &d.CreatedAt, &d.UpdatedAt)
+	`, id).Scan(&d.ID, &d.FieldKey, &d.FieldType, &d.Description, &label, &values, &filterable, &extractable, &d.CreatedAt, &d.UpdatedAt)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil
@@ -90,6 +94,7 @@ func (db *DB) GetLLMExtractionFieldDefByID(ctx context.Context, id int) (*LLMExt
 	}
 	d.Label = label
 	d.Filterable = filterable
+	d.Extractable = extractable
 	if len(values) > 0 {
 		d.Values = values
 	}
@@ -97,22 +102,26 @@ func (db *DB) GetLLMExtractionFieldDefByID(ctx context.Context, id int) (*LLMExt
 }
 
 // CreateLLMExtractionFieldDef inserts a field def and returns its id.
-func (db *DB) CreateLLMExtractionFieldDef(ctx context.Context, fieldKey, fieldType, description string, label *string, values json.RawMessage, filterable *bool) (int, error) {
+func (db *DB) CreateLLMExtractionFieldDef(ctx context.Context, fieldKey, fieldType, description string, label *string, values json.RawMessage, filterable *bool, extractable *bool) (int, error) {
 	var valuesJSON interface{}
 	if len(values) > 0 {
 		valuesJSON = values
 	}
+	if extractable == nil {
+		t := true
+		extractable = &t
+	}
 	var id int
 	err := db.pool.QueryRow(ctx, `
-		INSERT INTO llm_extraction_field_defs (field_key, field_type, description, label, values, filterable)
-		VALUES ($1, $2, $3, $4, $5::jsonb, $6)
+		INSERT INTO llm_extraction_field_defs (field_key, field_type, description, label, values, filterable, extractable)
+		VALUES ($1, $2, $3, $4, $5::jsonb, $6, $7)
 		RETURNING id
-	`, fieldKey, fieldType, description, label, valuesJSON, filterable).Scan(&id)
+	`, fieldKey, fieldType, description, label, valuesJSON, filterable, extractable).Scan(&id)
 	return id, err
 }
 
 // UpdateLLMExtractionFieldDef updates a field def. field_key is immutable; if fieldKey differs from stored, returns error.
-func (db *DB) UpdateLLMExtractionFieldDef(ctx context.Context, id int, fieldKey, fieldType, description string, label *string, values json.RawMessage, filterable *bool) error {
+func (db *DB) UpdateLLMExtractionFieldDef(ctx context.Context, id int, fieldKey, fieldType, description string, label *string, values json.RawMessage, filterable *bool, extractable *bool) error {
 	existing, err := db.GetLLMExtractionFieldDefByID(ctx, id)
 	if err != nil {
 		return err
@@ -127,11 +136,15 @@ func (db *DB) UpdateLLMExtractionFieldDef(ctx context.Context, id int, fieldKey,
 	if len(values) > 0 {
 		valuesJSON = values
 	}
+	if extractable == nil {
+		t := true
+		extractable = &t
+	}
 	_, err = db.pool.Exec(ctx, `
 		UPDATE llm_extraction_field_defs
-		SET field_type = $2, description = $3, label = $4, values = $5::jsonb, filterable = $6, updated_at = NOW()
+		SET field_type = $2, description = $3, label = $4, values = $5::jsonb, filterable = $6, extractable = $7, updated_at = NOW()
 		WHERE id = $1
-	`, id, fieldType, description, label, valuesJSON, filterable)
+	`, id, fieldType, description, label, valuesJSON, filterable, extractable)
 	return err
 }
 

@@ -52,6 +52,23 @@ const upsertListingOnConflictSQL = `
 						)
 						ELSE '{}'::jsonb
 					END
+					|| CASE
+						WHEN EXCLUDED.metadata ? 'llm_specs'
+							AND jsonb_typeof(EXCLUDED.metadata->'llm_specs') = 'object'
+							AND EXCLUDED.metadata->'llm_specs' ? 'clothing_size'
+							AND NULLIF(BTRIM(EXCLUDED.metadata->'llm_specs'->>'clothing_size'), '') IS NOT NULL
+							AND (
+								store_listings.metadata->'llm_overrides' IS NULL
+								OR jsonb_typeof(store_listings.metadata->'llm_overrides') <> 'object'
+								OR NOT (store_listings.metadata->'llm_overrides' ? 'clothing_size')
+							)
+						THEN jsonb_build_object(
+							'llm_specs',
+							COALESCE(store_listings.metadata->'llm_specs', '{}'::jsonb)
+								|| jsonb_build_object('clothing_size', EXCLUDED.metadata->'llm_specs'->'clothing_size')
+						)
+						ELSE '{}'::jsonb
+					END
 				)
 			END,
 			is_in_stock = EXCLUDED.is_in_stock,

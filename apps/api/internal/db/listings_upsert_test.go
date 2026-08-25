@@ -19,6 +19,8 @@ func TestUpsertListingsBatch_onConflictMatchesSingleRow(t *testing.T) {
 		"metadata = CASE",
 		"product_group_key = COALESCE",
 		"variant_options = COALESCE",
+		"llm_specs",
+		"clothing_size",
 	} {
 		if !strings.Contains(conflict, frag) {
 			t.Errorf("ON CONFLICT SQL missing fragment %q", frag)
