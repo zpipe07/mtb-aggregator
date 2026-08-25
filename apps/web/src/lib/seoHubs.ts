@@ -9,6 +9,8 @@ export type SeoHubFilter = {
   brands?: string[];
   max_price?: number;
   min_price?: number;
+  /** Default full-text search when the hub URL has no `q` param (merged server-side). */
+  q?: string;
 };
 
 export type SeoHubFaqItem = {
@@ -227,6 +229,42 @@ const HUBS: SeoHubDefinition[] = [
     },
     relatedCategorySlugs: ["components-drivetrain", "components"],
   },
+  {
+    slug: "radial-tires",
+    title: "Radial MTB tire deals",
+    description:
+      "Mountain bike tires with radial casing on sale. Compare radial tire discounts across MTB retailers on The Dropper.",
+    intro:
+      "Radial mountain bike tires when shops mark them down—lightweight casing builds common on trail and XC rubber.",
+    filters: {
+      category_slug: "components-wheels-tires-tires",
+      q: "radial",
+    },
+    relatedCategorySlugs: [
+      "components-wheels-tires-tires",
+      "components-wheels-tires",
+      "components",
+    ],
+    parentCategoryPath: "/deals/c/components/wheels-tires/tires",
+    parentCategoryLabel: "All MTB tire deals",
+    faq: [
+      {
+        question: "What is a radial mountain bike tire?",
+        answer:
+          "Radial tires use casing plies that run at roughly 90° to the tread direction. That layout can reduce weight and rolling resistance compared with traditional bias-ply casings. Many modern trail and XC tires advertise radial construction in the product name or specs.",
+      },
+      {
+        question: "How is this list filtered?",
+        answer:
+          "We scope to the Tires category and match listings whose indexed product text includes “radial”—typically the casing type in the title or retailer description. Use the search box on this page to narrow further; prices and stock update as retailers change sales.",
+      },
+      {
+        question: "Are radial tires only for XC?",
+        answer:
+          "No. Radial casings show up on trail and enduro tires too when brands want a lighter or more supple casing. Compare sizes, compounds, and prices on each card; the retailer page has the full spec sheet.",
+      },
+    ],
+  },
 ];
 
 export function listSeoHubs(): SeoHubDefinition[] {
@@ -254,6 +292,17 @@ export async function hubEligible(hub: SeoHubDefinition): Promise<boolean> {
     offset: 0,
   });
   return hubMeetsIndexThreshold(res.total_count ?? 0);
+}
+
+/** Hub default `q` applies when the URL has no search; URL `q` overrides the hub default. */
+export function resolveHubSearchQuery(
+  hubFilter: SeoHubFilter,
+  fp: ParsedFilterParams,
+): string | undefined {
+  const fromUrl = fp.searchQuery.trim();
+  if (fromUrl) return fromUrl;
+  const fromHub = hubFilter.q?.trim() ?? "";
+  return fromHub || undefined;
 }
 
 function dedupeBrands(brands: string[]): string[] {
@@ -292,7 +341,7 @@ export function buildFetchDealsParamsFromHubAndFilters(
         ? minDiscountNum
         : undefined,
     exclude_category_slug: fp.excludeCategorySlug || undefined,
-    q: fp.searchQuery.trim() || undefined,
+    q: resolveHubSearchQuery(f, fp),
     sort: fp.sort,
     limit: DEFAULT_PAGE_SIZE,
     offset: fp.offset,
