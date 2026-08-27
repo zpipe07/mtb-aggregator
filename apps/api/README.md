@@ -47,8 +47,8 @@ Go HTTP server that orchestrates scraping, enrichment, and serves the REST API. 
 
 - `POST /admin/auth` — Validate password (`{"password":"..."}`); use same value as `Authorization: Bearer` on other `/admin/*` routes
 - `GET/POST/PUT/PATCH/DELETE /admin/*` — Dashboard, stores, taxonomy, profiles, etc.
-- **`GET /admin/metrics/pipeline`** — Scrape/enrich pipeline health for the admin Insights page. Query: optional `days` (default 30, max 90). Returns enrichment backlog (in-stock visible listings where `last_enriched_at` is null or `last_scraped` is newer), freshness buckets by `last_enriched_at` age, per-store backlog, and scrape/enrich job history in the window (for charts).
-- **`GET /admin/metrics/enrichment-steps`** — Durable per-step enrichment metrics (PDP fetch, classify, extract): backlog/dead counts, recent success/failure/skip rates, and LLM confidence histogram. Query: optional `days` (default 7, max 90). Used on admin Insights.
+- **`GET /admin/metrics/pipeline`** — Flow-centric pipeline health for admin Insights. Query: optional `days` (default 30, max 90). Returns scrape→extract latency (p50/p95), daily successful `enrichment_events` throughput by step, PDP freshness buckets by `pdp_fetched_at`, per-store PDP drainer status (due, in-flight, cooldown, last fetch), and recent scrape jobs for charts.
+- **`GET /admin/metrics/enrichment-steps`** — Per-step flow gauges (PDP, classify, extract): due / in-flight / dead counts, oldest-due age, recent success/failure/skip rates from `enrichment_events`, and LLM confidence histogram. Query: optional `days` (default 7, max 90). Used on admin Insights.
 - **`POST /admin/listings/:id/enrichment/retry?step=`** — Clear durable step state for one listing (`step=pdp|classify|extract`) so the next enrich job picks it up. Idempotent.
 - **`GET /admin/db/migrations`** — List incremental migration files and applied status (`schema_migrations` tracking; same logic as `go run ./cmd/migrate`)
 - **`POST /admin/db/migrate`** — Apply pending migrations from `MIGRATIONS_DIR` (default `packages/shared/migrations`; Docker image sets `/app/packages/shared/migrations`)

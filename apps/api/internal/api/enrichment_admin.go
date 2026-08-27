@@ -8,7 +8,7 @@ import (
 	"github.com/mtb-aggregator/api/internal/enrichstate"
 )
 
-// GetAdminEnrichmentStepMetrics returns per-step backlog, success rates, and confidence distribution.
+// GetAdminEnrichmentStepMetrics returns per-step flow gauges, event rates, and confidence distribution.
 func (h *Handlers) GetAdminEnrichmentStepMetrics(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)

@@ -69,23 +69,34 @@ export async function fetchDashboard(): Promise<DashboardResponse> {
   return res.json();
 }
 
-export interface PipelineStoreBacklog {
+export interface PipelineLatency {
+  p50_seconds: number | null;
+  p95_seconds: number | null;
+  sample_count: number;
+}
+
+export interface PipelineEventThroughputDay {
+  date: string;
+  pdp: number;
+  classify: number;
+  extract: number;
+}
+
+export interface PipelineStorePDP {
   store_id: number;
   name: string;
   store_type: string;
-  count: number;
-}
-
-export interface PipelineBacklog {
-  total: number;
-  stale_since_scrape: number;
-  never_enriched: number;
-  by_store: PipelineStoreBacklog[];
+  pdp_due: number;
+  pdp_in_flight: number;
+  pdp_dead: number;
+  pdp_last_fetch_at: string | null;
+  pdp_cooldown_until: string | null;
+  pdp_consecutive_failures: number;
 }
 
 export interface PipelineFreshness {
   in_stock_total: number;
-  never_enriched: number;
+  never_fetched: number;
   lt_24h: number;
   d1_7: number;
   d7_30: number;
@@ -93,10 +104,11 @@ export interface PipelineFreshness {
 }
 
 export interface PipelineMetricsResponse {
-  backlog: PipelineBacklog;
+  latency: PipelineLatency;
+  event_throughput: PipelineEventThroughputDay[];
   freshness: PipelineFreshness;
+  stores: PipelineStorePDP[];
   recent_scrape_jobs: ScrapeJob[];
-  recent_enrich_jobs: EnrichJob[];
   days: number;
 }
 
@@ -117,8 +129,10 @@ export async function fetchPipelineMetrics(
 
 export interface EnrichmentStepStat {
   step: string;
-  backlog: number;
+  due: number;
+  in_flight: number;
   dead: number;
+  oldest_due_age_seconds: number | null;
   success_count: number;
   failure_count: number;
   skipped_count: number;
