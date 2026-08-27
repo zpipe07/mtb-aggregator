@@ -27,7 +27,7 @@ The durable 3-step state machine (`pdp` → `classify` → `extract` in `apps/ap
 - **Phase 0 — Claim hardening:** shipped (ZAC-223) — lease/in-flight semantics on `listing_enrichment` claims.
 - **Phase 1 — LLM freshness:** scrape-triggered classify+extract pass + safety-net cron; split job types so LLM never waits on PDP.
 - **Phase 2 — PDP drainer:** [x] resident loop, per-store pacing, persistent per-store cooldown, 30d stale horizon.
-- **Phase 3 — Insights rework:** scrape-to-enriched latency headline, step flow gauges, per-store PDP status.
+- **Phase 3 — Insights rework:** [x] scrape-to-enriched latency headline, step flow gauges, per-store PDP status; event-based throughput (no synthesized `enrich_jobs` windows).
 
 ## Not Doing (and Why)
 
@@ -40,4 +40,4 @@ The durable 3-step state machine (`pdp` → `classify` → `extract` in `apps/ap
 
 - Default pacing value (1 req/15s per store?) and whether any store needs a stricter override from day one.
 - How manual `/enrich-now` and force-enrich interact with the drainer — **resolved:** burst bypasses min-interval; honors cooldown unless `force=1`.
-- Whether to keep synthesizing `enrich_jobs` rows (e.g. hourly windows) for continuity of existing dashboards, or cut over fully to event-based reporting.
+- Whether to keep synthesizing `enrich_jobs` rows (e.g. hourly windows) for continuity of existing dashboards — **resolved:** cut over to `enrichment_events` + `listing_enrichment` on Insights; Operations keeps job history for bursts/LLM.

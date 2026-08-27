@@ -482,13 +482,15 @@ type EnrichmentStepMetrics struct {
 }
 
 type EnrichmentStepStat struct {
-	Step           string  `json:"step"`
-	Backlog        int     `json:"backlog"`
-	Dead           int     `json:"dead"`
-	SuccessCount   int     `json:"success_count"`
-	FailureCount   int     `json:"failure_count"`
-	SkippedCount   int     `json:"skipped_count"`
-	SuccessRatePct float64 `json:"success_rate_pct"`
+	Step                 string  `json:"step"`
+	Due                  int     `json:"due"`
+	InFlight             int     `json:"in_flight"`
+	Dead                 int     `json:"dead"`
+	OldestDueAgeSeconds  *int    `json:"oldest_due_age_seconds"`
+	SuccessCount         int     `json:"success_count"`
+	FailureCount         int     `json:"failure_count"`
+	SkippedCount         int     `json:"skipped_count"`
+	SuccessRatePct       float64 `json:"success_rate_pct"`
 }
 
 type ConfidenceBucket struct {
@@ -507,7 +509,7 @@ func (db *DB) GetEnrichmentStepMetrics(ctx context.Context, days int) (Enrichmen
 	var out EnrichmentStepMetrics
 	out.Days = days
 
-	backlog, err := db.enrichmentStepBacklog(ctx)
+	backlog, err := db.enrichmentStepFlowStats(ctx)
 	if err != nil {
 		return out, err
 	}
@@ -598,33 +600,55 @@ func (db *DB) GetEnrichmentStepMetrics(ctx context.Context, days int) (Enrichmen
 	return out, histRows.Err()
 }
 
-func (db *DB) enrichmentStepBacklog(ctx context.Context) ([]EnrichmentStepStat, error) {
-	var stats []EnrichmentStepStat
+func (db *DB) enrichmentStepFlowStats(ctx context.Context) ([]EnrichmentStepStat, error) {
+	staleCutoff := time.Now().Add(-enrichstate.DefaultConfig().PDPStaleAfter)
+	enrichers := pq.Array(StoreTypesWithEnrichers)
+
 	queries := []struct {
 		step  string
 		query string
+		args  []interface{}
 	}{
 		{
 			step: string(enrichstate.StepPDP),
+			args: []interface{}{staleCutoff, enrichers},
 			query: `
 				SELECT
-					COUNT(*) FILTER (WHERE le.pdp_fetched_at IS NULL OR le.pdp_fetched_at < NOW() - INTERVAL '30 days')::int,
-					COUNT(*) FILTER (WHERE le.pdp_dead)::int
+					COUNT(*) FILTER (WHERE
+						COALESCE(le.pdp_dead, false) = false
+						AND (le.next_pdp_attempt_at IS NULL OR le.next_pdp_attempt_at <= NOW())
+						AND (le.pdp_fetched_at IS NULL OR le.pdp_fetched_at < $1)
+					)::int,
+					COUNT(*) FILTER (WHERE le.pdp_leased_until > NOW())::int,
+					COUNT(*) FILTER (WHERE le.pdp_dead)::int,
+					EXTRACT(EPOCH FROM (
+						NOW() - MIN(COALESCE(le.pdp_fetched_at, l.last_scraped, l.created_at)) FILTER (WHERE
+							COALESCE(le.pdp_dead, false) = false
+							AND (le.next_pdp_attempt_at IS NULL OR le.next_pdp_attempt_at <= NOW())
+							AND (le.pdp_fetched_at IS NULL OR le.pdp_fetched_at < $1)
+						)
+					))::int
 				FROM store_listings l
 				JOIN stores s ON s.id = l.store_id
 				LEFT JOIN listing_enrichment le ON le.listing_id = l.id
 				WHERE l.is_in_stock = true AND l.hidden = false
 					AND l.product_url IS NOT NULL AND l.product_url != ''
-					AND s.store_type = ANY($1)
-					AND COALESCE(le.pdp_dead, false) = false
+					AND s.store_type = ANY($2)
 			`,
 		},
 		{
 			step: string(enrichstate.StepClassify),
+			args: []interface{}{enrichers},
 			query: `
 				SELECT
 					COUNT(*) FILTER (WHERE le.classified_at IS NULL OR le.pdp_hash IS DISTINCT FROM ps.content_hash)::int,
-					COUNT(*) FILTER (WHERE le.classify_dead)::int
+					COUNT(*) FILTER (WHERE le.classify_leased_until > NOW())::int,
+					COUNT(*) FILTER (WHERE le.classify_dead)::int,
+					EXTRACT(EPOCH FROM (
+						NOW() - MIN(COALESCE(le.classified_at, le.pdp_fetched_at)) FILTER (WHERE
+							le.classified_at IS NULL OR le.pdp_hash IS DISTINCT FROM ps.content_hash
+						)
+					))::int
 				FROM store_listings l
 				JOIN stores s ON s.id = l.store_id
 				JOIN listing_enrichment le ON le.listing_id = l.id
@@ -637,10 +661,17 @@ func (db *DB) enrichmentStepBacklog(ctx context.Context) ([]EnrichmentStepStat, 
 		},
 		{
 			step: string(enrichstate.StepExtract),
+			args: []interface{}{enrichers},
 			query: `
 				SELECT
 					COUNT(*) FILTER (WHERE le.extracted_at IS NULL OR le.pdp_hash IS DISTINCT FROM ps.content_hash)::int,
-					COUNT(*) FILTER (WHERE le.extract_dead)::int
+					COUNT(*) FILTER (WHERE le.extract_leased_until > NOW())::int,
+					COUNT(*) FILTER (WHERE le.extract_dead)::int,
+					EXTRACT(EPOCH FROM (
+						NOW() - MIN(COALESCE(le.extracted_at, le.classified_at, le.pdp_fetched_at)) FILTER (WHERE
+							le.extracted_at IS NULL OR le.pdp_hash IS DISTINCT FROM ps.content_hash
+						)
+					))::int
 				FROM store_listings l
 				JOIN stores s ON s.id = l.store_id
 				JOIN listing_enrichment le ON le.listing_id = l.id
@@ -653,12 +684,20 @@ func (db *DB) enrichmentStepBacklog(ctx context.Context) ([]EnrichmentStepStat, 
 			`,
 		},
 	}
+
+	var stats []EnrichmentStepStat
 	for _, q := range queries {
-		var backlog, dead int
-		if err := db.pool.QueryRow(ctx, q.query, pq.Array(StoreTypesWithEnrichers)).Scan(&backlog, &dead); err != nil {
+		var due, inFlight, dead int
+		var oldest pgtype.Int4
+		if err := db.pool.QueryRow(ctx, q.query, q.args...).Scan(&due, &inFlight, &dead, &oldest); err != nil {
 			return nil, err
 		}
-		stats = append(stats, EnrichmentStepStat{Step: q.step, Backlog: backlog, Dead: dead})
+		st := EnrichmentStepStat{Step: q.step, Due: due, InFlight: inFlight, Dead: dead}
+		if oldest.Valid {
+			v := int(oldest.Int32)
+			st.OldestDueAgeSeconds = &v
+		}
+		stats = append(stats, st)
 	}
 	return stats, nil
 }

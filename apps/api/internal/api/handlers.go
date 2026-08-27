@@ -483,8 +483,8 @@ func (h *Handlers) GetAdminDashboard(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// GetAdminPipelineMetrics returns scrape/enrich pipeline health for admin insights.
-// Query: days (default 30, max 90) — window for recent job history charts.
+// GetAdminPipelineMetrics returns flow-centric pipeline health for admin insights.
+// Query: days (default 30, max 90) — window for latency, event throughput, and scrape job charts.
 func (h *Handlers) GetAdminPipelineMetrics(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
