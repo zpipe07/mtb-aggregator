@@ -1486,14 +1486,33 @@ func (db *DB) LastScrapeJobAge(ctx context.Context) (time.Duration, error) {
 	return time.Duration(age * float64(time.Second)), nil
 }
 
-// LastEnrichJobAge returns how long ago the most recent completed or running enrich job started.
-// Returns -1 if no jobs exist.
+// LastEnrichJobAge returns how long ago the most recent completed or running PDP enrich job started.
+// Returns -1 if no jobs exist. Only considers job_type=enrich (not llm_specs classify/extract jobs).
 func (db *DB) LastEnrichJobAge(ctx context.Context) (time.Duration, error) {
 	var age float64
 	err := db.pool.QueryRow(ctx, `
 		SELECT EXTRACT(EPOCH FROM (NOW() - started_at))
 		FROM enrich_jobs
-		WHERE status IN ('completed', 'running')
+		WHERE job_type = 'enrich' AND status IN ('completed', 'running')
+		ORDER BY started_at DESC LIMIT 1
+	`).Scan(&age)
+	if err != nil {
+		if err.Error() == "no rows in result set" {
+			return -1, nil
+		}
+		return 0, err
+	}
+	return time.Duration(age * float64(time.Second)), nil
+}
+
+// LastLLMSpecsJobAge returns how long ago the most recent completed or running llm_specs job started.
+// Returns -1 if no jobs exist.
+func (db *DB) LastLLMSpecsJobAge(ctx context.Context) (time.Duration, error) {
+	var age float64
+	err := db.pool.QueryRow(ctx, `
+		SELECT EXTRACT(EPOCH FROM (NOW() - started_at))
+		FROM enrich_jobs
+		WHERE job_type = 'llm_specs' AND status IN ('completed', 'running')
 		ORDER BY started_at DESC LIMIT 1
 	`).Scan(&age)
 	if err != nil {

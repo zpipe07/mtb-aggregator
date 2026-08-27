@@ -38,10 +38,21 @@ type Pipeline struct {
 	CircuitBreaker   *CircuitBreaker
 }
 
+// DefaultJobSteps is the full enrichment pipeline order (PDP, then LLM passes).
+var DefaultJobSteps = []Step{StepPDP, StepClassify, StepExtract}
+
+// LLMJobSteps runs classify and extract only (DB-backed; no store PDP fetches).
+var LLMJobSteps = []Step{StepClassify, StepExtract}
+
 // RunJob executes PDP, classify, and extract passes until batch limits or timeout.
 // maxListings caps each step independently: a large PDP backlog must not starve
 // the classify/extract passes of their budget.
 func (p *Pipeline) RunJob(ctx context.Context, filter ClaimFilter, force bool, batchSize, maxListings int, jobID *int) (processed, succeeded int, errStrs []string) {
+	return p.RunJobSteps(ctx, filter, force, batchSize, maxListings, jobID, DefaultJobSteps)
+}
+
+// RunJobSteps runs the given steps in order (e.g. LLMJobSteps for classify+extract only).
+func (p *Pipeline) RunJobSteps(ctx context.Context, filter ClaimFilter, force bool, batchSize, maxListings int, jobID *int, steps []Step) (processed, succeeded int, errStrs []string) {
 	cfg := p.Config
 	if cfg.BackoffBase == 0 {
 		cfg = DefaultConfig()
@@ -50,7 +61,7 @@ func (p *Pipeline) RunJob(ctx context.Context, filter ClaimFilter, force bool, b
 		cfg.ClaimLease = DefaultConfig().ClaimLease
 	}
 
-	for _, step := range []Step{StepPDP, StepClassify, StepExtract} {
+	for _, step := range steps {
 		stepProcessed := 0
 		for {
 			if ctx.Err() != nil {

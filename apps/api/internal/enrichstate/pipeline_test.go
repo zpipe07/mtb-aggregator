@@ -159,6 +159,20 @@ func (f fakeScraper) Enrich(context.Context, string, string) (*scraper.EnrichRes
 	}, nil
 }
 
+type countingScraper struct {
+	calls int
+}
+
+func (c *countingScraper) Enrich(context.Context, string, string) (*scraper.EnrichResult, error) {
+	c.calls++
+	desc := "test"
+	return &scraper.EnrichResult{
+		CategoryPath: []string{"Components"},
+		RawSpecs:     map[string]string{"weight": "200g"},
+		Description:  &desc,
+	}, nil
+}
+
 type fakeLLM struct {
 	classifyErr error
 }
@@ -479,5 +493,54 @@ func TestPipeline_SkipClassifyWhenAlreadyDone(t *testing.T) {
 	}
 	if !foundRelease {
 		t.Fatalf("expected ReleaseLease on LLM skip, got %+v", state.releaseCalls)
+	}
+}
+
+func TestPipeline_RunJobSteps_LLMOnlySkipsPDP(t *testing.T) {
+	t.Parallel()
+	now := time.Now()
+	completed := now.Add(-time.Hour)
+	item := WorkItem{ListingID: 20, ProductURL: "http://x/20"}
+
+	state := newFakeStateStore(map[Step][]WorkItem{
+		StepPDP:      {item},
+		StepClassify: {item},
+	})
+	state.states[20] = &ListingState{
+		ListingID: 20,
+		PDP:       StepState{CompletedAt: &completed},
+	}
+	snaps := &fakeSnapshots{snaps: map[int]*Snapshot{
+		20: {ListingID: 20, ContentHash: "hash-20"},
+	}}
+	events := &fakeEvents{}
+	scraper := &countingScraper{}
+	p := &Pipeline{
+		State:     state,
+		Snapshots: snaps,
+		Events:    events,
+		Scraper:   scraper,
+		LLM:       fakeLLM{},
+		Listings:  fakeListings{},
+		Config:    DefaultConfig(),
+	}
+	processed, succeeded, errStrs := p.RunJobSteps(context.Background(), ClaimFilter{}, false, 10, 0, nil, LLMJobSteps)
+	if len(errStrs) != 0 {
+		t.Fatalf("unexpected errors: %v", errStrs)
+	}
+	if scraper.calls != 0 {
+		t.Fatalf("scraper calls = %d, want 0 (LLM-only job must not fetch PDP)", scraper.calls)
+	}
+	if got := countEvents(events.events, StepPDP, StatusSuccess); got != 0 {
+		t.Errorf("pdp successes = %d, want 0", got)
+	}
+	if got := countEvents(events.events, StepClassify, StatusSuccess); got != 1 {
+		t.Errorf("classify successes = %d, want 1", got)
+	}
+	if processed != 1 || succeeded != 1 {
+		t.Errorf("processed=%d succeeded=%d, want 1/1", processed, succeeded)
+	}
+	if len(state.items[StepPDP]) != 1 {
+		t.Errorf("PDP queue should be untouched, still has %d items", len(state.items[StepPDP]))
 	}
 }

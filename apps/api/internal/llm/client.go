@@ -57,6 +57,11 @@ func New(apiKey, model string) *Client {
 	}
 }
 
+// Configured reports whether the client can call OpenAI (non-empty API key).
+func (c *Client) Configured() bool {
+	return c != nil && c.apiKey != ""
+}
+
 func getOpenAIMaxRetries() int {
 	if s := os.Getenv("OPENAI_MAX_RETRIES"); s != "" {
 		if n, err := strconv.Atoi(s); err == nil && n > 0 {
