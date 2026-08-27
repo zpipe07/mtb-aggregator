@@ -46,6 +46,9 @@ func (p *Pipeline) RunJob(ctx context.Context, filter ClaimFilter, force bool, b
 	if cfg.BackoffBase == 0 {
 		cfg = DefaultConfig()
 	}
+	if cfg.ClaimLease <= 0 {
+		cfg.ClaimLease = DefaultConfig().ClaimLease
+	}
 
 	for _, step := range []Step{StepPDP, StepClassify, StepExtract} {
 		stepProcessed := 0
@@ -64,7 +67,8 @@ func (p *Pipeline) RunJob(ctx context.Context, filter ClaimFilter, force bool, b
 				p.BeforeClaimBatch(step)
 			}
 			now := time.Now()
-			items, err := p.State.ClaimForStep(ctx, step, filter, limit, force, now)
+			leaseUntil := now.Add(cfg.ClaimLease)
+			items, err := p.State.ClaimForStep(ctx, step, filter, limit, force, now, leaseUntil)
 			if err != nil {
 				errStrs = append(errStrs, string(step)+": claim: "+err.Error())
 				return processed, succeeded, errStrs
@@ -77,6 +81,7 @@ func (p *Pipeline) RunJob(ctx context.Context, filter ClaimFilter, force bool, b
 					return processed, succeeded, errStrs
 				}
 				if step == StepPDP && p.CircuitBreaker != nil && p.CircuitBreaker.IsTripped(item.StoreType) {
+					_ = p.State.ReleaseLease(ctx, item.ListingID, step)
 					continue
 				}
 				stepProcessed++
@@ -108,6 +113,11 @@ func (p *Pipeline) RunJob(ctx context.Context, filter ClaimFilter, force bool, b
 
 func (p *Pipeline) runOne(ctx context.Context, step Step, item WorkItem, force bool, jobID *int, now time.Time, cfg Config) (success bool, err error) {
 	start := time.Now()
+	defer func() {
+		if p.State != nil {
+			_ = p.State.ReleaseLease(ctx, item.ListingID, step)
+		}
+	}()
 	if err := p.State.EnsureRow(ctx, item.ListingID); err != nil {
 		return false, err
 	}

@@ -66,108 +66,102 @@ func (s EnrichmentStateStore) GetState(ctx context.Context, listingID int) (*enr
 	return &st, nil
 }
 
-func (s EnrichmentStateStore) ClaimForStep(ctx context.Context, step enrichstate.Step, filter enrichstate.ClaimFilter, limit int, force bool, now time.Time) ([]enrichstate.WorkItem, error) {
+func (s EnrichmentStateStore) ClaimForStep(ctx context.Context, step enrichstate.Step, filter enrichstate.ClaimFilter, limit int, force bool, now, leaseUntil time.Time) ([]enrichstate.WorkItem, error) {
 	if limit <= 0 {
 		limit = 50
 	}
-	base := `
-		SELECT l.id, l.store_id, COALESCE(s.store_type, 'jensonusa'), l.product_url, COALESCE(l.store_sku, '')
-		FROM store_listings l
-		JOIN stores s ON s.id = l.store_id
-		LEFT JOIN listing_enrichment le ON le.listing_id = l.id
-		LEFT JOIN pdp_snapshots ps ON ps.listing_id = l.id
-		WHERE l.product_url IS NOT NULL AND l.product_url != ''` + listingVisibilityGate
+	leaseCol, err := stepLeaseColumn(step)
+	if err != nil {
+		return nil, err
+	}
 
-	args := []interface{}{}
-	argNum := 1
+	visibility := `l.product_url IS NOT NULL AND l.product_url != ''` + listingVisibilityGate
+	args := []interface{}{now, leaseUntil, limit}
+	argNum := 4
 
+	storeFilter := ""
 	if filter.StoreType != "" {
-		base += fmt.Sprintf(" AND s.store_type = $%d", argNum)
+		storeFilter = fmt.Sprintf(" AND s.store_type = $%d", argNum)
 		args = append(args, filter.StoreType)
 		argNum++
 	} else {
-		base += fmt.Sprintf(" AND s.store_type = ANY($%d)", argNum)
+		storeFilter = fmt.Sprintf(" AND s.store_type = ANY($%d)", argNum)
 		args = append(args, pq.Array(StoreTypesWithEnrichers))
 		argNum++
 	}
+
+	categoryFilter := ""
 	if len(filter.CanonicalCategory) > 0 {
-		base += fmt.Sprintf(" AND l.canonical_category = $%d", argNum)
+		categoryFilter = fmt.Sprintf(" AND l.canonical_category = $%d", argNum)
 		args = append(args, pq.Array(filter.CanonicalCategory))
 		argNum++
 	}
+
+	confidenceFilter := ""
 	if filter.LlmConfidenceBelow != nil {
-		base += fmt.Sprintf(" AND (l.metadata->'llm_category'->>'confidence')::float < $%d", argNum)
+		confidenceFilter = fmt.Sprintf(" AND (l.metadata->'llm_category'->>'confidence')::float < $%d", argNum)
 		args = append(args, *filter.LlmConfidenceBelow)
 		argNum++
 	}
 
-	switch step {
-	case enrichstate.StepPDP:
-		base += fmt.Sprintf(`
-			AND COALESCE(le.pdp_dead, false) = false
-			AND (le.next_pdp_attempt_at IS NULL OR le.next_pdp_attempt_at <= $%d)`, argNum)
-		args = append(args, now)
-		argNum++
-		if !force {
-			base += ` AND (le.pdp_fetched_at IS NULL OR le.pdp_fetched_at < NOW() - INTERVAL '7 days')`
-		}
-		base += `
-			ORDER BY le.pdp_fetched_at NULLS FIRST, l.last_scraped DESC`
-	case enrichstate.StepClassify:
-		base += fmt.Sprintf(`
-			AND le.pdp_fetched_at IS NOT NULL
-			AND COALESCE(le.classify_dead, false) = false
-			AND (le.next_classify_attempt_at IS NULL OR le.next_classify_attempt_at <= $%d)
-			AND ps.listing_id IS NOT NULL
-			AND COALESCE((ps.payload->>'unavailable')::boolean, false) = false`, argNum)
-		args = append(args, now)
-		argNum++
-		if !force {
-			base += `
-			AND (
-				le.classified_at IS NULL
-				OR le.pdp_hash IS DISTINCT FROM ps.content_hash
-				OR EXISTS (
-					SELECT 1 FROM llm_prompt_profiles lp
-					WHERE lp.category_id = l.category_id AND lp.enabled = true
-						AND (le.prompt_profile_version IS NULL OR le.prompt_profile_version < lp.updated_at)
-				)
-			)`
-		}
-		base += `
-			ORDER BY le.classified_at NULLS FIRST, l.last_scraped DESC`
-	case enrichstate.StepExtract:
-		base += fmt.Sprintf(`
-			AND le.pdp_fetched_at IS NOT NULL
-			AND l.canonical_category IS NOT NULL AND cardinality(l.canonical_category) > 0
-			AND COALESCE(le.extract_dead, false) = false
-			AND (le.next_extract_attempt_at IS NULL OR le.next_extract_attempt_at <= $%d)
-			AND ps.listing_id IS NOT NULL
-			AND COALESCE((ps.payload->>'unavailable')::boolean, false) = false`, argNum)
-		args = append(args, now)
-		argNum++
-		if !force {
-			base += `
-			AND (
-				le.extracted_at IS NULL
-				OR le.pdp_hash IS DISTINCT FROM ps.content_hash
-				OR EXISTS (
-					SELECT 1 FROM llm_prompt_profiles lp
-					WHERE lp.category_id = l.category_id AND lp.enabled = true
-						AND (le.prompt_profile_version IS NULL OR le.prompt_profile_version < lp.updated_at)
-				)
-			)`
-		}
-		base += `
-			ORDER BY le.extracted_at NULLS FIRST, l.last_scraped DESC`
-	default:
-		return nil, fmt.Errorf("unknown step %q", step)
+	stepWhere, orderBy, err := stepClaimEligibility(step, force, now)
+	if err != nil {
+		return nil, err
 	}
 
-	base += fmt.Sprintf(" LIMIT $%d", argNum)
-	args = append(args, limit)
+	leaseFree := fmt.Sprintf("(le.%s IS NULL OR le.%s <= $1)", leaseCol, leaseCol)
 
-	rows, err := s.DB.pool.Query(ctx, base, args...)
+	pickedFrom := `
+		FROM listing_enrichment le
+		INNER JOIN store_listings l ON l.id = le.listing_id
+		INNER JOIN stores s ON s.id = l.store_id
+		LEFT JOIN pdp_snapshots ps ON ps.listing_id = l.id
+		WHERE ` + visibility + storeFilter + categoryFilter + confidenceFilter + stepWhere + `
+			AND ` + leaseFree + `
+		` + orderBy + `
+		LIMIT $3
+		FOR UPDATE OF le SKIP LOCKED`
+
+	var query string
+	if step == enrichstate.StepPDP {
+		// Never-enriched listings may lack a listing_enrichment row; insert before locking.
+		query = `
+			WITH ensure AS (
+				INSERT INTO listing_enrichment (listing_id)
+				SELECT l.id
+				FROM store_listings l
+				INNER JOIN stores s ON s.id = l.store_id
+				LEFT JOIN listing_enrichment le ON le.listing_id = l.id
+				LEFT JOIN pdp_snapshots ps ON ps.listing_id = l.id
+				WHERE ` + visibility + storeFilter + categoryFilter + confidenceFilter + `
+					AND le.listing_id IS NULL` + stepWhere + `
+				ORDER BY l.last_scraped DESC
+				LIMIT $3
+				ON CONFLICT (listing_id) DO NOTHING
+			)
+			UPDATE listing_enrichment le
+			SET ` + leaseCol + ` = $2, updated_at = NOW()
+			FROM (
+				SELECT l.id AS listing_id, l.store_id, COALESCE(s.store_type, 'jensonusa') AS store_type,
+					l.product_url, COALESCE(l.store_sku, '') AS store_sku
+				` + pickedFrom + `
+			) picked
+			WHERE le.listing_id = picked.listing_id
+			RETURNING picked.listing_id, picked.store_id, picked.store_type, picked.product_url, picked.store_sku`
+	} else {
+		query = `
+			UPDATE listing_enrichment le
+			SET ` + leaseCol + ` = $2, updated_at = NOW()
+			FROM (
+				SELECT l.id AS listing_id, l.store_id, COALESCE(s.store_type, 'jensonusa') AS store_type,
+					l.product_url, COALESCE(l.store_sku, '') AS store_sku
+				` + pickedFrom + `
+			) picked
+			WHERE le.listing_id = picked.listing_id
+			RETURNING picked.listing_id, picked.store_id, picked.store_type, picked.product_url, picked.store_sku`
+	}
+
+	rows, err := s.DB.pool.Query(ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -184,6 +178,88 @@ func (s EnrichmentStateStore) ClaimForStep(ctx context.Context, step enrichstate
 	return items, rows.Err()
 }
 
+func stepLeaseColumn(step enrichstate.Step) (string, error) {
+	switch step {
+	case enrichstate.StepPDP:
+		return "pdp_leased_until", nil
+	case enrichstate.StepClassify:
+		return "classify_leased_until", nil
+	case enrichstate.StepExtract:
+		return "extract_leased_until", nil
+	default:
+		return "", fmt.Errorf("unknown step %q", step)
+	}
+}
+
+func stepClaimEligibility(step enrichstate.Step, force bool, now time.Time) (where string, orderBy string, err error) {
+	_ = now
+	switch step {
+	case enrichstate.StepPDP:
+		where = `
+			AND COALESCE(le.pdp_dead, false) = false
+			AND (le.next_pdp_attempt_at IS NULL OR le.next_pdp_attempt_at <= $1)`
+		if !force {
+			where += ` AND (le.pdp_fetched_at IS NULL OR le.pdp_fetched_at < NOW() - INTERVAL '7 days')`
+		}
+		orderBy = `ORDER BY le.pdp_fetched_at NULLS FIRST, l.last_scraped DESC`
+	case enrichstate.StepClassify:
+		where = `
+			AND le.pdp_fetched_at IS NOT NULL
+			AND COALESCE(le.classify_dead, false) = false
+			AND (le.next_classify_attempt_at IS NULL OR le.next_classify_attempt_at <= $1)
+			AND ps.listing_id IS NOT NULL
+			AND COALESCE((ps.payload->>'unavailable')::boolean, false) = false`
+		if !force {
+			where += `
+			AND (
+				le.classified_at IS NULL
+				OR le.pdp_hash IS DISTINCT FROM ps.content_hash
+				OR EXISTS (
+					SELECT 1 FROM llm_prompt_profiles lp
+					WHERE lp.category_id = l.category_id AND lp.enabled = true
+						AND (le.prompt_profile_version IS NULL OR le.prompt_profile_version < lp.updated_at)
+				)
+			)`
+		}
+		orderBy = `ORDER BY le.classified_at NULLS FIRST, l.last_scraped DESC`
+	case enrichstate.StepExtract:
+		where = `
+			AND le.pdp_fetched_at IS NOT NULL
+			AND l.canonical_category IS NOT NULL AND cardinality(l.canonical_category) > 0
+			AND COALESCE(le.extract_dead, false) = false
+			AND (le.next_extract_attempt_at IS NULL OR le.next_extract_attempt_at <= $1)
+			AND ps.listing_id IS NOT NULL
+			AND COALESCE((ps.payload->>'unavailable')::boolean, false) = false`
+		if !force {
+			where += `
+			AND (
+				le.extracted_at IS NULL
+				OR le.pdp_hash IS DISTINCT FROM ps.content_hash
+				OR EXISTS (
+					SELECT 1 FROM llm_prompt_profiles lp
+					WHERE lp.category_id = l.category_id AND lp.enabled = true
+						AND (le.prompt_profile_version IS NULL OR le.prompt_profile_version < lp.updated_at)
+				)
+			)`
+		}
+		orderBy = `ORDER BY le.extracted_at NULLS FIRST, l.last_scraped DESC`
+	default:
+		return "", "", fmt.Errorf("unknown step %q", step)
+	}
+	return where, orderBy, nil
+}
+
+func (s EnrichmentStateStore) ReleaseLease(ctx context.Context, listingID int, step enrichstate.Step) error {
+	leaseCol, err := stepLeaseColumn(step)
+	if err != nil {
+		return err
+	}
+	_, err = s.DB.pool.Exec(ctx, fmt.Sprintf(`
+		UPDATE listing_enrichment SET %s = NULL, updated_at = NOW() WHERE listing_id = $1
+	`, leaseCol), listingID)
+	return err
+}
+
 func (s EnrichmentStateStore) RecordStepSuccess(ctx context.Context, listingID int, step enrichstate.Step, meta enrichstate.StepSuccessMeta, completedAt time.Time) error {
 	switch step {
 	case enrichstate.StepPDP:
@@ -198,6 +274,7 @@ func (s EnrichmentStateStore) RecordStepSuccess(ctx context.Context, listingID i
 				pdp_error = NULL,
 				next_pdp_attempt_at = NULL,
 				pdp_dead = false,
+				pdp_leased_until = NULL,
 				updated_at = NOW()
 			WHERE listing_id = $1
 		`, listingID, completedAt)
@@ -210,6 +287,7 @@ func (s EnrichmentStateStore) RecordStepSuccess(ctx context.Context, listingID i
 				classify_error = NULL,
 				next_classify_attempt_at = NULL,
 				classify_dead = false,
+				classify_leased_until = NULL,
 				pdp_hash = COALESCE($3, pdp_hash),
 				llm_confidence = $4,
 				prompt_profile_version = $5,
@@ -225,6 +303,7 @@ func (s EnrichmentStateStore) RecordStepSuccess(ctx context.Context, listingID i
 				extract_error = NULL,
 				next_extract_attempt_at = NULL,
 				extract_dead = false,
+				extract_leased_until = NULL,
 				pdp_hash = COALESCE($3, pdp_hash),
 				prompt_profile_version = COALESCE($4, prompt_profile_version),
 				updated_at = NOW()
@@ -248,6 +327,7 @@ func (s EnrichmentStateStore) RecordStepFailure(ctx context.Context, listingID i
 				pdp_error = $2,
 				next_pdp_attempt_at = $3,
 				pdp_dead = $4,
+				pdp_leased_until = NULL,
 				updated_at = NOW()
 			WHERE listing_id = $1
 		`, listingID, errMsg, nextAttempt, dead)
@@ -259,6 +339,7 @@ func (s EnrichmentStateStore) RecordStepFailure(ctx context.Context, listingID i
 				classify_error = $2,
 				next_classify_attempt_at = $3,
 				classify_dead = $4,
+				classify_leased_until = NULL,
 				updated_at = NOW()
 			WHERE listing_id = $1
 		`, listingID, errMsg, nextAttempt, dead)
@@ -270,6 +351,7 @@ func (s EnrichmentStateStore) RecordStepFailure(ctx context.Context, listingID i
 				extract_error = $2,
 				next_extract_attempt_at = $3,
 				extract_dead = $4,
+				extract_leased_until = NULL,
 				updated_at = NOW()
 			WHERE listing_id = $1
 		`, listingID, errMsg, nextAttempt, dead)
@@ -288,11 +370,11 @@ func (s EnrichmentStateStore) ResetStep(ctx context.Context, listingID int, step
 		_, err := s.DB.pool.Exec(ctx, `
 			UPDATE listing_enrichment SET
 				pdp_fetched_at = NULL, pdp_hash = NULL, pdp_attempts = 0, pdp_error = NULL,
-				next_pdp_attempt_at = NULL, pdp_dead = false,
+				next_pdp_attempt_at = NULL, pdp_dead = false, pdp_leased_until = NULL,
 				classified_at = NULL, classify_attempts = 0, classify_error = NULL,
-				next_classify_attempt_at = NULL, classify_dead = false,
+				next_classify_attempt_at = NULL, classify_dead = false, classify_leased_until = NULL,
 				extracted_at = NULL, extract_attempts = 0, extract_error = NULL,
-				next_extract_attempt_at = NULL, extract_dead = false,
+				next_extract_attempt_at = NULL, extract_dead = false, extract_leased_until = NULL,
 				updated_at = NOW()
 			WHERE listing_id = $1
 		`, listingID)
@@ -301,7 +383,7 @@ func (s EnrichmentStateStore) ResetStep(ctx context.Context, listingID int, step
 		_, err := s.DB.pool.Exec(ctx, `
 			UPDATE listing_enrichment SET
 				classified_at = NULL, classify_attempts = 0, classify_error = NULL,
-				next_classify_attempt_at = NULL, classify_dead = false,
+				next_classify_attempt_at = NULL, classify_dead = false, classify_leased_until = NULL,
 				updated_at = NOW()
 			WHERE listing_id = $1
 		`, listingID)
@@ -310,7 +392,7 @@ func (s EnrichmentStateStore) ResetStep(ctx context.Context, listingID int, step
 		_, err := s.DB.pool.Exec(ctx, `
 			UPDATE listing_enrichment SET
 				extracted_at = NULL, extract_attempts = 0, extract_error = NULL,
-				next_extract_attempt_at = NULL, extract_dead = false,
+				next_extract_attempt_at = NULL, extract_dead = false, extract_leased_until = NULL,
 				updated_at = NOW()
 			WHERE listing_id = $1
 		`, listingID)

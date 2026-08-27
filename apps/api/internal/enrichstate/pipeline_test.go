@@ -12,9 +12,15 @@ import (
 )
 
 type fakeStateStore struct {
-	mu     sync.Mutex
-	states map[int]*ListingState
-	items  map[Step][]WorkItem
+	mu             sync.Mutex
+	states         map[int]*ListingState
+	items          map[Step][]WorkItem
+	releaseCalls   []leaseReleaseCall
+}
+
+type leaseReleaseCall struct {
+	ListingID int
+	Step      Step
 }
 
 func newFakeStateStore(items map[Step][]WorkItem) *fakeStateStore {
@@ -44,7 +50,7 @@ func (f *fakeStateStore) GetState(_ context.Context, listingID int) (*ListingSta
 	return &copy, nil
 }
 
-func (f *fakeStateStore) ClaimForStep(_ context.Context, step Step, _ ClaimFilter, limit int, _ bool, _ time.Time) ([]WorkItem, error) {
+func (f *fakeStateStore) ClaimForStep(_ context.Context, step Step, _ ClaimFilter, limit int, _ bool, _, _ time.Time) ([]WorkItem, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	batch := f.items[step]
@@ -53,6 +59,13 @@ func (f *fakeStateStore) ClaimForStep(_ context.Context, step Step, _ ClaimFilte
 	}
 	f.items[step] = f.items[step][len(batch):]
 	return batch, nil
+}
+
+func (f *fakeStateStore) ReleaseLease(_ context.Context, listingID int, step Step) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.releaseCalls = append(f.releaseCalls, leaseReleaseCall{ListingID: listingID, Step: step})
+	return nil
 }
 
 func (f *fakeStateStore) RecordStepSuccess(_ context.Context, listingID int, step Step, meta StepSuccessMeta, completedAt time.Time) error {
@@ -409,6 +422,16 @@ func TestPipeline_CircuitBreakerSkipsRemainingPDPForStore(t *testing.T) {
 	if st3 != nil && st3.PDP.Attempts > 0 {
 		t.Fatalf("listing 3 should be skipped without failure, got %+v", st3)
 	}
+	foundRelease := false
+	for _, call := range state.releaseCalls {
+		if call.ListingID == 3 && call.Step == StepPDP {
+			foundRelease = true
+			break
+		}
+	}
+	if !foundRelease {
+		t.Fatalf("expected ReleaseLease for circuit-breaker-skipped listing 3, got %+v", state.releaseCalls)
+	}
 }
 
 func TestPipeline_SkipClassifyWhenAlreadyDone(t *testing.T) {
@@ -446,5 +469,15 @@ func TestPipeline_SkipClassifyWhenAlreadyDone(t *testing.T) {
 	}
 	if len(events.events) != 1 || events.events[0].Status != StatusSkipped {
 		t.Fatalf("expected skipped event, got %+v", events.events)
+	}
+	foundRelease := false
+	for _, call := range state.releaseCalls {
+		if call.ListingID == 99 && call.Step == StepClassify {
+			foundRelease = true
+			break
+		}
+	}
+	if !foundRelease {
+		t.Fatalf("expected ReleaseLease on LLM skip, got %+v", state.releaseCalls)
 	}
 }

@@ -46,6 +46,7 @@ Override the migrations directory: `MIGRATIONS_DIR=path/to/migrations make db-mi
 | `039_bikes_bmx.sql` | Bikes: `bikes-bmx`; priority mappings for BMX bike keywords; product-name backfill; classifier rubrics; `intended_use` enum adds BMX; optional BMX LLM profile |
 | `040_llm_specs_reasoning.sql` | Shared `reasoning` field def for LLM spec extraction audit trail |
 | `041_helmet_spec_extraction.sql` | `extractable` on field defs; helmet coverage rubric + system prompt; helmet `intended_use` override; `clothing_size` non-LLM |
+| `042_enrichment_claim_leases.sql` | Per-step `*_leased_until` columns on `listing_enrichment` for concurrent-safe claim (`FOR UPDATE SKIP LOCKED`) |
 
 After 019, run **`make backfill-field-library`** once (from repo root) to rename ambiguous `type` / `material` keys in `extraction_schema` and `metadata.llm_specs`, seed shared defs, and populate `llm_prompt_profile_fields`.
 

@@ -88,6 +88,7 @@ Go HTTP server that orchestrates scraping, enrichment, and serves the REST API. 
 - **`ENRICH_PDP_MAX_ATTEMPTS`** / **`ENRICH_CLASSIFY_MAX_ATTEMPTS`** / **`ENRICH_EXTRACT_MAX_ATTEMPTS`** — Per-step retry caps before a listing step is marked dead (default **5** each).
 - **`ENRICH_BACKOFF_BASE`** / **`ENRICH_BACKOFF_MAX`** — Exponential backoff for failed steps (defaults **`5m`** / **`6h`**).
 - **`ENRICH_PDP_STALE_AFTER`** — PDP refetch interval (default **`168h`** / 7 days).
+- **`ENRICH_CLAIM_LEASE`** — Per-step claim lease while a listing is in-flight (default **`10m`**). Concurrent claimers use `FOR UPDATE SKIP LOCKED`; expired leases become claimable again after crashes.
 - **`ENRICH_CALL_TIMEOUT`** — Per-listing timeout for scraper `POST /enrich` (default **`3m`**). Should be slightly longer than the scraper's **`ENRICH_TIMEOUT_MS`** wall-clock cap (default **`120s`**).
 - **`ENRICH_CIRCUIT_BREAKER_THRESHOLD`** — Consecutive PDP failures for one store before the enrich job skips remaining PDP listings for that store (default **`5`**; **`0`** disables).
 - **Startup catch-up:** If either in-process cron is enabled (not `disabled`), on each API start the scheduler checks the DB for the last scrape/enrich job start. If that job is older than **24 hours** (or missing), it runs once in the background with `triggered_by=catch-up`. Helps after deploys/restarts or if a scheduled run was missed while the process was down.
