@@ -493,6 +493,17 @@ type EnrichmentStepStat struct {
 	SuccessRatePct       float64 `json:"success_rate_pct"`
 }
 
+// MarshalJSON keeps json "backlog" as an alias of due so admin Insights
+// clients that still read s.backlog (pre flow-centric rename) do not crash
+// during mixed API/web deploys (Sentry MTB-AGGREGATOR-WEB-J).
+func (s EnrichmentStepStat) MarshalJSON() ([]byte, error) {
+	type alias EnrichmentStepStat
+	return json.Marshal(struct {
+		alias
+		Backlog int `json:"backlog"`
+	}{alias: alias(s), Backlog: s.Due})
+}
+
 type ConfidenceBucket struct {
 	Label string `json:"label"`
 	Count int    `json:"count"`

@@ -14,6 +14,7 @@ import {
   YAxis,
 } from "recharts";
 import { usePipelineMetrics, useEnrichmentStepMetrics } from "./hooks/queries";
+import { formatCount, stepDueCount } from "./insightsMetrics";
 
 const DAY_OPTIONS = [14, 30, 90] as const;
 
@@ -212,7 +213,7 @@ export function Insights() {
           </h3>
           <p className="text-xs text-stone-500 mb-4">
             Due / in-flight / dead and success rates over the last {stepMetrics.days} days. Low-confidence
-            classifications: {stepMetrics.low_confidence_count.toLocaleString()}.
+            classifications: {formatCount(stepMetrics.low_confidence_count)}.
           </p>
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm">
@@ -232,19 +233,19 @@ export function Insights() {
                 {stepMetrics.steps.map((s) => (
                   <tr key={s.step} className="border-b border-stone-100">
                     <td className="py-2 pr-4 capitalize">{s.step}</td>
-                    <td className="py-2 pr-4">{s.due.toLocaleString()}</td>
-                    <td className="py-2 pr-4">{s.in_flight.toLocaleString()}</td>
-                    <td className="py-2 pr-4">{s.dead.toLocaleString()}</td>
+                    <td className="py-2 pr-4">{formatCount(stepDueCount(s))}</td>
+                    <td className="py-2 pr-4">{formatCount(s.in_flight)}</td>
+                    <td className="py-2 pr-4">{formatCount(s.dead)}</td>
                     <td className="py-2 pr-4">
                       {formatDuration(s.oldest_due_age_seconds)}
                     </td>
                     <td className="py-2 pr-4">
-                      {s.success_count + s.failure_count > 0
-                        ? `${s.success_rate_pct.toFixed(1)}%`
+                      {(s.success_count ?? 0) + (s.failure_count ?? 0) > 0
+                        ? `${(s.success_rate_pct ?? 0).toFixed(1)}%`
                         : "—"}
                     </td>
-                    <td className="py-2 pr-4">{s.failure_count.toLocaleString()}</td>
-                    <td className="py-2">{s.skipped_count.toLocaleString()}</td>
+                    <td className="py-2 pr-4">{formatCount(s.failure_count)}</td>
+                    <td className="py-2">{formatCount(s.skipped_count)}</td>
                   </tr>
                 ))}
               </tbody>

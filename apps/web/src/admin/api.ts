@@ -129,14 +129,16 @@ export async function fetchPipelineMetrics(
 
 export interface EnrichmentStepStat {
   step: string;
-  due: number;
-  in_flight: number;
-  dead: number;
-  oldest_due_age_seconds: number | null;
-  success_count: number;
-  failure_count: number;
-  skipped_count: number;
-  success_rate_pct: number;
+  due?: number;
+  /** @deprecated Alias of `due`; still emitted so older Insights clients do not crash. */
+  backlog?: number;
+  in_flight?: number;
+  dead?: number;
+  oldest_due_age_seconds?: number | null;
+  success_count?: number;
+  failure_count?: number;
+  skipped_count?: number;
+  success_rate_pct?: number;
 }
 
 export interface ConfidenceBucket {
