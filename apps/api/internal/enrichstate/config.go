@@ -44,6 +44,16 @@ func LoadConfigFromEnv() Config {
 			cfg.ClaimLease = d
 		}
 	}
+	if s := os.Getenv("ENRICH_PDP_MIN_INTERVAL"); s != "" {
+		if d, err := time.ParseDuration(s); err == nil && d > 0 {
+			cfg.PDPMinInterval = d
+		}
+	}
+	if s := os.Getenv("ENRICH_PDP_COOLDOWN"); s != "" {
+		if d, err := time.ParseDuration(s); err == nil && d > 0 {
+			cfg.PDPCooldown = d
+		}
+	}
 	return cfg
 }
 

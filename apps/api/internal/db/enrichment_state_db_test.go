@@ -176,7 +176,7 @@ func TestEnrichmentStateStore_ClaimForStep_concurrentClaimsDisjoint(t *testing.T
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			items, err := store.ClaimForStep(ctx, enrichstate.StepPDP, enrichstate.ClaimFilter{}, 1, false, now, leaseUntil)
+			items, err := store.ClaimForStep(ctx, enrichstate.StepPDP, enrichstate.ClaimFilter{}, 1, false, now, leaseUntil, enrichstate.DefaultConfig().PDPStaleAfter)
 			if err != nil {
 				t.Errorf("claim: %v", err)
 				return
@@ -215,7 +215,7 @@ func TestEnrichmentStateStore_ClaimForStep_expiredLeaseReclaimable(t *testing.T)
 
 	store := EnrichmentStateStore{DB: d}
 	now := time.Now()
-	items, err := store.ClaimForStep(ctx, enrichstate.StepPDP, enrichstate.ClaimFilter{}, 1, false, now, now.Add(10*time.Minute))
+	items, err := store.ClaimForStep(ctx, enrichstate.StepPDP, enrichstate.ClaimFilter{}, 1, false, now, now.Add(10*time.Minute), enrichstate.DefaultConfig().PDPStaleAfter)
 	if err != nil {
 		t.Fatalf("claim: %v", err)
 	}
@@ -238,7 +238,7 @@ func TestEnrichmentStateStore_ClaimForStep_activeLeaseNotReclaimed(t *testing.T)
 
 	store := EnrichmentStateStore{DB: d}
 	now := time.Now()
-	items, err := store.ClaimForStep(ctx, enrichstate.StepPDP, enrichstate.ClaimFilter{}, 1, false, now, now.Add(10*time.Minute))
+	items, err := store.ClaimForStep(ctx, enrichstate.StepPDP, enrichstate.ClaimFilter{}, 1, false, now, now.Add(10*time.Minute), enrichstate.DefaultConfig().PDPStaleAfter)
 	if err != nil {
 		t.Fatalf("claim: %v", err)
 	}
@@ -253,7 +253,7 @@ func TestEnrichmentStateStore_ClaimForStep_noEnrichmentRowStillClaims(t *testing
 	listingID := createEnrichmentTestListing(t, d)
 	store := EnrichmentStateStore{DB: d}
 	now := time.Now()
-	items, err := store.ClaimForStep(ctx, enrichstate.StepPDP, enrichstate.ClaimFilter{}, 1, false, now, now.Add(10*time.Minute))
+	items, err := store.ClaimForStep(ctx, enrichstate.StepPDP, enrichstate.ClaimFilter{}, 1, false, now, now.Add(10*time.Minute), enrichstate.DefaultConfig().PDPStaleAfter)
 	if err != nil {
 		t.Fatalf("claim: %v", err)
 	}
@@ -284,7 +284,7 @@ func TestEnrichmentStateStore_ClaimForStep_forceIgnoresStaleFilter(t *testing.T)
 
 	store := EnrichmentStateStore{DB: d}
 	now := time.Now()
-	items, err := store.ClaimForStep(ctx, enrichstate.StepPDP, enrichstate.ClaimFilter{}, 1, false, now, now.Add(10*time.Minute))
+	items, err := store.ClaimForStep(ctx, enrichstate.StepPDP, enrichstate.ClaimFilter{}, 1, false, now, now.Add(10*time.Minute), enrichstate.DefaultConfig().PDPStaleAfter)
 	if err != nil {
 		t.Fatalf("claim non-force: %v", err)
 	}
@@ -293,7 +293,7 @@ func TestEnrichmentStateStore_ClaimForStep_forceIgnoresStaleFilter(t *testing.T)
 	}
 
 	_ = store.ReleaseLease(ctx, listingID, enrichstate.StepPDP)
-	items, err = store.ClaimForStep(ctx, enrichstate.StepPDP, enrichstate.ClaimFilter{}, 1, true, now, now.Add(10*time.Minute))
+	items, err = store.ClaimForStep(ctx, enrichstate.StepPDP, enrichstate.ClaimFilter{}, 1, true, now, now.Add(10*time.Minute), enrichstate.DefaultConfig().PDPStaleAfter)
 	if err != nil {
 		t.Fatalf("claim force: %v", err)
 	}
@@ -310,7 +310,7 @@ func TestEnrichmentStateStore_RecordStepSuccess_clearsLeaseForNextStep(t *testin
 	now := time.Now()
 	leaseUntil := now.Add(10 * time.Minute)
 
-	items, err := store.ClaimForStep(ctx, enrichstate.StepPDP, enrichstate.ClaimFilter{}, 1, false, now, leaseUntil)
+	items, err := store.ClaimForStep(ctx, enrichstate.StepPDP, enrichstate.ClaimFilter{}, 1, false, now, leaseUntil, enrichstate.DefaultConfig().PDPStaleAfter)
 	if err != nil {
 		t.Fatalf("claim pdp: %v", err)
 	}
@@ -340,7 +340,7 @@ func TestEnrichmentStateStore_RecordStepSuccess_clearsLeaseForNextStep(t *testin
 		t.Fatalf("insert snapshot: %v", err)
 	}
 
-	items, err = store.ClaimForStep(ctx, enrichstate.StepClassify, enrichstate.ClaimFilter{}, 1, false, now, leaseUntil)
+	items, err = store.ClaimForStep(ctx, enrichstate.StepClassify, enrichstate.ClaimFilter{}, 1, false, now, leaseUntil, enrichstate.DefaultConfig().PDPStaleAfter)
 	if err != nil {
 		t.Fatalf("claim classify: %v", err)
 	}

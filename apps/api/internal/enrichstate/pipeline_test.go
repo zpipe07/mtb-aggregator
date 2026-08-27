@@ -50,7 +50,7 @@ func (f *fakeStateStore) GetState(_ context.Context, listingID int) (*ListingSta
 	return &copy, nil
 }
 
-func (f *fakeStateStore) ClaimForStep(_ context.Context, step Step, _ ClaimFilter, limit int, _ bool, _, _ time.Time) ([]WorkItem, error) {
+func (f *fakeStateStore) ClaimForStep(_ context.Context, step Step, _ ClaimFilter, limit int, _ bool, _, _ time.Time, _ time.Duration) ([]WorkItem, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	batch := f.items[step]

@@ -29,9 +29,9 @@ func TestStepDue_pdpBackoffPending(t *testing.T) {
 	}
 }
 
-func TestStepDue_pdpStaleAfterSevenDays(t *testing.T) {
+func TestStepDue_pdpStaleAfterDefaultWindow(t *testing.T) {
 	t.Parallel()
-	completed := time.Now().Add(-8 * 24 * time.Hour)
+	completed := time.Now().Add(-31 * 24 * time.Hour)
 	in := StepDueInput{
 		Now:    time.Now(),
 		Config: DefaultConfig(),

@@ -66,9 +66,12 @@ func (s EnrichmentStateStore) GetState(ctx context.Context, listingID int) (*enr
 	return &st, nil
 }
 
-func (s EnrichmentStateStore) ClaimForStep(ctx context.Context, step enrichstate.Step, filter enrichstate.ClaimFilter, limit int, force bool, now, leaseUntil time.Time) ([]enrichstate.WorkItem, error) {
+func (s EnrichmentStateStore) ClaimForStep(ctx context.Context, step enrichstate.Step, filter enrichstate.ClaimFilter, limit int, force bool, now, leaseUntil time.Time, pdpStaleAfter time.Duration) ([]enrichstate.WorkItem, error) {
 	if limit <= 0 {
 		limit = 50
+	}
+	if pdpStaleAfter <= 0 {
+		pdpStaleAfter = enrichstate.DefaultConfig().PDPStaleAfter
 	}
 	leaseCol, err := stepLeaseColumn(step)
 	if err != nil {
@@ -104,7 +107,7 @@ func (s EnrichmentStateStore) ClaimForStep(ctx context.Context, step enrichstate
 		argNum++
 	}
 
-	stepWhere, orderBy, err := stepClaimEligibility(step, force, now)
+	stepWhere, orderBy, err := stepClaimEligibility(step, force, now, pdpStaleAfter, &argNum, &args)
 	if err != nil {
 		return nil, err
 	}
@@ -191,15 +194,17 @@ func stepLeaseColumn(step enrichstate.Step) (string, error) {
 	}
 }
 
-func stepClaimEligibility(step enrichstate.Step, force bool, now time.Time) (where string, orderBy string, err error) {
-	_ = now
+func stepClaimEligibility(step enrichstate.Step, force bool, now time.Time, pdpStaleAfter time.Duration, argNum *int, args *[]interface{}) (where string, orderBy string, err error) {
 	switch step {
 	case enrichstate.StepPDP:
 		where = `
 			AND COALESCE(le.pdp_dead, false) = false
 			AND (le.next_pdp_attempt_at IS NULL OR le.next_pdp_attempt_at <= $1)`
 		if !force {
-			where += ` AND (le.pdp_fetched_at IS NULL OR le.pdp_fetched_at < NOW() - INTERVAL '7 days')`
+			staleCutoff := now.Add(-pdpStaleAfter)
+			where += fmt.Sprintf(` AND (le.pdp_fetched_at IS NULL OR le.pdp_fetched_at < $%d)`, *argNum)
+			*args = append(*args, staleCutoff)
+			*argNum++
 		}
 		orderBy = `ORDER BY le.pdp_fetched_at NULLS FIRST, l.last_scraped DESC`
 	case enrichstate.StepClassify:
@@ -603,7 +608,7 @@ func (db *DB) enrichmentStepBacklog(ctx context.Context) ([]EnrichmentStepStat, 
 			step: string(enrichstate.StepPDP),
 			query: `
 				SELECT
-					COUNT(*) FILTER (WHERE le.pdp_fetched_at IS NULL OR le.pdp_fetched_at < NOW() - INTERVAL '7 days')::int,
+					COUNT(*) FILTER (WHERE le.pdp_fetched_at IS NULL OR le.pdp_fetched_at < NOW() - INTERVAL '30 days')::int,
 					COUNT(*) FILTER (WHERE le.pdp_dead)::int
 				FROM store_listings l
 				JOIN stores s ON s.id = l.store_id
