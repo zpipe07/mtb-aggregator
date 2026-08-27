@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import type { BrandFacet, SpecFacet, Store } from "../api";
 import { buildMinDiscountSelectOptions } from "../lib/minDiscountFilterOptions";
 import { FilterSelect } from "./FilterSelect";
+import { PriceRangeFilter } from "./PriceRangeFilter";
 import { Button } from "./ui/button";
 import { CheckboxGroup } from "./ui/checkbox-group";
 
@@ -30,11 +31,16 @@ export type FilterSidebarProps = {
   /** Category filter (slug) — used to scope spec facets; category UI lives above the deals grid. */
   categoryFilter: string;
   minDiscount: string;
+  minPrice: string;
+  maxPrice: string;
+  priceRange?: { min: number; max: number };
   specFilters: Record<string, string[]>;
   specFacets: SpecFacet[];
   onStoreChange: (value: string) => void;
   onToggleBrand: (value: string) => void;
   onMinDiscountChange: (value: string) => void;
+  onMinPriceChange: (value: string) => void;
+  onMaxPriceChange: (value: string) => void;
   onToggleSpecFilter: (key: string, value: string) => void;
   onClearSpecFilter: (key: string) => void;
 };
@@ -46,11 +52,16 @@ export function FilterSidebar({
   brandFilters,
   categoryFilter,
   minDiscount,
+  minPrice,
+  maxPrice,
+  priceRange,
   specFilters,
   specFacets,
   onStoreChange,
   onToggleBrand,
   onMinDiscountChange,
+  onMinPriceChange,
+  onMaxPriceChange,
   onToggleSpecFilter,
   onClearSpecFilter,
 }: FilterSidebarProps) {
@@ -89,6 +100,14 @@ export function FilterSidebar({
         value={minDiscount}
         onChange={onMinDiscountChange}
         options={buildMinDiscountSelectOptions(minDiscount)}
+      />
+
+      <PriceRangeFilter
+        minPrice={minPrice}
+        maxPrice={maxPrice}
+        priceRange={priceRange}
+        onMinPriceChange={onMinPriceChange}
+        onMaxPriceChange={onMaxPriceChange}
       />
 
       {categoryFilter && specFacets.length > 0 && (

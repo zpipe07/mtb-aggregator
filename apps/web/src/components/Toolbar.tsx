@@ -1,6 +1,7 @@
 "use client";
 
 import posthog from "posthog-js";
+import { ListFilter } from "lucide-react";
 import type { SortOption } from "../hooks/useFilterParams";
 import { SearchBar, SEARCH_FRAME_MIN_H } from "./SearchBar";
 import { Select } from "./ui/select";
@@ -12,6 +13,7 @@ const monoMicro =
 
 const BASE_SORT_OPTIONS: { value: SortOption; label: string }[] = [
   { value: "newest", label: "Newest" },
+  { value: "value", label: "Best value" },
   { value: "discount", label: "Highest discount" },
   { value: "price_drop", label: "Recent price drops" },
   { value: "price_asc", label: "Price: low to high" },
@@ -61,32 +63,17 @@ export function Toolbar({
             onClick={onFilterClick}
             className={cn(
               SEARCH_FRAME_MIN_H,
-              "shrink-0 gap-2 px-4 lg:hidden",
+              "shrink-0 gap-2 px-4 text-sm tracking-[0.12em] lg:hidden",
               "inline-flex items-center justify-center",
               activeFilterCount > 0 &&
                 "border-foreground bg-foreground text-background hover:bg-foreground/90 hover:text-background",
             )}
           >
-            <svg
-              className="size-5 shrink-0"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              aria-hidden
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
-              />
-            </svg>
-            <span className="font-mono text-[9px] font-bold tracking-[0.08em] normal-case">
-              Filters
-              {activeFilterCount > 0 && (
-                <span className="text-primary"> · {activeFilterCount}</span>
-              )}
-            </span>
+            <ListFilter className="size-4" aria-hidden />
+            Filters
+            {activeFilterCount > 0 ? (
+              <span className="tabular-nums text-primary">{activeFilterCount}</span>
+            ) : null}
           </Button>
         ) : null}
       </div>

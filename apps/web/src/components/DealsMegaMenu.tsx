@@ -410,6 +410,9 @@ type DealsMegaMenuDesktopProps = {
   onHoverIntent: () => void;
 };
 
+const navItemClass =
+  "inline-flex items-center gap-1 rounded-sm border-b-2 pb-1 transition-colors";
+
 export function DealsMegaMenuDesktopTrigger({
   isOpen,
   onOpenChange,
@@ -420,45 +423,49 @@ export function DealsMegaMenuDesktopTrigger({
   const closeMenu = useCallback(() => onOpenChange(false), [onOpenChange]);
 
   return (
-    <div className="relative" onMouseEnter={onHoverIntent}>
-      <div className="flex items-center gap-0.5">
-        <Link
-          href="/deals"
-          onClick={closeMenu}
+    <div className="flex items-center gap-6">
+      <Link
+        href="/deals"
+        onClick={closeMenu}
+        className={cn(
+          navItemClass,
+          mainNavLinkTypography,
+          focusRing,
+          isDealsActive
+            ? "border-primary text-foreground"
+            : "border-transparent text-muted-foreground hover:text-foreground",
+        )}
+      >
+        DEALS
+      </Link>
+      <button
+        type="button"
+        className={cn(
+          navItemClass,
+          mainNavLinkTypography,
+          focusRing,
+          isOpen
+            ? "border-primary text-foreground"
+            : "border-transparent text-muted-foreground hover:text-foreground",
+        )}
+        aria-expanded={isOpen}
+        aria-controls={menuId}
+        aria-haspopup="true"
+        aria-label={
+          isOpen ? "Close category browser" : "Browse deals by category"
+        }
+        onMouseEnter={onHoverIntent}
+        onClick={() => onOpenChange(!isOpen)}
+      >
+        CATEGORIES
+        <ChevronDown
           className={cn(
-            "rounded-sm border-b-2 pb-1 transition-colors",
-            mainNavLinkTypography,
-            focusRing,
-            isDealsActive
-              ? "border-primary text-foreground"
-              : "border-transparent text-muted-foreground hover:text-foreground",
+            "size-3.5 transition-transform duration-200",
+            isOpen && "rotate-180",
           )}
-        >
-          DEALS
-        </Link>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          className={cn(
-            "size-7 rounded-sm text-muted-foreground hover:text-foreground",
-            focusRing,
-          )}
-          aria-expanded={isOpen}
-          aria-controls={menuId}
-          aria-haspopup="true"
-          aria-label={isOpen ? "Close deals categories" : "Browse deals categories"}
-          onClick={() => onOpenChange(!isOpen)}
-        >
-          <ChevronDown
-            className={cn(
-              "size-3.5 transition-transform duration-200",
-              isOpen && "rotate-180",
-            )}
-            aria-hidden
-          />
-        </Button>
-      </div>
+          aria-hidden
+        />
+      </button>
     </div>
   );
 }
@@ -469,6 +476,7 @@ type DealsMegaMenuDesktopPanelProps = {
   categoryTree: CategoryTreeNode[];
   activeCategorySlug: string | null;
   onClose: () => void;
+  onHoverIntent?: () => void;
 };
 
 export function DealsMegaMenuDesktopPanel({
@@ -477,6 +485,7 @@ export function DealsMegaMenuDesktopPanel({
   categoryTree,
   activeCategorySlug,
   onClose,
+  onHoverIntent,
 }: DealsMegaMenuDesktopPanelProps) {
   if (!isOpen) return null;
 
@@ -499,6 +508,7 @@ export function DealsMegaMenuDesktopPanel({
             className="pointer-events-auto mx-auto flex max-h-[min(calc(100vh-5.5rem),40rem)] max-w-5xl flex-col overflow-hidden rounded-lg border border-border bg-card shadow-2xl"
             onClick={(event) => event.stopPropagation()}
             onMouseDown={(event) => event.stopPropagation()}
+            onMouseEnter={onHoverIntent}
           >
             <DealsMegaMenuPanel
               categoryTree={categoryTree}
@@ -563,45 +573,43 @@ export function DealsMegaMenuMobile({
 
   return (
     <div className="space-y-1">
-      <div className="flex items-center gap-1">
-        <Link
-          href="/deals"
-          onClick={onNavigate}
+      <Link
+        href="/deals"
+        onClick={onNavigate}
+        className={cn(
+          "block rounded-sm px-3 py-2 transition-colors",
+          mainNavLinkTypography,
+          focusRingInset,
+          isDealsActive
+            ? "bg-primary/15 text-foreground ring-2 ring-primary/40 ring-inset"
+            : "text-muted-foreground hover:bg-muted hover:text-foreground",
+        )}
+      >
+        DEALS
+      </Link>
+      <button
+        type="button"
+        className={cn(
+          "flex w-full items-center justify-between rounded-sm px-3 py-2 transition-colors",
+          mainNavLinkTypography,
+          focusRingInset,
+          isExpanded
+            ? "bg-primary/15 text-foreground ring-2 ring-primary/40 ring-inset"
+            : "text-muted-foreground hover:bg-muted hover:text-foreground",
+        )}
+        aria-expanded={isExpanded}
+        aria-controls={panelId}
+        onClick={onToggle}
+      >
+        CATEGORIES
+        <ChevronDown
           className={cn(
-            "flex-1 rounded-sm px-3 py-2 transition-colors",
-            mainNavLinkTypography,
-            focusRingInset,
-            isDealsActive
-              ? "bg-primary/15 text-foreground ring-2 ring-primary/40 ring-inset"
-              : "text-muted-foreground hover:bg-muted hover:text-foreground",
+            "size-4 transition-transform duration-200",
+            isExpanded && "rotate-180",
           )}
-        >
-          DEALS
-        </Link>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          className={cn(
-            "size-9 shrink-0 rounded-sm text-muted-foreground hover:text-foreground",
-            focusRingInset,
-          )}
-          aria-expanded={isExpanded}
-          aria-controls={panelId}
-          aria-label={
-            isExpanded ? "Hide deal categories" : "Show deal categories"
-          }
-          onClick={onToggle}
-        >
-          <ChevronDown
-            className={cn(
-              "size-4 transition-transform duration-200",
-              isExpanded && "rotate-180",
-            )}
-            aria-hidden
-          />
-        </Button>
-      </div>
+          aria-hidden
+        />
+      </button>
 
       {isExpanded ? (
         <div

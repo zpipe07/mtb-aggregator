@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import type { CategoryTreeNode } from "../api";
-import { findCategoryWithAncestors } from "../lib/categoryTree";
+import { categoryHasDeals, findCategoryWithAncestors } from "../lib/categoryTree";
 import { captureCategoryNav } from "../lib/categoryNavAnalytics";
 import { buildDealsBrowseHref } from "@/lib/dealsBrowseHref";
 import { Button } from "./ui/button";
@@ -11,6 +11,8 @@ import { cn } from "@/lib/utils";
 
 const monoMicro =
   "font-mono text-[10px] font-semibold uppercase tracking-[0.14em]";
+
+const MAX_BROWSE_CHIPS = 8;
 
 export type { CategoryNavSource } from "@/lib/categoryNavAnalytics";
 
@@ -27,7 +29,16 @@ export function DealsCategoryNavInner({
 }: DealsCategoryNavProps & {
   searchParams: URLSearchParams;
 }) {
-  if (!categoryTree.length || !categoryFilter) return null;
+  if (!categoryTree.length) return null;
+
+  if (!categoryFilter) {
+    return (
+      <DealsCategoryBrowseChips
+        categoryTree={categoryTree}
+        searchParams={searchParams}
+      />
+    );
+  }
 
   const resolved = findCategoryWithAncestors(categoryTree, categoryFilter);
 
@@ -44,6 +55,57 @@ export function DealsCategoryNavInner({
 export function DealsCategoryNav(props: DealsCategoryNavProps) {
   const searchParams = useSearchParams();
   return <DealsCategoryNavInner {...props} searchParams={searchParams} />;
+}
+
+function DealsCategoryBrowseChips({
+  categoryTree,
+  searchParams,
+}: {
+  categoryTree: CategoryTreeNode[];
+  searchParams: URLSearchParams;
+}) {
+  const browseCategories = categoryTree
+    .filter((node) => categoryHasDeals(node))
+    .slice(0, MAX_BROWSE_CHIPS);
+
+  if (browseCategories.length === 0) return null;
+
+  return (
+    <nav
+      aria-label="Browse by category"
+      className="mb-4 border-b border-foreground/15 pb-4"
+    >
+      <div className="mb-3 flex flex-wrap items-end gap-3">
+        <span className={cn(monoMicro, "text-muted-foreground")}>
+          {"// browse by category"}
+        </span>
+        <span
+          className="mb-0.5 hidden h-px min-w-6 flex-1 max-w-[12rem] bg-border sm:block"
+          aria-hidden
+        />
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {browseCategories.map((node) => (
+          <Button key={node.slug} variant="outline" size="sm" asChild>
+            <Link
+              href={buildDealsBrowseHref(node.slug, searchParams, categoryTree)}
+              onClick={() => captureCategoryNav(node.slug, "browse_chips")}
+            >
+              {node.name}
+              {node.deal_count > 0 ? (
+                <span className="ml-1.5 font-mono text-[10px] tabular-nums text-muted-foreground">
+                  ({node.deal_count})
+                </span>
+              ) : null}
+            </Link>
+          </Button>
+        ))}
+        <Button variant="outline" size="sm" asChild>
+          <Link href="/categories">See all →</Link>
+        </Button>
+      </div>
+    </nav>
+  );
 }
 
 type PresentationProps = {

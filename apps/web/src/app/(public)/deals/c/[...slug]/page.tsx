@@ -10,7 +10,7 @@ import {
   normalizeFacetsResponse,
   type FacetsResponse,
 } from "@/api";
-import { parseFilterParamsFromSearch } from "@/lib/filterParams";
+import { parseFilterParamsFromSearch, parsePriceParam } from "@/lib/filterParams";
 import { searchParamsRecordToDealsCategoryListPath } from "@/lib/dealsBackHref";
 import { JsonLd } from "@/components/JsonLd";
 import {
@@ -91,9 +91,8 @@ export default async function CategoryDealsPage({ params, searchParams }: Props)
     min_discount: filterParams.minDiscount
       ? parseFloat(filterParams.minDiscount) || undefined
       : undefined,
-    min_price: filterParams.minPrice
-      ? parseFloat(filterParams.minPrice) || undefined
-      : undefined,
+    min_price: parsePriceParam(filterParams.minPrice),
+    max_price: parsePriceParam(filterParams.maxPrice),
     exclude_category_slug: filterParams.excludeCategorySlug || undefined,
     specFilters:
       Object.keys(filterParams.specFilters).length > 0
@@ -114,6 +113,8 @@ export default async function CategoryDealsPage({ params, searchParams }: Props)
     min_discount: filterParams.minDiscount
       ? parseFloat(filterParams.minDiscount) || undefined
       : undefined,
+    min_price: parsePriceParam(filterParams.minPrice),
+    max_price: parsePriceParam(filterParams.maxPrice),
     specFilters:
       Object.keys(filterParams.specFilters).length > 0
         ? filterParams.specFilters

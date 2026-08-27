@@ -49,6 +49,7 @@ function applyToParams(
     categoryFilter: string;
     minDiscount: string;
     minPrice: string;
+    maxPrice: string;
     excludeCategorySlug: string;
     specFilters: Record<string, string[]>;
     sort: SortOption;
@@ -75,10 +76,11 @@ function applyToParams(
     set("category", updates.categoryFilter);
   if (updates.minDiscount !== undefined) set("min_discount", updates.minDiscount);
   if (updates.minPrice !== undefined) set("min_price", updates.minPrice);
+  if (updates.maxPrice !== undefined) set("max_price", updates.maxPrice);
   if (updates.excludeCategorySlug !== undefined)
     set("exclude_category_slug", updates.excludeCategorySlug);
   if (updates.sort !== undefined)
-    set("sort", updates.sort === "discount" ? "" : updates.sort);
+    set("sort", updates.sort === "value" ? "" : updates.sort);
   if (updates.offset !== undefined)
     set("offset", updates.offset === 0 ? "" : String(updates.offset));
 
@@ -148,6 +150,7 @@ export function useFilterParams(options?: {
         categoryFilter: string;
         minDiscount: string;
         minPrice: string;
+        maxPrice: string;
         excludeCategorySlug: string;
         specFilters: Record<string, string[]>;
         sort: SortOption;
@@ -204,6 +207,14 @@ export function useFilterParams(options?: {
     (v: string) => updateParams({ minDiscount: v, offset: 0 }),
     [updateParams],
   );
+  const setMinPrice = useCallback(
+    (v: string) => updateParams({ minPrice: v, offset: 0 }),
+    [updateParams],
+  );
+  const setMaxPrice = useCallback(
+    (v: string) => updateParams({ maxPrice: v, offset: 0 }),
+    [updateParams],
+  );
   const toggleSpecFilter = useCallback(
     (key: string, value: string) => {
       const v = value.trim();
@@ -243,6 +254,7 @@ export function useFilterParams(options?: {
       categoryFilter: "",
       minDiscount: "",
       minPrice: "",
+      maxPrice: "",
       excludeCategorySlug: "",
       specFilters: {},
       offset: 0,
@@ -255,7 +267,7 @@ export function useFilterParams(options?: {
     const rawSort = params.get("sort");
     const q = params.get("q") ?? "";
     if (q.trim() === "" && rawSort === "relevance") {
-      updateParams({ sort: "discount" });
+      updateParams({ sort: "value" });
     }
   }, [searchParamsString, updateParams]);
 
@@ -268,6 +280,8 @@ export function useFilterParams(options?: {
     clearBrandFilters,
     setCategoryFilter,
     setMinDiscount,
+    setMinPrice,
+    setMaxPrice,
     toggleSpecFilter,
     clearSpecFilter,
     setSort,
