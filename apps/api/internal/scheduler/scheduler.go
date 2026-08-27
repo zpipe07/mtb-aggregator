@@ -8,6 +8,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/mtb-aggregator/api/internal/affiliate"
@@ -179,6 +180,11 @@ type Scheduler struct {
 	llm     *llm.Client
 	// runLLMJob, when set, replaces RunLLMJob (tests observe kicks without OpenAI).
 	runLLMJob func(f db.EnrichmentFilter, triggeredBy string)
+
+	drainerCancel context.CancelFunc
+	drainerDone   chan struct{}
+	llmInflightMu sync.Mutex
+	llmInflight   map[string]bool
 }
 
 func New(database *db.DB, scraperURL string, llmClient *llm.Client) *Scheduler {
@@ -699,7 +705,7 @@ func (s *Scheduler) runLLMLoop(f db.EnrichmentFilter, triggeredBy string) {
 	batchSize := getEnrichBatchSize()
 	maxListings := getEnrichMaxListings()
 	var llmState llmlisting.QuotaJobState
-	pipeline := s.buildEnrichmentPipeline(&llmState, &errStrs, nil)
+	pipeline := s.buildEnrichmentPipeline(&llmState, &errStrs, nil, false)
 	claimFilter := enrichmentFilterToClaim(f)
 
 	var jobIDPtr *int
@@ -773,7 +779,7 @@ func (s *Scheduler) runEnrichmentLoop(f db.EnrichmentFilter, force bool, trigger
 	maxListings := getEnrichMaxListings()
 	var llmState llmlisting.QuotaJobState
 	fanoutState := newVariantFanoutState()
-	pipeline := s.buildEnrichmentPipeline(&llmState, &errStrs, fanoutState)
+	pipeline := s.buildEnrichmentPipeline(&llmState, &errStrs, fanoutState, true)
 	claimFilter := enrichmentFilterToClaim(f)
 
 	var jobIDPtr *int
@@ -809,10 +815,9 @@ func (s *Scheduler) runEnrichmentLoop(f db.EnrichmentFilter, force bool, trigger
 	s.kickLLMJob(f, "pdp")
 }
 
-// RunCatchUp checks the last scrape/enrich/LLM jobs and runs immediately if overdue.
-// Helps when the process was down during the scheduled time (idle spin-down,
-// deploys, crashes, or restarts) so a missed cron can run on the next startup.
-func (s *Scheduler) RunCatchUp(scrapeInterval, enrichInterval, llmInterval time.Duration) {
+// RunCatchUp checks the last scrape/LLM jobs and runs immediately if overdue.
+// PDP work is handled by the resident drainer (no catch-up burst).
+func (s *Scheduler) RunCatchUp(scrapeInterval, llmInterval time.Duration) {
 	ctx := context.Background()
 
 	scrapeAge, err := s.db.LastScrapeJobAge(ctx)
@@ -827,20 +832,6 @@ func (s *Scheduler) RunCatchUp(scrapeInterval, enrichInterval, llmInterval time.
 		go s.RunScrapeJob("", "catch-up")
 	} else {
 		catchUpLog.Debug("last scrape not overdue", "age", scrapeAge.Round(time.Minute).String(), "threshold", scrapeInterval.String())
-	}
-
-	enrichAge, err := s.db.LastEnrichJobAge(ctx)
-	if err != nil {
-		catchUpLog.Error("failed to check last enrich job", logutil.ErrAttr(err))
-	} else if enrichAge < 0 || enrichAge > enrichInterval {
-		label := "never"
-		if enrichAge >= 0 {
-			label = enrichAge.Round(time.Minute).String() + " ago"
-		}
-		catchUpLog.Info("last PDP enrichment overdue; running now", "last_enrichment", label, "threshold", enrichInterval.String())
-		go s.RunEnrichmentJob(false, "catch-up")
-	} else {
-		catchUpLog.Debug("last PDP enrichment not overdue", "age", enrichAge.Round(time.Minute).String(), "threshold", enrichInterval.String())
 	}
 
 	llmAge, err := s.db.LastLLMSpecsJobAge(ctx)
@@ -884,4 +875,17 @@ func (s *Scheduler) StartLLM(spec string) {
 
 func (s *Scheduler) Stop() {
 	s.cron.Stop()
+	if s.drainerCancel != nil {
+		s.drainerCancel()
+	}
+	s.waitForPDPDrainerStop(getEnrichCallTimeout())
+}
+
+func getEnrichCallTimeout() time.Duration {
+	if s := os.Getenv("ENRICH_CALL_TIMEOUT"); s != "" {
+		if d, err := time.ParseDuration(s); err == nil && d > 0 {
+			return d
+		}
+	}
+	return 3 * time.Minute
 }

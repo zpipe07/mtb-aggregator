@@ -64,19 +64,20 @@ flowchart LR
 
 **Facet listing visibility:** `GET /facets` includes only in-stock listings with `hidden = false`, same as public `GET /deals`, so facet counts cannot reference rows that deals queries exclude.
 
-### 2. Enrich Job (nightly PDP) + LLM passes (async / hourly)
+### 2. Enrichment: PDP drainer + LLM passes (async / hourly)
 
-**PDP (nightly, 2am via `ENRICH_CRON_SPEC`):**
+**PDP (resident drainer + optional burst):**
 
-1. Scheduler triggers `POST /enrich-now` (async; returns 202 immediately) or runs PDP-only cron
-2. API creates `enrich_jobs` with `job_type=enrich` and runs **PDP fetch only** — atomically claiming eligible listings from `listing_enrichment` (`FOR UPDATE SKIP LOCKED` + per-step `*_leased_until`). PDP snapshots (`pdp_snapshots`) persist parsed scraper payloads. Failures record per-step backoff and append to `enrichment_events`. Only **in-stock, non-hidden** rows are eligible (same visibility as `GET /deals`).
-3. After the PDP job finalizes (including partial progress on timeout), the scheduler kicks an async **`llm_specs` job** (`RunLLMJob`, same store filter) for classify + extract.
+1. On API start, a **resident PDP drainer** goroutine round-robins enricher stores, claiming **one due listing per store** at a polite pace (`ENRICH_PDP_MIN_INTERVAL`, default 15s). Pacing and circuit-breaker cooldown persist on `stores` (`pdp_last_fetch_at`, `pdp_cooldown_until`; migration `043`). No `enrich_jobs` row is created for drainer work.
+2. **`POST /enrich-now`** (async; returns 202) runs a **burst** PDP job (`job_type=enrich`) that bypasses min-interval pacing but still skips stores in cooldown unless `force=1`. Optional legacy nightly cron via **`ENRICH_CRON_SPEC`** (default **`disabled`**) uses the same burst path.
+3. PDP claims use `listing_enrichment` (`FOR UPDATE SKIP LOCKED` + per-step `*_leased_until`). Snapshots land in `pdp_snapshots`; failures record backoff in `enrichment_events`. Only **in-stock, non-hidden** rows are eligible. Stale horizon defaults to **30 days** (`ENRICH_PDP_STALE_AFTER`).
+4. After each **successful drainer PDP**, the scheduler kicks a debounced async **`llm_specs` job** for that store (skips if one is already in flight). Burst PDP jobs kick LLM once when the job finalizes.
 
 **LLM classify + extract (scrape / PDP / hourly):**
 
 - After each **successful store scrape** (enricher stores only): async `llm_specs` job scoped to that store (`triggered_by=scrape`).
-- After each **PDP job** (above): async `llm_specs` job with the same filter (`triggered_by=pdp`).
-- **Hourly safety net** (`LLM_CRON_SPEC`, default `0 * * * *`): global `llm_specs` job catches prompt-profile bumps and anything missed (`triggered_by=cron`). Startup catch-up uses **`LastLLMSpecsJobAge`** (not PDP job age).
+- After **drainer PDP success** (debounced per store) or **burst PDP job** completion: async `llm_specs` with the same filter (`triggered_by=pdp`).
+- **Hourly safety net** (`LLM_CRON_SPEC`, default `0 * * * *`): global `llm_specs` job catches prompt-profile bumps and anything missed (`triggered_by=cron`). Startup catch-up uses **`LastLLMSpecsJobAge`** only (no PDP catch-up burst).
 - LLM jobs use `ClaimForStep` for classify/extract only (require existing PDP snapshot); **brand-new post-scrape listings still wait for PDP** before LLM eligibility.
 
 4. For each store with an enricher in `StoreTypesWithEnrichers` (excludes **Competitive Cyclist** — CC ingest is Impact catalog only; scheduled PDP enrich is skipped because WAF blocks automated scraper access): Scraper visits PDP URLs. CC variant fan-out (`internal/db/cc_pdp_variants.go`) still applies when CC listings are enriched via admin/manual paths or backfill.
@@ -203,7 +204,7 @@ The CI workflow sets `permissions: contents: read` and `pull-requests: read` so 
 
 **Custom domain (Vercel):** Add apex/`www` under the Vercel project’s **Domains** settings and create the DNS records your registrar (e.g. Porkbun) requires—Vercel shows the exact records. The web app’s `NEXT_PUBLIC_API_URL` stays pointed at the API host (e.g. Render), not the new domain. If `CORS_ORIGINS` on the API is a comma-separated allowlist instead of `*`, add each browser origin you use (`https://yourdomain.com`, `https://www.yourdomain.com` if applicable). Details: [apps/web/README.md](../apps/web/README.md#custom-domain-vercel--dns-at-porkbun-or-any-registrar).
 
-**In-process scheduler (`SCRAPE_CRON_SPEC` / `ENRICH_CRON_SPEC` / `LLM_CRON_SPEC`):** The API runs `robfig/cron` in the same process. Cron uses the container’s local timezone (typically UTC on hosts like Render). **Startup catch-up:** When any cron is enabled (not `disabled`), each process start checks job ages — scrape (24h), PDP enrich (`job_type=enrich`, 24h), LLM (`job_type=llm_specs`, 1h) — and runs overdue jobs once in the background (`triggered_by=catch-up`). **Scrape/enrich job bookkeeping:** terminal `scrape_jobs` and `enrich_jobs` updates (`completed`, `timed_out`, `failed`) use a short detached database context so timeouts still persist if the job’s work context is already canceled (avoids rows stuck `running` until the next deploy).
+**In-process scheduler (`SCRAPE_CRON_SPEC` / `ENRICH_CRON_SPEC` / `LLM_CRON_SPEC`):** The API runs `robfig/cron` in the same process. Cron uses the container’s local timezone (typically UTC on hosts like Render). **Resident PDP drainer** runs continuously (disable with `ENRICH_PDP_DRAINER=0`). **Startup catch-up:** When scrape or LLM cron is enabled (not `disabled`), each process start checks job ages — scrape (24h), LLM (`job_type=llm_specs`, 1h) — and runs overdue jobs once in the background (`triggered_by=catch-up`); PDP is **not** catch-up burst (drainer handles it). **Scrape/enrich job bookkeeping:** terminal `scrape_jobs` and `enrich_jobs` updates (`completed`, `timed_out`, `failed`) use a short detached database context so timeouts still persist if the job’s work context is already canceled (avoids rows stuck `running` until the next deploy).
 
 **Cron triggers (`POST /scrape-now`, `POST /enrich-now`, `POST /llm-specs-now`):** Set `CRON_SECRET` and send `X-Cron-Secret` from the cron provider. In production (`APP_ENV=production` or `RENDER=true`), if `CRON_SECRET` is unset, unauthenticated requests are rejected (admin Bearer still works); local dev allows open triggers when the secret is unset. Escape hatch: `ALLOW_OPEN_CRON=1` (not recommended).
 

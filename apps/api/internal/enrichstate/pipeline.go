@@ -35,7 +35,11 @@ type Pipeline struct {
 	Config           Config
 	Fanout           VariantFanout
 	BeforeClaimBatch func(step Step)
-	CircuitBreaker   *CircuitBreaker
+	CircuitBreaker   *CircuitBreaker // deprecated: burst jobs use StorePacer; kept for tests
+	StorePacer       StorePDPPacer
+	BypassMinInterval bool
+	OnPDPCooldownTrip func(storeType string)
+	CBThreshold      int
 }
 
 // DefaultJobSteps is the full enrichment pipeline order (PDP, then LLM passes).
@@ -79,7 +83,7 @@ func (p *Pipeline) RunJobSteps(ctx context.Context, filter ClaimFilter, force bo
 			}
 			now := time.Now()
 			leaseUntil := now.Add(cfg.ClaimLease)
-			items, err := p.State.ClaimForStep(ctx, step, filter, limit, force, now, leaseUntil)
+			items, err := p.State.ClaimForStep(ctx, step, filter, limit, force, now, leaseUntil, cfg.PDPStaleAfter)
 			if err != nil {
 				errStrs = append(errStrs, string(step)+": claim: "+err.Error())
 				return processed, succeeded, errStrs
@@ -91,6 +95,15 @@ func (p *Pipeline) RunJobSteps(ctx context.Context, filter ClaimFilter, force bo
 				if ctx.Err() != nil {
 					return processed, succeeded, errStrs
 				}
+				if step == StepPDP && p.StorePacer != nil {
+					skip, perr := p.StorePacer.ShouldSkipPDP(ctx, item.StoreType, p.BypassMinInterval, force, now, cfg.PDPMinInterval)
+					if perr != nil {
+						errStrs = append(errStrs, string(step)+": pacer: "+perr.Error())
+					} else if skip {
+						_ = p.State.ReleaseLease(ctx, item.ListingID, step)
+						continue
+					}
+				}
 				if step == StepPDP && p.CircuitBreaker != nil && p.CircuitBreaker.IsTripped(item.StoreType) {
 					_ = p.State.ReleaseLease(ctx, item.ListingID, step)
 					continue
@@ -100,6 +113,9 @@ func (p *Pipeline) RunJobSteps(ctx context.Context, filter ClaimFilter, force bo
 				ok, stepErr := p.runOne(ctx, step, item, force, jobID, now, cfg)
 				if stepErr != nil {
 					errStrs = append(errStrs, "listing "+strconv.Itoa(item.ListingID)+": "+string(step)+": "+stepErr.Error())
+				}
+				if step == StepPDP {
+					p.recordPDPPacerOutcome(ctx, item.StoreType, ok, stepErr, force, now, cfg)
 				}
 				if step == StepPDP && p.CircuitBreaker != nil {
 					if ok {
@@ -120,6 +136,56 @@ func (p *Pipeline) RunJobSteps(ctx context.Context, filter ClaimFilter, force bo
 		}
 	}
 	return processed, succeeded, errStrs
+}
+
+// RunWorkItem runs a single claimed pipeline step (used by the PDP drainer).
+func (p *Pipeline) RunWorkItem(ctx context.Context, step Step, item WorkItem, force bool, jobID *int, cfg Config, bypassMinInterval bool) (bool, error) {
+	if cfg.BackoffBase == 0 {
+		cfg = p.Config
+		if cfg.BackoffBase == 0 {
+			cfg = DefaultConfig()
+		}
+	}
+	now := time.Now()
+	if p.StorePacer != nil && step == StepPDP {
+		skip, err := p.StorePacer.ShouldSkipPDP(ctx, item.StoreType, bypassMinInterval, force, now, cfg.PDPMinInterval)
+		if err != nil {
+			return false, err
+		}
+		if skip {
+			_ = p.State.ReleaseLease(ctx, item.ListingID, step)
+			return false, nil
+		}
+		if err := p.StorePacer.RecordPDPFetch(ctx, item.StoreType, now); err != nil {
+			return false, err
+		}
+	}
+	ok, err := p.runOne(ctx, step, item, force, jobID, now, cfg)
+	if step == StepPDP {
+		p.recordPDPPacerOutcome(ctx, item.StoreType, ok, err, force, now, cfg)
+	}
+	return ok, err
+}
+
+func (p *Pipeline) recordPDPPacerOutcome(ctx context.Context, storeType string, ok bool, stepErr error, force bool, now time.Time, cfg Config) {
+	if p.StorePacer == nil {
+		return
+	}
+	threshold := p.CBThreshold
+	if threshold <= 0 {
+		threshold = CircuitBreakerThreshold()
+	}
+	if ok {
+		_ = p.StorePacer.RecordPDPSuccess(ctx, storeType)
+		return
+	}
+	if stepErr == nil {
+		return
+	}
+	tripped, _ := p.StorePacer.RecordPDPFailure(ctx, storeType, threshold, cfg.PDPCooldown, now)
+	if tripped && p.OnPDPCooldownTrip != nil {
+		p.OnPDPCooldownTrip(storeType)
+	}
 }
 
 func (p *Pipeline) runOne(ctx context.Context, step Step, item WorkItem, force bool, jobID *int, now time.Time, cfg Config) (success bool, err error) {

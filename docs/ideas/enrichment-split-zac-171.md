@@ -8,7 +8,7 @@ How might we let each enrichment step run on its own cadence — PDP fetching po
 
 The durable 3-step state machine (`pdp` → `classify` → `extract` in `apps/api/internal/enrichstate/`, migration `028`) already separates the steps at the data layer, and classify/extract already read from the DB, never from stores (which also resolves ZAC-211's core ask). The redesign is operational, in three parts:
 
-1. **Continuous polite PDP drainer.** Replace the nightly PDP batch inside `Pipeline.RunJob` with a resident background loop that claims due PDP work round-robin across stores, enforcing a per-store minimum interval (default ~1 req/15s, env-tunable). The in-memory per-job circuit breaker becomes a persistent per-store cooldown. Fold in ZAC-90: stretch the PDP stale horizon from 7d to ~30d so scrapes maintain price/stock and PDP re-fetch is rare (never-fetched, wiped metadata, manual, or 30d stale). Note the 7d interval is hardcoded in `ClaimForStep` SQL (`apps/api/internal/db/enrichment_state.go`), not config.
+1. **Continuous polite PDP drainer.** Replace the nightly PDP batch inside `Pipeline.RunJob` with a resident background loop that claims due PDP work round-robin across stores, enforcing a per-store minimum interval (default ~1 req/15s, env-tunable). The in-memory per-job circuit breaker becomes a persistent per-store cooldown. Fold in ZAC-90: stretch the PDP stale horizon from 7d to ~30d so scrapes maintain price/stock and PDP re-fetch is rare (never-fetched, wiped metadata, manual, or 30d stale). `ClaimForStep` SQL takes `pdpStaleAfter` from config (default 30d).
 
 2. **Scrape-triggered LLM passes.** At the end of each scrape job (and after PDP snapshot writes), kick a classify+extract pass for due listings — reusing the existing DB-only `llm_specs`-style path. Keep a slow safety-net cron. Result: new listings are categorized and spec'd within minutes, not up to 24h.
 
@@ -26,7 +26,7 @@ The durable 3-step state machine (`pdp` → `classify` → `extract` in `apps/ap
 
 - **Phase 0 — Claim hardening:** shipped (ZAC-223) — lease/in-flight semantics on `listing_enrichment` claims.
 - **Phase 1 — LLM freshness:** scrape-triggered classify+extract pass + safety-net cron; split job types so LLM never waits on PDP.
-- **Phase 2 — PDP drainer:** resident loop, per-store pacing, persistent per-store cooldown, 30d stale horizon (replace hardcoded 7d SQL).
+- **Phase 2 — PDP drainer:** [x] resident loop, per-store pacing, persistent per-store cooldown, 30d stale horizon.
 - **Phase 3 — Insights rework:** scrape-to-enriched latency headline, step flow gauges, per-store PDP status.
 
 ## Not Doing (and Why)
@@ -39,5 +39,5 @@ The durable 3-step state machine (`pdp` → `classify` → `extract` in `apps/ap
 ## Open Questions
 
 - Default pacing value (1 req/15s per store?) and whether any store needs a stricter override from day one.
-- How manual `/enrich-now` and force-enrich interact with the drainer (bypass pacing, or enqueue at front?).
+- How manual `/enrich-now` and force-enrich interact with the drainer — **resolved:** burst bypasses min-interval; honors cooldown unless `force=1`.
 - Whether to keep synthesizing `enrich_jobs` rows (e.g. hourly windows) for continuity of existing dashboards, or cut over fully to event-based reporting.

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/mtb-aggregator/api/internal/db"
+	"github.com/mtb-aggregator/api/internal/llm"
 )
 
 func TestStoreHasEnricher(t *testing.T) {
@@ -82,5 +83,45 @@ func TestRunLLMJob_skipsWhenOpenAINotConfigured(t *testing.T) {
 	s.RunLLMJob(db.EnrichmentFilter{StoreType: "worldwidecyclery"}, "manual")
 	if called {
 		t.Fatal("RunLLMJob should skip when OpenAI is not configured")
+	}
+}
+
+func TestKickLLMJobDebounced_skipsWhenInFlight(t *testing.T) {
+	t.Parallel()
+	started := make(chan struct{}, 1)
+	release := make(chan struct{})
+	var calls int
+	var mu sync.Mutex
+	s := &Scheduler{
+		llm: llm.New("test-key", ""),
+		runLLMJob: func(f db.EnrichmentFilter, tb string) {
+			mu.Lock()
+			calls++
+			mu.Unlock()
+			started <- struct{}{}
+			<-release
+			if f.StoreType != "worldwidecyclery" || tb != "pdp" {
+				t.Errorf("RunLLMJob(%q, %q) unexpected args", f.StoreType, tb)
+			}
+		},
+	}
+	s.kickLLMJobDebounced("worldwidecyclery")
+	s.kickLLMJobDebounced("worldwidecyclery")
+	<-started
+	mu.Lock()
+	firstCalls := calls
+	mu.Unlock()
+	if firstCalls != 1 {
+		t.Fatalf("expected 1 in-flight LLM job, got %d", firstCalls)
+	}
+	close(release)
+	time.Sleep(10 * time.Millisecond)
+	s.kickLLMJobDebounced("worldwidecyclery")
+	<-started
+	mu.Lock()
+	total := calls
+	mu.Unlock()
+	if total != 2 {
+		t.Fatalf("expected second kick after first finished, total calls = %d", total)
 	}
 }

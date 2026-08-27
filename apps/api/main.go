@@ -370,17 +370,19 @@ func main() {
 		startupLog.Info("scrape cron disabled (use external cron for /scrape-now)")
 	}
 
-	// Enrichment cron: nightly at 2am (ENRICH_CRON_SPEC, "disabled" = use external cron)
+	// Enrichment cron: PDP drainer replaces nightly batch (ENRICH_CRON_SPEC; default disabled).
 	enrichCronSpec := os.Getenv("ENRICH_CRON_SPEC")
 	if enrichCronSpec == "" {
-		enrichCronSpec = "0 2 * * *"
+		enrichCronSpec = "disabled"
 	}
 	if !strings.EqualFold(enrichCronSpec, "disabled") {
 		sched.StartEnrichment(enrichCronSpec)
-		startupLog.Info("enrich cron started", "spec", enrichCronSpec)
+		startupLog.Info("enrich cron started (burst PDP; drainer also runs)", "spec", enrichCronSpec)
 	} else {
-		startupLog.Info("enrichment cron disabled (use external cron for /enrich-now)")
+		startupLog.Info("enrichment cron disabled (PDP drainer + POST /enrich-now)")
 	}
+
+	sched.StartPDPDrainer(context.Background())
 
 	// LLM cron: hourly classify+extract safety net (LLM_CRON_SPEC, "disabled" = skip)
 	llmCronSpec := os.Getenv("LLM_CRON_SPEC")
@@ -394,13 +396,11 @@ func main() {
 		startupLog.Info("LLM cron disabled")
 	}
 
-	// Catch-up: if the process missed scheduled jobs (was down during cron time,
-	// deploy, restart), run overdue scrape/enrich/LLM once on startup.
+	// Catch-up: scrape + LLM only (PDP is continuous via drainer).
 	catchUpScrapeInterval := 24 * time.Hour
-	catchUpEnrichInterval := 24 * time.Hour
 	catchUpLLMInterval := time.Hour
-	if !strings.EqualFold(cronSpec, "disabled") || !strings.EqualFold(enrichCronSpec, "disabled") || !strings.EqualFold(llmCronSpec, "disabled") {
-		go sched.RunCatchUp(catchUpScrapeInterval, catchUpEnrichInterval, catchUpLLMInterval)
+	if !strings.EqualFold(cronSpec, "disabled") || !strings.EqualFold(llmCronSpec, "disabled") {
+		go sched.RunCatchUp(catchUpScrapeInterval, catchUpLLMInterval)
 	}
 
 	// Manual trigger: POST /scrape-now (optional ?store=). Auth: valid CRON_SECRET, or admin Bearer, or (non-production only) open cron.
