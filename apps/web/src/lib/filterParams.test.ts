@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   parseFilterParamsFromURL,
   parseFilterParamsFromSearch,
+  parsePriceParam,
   normalizeFilterQueryString,
 } from "./filterParams";
 
@@ -27,6 +28,11 @@ describe("parseFilterParamsFromURL", () => {
 });
 
 describe("parseFilterParamsFromSearch", () => {
+  it("defaults sort to value when sort param is absent", () => {
+    const p = parseFilterParamsFromSearch({});
+    expect(p.sort).toBe("value");
+  });
+
   it("handles Next.js string | string[] record", () => {
     const p = parseFilterParamsFromSearch({
       brand: ["SRAM", "Shimano"],
@@ -34,6 +40,19 @@ describe("parseFilterParamsFromSearch", () => {
     });
     expect(p.brandFilters).toEqual(["SRAM", "Shimano"]);
     expect(p.specFilters.wheel_size).toEqual(["29", "27.5"]);
+  });
+});
+
+describe("parsePriceParam", () => {
+  it("returns undefined for empty or invalid values", () => {
+    expect(parsePriceParam("")).toBeUndefined();
+    expect(parsePriceParam("abc")).toBeUndefined();
+    expect(parsePriceParam("0")).toBeUndefined();
+  });
+
+  it("returns positive numbers", () => {
+    expect(parsePriceParam("50")).toBe(50);
+    expect(parsePriceParam(" 99.5 ")).toBe(99.5);
   });
 });
 

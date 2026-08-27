@@ -31,6 +31,8 @@ export interface ParsedFilterParams {
   minDiscount: string;
   /** Minimum current_price (inclusive); from `min_price` query param */
   minPrice: string;
+  /** Maximum current_price (inclusive); from `max_price` query param */
+  maxPrice: string;
   /** From `exclude_category_slug` query param */
   excludeCategorySlug: string;
   specFilters: Record<string, string[]>;
@@ -93,11 +95,12 @@ export function parseFilterParamsFromSearch(
   const categoryFilter = getParam(params, "category") ?? "";
   const minDiscount = getParam(params, "min_discount") ?? "";
   const minPrice = getParam(params, "min_price") ?? "";
+  const maxPrice = getParam(params, "max_price") ?? "";
   const excludeCategorySlug = getParam(params, "exclude_category_slug") ?? "";
   const sortParam = getParam(params, "sort");
   const sort = (VALID_SORTS.includes(sortParam as SortOption)
     ? sortParam
-    : "discount") as SortOption;
+    : "value") as SortOption;
   const offsetParam = getParam(params, "offset");
   const offset = Math.max(0, parseInt(offsetParam ?? "0", 10) || 0);
 
@@ -105,7 +108,7 @@ export function parseFilterParamsFromSearch(
 
   const effectiveSort =
     searchQuery.trim() === "" && sort === "relevance"
-      ? ("discount" as SortOption)
+      ? ("value" as SortOption)
       : sort;
 
   return {
@@ -115,6 +118,7 @@ export function parseFilterParamsFromSearch(
     categoryFilter,
     minDiscount,
     minPrice,
+    maxPrice,
     excludeCategorySlug,
     specFilters,
     sort: effectiveSort,
@@ -155,11 +159,12 @@ export function parseFilterParamsFromURL(
   const categoryFilter = params.get("category") ?? "";
   const minDiscount = params.get("min_discount") ?? "";
   const minPrice = params.get("min_price") ?? "";
+  const maxPrice = params.get("max_price") ?? "";
   const excludeCategorySlug = params.get("exclude_category_slug") ?? "";
   const sortParam = params.get("sort");
   const sort = (VALID_SORTS.includes(sortParam as SortOption)
     ? sortParam
-    : "discount") as SortOption;
+    : "value") as SortOption;
   const offsetParam = params.get("offset");
   const offset = Math.max(0, parseInt(offsetParam ?? "0", 10) || 0);
 
@@ -181,7 +186,7 @@ export function parseFilterParamsFromURL(
 
   const effectiveSort =
     searchQuery.trim() === "" && sort === "relevance"
-      ? ("discount" as SortOption)
+      ? ("value" as SortOption)
       : sort;
 
   return {
@@ -191,9 +196,19 @@ export function parseFilterParamsFromURL(
     categoryFilter,
     minDiscount,
     minPrice,
+    maxPrice,
     excludeCategorySlug,
     specFilters,
     sort: effectiveSort,
     offset,
   };
+}
+
+/** Parse a positive price from URL/filter state; invalid or empty → undefined. */
+export function parsePriceParam(value: string): number | undefined {
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+  const n = parseFloat(trimmed);
+  if (!Number.isFinite(n) || n <= 0) return undefined;
+  return n;
 }

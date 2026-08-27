@@ -71,6 +71,8 @@ export function DealsPageContent({
     brandFilters,
     categoryFilter,
     minDiscount,
+    minPrice,
+    maxPrice,
     specFilters,
     sort,
     offset,
@@ -78,6 +80,8 @@ export function DealsPageContent({
     setStoreFilter,
     toggleBrandFilter,
     setMinDiscount,
+    setMinPrice,
+    setMaxPrice,
     toggleSpecFilter,
     clearSpecFilter,
     setSort,
@@ -99,7 +103,7 @@ export function DealsPageContent({
   };
 
   const activeFilterCount =
-    [storeFilter, minDiscount].filter(Boolean).length +
+    [storeFilter, minDiscount, minPrice, maxPrice].filter(Boolean).length +
     brandFilters.length +
     Object.values(specFilters).reduce((n, a) => n + a.length, 0);
 
@@ -126,6 +130,20 @@ export function DealsPageContent({
         onRemove: () => setMinDiscount(""),
       });
     }
+    if (minPrice) {
+      chips.push({
+        key: "min_price",
+        label: `Min price: $${minPrice}`,
+        onRemove: () => setMinPrice(""),
+      });
+    }
+    if (maxPrice) {
+      chips.push({
+        key: "max_price",
+        label: `Max price: $${maxPrice}`,
+        onRemove: () => setMaxPrice(""),
+      });
+    }
     Object.entries(specFilters).forEach(([key, values]) => {
       const facet = facets?.spec_facets?.find((f) => f.key === key);
       const label = facet?.label ?? key;
@@ -142,11 +160,15 @@ export function DealsPageContent({
     storeFilter,
     brandFilters,
     minDiscount,
+    minPrice,
+    maxPrice,
     specFilters,
     facets?.spec_facets,
     setStoreFilter,
     toggleBrandFilter,
     setMinDiscount,
+    setMinPrice,
+    setMaxPrice,
     toggleSpecFilter,
   ]);
 
@@ -174,6 +196,16 @@ export function DealsPageContent({
     if (value)
       posthog.capture("filter_applied", { filter_type: "min_discount", value });
     setMinDiscount(value);
+  };
+  const handleMinPriceChange = (value: string) => {
+    if (value)
+      posthog.capture("filter_applied", { filter_type: "min_price", value });
+    setMinPrice(value);
+  };
+  const handleMaxPriceChange = (value: string) => {
+    if (value)
+      posthog.capture("filter_applied", { filter_type: "max_price", value });
+    setMaxPrice(value);
   };
   const handleToggleSpecFilter = (key: string, value: string) => {
     const v = value.trim();
@@ -218,11 +250,16 @@ export function DealsPageContent({
     brandFilters,
     categoryFilter,
     minDiscount,
+    minPrice,
+    maxPrice,
+    priceRange: facets.price_range,
     specFilters,
     specFacets: facets?.spec_facets ?? [],
     onStoreChange: handleStoreChange,
     onToggleBrand: handleToggleBrand,
     onMinDiscountChange: handleMinDiscountChange,
+    onMinPriceChange: handleMinPriceChange,
+    onMaxPriceChange: handleMaxPriceChange,
     onToggleSpecFilter: handleToggleSpecFilter,
     onClearSpecFilter: clearSpecFilter,
   };

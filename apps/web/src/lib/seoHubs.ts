@@ -378,9 +378,10 @@ export function emptyParsedFilterParams(): ParsedFilterParams {
     categoryFilter: "",
     minDiscount: "",
     minPrice: "",
+    maxPrice: "",
     excludeCategorySlug: "",
     specFilters: {},
-    sort: "discount",
+    sort: "value",
     offset: 0,
   };
 }

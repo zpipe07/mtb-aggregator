@@ -83,7 +83,8 @@ export default meta;
 
 type Story = StoryObj<typeof meta>;
 
-export const HiddenAtRoot: Story = {
+export const BrowseChipsAtRoot: Story = {
+  name: "Browse chips at root",
   args: {
     categoryFilter: "",
     searchParams: new URLSearchParams(),
