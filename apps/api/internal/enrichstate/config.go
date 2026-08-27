@@ -39,6 +39,11 @@ func LoadConfigFromEnv() Config {
 			cfg.PDPStaleAfter = d
 		}
 	}
+	if s := os.Getenv("ENRICH_CLAIM_LEASE"); s != "" {
+		if d, err := time.ParseDuration(s); err == nil && d > 0 {
+			cfg.ClaimLease = d
+		}
+	}
 	return cfg
 }
 

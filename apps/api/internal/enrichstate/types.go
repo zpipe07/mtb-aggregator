@@ -134,6 +134,7 @@ type Config struct {
 	BackoffBase         time.Duration
 	BackoffMax          time.Duration
 	PDPStaleAfter       time.Duration
+	ClaimLease          time.Duration
 }
 
 // DefaultConfig returns production defaults matching existing 7-day staleness.
@@ -145,16 +146,18 @@ func DefaultConfig() Config {
 		BackoffBase:         5 * time.Minute,
 		BackoffMax:          6 * time.Hour,
 		PDPStaleAfter:       7 * 24 * time.Hour,
+		ClaimLease:          10 * time.Minute,
 	}
 }
 
 // StateStore persists per-listing step state and claims work items.
 type StateStore interface {
-	ClaimForStep(ctx context.Context, step Step, filter ClaimFilter, limit int, force bool, now time.Time) ([]WorkItem, error)
+	ClaimForStep(ctx context.Context, step Step, filter ClaimFilter, limit int, force bool, now, leaseUntil time.Time) ([]WorkItem, error)
 	GetState(ctx context.Context, listingID int) (*ListingState, error)
 	RecordStepSuccess(ctx context.Context, listingID int, step Step, meta StepSuccessMeta, completedAt time.Time) error
 	RecordStepFailure(ctx context.Context, listingID int, step Step, errMsg string, nextAttempt time.Time, dead bool) error
 	ResetStep(ctx context.Context, listingID int, step Step) error
+	ReleaseLease(ctx context.Context, listingID int, step Step) error
 	EnsureRow(ctx context.Context, listingID int) error
 }
 
