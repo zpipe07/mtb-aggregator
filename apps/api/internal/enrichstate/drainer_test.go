@@ -179,3 +179,6 @@ func (t *trackingStateStore) RecordStepFailure(ctx context.Context, listingID in
 func (t *trackingStateStore) ResetStep(ctx context.Context, listingID int, step Step) error {
 	return t.inner.ResetStep(ctx, listingID, step)
 }
+func (t *trackingStateStore) StampLLMSkipInputs(ctx context.Context, listingID int, pdpHash string, promptProfileVersion *time.Time) error {
+	return t.inner.StampLLMSkipInputs(ctx, listingID, pdpHash, promptProfileVersion)
+}

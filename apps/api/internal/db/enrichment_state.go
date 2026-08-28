@@ -407,6 +407,28 @@ func (s EnrichmentStateStore) ResetStep(ctx context.Context, listingID int, step
 	}
 }
 
+// StampLLMSkipInputs persists snapshot hash and/or profile version after an LLM skip
+// without bumping classified_at/extracted_at. Only fills NULL/empty fields.
+func (s EnrichmentStateStore) StampLLMSkipInputs(ctx context.Context, listingID int, pdpHash string, promptProfileVersion *time.Time) error {
+	if err := s.EnsureRow(ctx, listingID); err != nil {
+		return err
+	}
+	_, err := s.DB.pool.Exec(ctx, `
+		UPDATE listing_enrichment SET
+			pdp_hash = CASE
+				WHEN (pdp_hash IS NULL OR pdp_hash = '') AND NULLIF($2, '') IS NOT NULL THEN $2
+				ELSE pdp_hash
+			END,
+			prompt_profile_version = CASE
+				WHEN prompt_profile_version IS NULL AND $3 IS NOT NULL THEN $3
+				ELSE prompt_profile_version
+			END,
+			updated_at = NOW()
+		WHERE listing_id = $1
+	`, listingID, pdpHash, promptProfileVersion)
+	return err
+}
+
 func nullIfEmpty(s string) interface{} {
 	if s == "" {
 		return nil
