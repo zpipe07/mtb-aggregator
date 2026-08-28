@@ -112,6 +112,24 @@ func (f *fakeStateStore) RecordStepFailure(_ context.Context, listingID int, ste
 
 func (f *fakeStateStore) ResetStep(context.Context, int, Step) error { return nil }
 
+func (f *fakeStateStore) StampLLMSkipInputs(_ context.Context, listingID int, pdpHash string, promptProfileVersion *time.Time) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	st := f.states[listingID]
+	if st == nil {
+		st = &ListingState{ListingID: listingID}
+		f.states[listingID] = st
+	}
+	if st.PDPHash == "" && pdpHash != "" {
+		st.PDPHash = pdpHash
+	}
+	if st.PromptProfileVersion == nil && promptProfileVersion != nil {
+		v := *promptProfileVersion
+		st.PromptProfileVersion = &v
+	}
+	return nil
+}
+
 type fakeSnapshots struct {
 	mu    sync.Mutex
 	snaps map[int]*Snapshot
@@ -493,6 +511,59 @@ func TestPipeline_SkipClassifyWhenAlreadyDone(t *testing.T) {
 	}
 	if !foundRelease {
 		t.Fatalf("expected ReleaseLease on LLM skip, got %+v", state.releaseCalls)
+	}
+}
+
+func TestPipeline_SkipClassifyStampsNullHash(t *testing.T) {
+	t.Parallel()
+	now := time.Now()
+	hash := "deadbeef"
+	item := WorkItem{ListingID: 99}
+	completed := now.Add(-time.Hour)
+	state := newFakeStateStore(map[Step][]WorkItem{
+		StepClassify: {item},
+	})
+	state.states[99] = &ListingState{
+		ListingID: 99,
+		PDP:       StepState{CompletedAt: &completed},
+		Classify:  StepState{CompletedAt: &completed},
+		PDPHash:   "",
+	}
+	snap := &Snapshot{ListingID: 99, ContentHash: hash, Payload: SnapshotPayload{}}
+	snaps := &fakeSnapshots{snaps: map[int]*Snapshot{99: snap}}
+	events := &fakeEvents{}
+	p := &Pipeline{
+		State:     state,
+		Snapshots: snaps,
+		Events:    events,
+		LLM:       fakeLLM{},
+		Config:    DefaultConfig(),
+	}
+	ok, err := p.runOne(context.Background(), StepClassify, item, false, nil, now, DefaultConfig())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !ok {
+		t.Fatal("expected skip success")
+	}
+	st, err := state.GetState(context.Background(), 99)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if st.PDPHash != hash {
+		t.Fatalf("expected stamped pdp_hash %q, got %q", hash, st.PDPHash)
+	}
+	in := StepDueInput{
+		Now:      now,
+		Config:   DefaultConfig(),
+		State:    *st,
+		Snapshot: snap,
+	}
+	if StepDue(StepClassify, in) {
+		t.Fatal("classify should not be due after null hash is stamped from snapshot")
+	}
+	if len(events.events) != 1 || events.events[0].Status != StatusSkipped {
+		t.Fatalf("expected skipped event, got %+v", events.events)
 	}
 }
 

@@ -111,6 +111,29 @@ func TestShouldSkipLLMStep_unchangedHashAndProfile(t *testing.T) {
 	}
 }
 
+func TestShouldSkipLLMStep_emptyHashStillSkipsWhenClassifyComplete(t *testing.T) {
+	t.Parallel()
+	now := time.Now()
+	completed := now.Add(-time.Minute)
+	hash := "snapshot-hash"
+	in := StepDueInput{
+		Now:    now,
+		Config: DefaultConfig(),
+		State: ListingState{
+			PDP:      StepState{CompletedAt: &completed},
+			Classify: StepState{CompletedAt: &completed},
+			PDPHash:  "", // migration 028 backfill: classified but hash never stamped
+		},
+		Snapshot: &Snapshot{ContentHash: hash},
+	}
+	if !ShouldSkipLLMStep(StepClassify, in) {
+		t.Fatal("empty pdp_hash with completed classify should skip (stamp path, not re-LLM)")
+	}
+	if llmInvalidated(in) {
+		t.Fatal("empty pdp_hash must not invalidate classify")
+	}
+}
+
 func TestShouldSkipLLMStep_hashChangeInvalidates(t *testing.T) {
 	t.Parallel()
 	now := time.Now()

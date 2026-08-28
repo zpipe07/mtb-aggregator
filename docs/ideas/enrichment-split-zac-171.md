@@ -21,6 +21,7 @@ The durable 3-step state machine (`pdp` → `classify` → `extract` in `apps/ap
 - [x] **The nightly job is not keeping up today** — ~20k of 27k eligible listings are >7 days PDP-stale (cambriabikes alone: 9,286). The windowed nightly job cannot drain this backlog; the drainer is a correctness fix, not just politeness.
 - [x] **Claim safety under concurrency** — migration `042` adds per-step `*_leased_until`; `ClaimForStep` atomically claims with `FOR UPDATE SKIP LOCKED`; leases cleared on success/failure/skip via `ReleaseLease`. DB tests in `enrichment_state_db_test.go` (require `TEST_DATABASE_URL`).
 - [ ] **LLM cost tracks listing churn, not scrape frequency** — only *due* work (new or changed listings, hash/profile invalidation) is claimed. Watch OpenAI spend after Phase 1 ships.
+- **Skip-loop fix (migration `044`):** `pdp_hash` is the hash last processed by classify/extract. Migration `028` backfilled `classified_at`/`extracted_at` but left `pdp_hash` NULL; claim SQL (`IS DISTINCT FROM`) kept those rows due while skip logic treated empty hash as unchanged — hourly LLM jobs re-skipped the same listings. **`044`** stamps hashes from snapshots; runtime **`StampLLMSkipInputs`** stamps on skip without re-running LLM. Apply **`044`** on Neon with deploy.
 
 ## MVP Scope (implementation phases, as separate tickets)
 

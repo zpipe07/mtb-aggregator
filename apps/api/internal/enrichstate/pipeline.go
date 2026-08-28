@@ -213,6 +213,9 @@ func (p *Pipeline) runOne(ctx context.Context, step Step, item WorkItem, force b
 	in := p.buildStepInput(ctx, *state, snap, force, now, cfg, item.ListingID)
 	if ShouldSkipLLMStep(step, in) {
 		p.recordEvent(ctx, item.ListingID, step, StatusSkipped, "", nil, jobID, start)
+		if snap != nil && snap.ContentHash != "" {
+			_ = p.State.StampLLMSkipInputs(ctx, item.ListingID, snap.ContentHash, in.ProfileUpdatedAt)
+		}
 		return true, nil
 	}
 

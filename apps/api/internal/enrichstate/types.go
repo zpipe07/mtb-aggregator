@@ -172,6 +172,9 @@ type StateStore interface {
 	ResetStep(ctx context.Context, listingID int, step Step) error
 	ReleaseLease(ctx context.Context, listingID int, step Step) error
 	EnsureRow(ctx context.Context, listingID int) error
+	// StampLLMSkipInputs persists snapshot hash / profile version after an LLM skip so
+	// NULL pdp_hash rows do not remain claimable forever (claim uses IS DISTINCT FROM).
+	StampLLMSkipInputs(ctx context.Context, listingID int, pdpHash string, promptProfileVersion *time.Time) error
 }
 
 // SnapshotStore persists latest PDP snapshots.

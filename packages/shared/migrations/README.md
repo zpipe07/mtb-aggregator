@@ -48,6 +48,7 @@ Override the migrations directory: `MIGRATIONS_DIR=path/to/migrations make db-mi
 | `041_helmet_spec_extraction.sql` | `extractable` on field defs; helmet coverage rubric + system prompt; helmet `intended_use` override; `clothing_size` non-LLM |
 | `042_enrichment_claim_leases.sql` | Per-step `*_leased_until` columns on `listing_enrichment` for concurrent-safe claim (`FOR UPDATE SKIP LOCKED`) |
 | `043_store_pdp_pacing.sql` | Per-store PDP drainer pacing: `pdp_consecutive_failures`, `pdp_cooldown_until`, `pdp_last_fetch_at` on `stores` |
+| `044_stamp_llm_pdp_hash.sql` | One-shot backfill: stamp `listing_enrichment.pdp_hash` from `pdp_snapshots.content_hash` and `prompt_profile_version` from enabled profiles for rows that completed LLM steps with NULL hash (fixes hourly LLM skip-loop). Apply on Neon with the API release (`make db-migrate-remote`). |
 
 After 019, run **`make backfill-field-library`** once (from repo root) to rename ambiguous `type` / `material` keys in `extraction_schema` and `metadata.llm_specs`, seed shared defs, and populate `llm_prompt_profile_fields`.
 

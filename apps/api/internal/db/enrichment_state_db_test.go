@@ -128,6 +128,48 @@ func TestEnrichmentStateStore_RecordStepSuccess_PDPPreservesLLMProcessedHash(t *
 	}
 }
 
+func TestEnrichmentStateStore_StampLLMSkipInputs_fillsNullHashWithoutBumpingClassify(t *testing.T) {
+	d := testDB(t)
+	ctx := context.Background()
+	listingID := createEnrichmentTestListing(t, d)
+
+	classifiedAt := time.Now().UTC().Add(-48 * time.Hour).Truncate(time.Second)
+	_, err := d.pool.Exec(ctx, `
+		INSERT INTO listing_enrichment (listing_id, pdp_fetched_at, pdp_hash, classified_at)
+		VALUES ($1, NOW() - INTERVAL '2 days', NULL, $2)
+	`, listingID, classifiedAt)
+	if err != nil {
+		t.Fatalf("insert row: %v", err)
+	}
+	_, err = d.pool.Exec(ctx, `
+		INSERT INTO pdp_snapshots (listing_id, payload, content_hash, fetched_at)
+		VALUES ($1, '{}', 'stamp-me', NOW() - INTERVAL '2 days')
+	`, listingID)
+	if err != nil {
+		t.Fatalf("insert snapshot: %v", err)
+	}
+
+	store := EnrichmentStateStore{DB: d}
+	if err := store.StampLLMSkipInputs(ctx, listingID, "stamp-me", nil); err != nil {
+		t.Fatalf("StampLLMSkipInputs: %v", err)
+	}
+
+	var hash *string
+	var gotClassifiedAt time.Time
+	err = d.pool.QueryRow(ctx, `
+		SELECT pdp_hash, classified_at FROM listing_enrichment WHERE listing_id = $1
+	`, listingID).Scan(&hash, &gotClassifiedAt)
+	if err != nil {
+		t.Fatalf("query row: %v", err)
+	}
+	if hash == nil || *hash != "stamp-me" {
+		t.Fatalf("pdp_hash = %v, want stamp-me", hash)
+	}
+	if !gotClassifiedAt.Equal(classifiedAt) {
+		t.Fatalf("classified_at changed: got %v want %v", gotClassifiedAt, classifiedAt)
+	}
+}
+
 // GetState round-trips a fully-populated row (all nullable columns non-NULL).
 func TestEnrichmentStateStore_GetState_populatedRow(t *testing.T) {
 	d := testDB(t)
