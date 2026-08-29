@@ -15,7 +15,7 @@ export function FilterChips({ filters, onClearAll }: FilterChipsProps) {
   if (filters.length === 0) return null;
 
   return (
-    <div className="mb-4 flex flex-wrap items-center gap-2">
+    <div className="mb-4 flex flex-wrap items-center gap-2 border-b border-foreground/15 pb-4">
       {filters.map(({ key, label, onRemove }) => (
         <span
           key={key}

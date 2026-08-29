@@ -28,7 +28,6 @@ import {
   Pagination,
   EmptyState,
   DealsCategoryNav,
-  DealsBrowseFooter,
 } from "../components";
 
 type Props = {
@@ -49,7 +48,7 @@ type Props = {
   categoryIntro?: string;
   /** Server-rendered content with the intro below the grid (e.g. Popular searches on category pages). */
   belowIntro?: ReactNode;
-  /** Server-rendered slots at page bottom (e.g. curated SEO hub links after grid + browse footer). */
+  /** Server-rendered slots at page bottom (e.g. curated SEO hub links after the grid). */
   children?: ReactNode;
 };
 
@@ -277,14 +276,14 @@ export function DealsPageContent({
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 lg:py-8">
+    <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:py-8">
       <div className="flex gap-8">
-        <aside className="hidden lg:block w-60 flex-shrink-0">
-          <div className="sticky top-6 max-h-[calc(100vh-3rem)] flex flex-col min-h-[500px]">
+        <aside className="hidden w-60 flex-shrink-0 lg:block">
+          <div className="sticky top-6 flex max-h-[calc(100vh-2rem)] min-h-[500px] flex-col rounded-[var(--radius)] border border-border bg-card p-4">
             <h2 className="mb-4 flex-shrink-0 font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
               {"// Filters"}
             </h2>
-            <div className="overflow-y-auto pr-1 -mr-1 grow">
+            <div className="-mr-1 min-h-0 grow overflow-y-auto pr-1">
               <FilterSidebar {...filterSidebarProps} />
             </div>
           </div>
@@ -351,7 +350,7 @@ export function DealsPageContent({
               )}
             >
               {totalCount > 0 && (
-                <div className="mb-4 border-b border-foreground/15">
+                <div className="mb-4">
                   <Pagination
                     totalCount={totalCount}
                     limit={DEFAULT_PAGE_SIZE}
@@ -401,11 +400,6 @@ export function DealsPageContent({
         {...filterSidebarProps}
         isOpen={filterDrawerOpen}
         onClose={() => setFilterDrawerOpen(false)}
-      />
-
-      <DealsBrowseFooter
-        rootCategories={categoryTree}
-        categoryTree={categoryTree}
       />
 
       {children ? (
