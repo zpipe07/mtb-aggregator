@@ -138,7 +138,8 @@ Run from repo root with API not required:
 
 ```bash
 make backfill-brands
-make backfill-canonical-categories   # Recategorize after taxonomy changes
+make backfill-canonical-categories   # Recategorize after taxonomy changes (skips manual + confident llm_category)
+make backfill-bikesonline-clothing-protective   # Bikes Online Clothing & Protective Gear → LLM Protection/Helmets/Gloves (DRY_RUN=1 preview)
 make backfill-llm-specs              # Populate llm_specs from specs
 make backfill-clothing-size          # After migration 041: copy normalized variant Size into llm_specs.clothing_size
 make backfill-field-library          # After migration 019: rename ambiguous keys, seed field defs, fill profile_fields

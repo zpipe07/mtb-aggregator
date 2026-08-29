@@ -30,6 +30,8 @@ Under **Gear**, first-level children include Helmets, Shoes, **Eyewear** (Sungla
 
 Under **Gear → Clothing**, Jerseys, Jackets, Shirts, Shorts, Pants, and Socks are **direct leaves** (migration `037` removed the intermediate Tops/Bottoms layer so mega-menu browse matches shoppable shelves). High-priority leaf mappings classify store paths and product names into the specific apparel type.
 
+**Bikes Online combined product_type:** Shopify sale rows use `product_type` `Clothing & Protective Gear` for both apparel and protective gear (pads, helmets, gloves). Substring mapping hits `clothing` first, so path-based canonical lands on **Gear > Clothing** even for knee sleeves. Do **not** add a blanket `protective gear` mapping — it would misfile jerseys in the same bucket. After LLM classification (Protection / Helmets / Gloves at ≥ classifier threshold), run `make backfill-bikesonline-clothing-protective` to copy the live LLM path onto `canonical_category`, then rely on PDP preserve + recategorize skip (confident `metadata.llm_category`) so the column is not remapped back to Clothing.
+
 Under **Components → Drivetrain**, **Bottom Brackets** is a dedicated leaf (migration `032`) with high-priority mappings for bottom-bracket keywords and LLM extraction of `bb_standard` / `bb_shell_width` for facet filters. Under **Components → Cockpit**, **Headsets** is a dedicated leaf with mappings for headset keywords and `headset_standard` extraction. Spacers, stem caps, and install tools stay in Cockpit Parts or Accessories → Tools.
 
 Under **Components → Wheels/Tires**, **Tubeless** is a dedicated leaf (migration `036`) for valves, rim tape, sealant, kits, and tire inserts. Mappings use **specific** keywords (`tubeless valve`, `rim tape`, `tire sealant`, etc.) — not bare `tubeless`, which would misclassify tubeless-ready tires. The legacy `tube`/`tubes` mapping is substring-based, so paths like `Tubeless Kits` previously landed in **Tubes** until the high-priority Tubeless rule runs first.
@@ -41,7 +43,7 @@ Under **Bikes**, **BMX Bikes** is a dedicated leaf (migration `039`) for complet
 ## Data Flow
 
 1. **Enrichment**: Scraper returns `category_path` (breadcrumb array) from PDP.
-2. **Path-based taxonomy**: `taxonomy.Map` derives a candidate `canonical_category` and `category_id` from mappings — **unless** `metadata.llm_category` already records a confident prior classification (`confidence` ≥ threshold from `LLM_CATEGORY_PRESERVE_THRESHOLD` or the classifier row, default `0.5`), in which case only `category_path` is refreshed and LLM-owned `canonical_category` / `category_id` are preserved until the classifier runs again successfully.
+2. **Path-based taxonomy**: `taxonomy.Map` derives a candidate `canonical_category` and `category_id` from mappings — **unless** `metadata.llm_category` already records a confident prior classification (`confidence` ≥ threshold from `LLM_CATEGORY_PRESERVE_THRESHOLD` or the classifier row, default `0.5`), in which case only `category_path` is refreshed and LLM-owned `canonical_category` / `category_id` are preserved until the classifier runs again successfully. Admin **Recategorize** / `make backfill-canonical-categories` skips listings with `manual_category_override` or the same confident `llm_category` threshold so path remap cannot undo LLM-owned categories.
 3. **LLM classifier** (if enabled): Overwrites `canonical_category` / `category_id` when output confidence ≥ threshold; otherwise stores audit metadata only.
 4. **Listing**: `store_listings.category_id` links to the canonical category row.
 
@@ -64,5 +66,6 @@ Under **Bikes**, **BMX Bikes** is a dedicated leaf (migration `039`) for complet
 
 ```bash
 make backfill-canonical-categories   # Recategorize after taxonomy changes
+make backfill-bikesonline-clothing-protective   # Bikes Online Clothing & Protective Gear → LLM Protection/Helmets/Gloves (DRY_RUN=1 preview)
 make backfill-field-library          # After migration 019: LLM field defs + profile composition rows
 ```

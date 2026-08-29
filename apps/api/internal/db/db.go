@@ -2062,9 +2062,11 @@ func (db *DB) RequeueWipedEnrichment(ctx context.Context) (int64, error) {
 }
 
 // BackfillCanonicalCategories sets canonical_category and category_id from category_path using the given mapper (e.g. taxonomy.Map).
+// Skips listings with manual_category_override or confident metadata.llm_category so path remap cannot clobber LLM-owned categories.
 // Returns the number of rows updated.
 func (db *DB) BackfillCanonicalCategories(ctx context.Context, mapFn func([]string) []string) (int, error) {
-	rows, err := db.pool.Query(ctx, `SELECT id, COALESCE(category_path, '{}'), COALESCE(canonical_category, '{}') FROM store_listings`)
+	threshold := db.resolveLLMPreserveThreshold(ctx)
+	rows, err := db.pool.Query(ctx, `SELECT id, COALESCE(category_path, '{}'), COALESCE(canonical_category, '{}'), COALESCE(metadata, '{}'::jsonb) FROM store_listings`)
 	if err != nil {
 		return 0, err
 	}
@@ -2072,10 +2074,14 @@ func (db *DB) BackfillCanonicalCategories(ctx context.Context, mapFn func([]stri
 
 	var id int
 	var cp, existing pgtype.FlatArray[string]
+	var meta []byte
 	updated := 0
 	for rows.Next() {
-		if err := rows.Scan(&id, &cp, &existing); err != nil {
+		if err := rows.Scan(&id, &cp, &existing, &meta); err != nil {
 			return updated, err
+		}
+		if ShouldPreserveCanonicalForBackfill(meta, threshold) {
+			continue
 		}
 		raw := []string(cp)
 		canonical := mapFn(raw)
