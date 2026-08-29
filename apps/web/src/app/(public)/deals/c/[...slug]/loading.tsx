@@ -21,10 +21,7 @@ export default function CategoryDealsLoading() {
 
         <div className="min-w-0 flex-1">
           <DealsToolbarSkeleton />
-          <DealsCategoryNavSkeleton />
-
-          <Skeleton className="mb-4 h-4 w-full max-w-2xl" />
-          <Skeleton className="mb-4 h-4 w-3/4 max-w-xl" />
+          <DealsCategoryNavSkeleton variant="breadcrumb" />
 
           <div className="mb-4 border-b border-foreground/15 pb-4">
             <Skeleton className="mx-auto h-10 max-w-md rounded-sm" />
