@@ -38,9 +38,9 @@ type Props = {
   categoryTree: CategoryTreeNode[];
   /** Current `/deals` URL (path + query) so deal cards preserve filters on detail → back. */
   dealsListPath: string;
-  /** Optional GEO intro (e.g. `/deals/c/...` routes from `getCategorySeo().intro`). */
+  /** Optional GEO intro (e.g. `/deals/c/...` routes from `getCategorySeo().intro`). Renders below the deal grid so listings stay above the fold. */
   categoryIntro?: string;
-  /** Server-rendered content immediately below intro (e.g. Popular searches on category pages). */
+  /** Server-rendered content with the intro below the grid (e.g. Popular searches on category pages). */
   belowIntro?: ReactNode;
   /** Server-rendered slots at page bottom (e.g. curated SEO hub links after grid + browse footer). */
   children?: ReactNode;
@@ -294,14 +294,6 @@ export function DealsPageContent({
             categoryFilter={categoryFilter}
           />
 
-          {categoryIntro ? (
-            <p className="text-sm text-muted-foreground mb-4 max-w-3xl leading-relaxed">
-              {categoryIntro}
-            </p>
-          ) : null}
-
-          {belowIntro ? <div className="mb-6">{belowIntro}</div> : null}
-
           <FilterChips
             filters={activeFilters}
             onClearAll={handleClearAllFilters}
@@ -379,6 +371,17 @@ export function DealsPageContent({
               )}
             </div>
           </div>
+
+          {categoryIntro || belowIntro ? (
+            <div className="mt-10 space-y-6">
+              {categoryIntro ? (
+                <p className="text-sm text-muted-foreground max-w-3xl leading-relaxed">
+                  {categoryIntro}
+                </p>
+              ) : null}
+              {belowIntro}
+            </div>
+          ) : null}
         </div>
       </div>
 

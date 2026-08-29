@@ -30,7 +30,7 @@ Do not expand the price-band hub matrix or publish “best of” guides until th
 
 - Enriched under-$3000 hub copy in [`apps/web/src/lib/seoHubs.ts`](../apps/web/src/lib/seoHubs.ts)
 - Hub FAQ component + optional `FAQPage` JSON-LD
-- `belowIntro` slot on deals pages; Popular searches under category intro
+- `belowIntro` slot on deals pages; Popular searches and category intro render below the deal grid
 - Home page global hub links; hub page parent/sibling related links
 - Post-deploy GSC indexing request (manual)
 

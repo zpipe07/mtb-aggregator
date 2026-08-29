@@ -6,7 +6,7 @@ export type CategorySeoMeta = {
   title: string;
   /** Meta description; keep under ~160 chars for SERPs. */
   description: string;
-  /** Optional intro paragraph above the grid (GEO / long-tail context). */
+  /** Optional intro paragraph below the deal grid (GEO / long-tail context). */
   intro?: string;
 };
 

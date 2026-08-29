@@ -25,7 +25,7 @@ export type SeoHubDefinition = {
   intro: string;
   filters: SeoHubFilter;
   /**
-   * Show this hub in “Popular searches” on `/deals/c/…` when the page category slug matches.
+   * Show this hub in “Popular searches” below the deal grid on `/deals/c/…` when the page category slug matches.
    */
   relatedCategorySlugs: string[];
   /** Optional FAQ for hub uniqueness (indexed money pages). */
