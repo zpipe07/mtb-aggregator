@@ -4,6 +4,7 @@ import {
   parseFilterParamsFromSearch,
   parsePriceParam,
   normalizeFilterQueryString,
+  resolveUiCategorySlug,
 } from "./filterParams";
 
 describe("parseFilterParamsFromURL", () => {
@@ -53,6 +54,28 @@ describe("parsePriceParam", () => {
   it("returns positive numbers", () => {
     expect(parsePriceParam("50")).toBe(50);
     expect(parsePriceParam(" 99.5 ")).toBe(99.5);
+  });
+});
+
+describe("resolveUiCategorySlug", () => {
+  it("uses the route-locked slug when the URL has no category (SEO hubs)", () => {
+    expect(resolveUiCategorySlug("", "bikes-mountain")).toBe("bikes-mountain");
+  });
+
+  it("prefers the route-locked slug over a query/path category", () => {
+    expect(resolveUiCategorySlug("components", "bikes-mountain")).toBe(
+      "bikes-mountain",
+    );
+  });
+
+  it("falls back to path/query category when no route lock is set", () => {
+    expect(resolveUiCategorySlug("bikes-mountain")).toBe("bikes-mountain");
+    expect(resolveUiCategorySlug(" bikes-mountain ")).toBe("bikes-mountain");
+  });
+
+  it("returns empty when neither route nor URL has a category", () => {
+    expect(resolveUiCategorySlug("")).toBe("");
+    expect(resolveUiCategorySlug("", "  ")).toBe("");
   });
 });
 

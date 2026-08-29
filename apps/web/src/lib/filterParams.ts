@@ -204,6 +204,20 @@ export function parseFilterParamsFromURL(
   };
 }
 
+/**
+ * Category slug for spec-facet sidebar + category nav.
+ * Hub and brand+category routes are not `/deals/c/...`, so path parsing yields
+ * empty even when the page is locked to a category server-side.
+ */
+export function resolveUiCategorySlug(
+  pathOrQueryCategory: string,
+  routeCategorySlug?: string,
+): string {
+  const fromRoute = routeCategorySlug?.trim() ?? "";
+  if (fromRoute) return fromRoute;
+  return pathOrQueryCategory.trim();
+}
+
 /** Parse a positive price from URL/filter state; invalid or empty → undefined. */
 export function parsePriceParam(value: string): number | undefined {
   const trimmed = value.trim();
