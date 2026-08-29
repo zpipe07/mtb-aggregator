@@ -79,10 +79,10 @@ function useScrollFade(
   return fade;
 }
 
-/**
- * Multi-select checkbox list in a fieldset (OR within group).
- * Composes shadcn Checkbox + Label. Long lists scroll with edge fades when overflow exists.
- */
+const overflowFade =
+  "pointer-events-none absolute inset-x-0 z-10 h-11 from-[var(--checkbox-overflow-fade,var(--card))] from-15% via-[color-mix(in_oklab,var(--checkbox-overflow-fade,var(--card))_50%,transparent)] to-transparent";
+
+/** Multi-select checkbox list. Long lists scroll with edge fades when overflow exists. */
 export function CheckboxGroup({
   name,
   legend,
@@ -105,7 +105,7 @@ export function CheckboxGroup({
       <div className="relative">
         {canScrollUp ? (
           <div
-            className="pointer-events-none absolute inset-x-0 top-0 z-10 h-11 bg-gradient-to-b from-card from-15% via-card/50 to-transparent"
+            className={cn(overflowFade, "top-0 bg-gradient-to-b")}
             aria-hidden
           />
         ) : null}
@@ -156,7 +156,7 @@ export function CheckboxGroup({
         </div>
         {canScrollDown ? (
           <div
-            className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-11 bg-gradient-to-t from-card from-15% via-card/50 to-transparent"
+            className={cn(overflowFade, "bottom-0 bg-gradient-to-t")}
             aria-hidden
           />
         ) : null}
