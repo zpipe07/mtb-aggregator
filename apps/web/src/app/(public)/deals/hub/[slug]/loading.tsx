@@ -23,9 +23,6 @@ export default function HubDealsLoading() {
           <DealsToolbarSkeleton />
           <DealsCategoryNavSkeleton />
 
-          <Skeleton className="mb-4 h-4 w-full max-w-2xl" />
-          <Skeleton className="mb-4 h-4 w-3/4 max-w-xl" />
-
           <div className="mb-4 border-b border-foreground/15 pb-4">
             <Skeleton className="mx-auto h-10 max-w-md rounded-sm" />
           </div>

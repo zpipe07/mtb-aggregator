@@ -25,7 +25,7 @@ export type SeoHubDefinition = {
   intro: string;
   filters: SeoHubFilter;
   /**
-   * Show this hub in “Popular searches” on `/deals/c/…` when the page category slug matches.
+   * Show this hub in “Popular searches” below the deal grid on `/deals/c/…` when the page category slug matches.
    */
   relatedCategorySlugs: string[];
   /** Optional FAQ for hub uniqueness (indexed money pages). */
@@ -149,6 +149,45 @@ const HUBS: SeoHubDefinition[] = [
         question: "How often is this list updated?",
         answer:
           "We re-scrape retailer sale pages on a regular cadence (roughly every few hours). When a bike sells out or the price moves above $3,000, it may drop off the list on the next refresh.",
+      },
+    ],
+  },
+  {
+    slug: "emtbs-under-5000",
+    title: "eMTBs on sale under $5,000",
+    description:
+      "Compare electric mountain bikes on sale under $5,000 across MTB retailers. Live full-power and lightweight eMTB deals updated throughout the day.",
+    intro:
+      "This list tracks electric mountain bikes currently on sale under $5,000 from shops we monitor—full-power and lightweight eMTBs when retailers mark them down. $5,000 is a competitive eMTB price point: prior-year models, closeouts, and direct-to-consumer builds often land here. Prices and inventory change as new scrapes run; use each listing to jump to the shop for current availability.",
+    filters: { category_slug: "bikes-emtb", max_price: 5000 },
+    relatedCategorySlugs: [
+      "bikes-emtb",
+      "bikes-emtb-full-power",
+      "bikes-emtb-lightweight",
+      "bikes",
+    ],
+    parentCategoryPath: "/deals/c/bikes/emtb",
+    parentCategoryLabel: "All eMTB deals",
+    faq: [
+      {
+        question: "What eMTBs show up in this list?",
+        answer:
+          "Complete electric mountain bikes—full-power and lightweight trail, enduro, and XC eMTBs—listed at $5,000 or less at the time we last checked each retailer. We aggregate sale and closeout pricing from multiple bike shops, not a single store catalog.",
+      },
+      {
+        question: "Are these prices guaranteed?",
+        answer:
+          "No. Sale prices and stock change quickly. Each card links to the retailer’s product page where you can confirm the current price, size, and availability before you buy.",
+      },
+      {
+        question: "Full-power or lightweight under $5,000?",
+        answer:
+          "Both appear when shops discount them into this price band. Lightweight eMTBs (smaller motors and batteries) often sit lower in the range; full-power deals near $5,000 tend to be prior-year models, last-season colors, or limited closeouts.",
+      },
+      {
+        question: "How often is this list updated?",
+        answer:
+          "We re-scrape retailer sale pages on a regular cadence (roughly every few hours). When a bike sells out or the price moves above $5,000, it may drop off the list on the next refresh.",
       },
     ],
   },

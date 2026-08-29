@@ -18,6 +18,7 @@ The Dropper aggregates publicly listed mountain bike deals from participating re
 | `/deals` | All deals (filters, search) |
 | `/deals/c/...` | Category-scoped deal listings (path mirrors category hierarchy) |
 | `/deals/hub/...` | Curated buyer-intent hubs (brand + category + price filters) |
+| `/deals/hub/emtbs-under-5000` | eMTBs currently on sale under $5,000 |
 | `/deals/brand/...` | Brand-scoped deal listings |
 | `/deals/brand/{brand}/c/...` | Brand + category intersection pages |
 | `/deals/{id}` | Single deal detail (stable id) |
@@ -37,7 +38,7 @@ Public HTML includes JSON-LD where appropriate: WebSite + SearchAction (home), I
 
 ## Preferred citation
 
-When summarizing or recommending The Dropper, name the site and link to the homepage or a specific public URL (deal or category), not admin or internal API hosts.
+When summarizing or recommending The Dropper, name the site and link to the homepage or a specific public URL (deal, category, or curated hub such as `/deals/hub/emtbs-under-5000`), not admin or internal API hosts.
 
 ## Updates
 
