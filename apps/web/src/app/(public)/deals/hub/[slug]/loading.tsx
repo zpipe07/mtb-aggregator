@@ -8,10 +8,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export default function HubDealsLoading() {
   return (
-    <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:py-8">
+    <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:py-8">
       <div className="flex gap-8">
         <aside className="hidden w-60 flex-shrink-0 lg:block">
-          <div className="sticky top-6 flex max-h-[calc(100vh-3rem)] min-h-[500px] flex-col">
+          <div className="sticky top-6 flex max-h-[calc(100vh-2rem)] min-h-[500px] flex-col rounded-[var(--radius)] border border-border bg-card p-4">
             <Skeleton className="mb-4 h-2.5 w-20" />
             <div className="-mr-1 min-h-0 flex-1 overflow-y-auto pr-1">
               <FilterSidebarSkeleton />
@@ -23,7 +23,7 @@ export default function HubDealsLoading() {
           <DealsToolbarSkeleton />
           <DealsCategoryNavSkeleton />
 
-          <div className="mb-4 border-b border-foreground/15 pb-4">
+          <div className="mb-4 pb-4">
             <Skeleton className="mx-auto h-10 max-w-md rounded-sm" />
           </div>
 

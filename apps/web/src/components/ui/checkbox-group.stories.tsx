@@ -72,6 +72,9 @@ export const ManyOptions: Story = {
             );
           }}
         />
+        <p className="mt-2 text-xs text-muted-foreground">
+          Long lists scroll with edge fades when more options are available.
+        </p>
       </div>
     );
   },

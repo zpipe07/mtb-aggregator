@@ -1,5 +1,6 @@
 "use client";
 
+import { useCallback, useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { sanitizeForHtmlId } from "@/lib/htmlId";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -21,9 +22,55 @@ export type CheckboxGroupProps = {
   className?: string;
 };
 
+type ScrollFadeState = {
+  canScrollUp: boolean;
+  canScrollDown: boolean;
+};
+
+function useScrollFade(
+  scrollRef: React.RefObject<HTMLDivElement | null>,
+  deps: unknown[],
+) {
+  const [fade, setFade] = useState<ScrollFadeState>({
+    canScrollUp: false,
+    canScrollDown: false,
+  });
+
+  const updateFade = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+
+    const { scrollTop, scrollHeight, clientHeight } = el;
+    const overflow = scrollHeight - clientHeight > 1;
+
+    setFade({
+      canScrollUp: overflow && scrollTop > 1,
+      canScrollDown: overflow && scrollTop + clientHeight < scrollHeight - 1,
+    });
+  }, [scrollRef]);
+
+  useEffect(() => {
+    updateFade();
+    const el = scrollRef.current;
+    if (!el) return;
+
+    el.addEventListener("scroll", updateFade, { passive: true });
+    const ro = new ResizeObserver(updateFade);
+    ro.observe(el);
+
+    return () => {
+      el.removeEventListener("scroll", updateFade);
+      ro.disconnect();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- re-measure when option list changes
+  }, [updateFade, ...deps]);
+
+  return fade;
+}
+
 /**
  * Multi-select checkbox list in a fieldset (OR within group).
- * Composes shadcn Checkbox + Label. For long lists, consider a searchable combobox + truncation (follow-up).
+ * Composes shadcn Checkbox + Label. Long lists scroll with edge fades when overflow exists.
  */
 export function CheckboxGroup({
   name,
@@ -35,6 +82,8 @@ export function CheckboxGroup({
 }: CheckboxGroupProps) {
   const selectedSet = new Set(selected);
   const safeName = sanitizeForHtmlId(name);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const { canScrollUp, canScrollDown } = useScrollFade(scrollRef, [options.length]);
 
   return (
     <fieldset className={cn("space-y-2", className)}>
@@ -42,44 +91,59 @@ export function CheckboxGroup({
         {"// "}
         {legend}
       </legend>
-      <div
-        className="max-h-64 space-y-1 overflow-y-auto pr-1 -mr-1"
-        role="group"
-        aria-label={legend}
-      >
-        {options.map((opt) => {
-          const id = `${safeName}-${sanitizeForHtmlId(opt.value)}`;
-          const checked = selectedSet.has(opt.value);
-          const showCount = typeof opt.count === "number";
-          return (
-            <div
-              key={`${name}-${opt.value}`}
-              className="flex items-start gap-2 rounded-md py-0.5 pr-1 text-sm hover:bg-muted/50"
-            >
-              <Checkbox
-                id={id}
-                name={name}
-                checked={checked}
-                onCheckedChange={() => onToggle(opt.value)}
-                className="mt-0.5"
-              />
-              <Label
-                htmlFor={id}
-                className="min-w-0 flex-1 cursor-pointer font-normal leading-snug text-foreground"
+      <div className="relative">
+        {canScrollUp ? (
+          <div
+            className="pointer-events-none absolute inset-x-0 top-0 z-10 h-11 bg-gradient-to-b from-card from-15% via-card/50 to-transparent"
+            aria-hidden
+          />
+        ) : null}
+        <div
+          ref={scrollRef}
+          className="max-h-64 space-y-1 overflow-y-auto pr-1 -mr-1"
+          role="group"
+          aria-label={legend}
+        >
+          {options.map((opt) => {
+            const id = `${safeName}-${sanitizeForHtmlId(opt.value)}`;
+            const checked = selectedSet.has(opt.value);
+            const showCount = typeof opt.count === "number";
+            return (
+              <div
+                key={`${name}-${opt.value}`}
+                className="flex items-start gap-2 rounded-md py-0.5 pr-1 text-sm hover:bg-muted/50"
               >
-                {opt.value}
-                {showCount ? (
-                  <>
-                    {" "}
-                    <span className="tabular-nums text-muted-foreground">
-                      ({opt.count})
-                    </span>
-                  </>
-                ) : null}
-              </Label>
-            </div>
-          );
-        })}
+                <Checkbox
+                  id={id}
+                  name={name}
+                  checked={checked}
+                  onCheckedChange={() => onToggle(opt.value)}
+                  className="mt-0.5"
+                />
+                <Label
+                  htmlFor={id}
+                  className="min-w-0 flex-1 cursor-pointer font-normal leading-snug text-foreground"
+                >
+                  {opt.value}
+                  {showCount ? (
+                    <>
+                      {" "}
+                      <span className="tabular-nums text-muted-foreground">
+                        ({opt.count})
+                      </span>
+                    </>
+                  ) : null}
+                </Label>
+              </div>
+            );
+          })}
+        </div>
+        {canScrollDown ? (
+          <div
+            className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-11 bg-gradient-to-t from-card from-15% via-card/50 to-transparent"
+            aria-hidden
+          />
+        ) : null}
       </div>
     </fieldset>
   );
