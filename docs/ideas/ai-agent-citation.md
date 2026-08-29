@@ -83,8 +83,7 @@ Controls (keep the pack honest):
 - **Google AI Overviews as the first surface** — AIO cites sites that already rank. GSC has ~0 clicks. A later prize, not this ticket.
 - **MCP server or public deals API** — nobody calls an API for a site they do not know. Revisit if agents start citing us and need structured fetch.
 - **Editorial “best eMTB deals” guides** — thin content risk; we are an aggregator, not a magazine. Dated inventory on the live category page is the citation hook.
-- **New eMTB hub URL** (`/deals/hub/...`) — `/deals/c/bikes/emtb` already exists. A second URL splits crawl equity for no gain.
-- **Expanding the hub matrix for GEO** — same as the distribution one-pager: expand only where demand + inventory justify it.
+- **Expanding the hub matrix for GEO** — same as the distribution one-pager: expand only where demand + inventory justify it. **ZAC-232** later added a curated price-band hub at [`/deals/hub/emtbs-under-5000`](../../apps/web/src/lib/seoHubs.ts) (`bikes-emtb` + `max_price=5000`) because $5,000 is a competitive eMTB price point; that hub is a buyer-intent landing page, not a replacement for the category URL’s dated intro.
 
 ## Open Questions
 
