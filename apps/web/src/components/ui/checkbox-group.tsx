@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useLayoutEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { sanitizeForHtmlId } from "@/lib/htmlId";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -40,16 +40,27 @@ function useScrollFade(
     const el = scrollRef.current;
     if (!el) return;
 
+    // Hidden (e.g. closed drawer) — don't treat 0-height as overflow.
+    if (el.clientHeight === 0) {
+      setFade({ canScrollUp: false, canScrollDown: false });
+      return;
+    }
+
     const { scrollTop, scrollHeight, clientHeight } = el;
-    const overflow = scrollHeight - clientHeight > 1;
+    // Compare against max-height (max-h-64), not clientHeight. Short lists can
+    // report 1–4px of phantom overflow from subpixels/scrollbars.
+    const maxHeightPx = parseFloat(getComputedStyle(el).maxHeight);
+    const limit = Number.isFinite(maxHeightPx) ? maxHeightPx : clientHeight;
+    const overflows = scrollHeight > limit + 1;
 
     setFade({
-      canScrollUp: overflow && scrollTop > 1,
-      canScrollDown: overflow && scrollTop + clientHeight < scrollHeight - 1,
+      canScrollUp: overflows && scrollTop > 1,
+      canScrollDown:
+        overflows && scrollTop + clientHeight < scrollHeight - 1,
     });
   }, [scrollRef]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     updateFade();
     const el = scrollRef.current;
     if (!el) return;
@@ -100,7 +111,12 @@ export function CheckboxGroup({
         ) : null}
         <div
           ref={scrollRef}
-          className="max-h-64 space-y-1 overflow-y-auto pr-1 -mr-1"
+          className={cn(
+            "max-h-64 space-y-1 pr-1 -mr-1",
+            canScrollUp || canScrollDown
+              ? "overflow-y-auto"
+              : "overflow-y-visible",
+          )}
           role="group"
           aria-label={legend}
         >
