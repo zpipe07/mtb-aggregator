@@ -167,6 +167,7 @@ export default async function SeoHubDealsPage({ params, searchParams }: Props) {
           stores={stores}
           categoryTree={categoryTree}
           dealsListPath={dealsListPath}
+          routeCategorySlug={hub.filters.category_slug}
           categoryIntro={hub.intro}
         >
           {hub.faq?.length ? <SeoHubFaq items={hub.faq} /> : null}

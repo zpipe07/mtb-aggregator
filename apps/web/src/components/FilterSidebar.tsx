@@ -28,8 +28,6 @@ export type FilterSidebarProps = {
   brandFacets: BrandFacet[];
   storeFilter: string;
   brandFilters: string[];
-  /** Category filter (slug) — used to scope spec facets; category UI lives above the deals grid. */
-  categoryFilter: string;
   minDiscount: string;
   minPrice: string;
   maxPrice: string;
@@ -50,7 +48,6 @@ export function FilterSidebar({
   brandFacets,
   storeFilter,
   brandFilters,
-  categoryFilter,
   minDiscount,
   minPrice,
   maxPrice,
@@ -110,7 +107,7 @@ export function FilterSidebar({
         onMaxPriceChange={onMaxPriceChange}
       />
 
-      {categoryFilter && specFacets.length > 0 && (
+      {specFacets.length > 0 && (
         <div className="space-y-4 border-t border-foreground/15 pt-4">
           {specFacets.map((facet) => {
             const specValueOptions = mergeSelectedFacetValues(

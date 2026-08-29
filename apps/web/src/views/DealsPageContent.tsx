@@ -12,6 +12,7 @@ import type {
   BrandFacet,
 } from "../api";
 import { useFilterParams } from "../hooks/useFilterParams";
+import { resolveUiCategorySlug } from "../lib/filterParams";
 import { usePendingTimeout } from "../hooks/usePendingTimeout";
 import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -37,11 +38,17 @@ type Props = {
   categoryTree: CategoryTreeNode[];
   /** Current `/deals` URL (path + query) so deal cards preserve filters on detail → back. */
   dealsListPath: string;
+  /**
+   * Category slug locked by the route (SEO hubs, brand+category pages).
+   * Hub paths are `/deals/hub/...`, so URL parsing cannot recover the category
+   * that already scoped deals and facets.
+   */
+  routeCategorySlug?: string;
   /** Optional GEO intro (e.g. `/deals/c/...` routes from `getCategorySeo().intro`). Renders below the deal grid so listings stay above the fold. */
   categoryIntro?: string;
   /** Server-rendered content with the intro below the grid (e.g. Popular searches on category pages). */
   belowIntro?: ReactNode;
-  /** Server-rendered slots at page bottom (e.g. curated SEO hub links after grid + browse footer). */
+  /** Server-rendered slots at page bottom (e.g. curated SEO hub links after the grid). */
   children?: ReactNode;
 };
 
@@ -52,6 +59,7 @@ export function DealsPageContent({
   stores,
   categoryTree,
   dealsListPath,
+  routeCategorySlug,
   categoryIntro,
   belowIntro,
   children,
@@ -68,7 +76,7 @@ export function DealsPageContent({
     searchQuery,
     storeFilter,
     brandFilters,
-    categoryFilter,
+    categoryFilter: urlCategoryFilter,
     minDiscount,
     minPrice,
     maxPrice,
@@ -87,6 +95,11 @@ export function DealsPageContent({
     setOffset,
     clearAllFilters,
   } = filterParams;
+
+  const categoryFilter = resolveUiCategorySlug(
+    urlCategoryFilter,
+    routeCategorySlug,
+  );
 
   const { isPending: resultsPending, timedOut, clearTimeoutState } =
     usePendingTimeout(isFilterPending, 15_000, {
@@ -247,7 +260,6 @@ export function DealsPageContent({
     brandFacets,
     storeFilter,
     brandFilters,
-    categoryFilter,
     minDiscount,
     minPrice,
     maxPrice,

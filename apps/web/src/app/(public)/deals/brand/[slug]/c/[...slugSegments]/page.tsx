@@ -221,6 +221,7 @@ export default async function BrandCategoryDealsPage({
           stores={stores}
           categoryTree={categoryTree}
           dealsListPath={dealsListPath}
+          routeCategorySlug={categorySlug}
           categoryIntro={seo.intro}
         />
       </Suspense>
