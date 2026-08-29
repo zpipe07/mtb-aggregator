@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   buildFetchDealsParamsFromHubAndFilters,
+  buildFetchFacetsParamsFromHubAndFilters,
   emptyParsedFilterParams,
   getSeoHubBySlug,
   resolveHubSearchQuery,
@@ -30,6 +31,23 @@ describe("resolveHubSearchQuery", () => {
       emptyParsedFilterParams(),
     );
     expect(q).toBeUndefined();
+  });
+});
+
+describe("mountain-bikes-under-3000 hub", () => {
+  it("scopes deals and facets to bikes-mountain with a $3000 cap", () => {
+    const hub = getSeoHubBySlug("mountain-bikes-under-3000");
+    expect(hub).toBeDefined();
+    expect(hub!.filters.category_slug).toBe("bikes-mountain");
+    expect(hub!.filters.max_price).toBe(3000);
+
+    const fp = emptyParsedFilterParams();
+    const deals = buildFetchDealsParamsFromHubAndFilters(hub!, fp);
+    const facets = buildFetchFacetsParamsFromHubAndFilters(hub!, fp);
+    expect(deals.category_slug).toBe("bikes-mountain");
+    expect(deals.max_price).toBe(3000);
+    expect(facets.category_slug).toBe("bikes-mountain");
+    expect(facets.max_price).toBe(3000);
   });
 });
 
