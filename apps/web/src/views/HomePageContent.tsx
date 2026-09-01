@@ -9,7 +9,7 @@ import { DealCarousel } from "../components/DealCarousel";
 import { CategoryCard } from "../components/CategoryCard";
 import { StatTicker } from "../components/StatTicker";
 import { CategoryTreeNode } from "../api";
-import { categoryHasDeals } from "../lib/categoryTree";
+import { categoryHasDeals, categoryNavDealCount } from "../lib/categoryTree";
 import { CATEGORY_IMAGES } from "../lib/categoryImages";
 import { buildDealsCategoryPath } from "../lib/dealsCategoryPath";
 import type { Deal } from "../api";
@@ -55,7 +55,7 @@ function buildCategoryCards(categoryTree: CategoryTreeNode[]): {
     path: category.slug,
     label: category.name,
     imageSrc: CATEGORY_IMAGES[category.slug] ?? undefined,
-    dealCount: category.deal_count,
+    dealCount: categoryNavDealCount(category),
   }));
 }
 

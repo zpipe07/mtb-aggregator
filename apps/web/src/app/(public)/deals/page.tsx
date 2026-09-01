@@ -72,6 +72,7 @@ export default async function DealsPage({ searchParams }: Props) {
     q: filterParams.searchQuery.trim() || undefined,
     sort: filterParams.sort,
     group_variants: true,
+    stableTotalCount: true,
   };
 
   const facetsParams = {

@@ -5,17 +5,13 @@ import Link from "next/link";
 import posthog from "posthog-js";
 import { CategoryCard } from "../components/CategoryCard";
 import type { CategoryTreeNode } from "../api";
+import { categoryNavDealCount } from "../lib/categoryTree";
 import { getCategorySeo } from "../lib/categorySeo";
 import { buildDealsCategoryPath } from "../lib/dealsCategoryPath";
 import { cn, focusRing } from "@/lib/utils";
 
 const monoMicro =
   "font-mono text-[10px] font-semibold uppercase tracking-[0.14em]";
-
-/** Grouped product count (matches deals list); falls back to listing rollup if API is old. */
-function productDealCount(node: CategoryTreeNode): number {
-  return node.product_count ?? node.deal_count;
-}
 
 function dealLine(count: number): string {
   if (count === 0) return "No deals right now";
@@ -113,7 +109,7 @@ export function CategoriesPageContent({ categoryTree, children }: Props) {
                       "pb-0.5 tabular-nums text-muted-foreground sm:ml-auto sm:pb-0",
                     )}
                   >
-                    {dealLine(productDealCount(root))}
+                    {dealLine(categoryNavDealCount(root))}
                   </span>
                 </div>
                 <Link
@@ -148,7 +144,7 @@ export function CategoriesPageContent({ categoryTree, children }: Props) {
                     const hasGrandchildren =
                       (child.children?.length ?? 0) > 0;
 
-                    const childProducts = productDealCount(child);
+                    const childProducts = categoryNavDealCount(child);
                     return (
                       <div key={child.slug} className="space-y-3">
                         <MutedWrap muted={childProducts === 0}>
@@ -165,7 +161,7 @@ export function CategoriesPageContent({ categoryTree, children }: Props) {
                         {hasGrandchildren ? (
                           <ul className="flex flex-wrap gap-2 pl-0 list-none">
                             {child.children.map((gc) => {
-                              const gcProducts = productDealCount(gc);
+                              const gcProducts = categoryNavDealCount(gc);
                               return (
                                 <li key={gc.slug}>
                                   <Link

@@ -153,7 +153,7 @@ export default async function BrandCategoryDealsPage({
   };
 
   const [dealsResponse, facetsResponse, stores] = await Promise.all([
-    fetchDeals(dealsParams),
+    fetchDeals({ ...dealsParams, stableTotalCount: true }),
     fetchFacets(facetsParams),
     fetchStores(),
   ]);

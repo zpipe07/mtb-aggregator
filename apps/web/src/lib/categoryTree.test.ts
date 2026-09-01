@@ -1,6 +1,25 @@
 import { describe, it, expect } from "vitest";
 import type { CategoryTreeNode } from "../api";
-import { normalizeCategoryTree } from "./categoryTree";
+import {
+  categoryHasDeals,
+  categoryNavDealCount,
+  normalizeCategoryTree,
+} from "./categoryTree";
+
+function node(
+  partial: Partial<CategoryTreeNode> & Pick<CategoryTreeNode, "deal_count">,
+): CategoryTreeNode {
+  return {
+    id: 1,
+    slug: "bikes",
+    name: "Bikes",
+    parent_id: null,
+    sort_order: 0,
+    depth: 0,
+    children: [],
+    ...partial,
+  };
+}
 
 describe("normalizeCategoryTree", () => {
   it("fills missing children arrays on leaf nodes", () => {
@@ -35,5 +54,42 @@ describe("normalizeCategoryTree", () => {
   it("returns empty array for nullish input", () => {
     expect(normalizeCategoryTree(null)).toEqual([]);
     expect(normalizeCategoryTree(undefined)).toEqual([]);
+  });
+});
+
+describe("categoryNavDealCount", () => {
+  it("prefers product_count so homepage tiles match mega-menu (ZAC-236)", () => {
+    expect(
+      categoryNavDealCount(node({ deal_count: 1960, product_count: 754 })),
+    ).toBe(754);
+  });
+
+  it("falls back to deal_count when product_count is missing (older API)", () => {
+    expect(categoryNavDealCount(node({ deal_count: 42 }))).toBe(42);
+  });
+
+  it("returns 0 when both counts are zero", () => {
+    expect(
+      categoryNavDealCount(node({ deal_count: 0, product_count: 0 })),
+    ).toBe(0);
+  });
+});
+
+describe("categoryHasDeals", () => {
+  it("uses product_count when listings exist but grouped deals do not", () => {
+    expect(
+      categoryHasDeals(node({ deal_count: 12, product_count: 0 })),
+    ).toBe(false);
+  });
+
+  it("is true when grouped deals exist", () => {
+    expect(
+      categoryHasDeals(node({ deal_count: 12, product_count: 3 })),
+    ).toBe(true);
+  });
+
+  it("falls back to deal_count when product_count is missing", () => {
+    expect(categoryHasDeals(node({ deal_count: 5 }))).toBe(true);
+    expect(categoryHasDeals(node({ deal_count: 0 }))).toBe(false);
   });
 });

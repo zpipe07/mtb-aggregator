@@ -124,7 +124,7 @@ export default async function BrandDealsPage({ params, searchParams }: Props) {
   };
 
   const [dealsResponse, facetsResponse, stores, categoryTree] = await Promise.all([
-    fetchDeals(dealsParams),
+    fetchDeals({ ...dealsParams, stableTotalCount: true }),
     fetchFacets(facetsParams),
     fetchStores(),
     fetchCategoryTree(),
