@@ -14,7 +14,7 @@ import {
 import { buildDealsCategoryPath } from "@/lib/dealsCategoryPath";
 import { buildBreadcrumbJsonLd, buildProductJsonLd } from "@/lib/jsonLd";
 import { computeDealScore, pricePositionLabel } from "@/lib/dealScore";
-import { absoluteUrl } from "@/lib/siteUrl";
+import { buildDealPriceHistoryMetadata, missingDealMetadata } from "@/lib/dealPageMetadata";
 
 /** 4h — must match {@link PUBLIC_ISR_REVALIDATE_SECONDS} in @/lib/revalidate. */
 export const revalidate = 14400;
@@ -28,38 +28,18 @@ type Props = {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
   const dealId = parseInt(id, 10);
-  if (isNaN(dealId)) return { title: "Price tracker" };
+  if (isNaN(dealId)) return { ...missingDealMetadata, title: "Price tracker" };
   try {
     const [deal, priceHistory] = await Promise.all([
       fetchDeal(dealId),
       fetchPriceHistory(dealId),
     ]);
-    const title = `${deal.product_name} price tracker`;
     const position = pricePositionLabel(deal, priceHistory);
-    const description = `${deal.product_name} price history and deal tracker. Current price $${deal.current_price.toFixed(2)}${position ? ` — ${position.toLowerCase()}` : ""}. Track MTB deals on The Dropper.`;
-    const path = `/deals/${dealId}/price-history`;
-    return {
-      title,
-      description,
-      alternates: { canonical: path },
-      openGraph: {
-        title: `${title} | The Dropper`,
-        description,
-        url: absoluteUrl(path),
-        siteName: "The Dropper",
-        type: "article",
-      },
-      twitter: {
-        card: "summary_large_image",
-        title: `${title} | The Dropper`,
-        description,
-      },
-      ...(priceHistory && priceHistory.points.length >= MIN_HISTORY_POINTS
-        ? {}
-        : { robots: { index: false, follow: true } }),
-    };
+    return buildDealPriceHistoryMetadata(deal, {
+      descriptionSuffix: position ? ` — ${position.toLowerCase()}` : "",
+    });
   } catch {
-    return { title: "Price tracker" };
+    return { ...missingDealMetadata, title: "Price tracker" };
   }
 }
 
