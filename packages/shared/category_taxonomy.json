@@ -67,11 +67,36 @@
       "canonical": ["Bikes", "BMX Bikes"]
     },
     {
+      "raw": ["fork", "forks"],
+      "canonical": ["Components", "Suspension", "Forks"]
+    },
+    {
+      "raw": ["shock", "shocks"],
+      "canonical": ["Components", "Suspension", "Shocks"]
+    },
+    {
+      "raw": [
+        "full suspension frames",
+        "full suspension frame",
+        "full-suspension frames",
+        "full-suspension frame"
+      ],
+      "canonical": ["Bikes", "Frames"]
+    },
+    {
+      "raw": [
+        "full suspension",
+        "full-suspension",
+        "front suspension",
+        "front-suspension"
+      ],
+      "canonical": ["Bikes", "Mountain"]
+    },
+    {
       "raw": [
         "mountain bike",
         "mtb",
         "mountain bikes",
-        "full suspension",
         "hardtail"
       ],
       "canonical": ["Bikes", "Mountain"]
@@ -140,7 +165,7 @@
       "canonical": ["Components", "Brakes"]
     },
     {
-      "raw": ["suspension", "fork", "shock", "damper"],
+      "raw": ["suspension", "damper"],
       "canonical": ["Components", "Suspension"]
     },
     {
