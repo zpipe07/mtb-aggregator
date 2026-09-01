@@ -1,6 +1,7 @@
 -- ZAC-217: Unhide listings confirmed by each store's latest completed scrape.
 -- Scrape upsert used to refresh last_scraped without setting hidden=false, so
 -- stale-cleanup hides stuck forever even after the SKU returned on /sale.
+-- Numbered 047 because 046 is complete-bikes-not-suspension (ZAC-238).
 --
 -- Uses scrape_jobs.started_at (not completed_at): last_scraped is stamped during
 -- ingest, which finishes before the job row is marked completed.

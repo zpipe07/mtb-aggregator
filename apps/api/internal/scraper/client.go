@@ -14,17 +14,17 @@ import (
 
 // ScrapeResult matches the scraper's JSON response
 type ScrapeResult struct {
-	StoreSKU         string          `json:"store_sku"`
-	ProductName      string          `json:"product_name"`
-	CurrentPrice     float64         `json:"current_price"`
-	OriginalPrice    *float64        `json:"original_price"`
-	ProductURL       string          `json:"product_url"`
-	ImageURL         *string         `json:"image_url"`
-	Brand            *string         `json:"brand"`
-	CategoryPath     []string        `json:"category_path"`
-	IsInStock        bool            `json:"is_in_stock"`
-	ProductGroupKey  *string         `json:"product_group_key"` // Shopify handle; API stores as store_id:handle
-	VariantOptions   json.RawMessage `json:"variant_options"`
+	StoreSKU        string          `json:"store_sku"`
+	ProductName     string          `json:"product_name"`
+	CurrentPrice    float64         `json:"current_price"`
+	OriginalPrice   *float64        `json:"original_price"`
+	ProductURL      string          `json:"product_url"`
+	ImageURL        *string         `json:"image_url"`
+	Brand           *string         `json:"brand"`
+	CategoryPath    []string        `json:"category_path"`
+	IsInStock       bool            `json:"is_in_stock"`
+	ProductGroupKey *string         `json:"product_group_key"` // Shopify handle; API stores as store_id:handle
+	VariantOptions  json.RawMessage `json:"variant_options"`
 	// FeedDescription is set by non-scraper ingest (e.g. Impact catalog) for LLM enrichment without PDP.
 	FeedDescription *string `json:"feed_description,omitempty"`
 	// ImpactCatalogOutboundURL is the raw catalog Url before PDP unwrap (Impact tracking hop).
@@ -96,36 +96,41 @@ func (c *Client) setServiceAuth(req *http.Request) {
 	}
 }
 
-func (c *Client) Scrape(ctx context.Context, url, store string) ([]ScrapeResult, error) {
+func (c *Client) Scrape(ctx context.Context, url, store string) (listings []ScrapeResult, truncated bool, err error) {
 	reqBody := ScrapeRequest{URL: url, Store: store}
 	jsonBody, err := json.Marshal(reqBody)
 	if err != nil {
-		return nil, fmt.Errorf("marshal request: %w", err)
+		return nil, false, fmt.Errorf("marshal request: %w", err)
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+"/scrape", bytes.NewReader(jsonBody))
 	if err != nil {
-		return nil, fmt.Errorf("create request: %w", err)
+		return nil, false, fmt.Errorf("create request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
 	c.setServiceAuth(req)
 
-	resp, err := c.httpClient.Do(req)
+	// Client.Timeout would cap a 50-page Jenson scrape at 20m; the request
+	// context is the budget (scheduler uses 45m for jensonusa).
+	httpClient := *c.httpClient
+	httpClient.Timeout = 0
+	resp, err := httpClient.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("scrape request: %w", err)
+		return nil, false, fmt.Errorf("scrape request: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, scraperHTTPError("scrape", resp)
+		return nil, false, scraperHTTPError("scrape", resp)
 	}
 
 	var results []ScrapeResult
 	if err := json.NewDecoder(resp.Body).Decode(&results); err != nil {
-		return nil, fmt.Errorf("decode response: %w", err)
+		return nil, false, fmt.Errorf("decode response: %w", err)
 	}
 
-	return results, nil
+	truncated = strings.EqualFold(strings.TrimSpace(resp.Header.Get("X-Scrape-Truncated")), "1")
+	return results, truncated, nil
 }
 
 func (c *Client) Enrich(ctx context.Context, productURL, store string) (*EnrichResult, error) {

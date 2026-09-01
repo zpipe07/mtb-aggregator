@@ -8,6 +8,14 @@ import {
   type JensonProductDto,
 } from "./jensonusa-dto.js";
 import { parsePdpVariantsFromHtml, type PdpEnrichVariant } from "./jensonusa-pdp.js";
+import {
+  JENSON_MIN_FULL_PAGE,
+  buildJensonNextPageUrl,
+  jensonMaxPages,
+  jensonScrapeTruncated,
+  jensonShouldFetchNextPage,
+  markJensonScrapeTruncated,
+} from "./jensonusa-pagination.js";
 
 export interface EnrichResult {
   category_path: string[] | null;
@@ -21,22 +29,8 @@ export interface EnrichResult {
 const BASE_URL = "https://www.jensonusa.com";
 const LOGS_DIR = process.env.SCREENSHOT_DIR ?? join(process.cwd(), "logs");
 
-const MAX_PAGES = Number(process.env.SCRAPER_MAX_PAGES) || 1; // Default 1; set higher for more pages
 const PAGE_GOTO_RETRIES = 2;
 const RETRY_DELAY_MS = 15000;
-
-/** Build next page URL by incrementing the pn (page number) param. JensonUSA uses pn, zero-indexed: pn=0 is page 1. */
-function buildNextPageUrl(currentUrl: string): string | null {
-  if (!currentUrl.includes("jensonusa.com/sale")) return null;
-  try {
-    const u = new URL(currentUrl);
-    const pn = parseInt(u.searchParams.get("pn") || "0", 10);
-    u.searchParams.set("pn", String(pn + 1));
-    return u.toString();
-  } catch {
-    return null;
-  }
-}
 
 export async function scrapeJensonUSA(url: string): Promise<ScrapeResult[]> {
   return runWithBrowser(async (browser) => {
@@ -54,9 +48,13 @@ export async function scrapeJensonUSA(url: string): Promise<ScrapeResult[]> {
       }
 
       const allResults: ScrapeResult[] = [];
+      const maxPages = jensonMaxPages();
       let pageNum = 0;
+      let truncated = false;
+      let lastPageCount = 0;
+      let nextUrl: string | null = null;
 
-      while (pageNum < MAX_PAGES) {
+      while (true) {
         pageNum++;
         console.log(
           `[scraper] JensonUSA page ${pageNum}: fetching ${currentUrl}`,
@@ -85,7 +83,11 @@ export async function scrapeJensonUSA(url: string): Promise<ScrapeResult[]> {
             }
           }
         }
-        if (!gotoOk) break;
+        if (!gotoOk) {
+          truncated =
+            allResults.length > 0 && lastPageCount >= JENSON_MIN_FULL_PAGE;
+          break;
+        }
 
         // Wait for dynamic content (products often load via JS after initial render)
         await new Promise((r) => setTimeout(r, 8000));
@@ -184,12 +186,20 @@ export async function scrapeJensonUSA(url: string): Promise<ScrapeResult[]> {
         }
 
         allResults.push(...results);
-        const nextUrl = buildNextPageUrl(currentUrl);
+        lastPageCount = results.length;
+        nextUrl = buildJensonNextPageUrl(currentUrl);
         console.log(
-          `[scraper] JensonUSA page ${pageNum}: got ${results.length} listings, nextPageUrl=${nextUrl ?? "none"}, total=${allResults.length} (MAX_PAGES=${MAX_PAGES})`,
+          `[scraper] JensonUSA page ${pageNum}: got ${results.length} listings, nextPageUrl=${nextUrl ?? "none"}, total=${allResults.length} (MAX_PAGES=${maxPages})`,
         );
 
-        if (pageNum >= MAX_PAGES || results.length < 48 || !nextUrl) {
+        const pageArgs = {
+          pageNum,
+          maxPages,
+          lastPageListingCount: lastPageCount,
+          nextUrl,
+        };
+        if (!jensonShouldFetchNextPage(pageArgs) || !nextUrl) {
+          truncated = jensonScrapeTruncated(pageArgs);
           break;
         }
         currentUrl = nextUrl;
@@ -198,9 +208,12 @@ export async function scrapeJensonUSA(url: string): Promise<ScrapeResult[]> {
 
       const deduped = deduplicateBySku(allResults);
       console.log(
-        `[scraper] JensonUSA done: ${deduped.length} listings after dedup`,
+        `[scraper] JensonUSA done: ${deduped.length} listings after dedup truncated=${truncated}`,
       );
       warnIfNoOriginalPrice(deduped, "JensonUSA");
+      if (truncated) {
+        markJensonScrapeTruncated(deduped);
+      }
       return deduped;
     } catch (err) {
       try {
