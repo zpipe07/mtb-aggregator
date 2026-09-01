@@ -12,7 +12,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ChevronDown, X } from "lucide-react";
 import type { CategoryTreeNode } from "@/api";
-import { categoryHasDeals, findCategoryWithAncestors } from "@/lib/categoryTree";
+import {
+  categoryHasDeals,
+  categoryNavDealCount,
+  findCategoryWithAncestors,
+} from "@/lib/categoryTree";
 import { buildDealsCategoryPath, parseCategorySlugFromDealsPath } from "@/lib/dealsCategoryPath";
 import { captureCategoryNav } from "@/lib/categoryNavAnalytics";
 import { cn, focusRing, focusRingInset } from "@/lib/utils";
@@ -21,10 +25,6 @@ import { Button } from "./ui/button";
 
 const monoMicro =
   "font-mono text-[10px] font-semibold uppercase tracking-[0.14em]";
-
-function productDealCount(node: CategoryTreeNode): number {
-  return node.product_count ?? node.deal_count;
-}
 
 function getDefaultExpandedSecondLevels(
   categoryTree: CategoryTreeNode[],
@@ -70,7 +70,7 @@ function CategoryMegaMenuLink({
   className?: string;
 }) {
   const href = buildDealsCategoryPath(node.slug, categoryTree);
-  const count = productDealCount(node);
+  const count = categoryNavDealCount(node);
   const muted = !categoryHasDeals(node);
 
   return (

@@ -108,7 +108,7 @@ export default async function SeoHubDealsPage({ params, searchParams }: Props) {
     stores,
     categoryTree,
   ] = await Promise.all([
-    fetchDeals(dealsParams),
+    fetchDeals({ ...dealsParams, stableTotalCount: true }),
     fetchFacets(facetsParams),
     facetsForBrandOptionsPromise,
     fetchStores(),

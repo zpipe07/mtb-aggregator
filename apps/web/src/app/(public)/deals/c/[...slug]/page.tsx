@@ -101,6 +101,7 @@ export default async function CategoryDealsPage({ params, searchParams }: Props)
     q: filterParams.searchQuery.trim() || undefined,
     sort: filterParams.sort,
     group_variants: true,
+    stableTotalCount: true,
   };
 
   const facetsParams = {

@@ -120,8 +120,7 @@ export async function fetchWithRetry(
     : new Error("Fetch failed after retries");
 }
 
-export async function fetchDeals(
-  params?: {
+export type FetchDealsParams = {
   store?: string;
   /** Repeated `brand` query params (OR). */
   brands?: string[];
@@ -148,7 +147,36 @@ export async function fetchDeals(
   specFilters?: Record<string, string[]>;
   /** Default true: collapse Shopify variants into one card */
   group_variants?: boolean;
-} & FetchCacheOptions,
+  /**
+   * When true, `total_count` comes from a second fetch with offset=0&limit=1 so
+   * every page of the same filter set shares one Next.js cache key (ZAC-236).
+   */
+  stableTotalCount?: boolean;
+} & FetchCacheOptions;
+
+/** Canonical count-query params so page 1 and page N share one fetch-cache URL. */
+export function dealsStableCountParams(
+  params: FetchDealsParams,
+): FetchDealsParams {
+  const { stableTotalCount: _ignored, ...rest } = params;
+  return { ...rest, offset: 0, limit: 1 };
+}
+
+export async function fetchDeals(
+  params?: FetchDealsParams,
+): Promise<DealListResponse> {
+  if (!params?.stableTotalCount) {
+    return fetchDealsPage(params);
+  }
+  const [page, count] = await Promise.all([
+    fetchDealsPage(params),
+    fetchDealsPage(dealsStableCountParams(params)),
+  ]);
+  return { deals: page.deals, total_count: count.total_count };
+}
+
+async function fetchDealsPage(
+  params?: FetchDealsParams,
 ): Promise<DealListResponse> {
   const search = new URLSearchParams();
   if (params?.store) search.set("store", params.store);
@@ -261,11 +289,12 @@ export interface CategoryTreeNode {
   parent_id: number | null;
   sort_order: number;
   depth: number;
-  /** In-stock, visible listings in this category or any descendant (subtree rollup). */
+  /** In-stock, visible listing rows in this category or any descendant (subtree rollup). */
   deal_count: number;
   /**
    * Distinct product groups in this subtree (matches `GET /deals?group_variants=true` totals).
-   * When missing (older API), fall back to `deal_count` for display.
+   * Shopper-facing counts (homepage, mega-menu, chips, categories hub) use this via
+   * `categoryNavDealCount`. When missing (older API), fall back to `deal_count`.
    */
   product_count?: number;
   children: CategoryTreeNode[];

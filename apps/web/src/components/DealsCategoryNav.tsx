@@ -3,7 +3,11 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import type { CategoryTreeNode } from "../api";
-import { categoryHasDeals, findCategoryWithAncestors } from "../lib/categoryTree";
+import {
+  categoryHasDeals,
+  categoryNavDealCount,
+  findCategoryWithAncestors,
+} from "../lib/categoryTree";
 import { captureCategoryNav } from "../lib/categoryNavAnalytics";
 import { buildDealsBrowseHref } from "@/lib/dealsBrowseHref";
 import { Button } from "./ui/button";
@@ -85,21 +89,24 @@ function DealsCategoryBrowseChips({
         />
       </div>
       <div className="flex flex-wrap gap-2">
-        {browseCategories.map((node) => (
-          <Button key={node.slug} variant="outline" size="sm" asChild>
-            <Link
-              href={buildDealsBrowseHref(node.slug, searchParams, categoryTree)}
-              onClick={() => captureCategoryNav(node.slug, "browse_chips")}
-            >
-              {node.name}
-              {node.deal_count > 0 ? (
-                <span className="ml-1.5 font-mono text-[10px] tabular-nums text-muted-foreground">
-                  ({node.deal_count})
-                </span>
-              ) : null}
-            </Link>
-          </Button>
-        ))}
+        {browseCategories.map((node) => {
+          const count = categoryNavDealCount(node);
+          return (
+            <Button key={node.slug} variant="outline" size="sm" asChild>
+              <Link
+                href={buildDealsBrowseHref(node.slug, searchParams, categoryTree)}
+                onClick={() => captureCategoryNav(node.slug, "browse_chips")}
+              >
+                {node.name}
+                {count > 0 ? (
+                  <span className="ml-1.5 font-mono text-[10px] tabular-nums text-muted-foreground">
+                    ({count})
+                  </span>
+                ) : null}
+              </Link>
+            </Button>
+          );
+        })}
         <Button variant="outline" size="sm" asChild>
           <Link href="/categories">See all →</Link>
         </Button>
