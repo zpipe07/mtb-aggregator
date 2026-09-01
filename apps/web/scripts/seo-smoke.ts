@@ -12,6 +12,11 @@ import {
 } from "../src/lib/jsonLd";
 import { computeDealScore } from "../src/lib/dealScore";
 import { brandToSlug, resolveBrandFromSlug } from "../src/lib/brandPages";
+import {
+  buildDealDetailMetadata,
+  buildDealPriceHistoryMetadata,
+  stripDealDetailFromQuery,
+} from "../src/lib/dealPageMetadata";
 
 const crumb = buildBreadcrumbJsonLd([
   { name: "Home", path: "/" },
@@ -111,5 +116,29 @@ const summaryScore = computeDealScore({
   },
 });
 assert.equal(summaryScore.label, "steal");
+
+const dealMeta = buildDealDetailMetadata({
+  id: 421507,
+  product_name: "Test fork",
+  brand: "Fox",
+  current_price: 499,
+  store_name: "Shop",
+});
+assert.deepEqual(dealMeta.robots, { index: true, follow: true });
+assert.equal(dealMeta.alternates?.canonical, "/deals/421507");
+assert.equal(
+  stripDealDetailFromQuery(
+    new URL("https://thedropper.shop/deals/421507?from=/deals/c/components"),
+  )?.pathname,
+  "/deals/421507",
+);
+
+const historyMeta = buildDealPriceHistoryMetadata({
+  id: 421507,
+  product_name: "Test fork",
+  current_price: 499,
+  store_name: "Shop",
+});
+assert.deepEqual(historyMeta.robots, { index: false, follow: true });
 
 console.log("seo-smoke: ok");

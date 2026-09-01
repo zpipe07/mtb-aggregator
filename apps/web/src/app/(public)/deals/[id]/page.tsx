@@ -10,7 +10,10 @@ import {
 } from "@/lib/categoryTree";
 import { buildDealsCategoryPath } from "@/lib/dealsCategoryPath";
 import { buildBreadcrumbJsonLd, buildProductJsonLd } from "@/lib/jsonLd";
-import { absoluteUrl } from "@/lib/siteUrl";
+import {
+  buildDealDetailMetadata,
+  missingDealMetadata,
+} from "@/lib/dealPageMetadata";
 import { RelatedDeals } from "@/components/RelatedDeals";
 import { DealDetailContent } from "./DealDetailContent";
 import DealDetailLoading from "./loading";
@@ -25,49 +28,14 @@ type Props = {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
   const dealId = parseInt(id, 10);
-  if (isNaN(dealId)) return { title: "Deal not found" };
+  if (isNaN(dealId)) return missingDealMetadata;
   try {
     const deal = await fetchDeal(dealId);
-    const path = `/deals/${dealId}`;
-    const titleSegment = `${deal.product_name}${deal.brand ? ` | ${deal.brand}` : ""}`;
-    const priceStr = `$${deal.current_price.toFixed(2)}`;
-    const orig =
-      deal.original_price != null && deal.original_price > deal.current_price
-        ? ` (was $${deal.original_price.toFixed(2)})`
-        : "";
-    const discount =
-      deal.discount_pct != null && deal.discount_pct > 0
-        ? ` — ${Math.round(deal.discount_pct)}% off`
-        : "";
-    const description = `${priceStr} at ${deal.store_name}${orig}${discount}. Compare MTB deals on The Dropper.`;
-    const canonical = absoluteUrl(path);
-    const ogImages = deal.image_url
-      ? [{ url: deal.image_url, alt: deal.product_name }]
-      : [{ url: "/the-dropper-logo-horizontal.png", alt: deal.product_name }];
-
-    return {
-      title: titleSegment,
-      description,
-      alternates: { canonical: path },
-      openGraph: {
-        title: `${titleSegment} | The Dropper`,
-        description,
-        url: canonical,
-        siteName: "The Dropper",
-        type: "article",
-        images: ogImages,
-      },
-      twitter: {
-        card: "summary_large_image",
-        title: `${titleSegment} | The Dropper`,
-        description,
-        images: deal.image_url
-          ? [deal.image_url]
-          : ["/the-dropper-logo-horizontal.png"],
-      },
-    };
+    // Canonical is always `/deals/{id}` — request query strings (e.g. `?from=`)
+    // are not passed in and must not appear on the indexable URL.
+    return buildDealDetailMetadata(deal);
   } catch {
-    return { title: "Deal not found" };
+    return missingDealMetadata;
   }
 }
 
