@@ -308,7 +308,22 @@
       "canonical": ["Accessories", "Bags"]
     },
     {
-      "raw": ["light", "lights", "lamp"],
+      "raw": [
+        "lights",
+        "lighting",
+        "bike light",
+        "bike lights",
+        "headlight",
+        "headlights",
+        "taillight",
+        "taillights",
+        "tail light",
+        "front light",
+        "rear light",
+        "helmet light",
+        "lamp",
+        "lamps"
+      ],
       "canonical": ["Accessories", "Lights"]
     },
     {

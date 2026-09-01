@@ -49,12 +49,13 @@ Override the migrations directory: `MIGRATIONS_DIR=path/to/migrations make db-mi
 | `042_enrichment_claim_leases.sql` | Per-step `*_leased_until` columns on `listing_enrichment` for concurrent-safe claim (`FOR UPDATE SKIP LOCKED`) |
 | `043_store_pdp_pacing.sql` | Per-store PDP drainer pacing: `pdp_consecutive_failures`, `pdp_cooldown_until`, `pdp_last_fetch_at` on `stores` |
 | `044_stamp_llm_pdp_hash.sql` | One-shot backfill: stamp `listing_enrichment.pdp_hash` from `pdp_snapshots.content_hash` and `prompt_profile_version` from enabled profiles for rows that completed LLM steps with NULL hash (fixes hourly LLM skip-loop). Apply on Neon with the API release (`make db-migrate-remote`). |
+| `045_accessories_lights_keywords.sql` | Accessories › Lights: drop bare `light` from `category_mappings` so "Lightweight" collection copy cannot map complete bikes to Lights (ZAC-234). Mapping-only; remapping / classify after API restart. |
 
 After 019, run **`make backfill-field-library`** once (from repo root) to rename ambiguous `type` / `material` keys in `extraction_schema` and `metadata.llm_specs`, seed shared defs, and populate `llm_prompt_profile_fields`.
 
 After 041, run **`make backfill-clothing-size`** to populate `metadata.llm_specs.clothing_size` from existing `variant_options` Size values.
 
-After 027, 032, 036, 037, 038, or 039, run **`make backfill-canonical-categories`** and **restart the API** so in-memory taxonomy reloads; these migrations also backfill by product name where applicable.
+After 027, 032, 036, 037, 038, 039, or 045, run **`make backfill-canonical-categories`** and **restart the API** so in-memory taxonomy reloads; these migrations also backfill by product name where applicable. Recategorize skips confident `metadata.llm_category` (ZAC-234 Lights leftovers with a good LLM path still need admin classify or a copy-from-LLM pass).
 
 ## Verifying Phase 2 changes (currency, scraper health, category_path)
 

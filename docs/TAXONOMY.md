@@ -38,6 +38,8 @@ Under **Components → Wheels/Tires**, **Tubeless** is a dedicated leaf (migrati
 
 Under **Accessories**, **Pumps** is a dedicated leaf (migration `038`) for floor, mini/hand, frame, shock/fork, electric pumps, and CO2 inflators. Mappings use **specific** keywords (`floor pump`, `shock pump`, `mini pump`, etc.) — not bare `pump`, which would misclassify pump parts, pump-track bikes, and saddles. Pump parts and rebuild kits stay in **Components** or **Tools**.
 
+Under **Accessories → Lights**, mappings use **specific** keywords (`lights`, `bike light`, `headlight`, `taillight`, `lamp`, etc.) — not bare `light` (migration `045`). A Bikes Online collection H1 containing **Lightweight** previously substring-matched `light` at priority 9 and dumped complete bikes (and a scooter/charger) into Lights (ZAC-234). Shopify breadcrumb fallback also rejects sentence-length marketing copy so that H1 cannot become `category_path`. After applying `045`, **restart the API** so in-memory mappings reload; then remapping / LLM classify for Bikes Online (recategorize skips confident `metadata.llm_category` and `manual_category_override`).
+
 Under **Bikes**, **BMX Bikes** is a dedicated leaf (migration `039`) for complete BMX bicycles. Mappings use **specific** keywords (`bmx bike`, `complete bmx`, `freestyle bmx`, `bmx / dirt jump`, etc.) — not bare `bmx`, which would misclassify BMX stems, helmets, and tires. Dirt-jump MTB hardtails stay under **Mountain > Dirt Jump**; youth balance/MTB bikes stay under **Kids**; BMX frames sold alone stay under **Frames**. BMX parts and gear remain in **Components** / **Gear** and can be tagged with `intended_use = BMX` after migration `039` extends the shared enum.
 
 ## Data Flow

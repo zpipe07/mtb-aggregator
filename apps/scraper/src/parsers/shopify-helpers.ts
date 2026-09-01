@@ -85,6 +85,25 @@ export function resolveShopifyCategoryPath(
 }
 
 /**
+ * Reject collection H1s / marketing sentences that are not shoppable category labels.
+ * Bikes Online ingested "Hardtail Mountain Bikes Conquer Every Trail with a Lightweight…"
+ * as category_path (ZAC-234); bare "light" then mapped that to Accessories › Lights.
+ */
+export function isPlausibleCategoryLabel(text: string): boolean {
+  const t = text.replace(/\s+/g, " ").trim();
+  if (t.length < 2 || t.length > 60) return false;
+  const words = t.split(" ").filter(Boolean);
+  if (words.length > 8) return false;
+  if (/conquer every|with a lightweight|dream ride|sale ends/i.test(t))
+    return false;
+  return true;
+}
+
+function plausibleCategoryLabels(items: string[]): string[] {
+  return items.filter(isPlausibleCategoryLabel);
+}
+
+/**
  * Extract category breadcrumbs from product page HTML.
  * Tries: (1) JSON-LD BreadcrumbList, (2) DOM breadcrumb links, (3) Collection links section.
  */
@@ -117,6 +136,7 @@ export function extractBreadcrumbsFromHtml(html: string): string[] | null {
             let trimmed = items.slice(0, -1);
             if (trimmed[0] && /^home$/i.test(trimmed[0]))
               trimmed = trimmed.slice(1);
+            trimmed = plausibleCategoryLabels(trimmed);
             if (trimmed.length > 0) {
               result = trimmed;
               return;
@@ -147,6 +167,7 @@ export function extractBreadcrumbsFromHtml(html: string): string[] | null {
     if (items.length >= 2) {
       let trimmed = items.slice(0, -1);
       if (trimmed[0] && /^home$/i.test(trimmed[0])) trimmed = trimmed.slice(1);
+      trimmed = plausibleCategoryLabels(trimmed);
       if (trimmed.length > 0) return trimmed;
     }
   }
@@ -160,14 +181,14 @@ export function extractBreadcrumbsFromHtml(html: string): string[] | null {
     const items: string[] = [];
     links.each((_, el) => {
       const t = clean($(el).text());
-      if (t && t.length < 100) items.push(t);
+      if (t && isPlausibleCategoryLabel(t)) items.push(t);
     });
     if (items.length > 0) {
-      const best = items.reduce((a, b) => (a.length >= b.length ? a : b));
+      const best = items.reduce((a, b) => (a.length <= b.length ? a : b));
       const parts = best
         .split(/\s*\/\s*/)
         .map((p) => clean(p))
-        .filter(Boolean);
+        .filter((p) => isPlausibleCategoryLabel(p));
       return parts.length > 0 ? parts : [best];
     }
   }

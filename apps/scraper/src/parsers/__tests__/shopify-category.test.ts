@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { resolveShopifyCategoryPath } from "../shopify-helpers.js";
+import {
+  extractBreadcrumbsFromHtml,
+  isPlausibleCategoryLabel,
+  resolveShopifyCategoryPath,
+} from "../shopify-helpers.js";
 
 const MISLEADING_NAV_HTML = `
 <html>
@@ -46,5 +50,39 @@ describe("resolveShopifyCategoryPath", () => {
   it("returns null when product_type and html are both missing", () => {
     expect(resolveShopifyCategoryPath(null, null)).toBeNull();
     expect(resolveShopifyCategoryPath(undefined, "")).toBeNull();
+  });
+});
+
+const BIKES_ONLINE_HEADLINE =
+  "Hardtail Mountain Bikes Conquer Every Trail with a Lightweight, Efficient Hard Tail Mountain Bike";
+
+describe("isPlausibleCategoryLabel", () => {
+  it("accepts short shoppable labels", () => {
+    expect(isPlausibleCategoryLabel("Bikes")).toBe(true);
+    expect(isPlausibleCategoryLabel("Hardtail Mountain Bikes")).toBe(true);
+    expect(isPlausibleCategoryLabel("Components")).toBe(true);
+  });
+
+  it("rejects Bikes Online collection marketing copy", () => {
+    expect(isPlausibleCategoryLabel(BIKES_ONLINE_HEADLINE)).toBe(false);
+  });
+});
+
+describe("extractBreadcrumbsFromHtml", () => {
+  it("ignores a marketing H1 in Collections: links (ZAC-234)", () => {
+    const html = `
+      <div>Collections:
+        <a href="/collections/hardtail">${BIKES_ONLINE_HEADLINE}</a>
+        <a href="/collections/bikes">Bikes</a>
+      </div>`;
+    expect(extractBreadcrumbsFromHtml(html)).toEqual(["Bikes"]);
+  });
+
+  it("returns null when the only collection link is marketing copy", () => {
+    const html = `
+      <div>Collections:
+        <a href="/collections/hardtail">${BIKES_ONLINE_HEADLINE}</a>
+      </div>`;
+    expect(extractBreadcrumbsFromHtml(html)).toBeNull();
   });
 });
