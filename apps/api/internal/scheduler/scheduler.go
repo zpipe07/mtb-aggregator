@@ -27,12 +27,17 @@ import (
 )
 
 var (
-	schedulerLog   = logutil.Logger("scheduler")
-	enrichmentLog  = logutil.Logger("enrichment")
-	catchUpLog     = logutil.Logger("catch-up")
+	schedulerLog  = logutil.Logger("scheduler")
+	enrichmentLog = logutil.Logger("enrichment")
+	catchUpLog    = logutil.Logger("catch-up")
 )
 
 const defaultEnrichBatchSize = 50
+
+const minResultsForStaleCleanup = 10
+
+// Jenson /sale is ~20s/page; 50 pages does not fit in the 20m default.
+const jensonScrapeFetchMinTimeout = 45 * time.Minute
 
 // enrichListingErrorsSentryMin is the minimum errStrs count before reporting a completed job to Sentry.
 const enrichListingErrorsSentryMin = 5
@@ -103,6 +108,14 @@ func getScrapeJobTimeout() time.Duration {
 		}
 	}
 	return 20 * time.Minute
+}
+
+func getScrapeFetchTimeout(storeType string) time.Duration {
+	base := getScrapeJobTimeout()
+	if strings.EqualFold(storeType, "jensonusa") && base < jensonScrapeFetchMinTimeout {
+		return jensonScrapeFetchMinTimeout
+	}
+	return base
 }
 
 func getScrapeIngestTimeout() time.Duration {
@@ -246,6 +259,7 @@ func (s *Scheduler) scrapeStore(store db.Store, triggeredBy string) {
 	}
 
 	validCount := 0
+	truncated := false
 	var results []scraper.ScrapeResult
 	var validation scraper.BatchValidationResult
 	defer func() {
@@ -263,7 +277,7 @@ func (s *Scheduler) scrapeStore(store db.Store, triggeredBy string) {
 	schedulerLog.Info("scraping store", "store", store.Name, "url", store.ScrapeURL)
 
 	scrapeStartedAt := time.Now()
-	fetchCtx, fetchCancel := context.WithTimeout(context.Background(), getScrapeJobTimeout())
+	fetchCtx, fetchCancel := context.WithTimeout(context.Background(), getScrapeFetchTimeout(storeType))
 	if strings.EqualFold(store.StoreType, "competitivecyclist") {
 		icfg := impact.ConfigFromEnv()
 		if !icfg.CatalogConfigured() {
@@ -281,7 +295,7 @@ func (s *Scheduler) scrapeStore(store db.Store, triggeredBy string) {
 			schedulerLog.Info("impact-catalog returned listings", "store", store.Name, "count", len(results))
 		}
 	} else {
-		results, err = s.scraper.Scrape(fetchCtx, store.ScrapeURL, storeType)
+		results, truncated, err = s.scraper.Scrape(fetchCtx, store.ScrapeURL, storeType)
 	}
 	fetchCancel()
 	if err != nil {
@@ -360,6 +374,14 @@ func (s *Scheduler) scrapeStore(store db.Store, triggeredBy string) {
 	found := len(results)
 	errStrs := validationErrorStrings(validation)
 	warnStrs := validationWarningStrings(validation)
+	if truncated {
+		warnStrs = append(warnStrs, "scrape truncated by page cap; skipped stale listing hide")
+		schedulerLog.Warn("scrape truncated by page cap; skipping stale listing hide", "store", store.Name, "found", found, "upserted", validCount)
+		sentryutil.CaptureWarning(
+			store.Name+": scrape truncated by page cap; skipping HideStaleListings so off-page sale SKUs stay visible",
+			map[string]string{"component": "scheduler", "job": "scrape", "store": store.Name, "phase": "truncated"},
+		)
+	}
 
 	if ingestTimedOut {
 		schedulerLog.Warn("scrape ingest timeout; saving partial progress", "store", store.Name, "found", found, "upserted", validCount)
@@ -384,9 +406,9 @@ func (s *Scheduler) scrapeStore(store db.Store, triggeredBy string) {
 	// longer on sale or have been removed from the store's collection — they would
 	// otherwise stay in the DB indefinitely with stale prices.
 	// Guard: only run when we got a meaningful result count to avoid hiding
-	// everything if the scrape silently returned too little.
-	const minResultsForStaleCleanup = 10
-	if validCount >= minResultsForStaleCleanup {
+	// everything if the scrape silently returned too little. Skip when the
+	// scraper hit a page cap (ZAC-217: Jenson MAX_PAGES=10 left Fox 40 hidden).
+	if shouldHideStaleAfterScrape(validCount, truncated) {
 		cleanupCtx, cleanupCancel := context.WithTimeout(context.Background(), 2*time.Minute)
 		defer cleanupCancel()
 		if strings.EqualFold(store.StoreType, "universalcycles") {
@@ -405,9 +427,45 @@ func (s *Scheduler) scrapeStore(store db.Store, triggeredBy string) {
 		} else if hidden > 0 {
 			schedulerLog.Info("hid stale listings", "store", store.Name, "count", hidden)
 		}
+		// Scrape upsert sets hidden=false, which would revive Jenson/UC parent SKUs
+		// that variant fan-out superseded. Re-apply those parent hides after cleanup.
+		s.hideSupersededParentsAfterScrape(cleanupCtx, store)
+	} else if validCount >= minResultsForStaleCleanup {
+		// Truncated scrape still unhides on upsert; re-hide superseded parents only.
+		cleanupCtx, cleanupCancel := context.WithTimeout(context.Background(), 2*time.Minute)
+		defer cleanupCancel()
+		s.hideSupersededParentsAfterScrape(cleanupCtx, store)
 	}
 
 	s.maybeKickLLMAfterScrape(enricherStoreType(store, storeType))
+}
+
+func shouldHideStaleAfterScrape(validCount int, truncated bool) bool {
+	return validCount >= minResultsForStaleCleanup && !truncated
+}
+
+func (s *Scheduler) hideSupersededParentsAfterScrape(ctx context.Context, store db.Store) {
+	var (
+		n    int64
+		err  error
+		kind string
+	)
+	switch {
+	case strings.EqualFold(store.StoreType, "universalcycles"):
+		kind = "uc_parents"
+		n, err = s.db.HideUniversalCyclesSupersededParents(ctx)
+	case strings.EqualFold(store.StoreType, "jensonusa"):
+		kind = "jenson_parents"
+		n, err = s.db.HideJensonSupersededParents(ctx)
+	default:
+		return
+	}
+	if err != nil {
+		schedulerLog.Error("superseded parent hide failed", "store", store.Name, "kind", kind, logutil.ErrAttr(err))
+		sentryutil.CaptureError(err, map[string]string{"component": "scheduler", "job": "scrape", "phase": "superseded_parent_hide", "store": store.Name, "kind": kind})
+	} else if n > 0 {
+		schedulerLog.Info("hid superseded parent listings", "store", store.Name, "kind", kind, "count", n)
+	}
 }
 
 func (s *Scheduler) maybeKickLLMAfterScrape(storeType string) {

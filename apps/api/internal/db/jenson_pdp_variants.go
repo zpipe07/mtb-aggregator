@@ -188,3 +188,33 @@ func (db *DB) ListJensonVariantBackfillLeaders(ctx context.Context) ([]JensonVar
 	}
 	return out, rows.Err()
 }
+
+// hideJensonSupersededParentsSQL matches migration 025: hide parent dto.code rows
+// when a strictly longer variant SKU exists on the same store + product_url.
+const hideJensonSupersededParentsSQL = `
+		UPDATE store_listings sl
+		SET hidden = true
+		FROM stores s
+		WHERE sl.store_id = s.id
+		  AND s.store_type = 'jensonusa'
+		  AND sl.hidden = false
+		  AND EXISTS (
+		    SELECT 1
+		    FROM store_listings sl2
+		    WHERE sl2.store_id = sl.store_id
+		      AND sl2.product_url = sl.product_url
+		      AND sl2.hidden = false
+		      AND sl2.store_sku <> sl.store_sku
+		      AND starts_with(sl2.store_sku, sl.store_sku)
+		      AND char_length(sl2.store_sku) > char_length(sl.store_sku)
+		  )
+	`
+
+// HideJensonSupersededParents hides legacy parent-SKU rows after scrape upsert unhides them.
+func (db *DB) HideJensonSupersededParents(ctx context.Context) (int64, error) {
+	tag, err := db.pool.Exec(ctx, hideJensonSupersededParentsSQL)
+	if err != nil {
+		return 0, err
+	}
+	return tag.RowsAffected(), nil
+}
