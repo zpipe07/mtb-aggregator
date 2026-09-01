@@ -182,7 +182,7 @@ pnpm --filter @mtb-aggregator/web run build-storybook  # static build to storybo
 - Standard library `net/http`, no framework
 - All DB queries in `internal/db/db.go` using pgx
 - `internal/brand/` — brand normalization via `packages/shared/brand_aliases.json`
-- `internal/taxonomy/` — category mapping with in-memory cache, loaded from `category_mappings` in DB (seeded from `category_taxonomy.json` when empty)
+- `internal/taxonomy/` — category mapping with in-memory cache, loaded from `category_mappings` in DB (seeded from `category_taxonomy.json` when empty). Accessories › Lights keywords omit bare `light` so “Lightweight” collection copy cannot dump complete bikes into Lights (ZAC-234 / migration `045`).
 - `internal/impact/` — Impact Partner **product catalog** client (Competitive Cyclist ingest in the scheduler when credentials are set)
 - `internal/db/categories.go` — structured category tree (id, slug, name, parent_id). Single source of truth; `category_id` FKs on listings, profiles, mappings
 - `internal/metadata/` — extracts structured specs from enriched category paths and raw spec data
