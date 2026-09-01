@@ -17,6 +17,8 @@ func ListingsUpsertBatchSize() int {
 }
 
 // upsertListingOnConflictSQL is the shared ON CONFLICT clause for single-row and batch upserts.
+// hidden = false unhides listings that return on /sale (ZAC-217); use home_demoted to keep
+// an on-sale deal off home without hiding it from /deals.
 const upsertListingOnConflictSQL = `
 		ON CONFLICT (store_id, store_sku) DO UPDATE SET
 			product_name = EXCLUDED.product_name,
@@ -74,6 +76,7 @@ const upsertListingOnConflictSQL = `
 			is_in_stock = EXCLUDED.is_in_stock,
 			product_group_key = COALESCE(EXCLUDED.product_group_key, store_listings.product_group_key),
 			variant_options = COALESCE(EXCLUDED.variant_options, store_listings.variant_options),
+			hidden = false,
 			last_scraped = NOW()`
 
 // UpsertedListing is one row returned from UpsertListingsBatch.

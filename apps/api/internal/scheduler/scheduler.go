@@ -27,9 +27,9 @@ import (
 )
 
 var (
-	schedulerLog   = logutil.Logger("scheduler")
-	enrichmentLog  = logutil.Logger("enrichment")
-	catchUpLog     = logutil.Logger("catch-up")
+	schedulerLog  = logutil.Logger("scheduler")
+	enrichmentLog = logutil.Logger("enrichment")
+	catchUpLog    = logutil.Logger("catch-up")
 )
 
 const defaultEnrichBatchSize = 50
@@ -405,9 +405,36 @@ func (s *Scheduler) scrapeStore(store db.Store, triggeredBy string) {
 		} else if hidden > 0 {
 			schedulerLog.Info("hid stale listings", "store", store.Name, "count", hidden)
 		}
+		// Scrape upsert sets hidden=false, which would revive Jenson/UC parent SKUs
+		// that variant fan-out superseded. Re-apply those parent hides after cleanup.
+		s.hideSupersededParentsAfterScrape(cleanupCtx, store)
 	}
 
 	s.maybeKickLLMAfterScrape(enricherStoreType(store, storeType))
+}
+
+func (s *Scheduler) hideSupersededParentsAfterScrape(ctx context.Context, store db.Store) {
+	var (
+		n    int64
+		err  error
+		kind string
+	)
+	switch {
+	case strings.EqualFold(store.StoreType, "universalcycles"):
+		kind = "uc_parents"
+		n, err = s.db.HideUniversalCyclesSupersededParents(ctx)
+	case strings.EqualFold(store.StoreType, "jensonusa"):
+		kind = "jenson_parents"
+		n, err = s.db.HideJensonSupersededParents(ctx)
+	default:
+		return
+	}
+	if err != nil {
+		schedulerLog.Error("superseded parent hide failed", "store", store.Name, "kind", kind, logutil.ErrAttr(err))
+		sentryutil.CaptureError(err, map[string]string{"component": "scheduler", "job": "scrape", "phase": "superseded_parent_hide", "store": store.Name, "kind": kind})
+	} else if n > 0 {
+		schedulerLog.Info("hid superseded parent listings", "store", store.Name, "kind", kind, "count", n)
+	}
 }
 
 func (s *Scheduler) maybeKickLLMAfterScrape(storeType string) {
