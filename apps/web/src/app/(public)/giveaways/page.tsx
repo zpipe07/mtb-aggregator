@@ -27,12 +27,7 @@ export const metadata: Metadata = {
 };
 
 export default async function GiveawaysPage() {
-  const data = await fetchGiveaways().catch(() => ({
-    giveaways: [],
-    open_count: 0,
-    upcoming_count: 0,
-    ended_count: 0,
-  }));
+  const data = await fetchGiveaways();
 
   return (
     <>

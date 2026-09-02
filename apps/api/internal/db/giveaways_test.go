@@ -2,9 +2,35 @@ package db
 
 import (
 	"context"
+	"os"
+	"strings"
 	"testing"
 	"time"
 )
+
+// Regression: GET /giveaways 500'd in production because
+// `ends_at >= $1 - INTERVAL '30 days'` made Postgres infer $1 as interval
+// (SQLSTATE 42883). CI skips DB-backed tests without TEST_DATABASE_URL, so
+// keep this source assertion in the default suite.
+func TestListPublicGiveawaysSQL_computesCutoffInGo(t *testing.T) {
+	if publicGiveawayEndedWindow != 30*24*time.Hour {
+		t.Fatalf("publicGiveawayEndedWindow=%v want 30d", publicGiveawayEndedWindow)
+	}
+	src, err := os.ReadFile("giveaways.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	body := string(src)
+	if strings.Contains(body, "INTERVAL '30 days'") {
+		t.Fatal("do not subtract INTERVAL from a bound timestamp; Postgres infers the param as interval (SQLSTATE 42883)")
+	}
+	if !strings.Contains(body, "cutoff := now.Add(-publicGiveawayEndedWindow)") {
+		t.Fatal("expected 30-day window to be computed in Go")
+	}
+	if !strings.Contains(body, "AND ends_at >= $1") {
+		t.Fatal("expected ends_at compared to bound cutoff $1")
+	}
+}
 
 func TestListPublicGiveaways_visibility(t *testing.T) {
 	d := testDB(t)
