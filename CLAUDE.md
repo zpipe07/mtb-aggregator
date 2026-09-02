@@ -188,7 +188,7 @@ pnpm --filter @mtb-aggregator/web run build-storybook  # static build to storybo
 - `internal/metadata/` — extracts structured specs from enriched category paths and raw spec data
 - Spec filters are LLM-driven: `llm_prompt_profiles` extraction schema (label, sort_order, filterable per field) controls which specs appear as filters per category; **ancestor profiles on the category tree contribute fields** to the effective schema unless a descendant overrides the same `field_key`. The legacy SpecFilterManager (spec_filter_config) is deprecated. With migration `019`, composed fields (`llm_prompt_profile_fields`) are hydrated to JSON on profile reads used by enrichment/facets. Field types include `multi_enum` (migration `020`) for multiple values per key (e.g. `intended_use`); facets and `/deals` filters match against scalars or any element of a stored JSON array.
 - Admin endpoints under `/admin/*` require Bearer token auth (password set via `ADMIN_PASSWORD`)
-- Public API: `GET /deals` (optional `group_variants=true`; repeated `brand`, `spec_<key>` params OR within the same key on `metadata.llm_specs`; `min_price`, **`max_price`**, `exclude_category_slug`; `sort` includes `discount`, `value` (savings amount), etc.), `/stores`, `/brands`, `/categories/tree`, `/facets` (`spec_facets`, `brand_facets`, `price_range`), `/spec-values`, `/status`. Deprecated: `/canonical-categories` (use `/categories/tree`)
+- Public API: `GET /deals` (optional `group_variants=true`; repeated `brand`, `spec_<key>` params OR within the same key on `metadata.llm_specs`; `min_price`, **`max_price`**, `exclude_category_slug`; `sort` includes `discount`, `value` (savings amount), etc.), `/stores`, `/brands`, `/categories/tree`, `/facets` (`spec_facets`, `brand_facets`, `price_range`), `/spec-values`, `/status`, **`GET /giveaways`** (published giveaways/raffles; derived `status`; optional `kind`). Deprecated: `/canonical-categories` (use `/categories/tree`)
 
 ### Error reporting (Sentry)
 
@@ -196,11 +196,11 @@ pnpm --filter @mtb-aggregator/web run build-storybook  # static build to storybo
 
 ### Web (`apps/web/`)
 
-- React Router routes: `/` (HomePage), `/deals` (DealsPage), `/admin/*` (AdminSection)
+- React App Router routes: `/` (Home), `/deals`, **`/giveaways`** (curated giveaways & raffles), `/admin/*`
 - **Component library**: shadcn/ui primitives (Button, Input, Card) in `src/components/ui/`; composed components (DealCard, CategoryCard, Pagination, etc.) in `src/components/`. Use primitives for new UI; add Storybook stories for new components.
 - **Storybook**: `pnpm --filter @mtb-aggregator/web run storybook` — develop and document components in isolation; theme toolbar for light/dark.
 - **Styling**: Tailwind v4 + CSS variables; semantic tokens (`bg-primary`, `text-muted-foreground`) over raw colors.
-- Admin section includes: Dashboard, DataBrowser, StoreManager, TaxonomyManager, Categories (tree CRUD), SpecFilterManager (deprecated), PromptProfileManager, CategoryClassifierManager, NormalizationManager, Operations. Taxonomy, profiles, and classifier use category pickers backed by the structured tree.
+- Admin section includes: Dashboard, DataBrowser, StoreManager, **GiveawayManager**, TaxonomyManager, Categories (tree CRUD), SpecFilterManager (deprecated), PromptProfileManager, CategoryClassifierManager, NormalizationManager, Operations. Taxonomy, profiles, and classifier use category pickers backed by the structured tree.
 - Admin login state stored in `localStorage`; `AdminGate` handles auth gating
 - API base URL defaults to `http://localhost:8080`; configure via Vite proxy or env if needed
 

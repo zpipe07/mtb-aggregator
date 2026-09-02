@@ -81,6 +81,7 @@ Runs up to 50 listings per batch. Enrichment also runs nightly at 2am (configura
 | `GET /deals/:id`   | Single deal by ID                                                           |
 | `GET /stores`      | List stores with deal counts                                                |
 | `GET /status`      | Health: last scrape per store, scraper reachable                            |
+| `GET /giveaways`   | Published giveaways/raffles (optional `?kind=`; 30-day recently-ended window) |
 | `GET /brands`      | List distinct brands                                                        |
 | `POST /scrape-now` | Trigger scrape job (optional `?store=worldwidecyclery` to scrape one store) |
 | `POST /enrich-now` | Trigger enrichment job (PDP category extraction)                            |
