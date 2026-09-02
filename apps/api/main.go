@@ -514,6 +514,7 @@ func main() {
 	http.HandleFunc("/spec-values", handlers.GetSpecValues)
 	http.HandleFunc("/facets", handlers.GetFacets)
 	http.HandleFunc("/status", handlers.GetStatus)
+	http.HandleFunc("/giveaways", handlers.GetGiveaways)
 
 	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -532,6 +533,8 @@ func main() {
 	http.HandleFunc("/admin/store-types", api.AdminRequired(api.GetStoreTypes))
 	// Admin: GET /admin/store-types-with-enrichers — store types that support enrichment (for Enrich button)
 	http.HandleFunc("/admin/store-types-with-enrichers", api.AdminRequired(handlers.GetStoreTypesWithEnrichers))
+	http.HandleFunc("/admin/giveaways", api.AdminRequired(handlers.AdminGiveawaysCollection))
+	http.HandleFunc("/admin/giveaways/", api.AdminRequired(handlers.AdminGiveawayItem))
 	// Admin: GET/POST /admin/stores — list or create stores
 	http.HandleFunc("/admin/stores", api.AdminRequired(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/admin/stores" {
