@@ -122,6 +122,17 @@
       ],
       "canonical": ["Bikes", "Electric"]
     },
+    {
+      "raw": [
+        "wheelset",
+        "wheelsets",
+        "complete wheel",
+        "complete wheels",
+        "bike wheels",
+        "bike wheel"
+      ],
+      "canonical": ["Components", "Wheels/Tires", "Complete wheels"]
+    },
     { "raw": ["bike", "bikes", "bicycle"], "canonical": ["Bikes"] },
     { "raw": ["gravel"], "canonical": ["Bikes", "Gravel"] },
     { "raw": ["road bike", "road"], "canonical": ["Bikes", "Road"] },
@@ -190,7 +201,7 @@
     },
     {
       "raw": ["wheel", "wheels", "tire", "tyre", "rim"],
-      "canonical": ["Components", "Wheels"]
+      "canonical": ["Components", "Wheels/Tires"]
     },
     {
       "raw": [
