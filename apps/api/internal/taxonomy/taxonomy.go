@@ -8,7 +8,7 @@ import (
 )
 
 type mappingRule struct {
-	Raw      []string `json:"raw"`
+	Raw       []string `json:"raw"`
 	Canonical []string `json:"canonical"`
 }
 
@@ -46,12 +46,12 @@ func Load(path string) error {
 
 // Mapping is a single rule: raw keywords (substring match) -> canonical path.
 type Mapping struct {
-	Raw      []string
+	Raw       []string
 	Canonical []string
 }
 
 // SetMappings replaces the in-memory mapping rules. Call after loading from DB or JSON.
-// Order of mappings matters: first match wins. Higher index = lower priority.
+// Order of mappings matters: within a breadcrumb segment, first match wins (higher index = lower priority).
 func SetMappings(mappings []Mapping) {
 	cfgMu.Lock()
 	defer cfgMu.Unlock()
@@ -67,8 +67,10 @@ func SetMappings(mappings []Mapping) {
 }
 
 // Map returns the canonical category path for the given raw category_path from a store (e.g. ["Disc Brake Pad"]).
-// Matching is case-insensitive and uses substring: the raw path is joined and lowercased; the first mapping
-// whose "raw" list contains a substring match wins. Returns nil if no mapping matches.
+// Matching is case-insensitive substring match. Breadcrumb segments are tried from most specific
+// (rightmost) to least specific so an ancestor like "Cycling Gear" cannot beat a leaf like
+// "Gravel Bike Wheels and Wheelsets". Within a segment, the first mapping in list order wins
+// (callers load mappings with priority DESC). Returns nil if no mapping matches.
 func Map(raw []string) []string {
 	if len(raw) == 0 {
 		return nil
@@ -78,7 +80,19 @@ func Map(raw []string) []string {
 	if cfg == nil {
 		return nil
 	}
-	normalized := strings.ToLower(strings.TrimSpace(strings.Join(raw, " ")))
+	for i := len(raw) - 1; i >= 0; i-- {
+		if got := matchNormalized(strings.ToLower(strings.TrimSpace(raw[i]))); got != nil {
+			return got
+		}
+	}
+	return nil
+}
+
+// matchNormalized applies mapping rules to a single already-lowercased segment. Caller holds cfgMu.
+func matchNormalized(normalized string) []string {
+	if normalized == "" {
+		return nil
+	}
 	for _, rule := range cfg.Mappings {
 		for _, r := range rule.Raw {
 			if strings.Contains(normalized, strings.ToLower(strings.TrimSpace(r))) {

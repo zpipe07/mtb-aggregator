@@ -1,6 +1,7 @@
 package taxonomy
 
 import (
+	"path/filepath"
 	"slices"
 	"testing"
 )
@@ -124,6 +125,114 @@ func TestMap_fullAndFrontSuspensionStorePathsAreBikes(t *testing.T) {
 		if !slices.Equal(got, tc.want) {
 			t.Errorf("Map(%v) = %v, want %v", tc.raw, got, tc.want)
 		}
+	}
+}
+
+// Production-like seed order for ZAC-245: generic "bike"/"gravel"/"gear" beat
+// "wheels" on a joined breadcrumb because they appear earlier (higher priority).
+func zac245JoinedPathTrapMappings() []Mapping {
+	return []Mapping{
+		{Raw: []string{"bike", "bikes", "bicycle"}, Canonical: []string{"Bikes"}},
+		{Raw: []string{"gravel"}, Canonical: []string{"Bikes", "Gravel"}},
+		{Raw: []string{"wheel", "wheels", "tire", "tyre", "rim"}, Canonical: []string{"Components", "Wheels/Tires"}},
+		{Raw: []string{"component", "parts", "part"}, Canonical: []string{"Components"}},
+		{Raw: []string{"gear", "equipment"}, Canonical: []string{"Gear"}},
+	}
+}
+
+func zac245SpecializedWheelPath() []string {
+	return []string{
+		"Cycling Gear",
+		"Bike Parts",
+		"Roval Wheels and Components",
+		"Bike Wheels",
+		"Gravel Bike Wheels and Wheelsets",
+	}
+}
+
+func TestMap_legacyBikeKeywordOnWheelLeafStillMapsToBikes(t *testing.T) {
+	SetMappings(zac245JoinedPathTrapMappings())
+	t.Cleanup(func() { SetMappings(nil) })
+
+	got := Map(zac245SpecializedWheelPath())
+	if !slices.Equal(got, []string{"Bikes"}) {
+		t.Fatalf("without complete-wheels keywords, leaf still hits generic bike: got %v", got)
+	}
+}
+
+func TestMap_mostSpecificSegmentWinsOverHigherPriorityAncestor(t *testing.T) {
+	SetMappings([]Mapping{
+		{Raw: []string{"gear", "equipment"}, Canonical: []string{"Gear"}},
+		{Raw: []string{"wheelset", "wheelsets", "wheels"}, Canonical: []string{"Components", "Wheels/Tires", "Complete wheels"}},
+	})
+	t.Cleanup(func() { SetMappings(nil) })
+
+	got := Map(zac245SpecializedWheelPath())
+	want := []string{"Components", "Wheels/Tires", "Complete wheels"}
+	if !slices.Equal(got, want) {
+		t.Fatalf("Map(Specialized wheel breadcrumb) = %v, want %v (leaf should beat Cycling Gear)", got, want)
+	}
+}
+
+func TestMap_completeWheelsKeywordsBeatBikeOnLeaf(t *testing.T) {
+	SetMappings([]Mapping{
+		{Raw: []string{
+			"wheelset", "wheelsets", "complete wheel", "complete wheels",
+			"bike wheels", "bike wheel",
+		}, Canonical: []string{"Components", "Wheels/Tires", "Complete wheels"}},
+		{Raw: []string{"bike", "bikes", "bicycle"}, Canonical: []string{"Bikes"}},
+		{Raw: []string{"gravel"}, Canonical: []string{"Bikes", "Gravel"}},
+		{Raw: []string{"wheel", "wheels", "tire", "tyre", "rim"}, Canonical: []string{"Components", "Wheels/Tires"}},
+		{Raw: []string{"gear", "equipment"}, Canonical: []string{"Gear"}},
+	})
+	t.Cleanup(func() { SetMappings(nil) })
+
+	got := Map(zac245SpecializedWheelPath())
+	want := []string{"Components", "Wheels/Tires", "Complete wheels"}
+	if !slices.Equal(got, want) {
+		t.Fatalf("Map(Specialized wheel breadcrumb) = %v, want %v", got, want)
+	}
+}
+
+func TestMap_unmappedLeafFallsBackToParentSegment(t *testing.T) {
+	SetMappings([]Mapping{
+		{Raw: []string{"trail bike", "trail mountain", "trail riding"}, Canonical: []string{"Bikes", "Mountain", "Trail"}},
+		{Raw: []string{"mountain bike", "mtb", "mountain bikes"}, Canonical: []string{"Bikes", "Mountain"}},
+		{Raw: []string{"bike", "bikes", "bicycle"}, Canonical: []string{"Bikes"}},
+	})
+	t.Cleanup(func() { SetMappings(nil) })
+
+	got := Map([]string{"Bikes", "Mountain Bikes", "Trail Bikes", "Stumpjumper"})
+	want := []string{"Bikes", "Mountain", "Trail"}
+	if !slices.Equal(got, want) {
+		t.Fatalf("Map(Specialized bike breadcrumb with product leaf) = %v, want %v", got, want)
+	}
+}
+
+func TestMap_seedTaxonomyMapsSpecializedWheelPathToCompleteWheels(t *testing.T) {
+	path := filepath.Join("..", "..", "..", "..", "packages", "shared", "category_taxonomy.json")
+	if err := Load(path); err != nil {
+		t.Fatalf("Load(%s): %v", path, err)
+	}
+	t.Cleanup(func() { SetMappings(nil) })
+
+	got := Map(zac245SpecializedWheelPath())
+	want := []string{"Components", "Wheels/Tires", "Complete wheels"}
+	if !slices.Equal(got, want) {
+		t.Fatalf("Map(seed taxonomy, Specialized wheel breadcrumb) = %v, want %v", got, want)
+	}
+}
+
+func TestMap_singleSegmentUnchanged(t *testing.T) {
+	SetMappings([]Mapping{
+		{Raw: []string{"helmet", "helmets"}, Canonical: []string{"Gear", "Helmets"}},
+		{Raw: []string{"gear", "equipment"}, Canonical: []string{"Gear"}},
+	})
+	t.Cleanup(func() { SetMappings(nil) })
+
+	got := Map([]string{"Cycling Gear"})
+	if !slices.Equal(got, []string{"Gear"}) {
+		t.Fatalf("Map([Cycling Gear]) = %v, want [Gear]", got)
 	}
 }
 

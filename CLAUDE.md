@@ -165,7 +165,7 @@ pnpm --filter @mtb-aggregator/web run build-storybook  # static build to storybo
 3. **Scraper service** uses Playwright parsers for non-CC stores; returns `ScrapeResult[]`
 4. **API** upserts listings into Postgres, applying brand normalization and metadata extraction. Scrape upsert sets **`hidden = false`**; after ingest, stale-cleanup hides listings missing from that scrape, then Jenson/UC re-hide superseded parent SKUs. For **Competitive Cyclist**, `affiliate_url` uses `IMPACT_DEEP_LINK_COMPETITIVE_CYCLIST` when set, else the catalog **`Url`** when it’s a tracked hop; otherwise the UI uses **`product_url`**. Catalog **`Description`** may be merged into `metadata.description` for LLM enrichment (no PDP for CC).
 5. **Enrich jobs (split):** **PDP** — resident **drainer** (round-robin, per-store pacing) plus optional **`POST /enrich-now`** burst (`job_type=enrich`) via `internal/enrichstate/`; per-listing step state in `listing_enrichment`, snapshots in `pdp_snapshots`, events in `enrichment_events`. **LLM** — async `llm_specs` jobs (classify + extract via `ClaimForStep`) kick after successful scrapes, after drainer PDP success (debounced), after burst PDP jobs finalize, and on **`LLM_CRON_SPEC`** (hourly). Listings need a PDP snapshot before LLM steps run. Fetches PDP URLs through `POST /enrich` for stores in `StoreTypesWithEnrichers` (excludes **Competitive Cyclist**). Optional **`ENRICH_MAX_LISTINGS`** caps listings per step per job. CC variant grouping is handled via admin/backfill (`make backfill-cc-variants`) when WAF cookies are refreshed.
-6. **Category taxonomy** maps raw store category paths to canonical MTB categories (e.g. `["Components", "Brakes"]`)
+6. **Category taxonomy** maps raw store category paths to canonical MTB categories (e.g. `["Components", "Brakes"]`), matching the **most specific** breadcrumb segment first
 
 ### Scraper Service (`apps/scraper/`)
 
@@ -182,7 +182,7 @@ pnpm --filter @mtb-aggregator/web run build-storybook  # static build to storybo
 - Standard library `net/http`, no framework
 - All DB queries in `internal/db/db.go` using pgx
 - `internal/brand/` — brand normalization via `packages/shared/brand_aliases.json`
-- `internal/taxonomy/` — category mapping with in-memory cache, loaded from `category_mappings` in DB (seeded from `category_taxonomy.json` when empty). Accessories › Lights keywords omit bare `light` so “Lightweight” collection copy cannot dump complete bikes into Lights (ZAC-234 / migration `045`).
+- `internal/taxonomy/` — category mapping with in-memory cache, loaded from `category_mappings` in DB (seeded from `category_taxonomy.json` when empty). Accessories › Lights keywords omit bare `light` so “Lightweight” collection copy cannot dump complete bikes into Lights (ZAC-234 / migration `045`). `taxonomy.Map` matches the rightmost `category_path` segment first; wheelset / bike-wheels keywords map to Complete wheels (ZAC-245 / migration `048`).
 - `internal/impact/` — Impact Partner **product catalog** client (Competitive Cyclist ingest in the scheduler when credentials are set)
 - `internal/db/categories.go` — structured category tree (id, slug, name, parent_id). Single source of truth; `category_id` FKs on listings, profiles, mappings
 - `internal/metadata/` — extracts structured specs from enriched category paths and raw spec data

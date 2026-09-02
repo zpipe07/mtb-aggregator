@@ -52,12 +52,13 @@ Override the migrations directory: `MIGRATIONS_DIR=path/to/migrations make db-mi
 | `045_accessories_lights_keywords.sql` | Accessories › Lights: drop bare `light` from `category_mappings` so "Lightweight" collection copy cannot map complete bikes to Lights (ZAC-234). Mapping-only; remapping / classify after API restart. |
 | `046_complete_bikes_not_suspension.sql` | Complete bikes: high-priority `full suspension` / `front suspension` → Mountain Bikes and `full suspension frames` → Frames so store taxonomy cannot dump bikes onto Components › Suspension (ZAC-238). Mapping-only; remap after API restart. |
 | `047_unhide_latest_scrape_confirmed_listings.sql` | ZAC-217: unhide listings whose `last_scraped` is on/after that store’s latest completed scrape (`listings_upserted >= 10`), then re-apply Jenson `025` and Universal Cycles `026` parent-hide predicates. Idempotent. Numbered 047 because 046 is ZAC-238. |
+| `048_most_specific_category_path.sql` | ZAC-245: high-priority `wheelset` / `bike wheels` / `complete wheels` → Complete wheels so store breadcrumbs like `Cycling Gear > … > Gravel Bike Wheels and Wheelsets` are not classified as Bikes or Gear. Also retargets the legacy `["Components", "Wheels"]` catch-all to `Wheels/Tires`. Mapping-only; remap after API restart. |
 
 After 019, run **`make backfill-field-library`** once (from repo root) to rename ambiguous `type` / `material` keys in `extraction_schema` and `metadata.llm_specs`, seed shared defs, and populate `llm_prompt_profile_fields`.
 
 After 041, run **`make backfill-clothing-size`** to populate `metadata.llm_specs.clothing_size` from existing `variant_options` Size values.
 
-After 027, 032, 036, 037, 038, 039, 045, or 046, run **`make backfill-canonical-categories`** and **restart the API** so in-memory taxonomy reloads; these migrations also backfill by product name where applicable (`045`/`046` are mapping-only). Recategorize skips confident `metadata.llm_category` (ZAC-234 Lights leftovers with a good LLM path still need admin classify or a copy-from-LLM pass).
+After 027, 032, 036, 037, 038, 039, 045, 046, or 048, run **`make backfill-canonical-categories`** and **restart the API** so in-memory taxonomy reloads; these migrations also backfill by product name where applicable (`045`/`046`/`048` are mapping-only). Recategorize skips confident `metadata.llm_category` (ZAC-234 Lights leftovers with a good LLM path still need admin classify or a copy-from-LLM pass).
 
 ## Verifying Phase 2 changes (currency, scraper health, category_path)
 
