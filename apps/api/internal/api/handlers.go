@@ -9,19 +9,21 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/mtb-aggregator/api/internal/brand"
 	"github.com/mtb-aggregator/api/internal/db"
 	"github.com/mtb-aggregator/api/internal/llm"
 	"github.com/mtb-aggregator/api/internal/llmlisting"
 	"github.com/mtb-aggregator/api/internal/normalization"
 	"github.com/mtb-aggregator/api/internal/scraper"
+	"github.com/mtb-aggregator/api/internal/sentryutil"
 	"github.com/mtb-aggregator/api/internal/taxonomy"
 )
 
 type Handlers struct {
-	DB          *db.DB
-	ScraperURL  string
-	Scraper     *scraper.Client
-	LLM         *llm.Client
+	DB         *db.DB
+	ScraperURL string
+	Scraper    *scraper.Client
+	LLM        *llm.Client
 }
 
 // parseNonEmptyQueryMulti returns trimmed, non-empty, de-duplicated values from repeated query params (order preserved).
@@ -438,7 +440,7 @@ func (h *Handlers) GetStatus(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"stores":             storeStatuses,
+		"stores":            storeStatuses,
 		"scraper_reachable": scraperReachable,
 	})
 }
@@ -476,8 +478,8 @@ func (h *Handlers) GetAdminDashboard(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"stats":                      stats,
-		"stores":                    stores,
-		"scraper_reachable":         scraperReachable,
+		"stores":                     stores,
+		"scraper_reachable":          scraperReachable,
 		"enrichment_pct":             enrichmentPct,
 		"store_types_with_enrichers": db.StoreTypesWithEnrichers,
 	})
@@ -996,8 +998,8 @@ func (h *Handlers) PatchAdminListingCategory(w http.ResponseWriter, r *http.Requ
 		return
 	}
 	resp := map[string]interface{}{
-		"ok":                true,
-		"siblings_updated":  siblingsUpdated,
+		"ok":               true,
+		"siblings_updated": siblingsUpdated,
 	}
 	listing, err := h.DB.GetAdminListingByID(r.Context(), id)
 	if err == nil && listing != nil && len(listing.CategoryPath) > 0 {
@@ -1307,7 +1309,7 @@ func (h *Handlers) PostAdminTaxonomy(w http.ResponseWriter, r *http.Request) {
 	var body struct {
 		RawKeywords []string `json:"raw_keywords"`
 		Canonical   []string `json:"canonical"`
-		Priority    int     `json:"priority"`
+		Priority    int      `json:"priority"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		http.Error(w, "invalid json", http.StatusBadRequest)
@@ -1358,7 +1360,7 @@ func (h *Handlers) PutAdminTaxonomy(w http.ResponseWriter, r *http.Request, id i
 	var body struct {
 		RawKeywords []string `json:"raw_keywords"`
 		Canonical   []string `json:"canonical"`
-		Priority    int     `json:"priority"`
+		Priority    int      `json:"priority"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		http.Error(w, "invalid json", http.StatusBadRequest)
@@ -1417,9 +1419,15 @@ func (h *Handlers) PutAdminTaxonomyReorder(w http.ResponseWriter, r *http.Reques
 		http.Error(w, "updates required (non-empty array)", http.StatusBadRequest)
 		return
 	}
-	updates := make([]struct{ ID int; Priority int }, len(body.Updates))
+	updates := make([]struct {
+		ID       int
+		Priority int
+	}, len(body.Updates))
 	for i, u := range body.Updates {
-		updates[i] = struct{ ID int; Priority int }{ID: u.ID, Priority: u.Priority}
+		updates[i] = struct {
+			ID       int
+			Priority int
+		}{ID: u.ID, Priority: u.Priority}
 	}
 	if err := h.DB.BatchUpdateCategoryMappingPriorities(r.Context(), updates); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -1698,6 +1706,22 @@ func (h *Handlers) PostAdminRenormalizeSpecs(w http.ResponseWriter, r *http.Requ
 	json.NewEncoder(w).Encode(map[string]interface{}{"updated": updated})
 }
 
+// PostAdminRenormalizeBrands re-applies brand aliases to store_listings.brand (admin).
+func (h *Handlers) PostAdminRenormalizeBrands(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	updated, err := h.DB.BackfillBrands(r.Context(), brand.Normalize)
+	if err != nil {
+		sentryutil.CaptureError(err, map[string]string{"component": "api", "handler": "renormalize_brands"})
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{"updated": updated})
+}
+
 // --- Normalization (spec key aliases, value rules, unmapped dashboard) ---
 
 // GetAdminUnmappedItems returns uncategorized category paths and counts (admin).
@@ -1720,7 +1744,7 @@ func (h *Handlers) GetAdminUnmappedItems(w http.ResponseWriter, r *http.Request)
 	uncategorizedCount, _ := h.DB.GetUncategorizedCount(r.Context())
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"uncategorized_count": uncategorizedCount,
+		"uncategorized_count":     uncategorizedCount,
 		"unmapped_category_paths": paths,
 	})
 }

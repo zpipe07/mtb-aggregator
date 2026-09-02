@@ -16,6 +16,7 @@ import {
   useUpdateSpecKeyAlias,
   useDeleteSpecKeyAlias,
   useTriggerRenormalizeSpecs,
+  useTriggerRenormalizeBrands,
   useRunLLMExtractionForCategory,
 } from "./hooks/mutations";
 import type { SpecNormalizationRule, SpecKeyAlias } from "./api";
@@ -266,6 +267,7 @@ export function NormalizationManager() {
   const updateAlias = useUpdateSpecKeyAlias();
   const deleteAlias = useDeleteSpecKeyAlias();
   const renormalize = useTriggerRenormalizeSpecs();
+  const renormalizeBrands = useTriggerRenormalizeBrands();
   const { data: llmProfiles = [], isPending: llmProfilesLoading } = useLLMProfiles();
   const runLLM = useRunLLMExtractionForCategory();
 
@@ -277,7 +279,8 @@ export function NormalizationManager() {
       <div>
         <h1 className="text-xl font-semibold text-stone-900">Normalization Manager</h1>
         <p className="text-sm text-stone-600 mt-1">
-          Configure spec key aliases, value normalization rules, and re-apply to all listings.
+          Configure spec key aliases, value normalization rules, brand aliases, and re-apply to
+          listings.
         </p>
       </div>
 
@@ -313,7 +316,7 @@ export function NormalizationManager() {
         )}
       </section>
 
-      {/* Re-normalize */}
+      {/* Re-normalize specs */}
       <section className="rounded-lg border border-stone-200 bg-white p-4">
         <h2 className="text-lg font-medium text-stone-800 mb-3">Re-normalize all listings</h2>
         <p className="text-sm text-stone-600 mb-3">
@@ -333,6 +336,33 @@ export function NormalizationManager() {
         )}
         {renormalize.error && (
           <p className="text-sm text-red-600 mt-2">{renormalize.error.message}</p>
+        )}
+      </section>
+
+      {/* Re-normalize brands */}
+      <section className="rounded-lg border border-stone-200 bg-white p-4">
+        <h2 className="text-lg font-medium text-stone-800 mb-3">Brand names</h2>
+        <p className="text-sm text-stone-600 mb-3">
+          Merge vendor variants onto canonical names from{" "}
+          <code className="bg-stone-100 px-1 rounded">brand_aliases.json</code> (e.g. Santa Cruz
+          Bicycles → Santa Cruz, Sram → SRAM). New scrapes normalize on ingest; run this to update
+          rows already in the database.
+        </p>
+        <button
+          type="button"
+          onClick={() => renormalizeBrands.mutate(undefined)}
+          disabled={renormalizeBrands.isPending}
+          className="rounded bg-stone-700 px-3 py-2 text-sm text-white hover:bg-stone-600 disabled:opacity-50"
+        >
+          {renormalizeBrands.isPending ? "Re-normalizing…" : "Re-normalize brands"}
+        </button>
+        {renormalizeBrands.data?.updated != null && (
+          <span className="ml-2 text-sm text-stone-600">
+            {renormalizeBrands.data.updated} listings updated
+          </span>
+        )}
+        {renormalizeBrands.error && (
+          <p className="text-sm text-red-600 mt-2">{renormalizeBrands.error.message}</p>
         )}
       </section>
 

@@ -25,6 +25,7 @@ import (
 	"github.com/mtb-aggregator/api/internal/normalization"
 	"github.com/mtb-aggregator/api/internal/scheduler"
 	"github.com/mtb-aggregator/api/internal/scraper"
+	"github.com/mtb-aggregator/api/internal/sentryutil"
 	"github.com/mtb-aggregator/api/internal/taxonomy"
 )
 
@@ -156,7 +157,7 @@ func validateCronOrAdmin(r *http.Request) bool {
 
 var taxonomySeedStruct = struct {
 	Mappings []struct {
-		Raw      []string `json:"raw"`
+		Raw       []string `json:"raw"`
 		Canonical []string `json:"canonical"`
 	} `json:"mappings"`
 }{}
@@ -174,7 +175,10 @@ func seedCategoryMappingsFromFile(ctx context.Context, database *db.DB) (bool, e
 	if err := json.Unmarshal(data, &taxonomySeedStruct); err != nil {
 		return false, err
 	}
-	seedSlice := make([]struct{ Raw []string; Canonical []string }, len(taxonomySeedStruct.Mappings))
+	seedSlice := make([]struct {
+		Raw       []string
+		Canonical []string
+	}, len(taxonomySeedStruct.Mappings))
 	for i := range taxonomySeedStruct.Mappings {
 		seedSlice[i].Raw = taxonomySeedStruct.Mappings[i].Raw
 		seedSlice[i].Canonical = taxonomySeedStruct.Mappings[i].Canonical
@@ -290,7 +294,10 @@ func main() {
 	sentryEnabled := initSentry(logutil.Logger("sentry"))
 
 	if err := brand.Load(""); err != nil {
-		logutil.Logger("brand").Warn("could not load aliases; brand normalization disabled", logutil.ErrAttr(err))
+		logutil.Logger("brand").Error("could not load aliases; brand normalization disabled", logutil.ErrAttr(err))
+		sentryutil.CaptureError(err, map[string]string{"component": "api", "phase": "brand_aliases_load"})
+	} else {
+		logutil.Logger("brand").Info("loaded brand aliases")
 	}
 	// Taxonomy is loaded from DB (loadTaxonomyFromDB); taxonomy.Load() from JSON is no longer used.
 
@@ -799,6 +806,14 @@ func main() {
 			return
 		}
 		handlers.PostAdminRenormalizeSpecs(w, r)
+	}))
+	// Admin: POST /admin/renormalize-brands — re-apply brand_aliases.json to store_listings.brand
+	http.HandleFunc("/admin/renormalize-brands", api.AdminRequired(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/admin/renormalize-brands" {
+			http.NotFound(w, r)
+			return
+		}
+		handlers.PostAdminRenormalizeBrands(w, r)
 	}))
 	// Admin: GET /admin/db/migrations — list migration status; POST /admin/db/migrate, /admin/db/seed
 	http.HandleFunc("/admin/db/migrations", api.AdminRequired(func(w http.ResponseWriter, r *http.Request) {

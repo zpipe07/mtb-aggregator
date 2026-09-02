@@ -1118,6 +1118,15 @@ export async function triggerRenormalizeSpecs(): Promise<{ updated: number }> {
   return res.json();
 }
 
+export async function triggerRenormalizeBrands(): Promise<{ updated: number }> {
+  const res = await fetch(`${getApiBase()}/admin/renormalize-brands`, {
+    method: "POST",
+    headers: adminHeaders(),
+  });
+  if (!res.ok) throw new Error("Renormalize brands failed");
+  return res.json();
+}
+
 // --- Database maintenance (migrations, seed) ---
 
 export interface MigrationEntry {

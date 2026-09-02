@@ -47,6 +47,7 @@ Go HTTP server that orchestrates scraping, enrichment, and serves the REST API. 
 
 - `POST /admin/auth` — Validate password (`{"password":"..."}`); use same value as `Authorization: Bearer` on other `/admin/*` routes
 - `GET/POST/PUT/PATCH/DELETE /admin/*` — Dashboard, stores, taxonomy, profiles, etc.
+- **`POST /admin/renormalize-brands`** — Re-apply `brand_aliases.json` (plus suffix/case rules) to every `store_listings.brand`. Same work as `make backfill-brands`. Response `{"updated": N}`. Use after deploying new aliases so existing rows merge (e.g. Santa Cruz Bicycles → Santa Cruz, Sram → SRAM). The Normalization Manager admin page exposes this as **Re-normalize brands**.
 - **`GET /admin/metrics/pipeline`** — Flow-centric pipeline health for admin Insights. Query: optional `days` (default 30, max 90). Returns scrape→extract latency (p50/p95), daily successful `enrichment_events` throughput by step, PDP freshness buckets by `pdp_fetched_at`, per-store PDP drainer status (due, in-flight, cooldown, last fetch), and recent scrape jobs for charts.
 - **`GET /admin/metrics/enrichment-steps`** — Per-step flow gauges (PDP, classify, extract): due / in-flight / dead counts, oldest-due age, recent success/failure/skip rates from `enrichment_events`, and LLM confidence histogram. Query: optional `days` (default 7, max 90). Used on admin Insights.
 - **`POST /admin/listings/:id/enrichment/retry?step=`** — Clear durable step state for one listing (`step=pdp|classify|extract`) so the next enrich job picks it up. Idempotent.
@@ -97,6 +98,7 @@ Go HTTP server that orchestrates scraping, enrichment, and serves the REST API. 
 - **`listing_enrichment.pdp_hash`** — Content hash last processed by classify/extract (not updated on PDP fetch). Claim SQL treats `NULL IS DISTINCT FROM snapshot.content_hash` as due; rows backfilled by migration `028` with NULL hash could skip-loop hourly until stamped. Migration **`044`** backfills hashes from snapshots; runtime **`StampLLMSkipInputs`** stamps on LLM skip. Apply **`044`** on production DB with the API release (`make db-migrate-remote`).
 - **Startup catch-up:** When scrape or LLM cron is enabled (not `disabled`), on each API start the scheduler checks job ages — scrape (**24h**), LLM (**1h**) — and runs overdue jobs once in the background with `triggered_by=catch-up`. **PDP catch-up is not run** (the resident drainer handles PDP continuously). Use **`POST /enrich-now`** for operator PDP bursts. Set **`ENRICH_CRON_SPEC=disabled`** if the resident drainer is the only PDP path (avoids empty burst jobs that kick extra LLM work).
 - `CORS_ORIGINS` — Comma-separated allowed `Origin` values for browser requests (e.g. `https://example.com,https://www.example.com`). If unset, defaults to `*` (any origin). Set explicitly when using a custom web domain and you want to restrict cross-origin access to the API.
+- **`BRAND_ALIASES_PATH`** — Optional path to `brand_aliases.json`. Docker image copies it to `/app/packages/shared/brand_aliases.json` and sets this env. Locally the API walks up from cwd (and the binary dir) looking for `packages/shared/brand_aliases.json`. If aliases fail to load, scrape-time brand normalization is a no-op and duplicate facet labels (Sram vs SRAM) persist until the file is loadable.
 - **`SENTRY_DSN`** — **Required in production** (Render API). Enables [Sentry](https://sentry.io) (HTTP panics and 5xx via `sentryhttp`). Without it, `internal/sentryutil` calls from the scheduler are no-ops and admin Operations failures never reach Sentry. Use a dedicated **Go/API** project DSN (not the web or scraper DSN).
 - `SENTRY_ENVIRONMENT` — e.g. `production` (recommended on Render)
 - `SENTRY_RELEASE` — Optional release override; if unset on Render, `RENDER_GIT_COMMIT` is used automatically
@@ -137,7 +139,7 @@ cd apps/api && go run main.go
 Run from repo root with API not required:
 
 ```bash
-make backfill-brands
+make backfill-brands                 # Re-apply brand_aliases.json to store_listings.brand (also POST /admin/renormalize-brands)
 make backfill-canonical-categories   # Recategorize after taxonomy changes (skips manual + confident llm_category)
 make backfill-bikesonline-clothing-protective   # Bikes Online Clothing & Protective Gear → LLM Protection/Helmets/Gloves (DRY_RUN=1 preview)
 make backfill-llm-specs              # Populate llm_specs from specs

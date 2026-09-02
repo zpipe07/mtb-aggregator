@@ -58,7 +58,7 @@ flowchart LR
 
 **Deals list sorting:** Default when `sort` is omitted is `discount` (highest % off). `GET /deals` also supports `sort=value` (largest savings: `original_price - current_price`), `newest`, `price_asc`/`price_desc`, and `relevance` (with `q`). Filters include `min_price`, **`max_price`**, and `exclude_category_slug` (subtree) for surfacing higher-ticket items on the home page without manual curation; **`max_price`** also powers buyer-intent **SEO hub** pages on the web (`/deals/hub/...`).
 
-**Brand facets:** `GET /facets` `brand_facets` are scoped to the same filters as other facets except all `brand` query params are omitted when aggregating brands (so the deals UI can list alternative brands while one or more are selected).
+**Brand facets:** `GET /facets` `brand_facets` are scoped to the same filters as other facets except all `brand` query params are omitted when aggregating brands (so the deals UI can list alternative brands while one or more are selected). Brand labels come from `store_listings.brand` after scrape-time `internal/brand` normalization (`packages/shared/brand_aliases.json`; case-insensitive, suffix stripping for Bicycles/Cycles/Inc). The API Docker image copies that JSON (`BRAND_ALIASES_PATH`). Re-apply to existing rows with `make backfill-brands` or `POST /admin/renormalize-brands`.
 
 **Spec facets:** Each `spec_*` facet’s value list is aggregated without applying that key’s own `spec_*` filter (faceted-navigation pattern, same as brands). Repeated `spec_*` values OR within the key.
 

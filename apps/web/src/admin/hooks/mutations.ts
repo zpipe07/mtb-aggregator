@@ -27,6 +27,7 @@ import {
   updateSpecValueAlias,
   deleteSpecValueAlias,
   triggerRenormalizeSpecs,
+  triggerRenormalizeBrands,
   createSpecNormalizationRule,
   updateSpecNormalizationRule,
   deleteSpecNormalizationRule,
@@ -472,6 +473,17 @@ export function useTriggerRenormalizeSpecs() {
       queryClient.invalidateQueries({ queryKey: adminListingKeys.all });
       queryClient.invalidateQueries({ queryKey: dealKeys.all });
       queryClient.invalidateQueries({ queryKey: adminNormalizationKeys.all });
+    },
+  });
+}
+
+export function useTriggerRenormalizeBrands() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: triggerRenormalizeBrands,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminListingKeys.all });
+      queryClient.invalidateQueries({ queryKey: dealKeys.all });
     },
   });
 }
