@@ -39,7 +39,7 @@ pnpm --filter @mtb-aggregator/web run lint
 ## Project Structure
 
 ```
-packages/shared/migrations/048_giveaways.sql
+packages/shared/migrations/049_giveaways.sql
 apps/api/internal/db/giveaways.go          # queries + Giveaway model
 apps/api/internal/api/handlers_giveaways.go
 apps/api/internal/api/giveaway_status.go   # derived status (testable, no DB)
@@ -141,7 +141,7 @@ No Playwright scraper tests. Coverage: every derived status branch and every pub
 
 ## Data model
 
-Migration **`048_giveaways.sql`** (next number after `047`). Additive only.
+Migration **`049_giveaways.sql`** (next number after `048`; `048` is ZAC-245 category-path mappings). Additive only.
 
 ```sql
 CREATE TABLE IF NOT EXISTS giveaways (
