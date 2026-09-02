@@ -220,3 +220,29 @@ export function buildCollectionPageJsonLd(opts: {
     })),
   };
 }
+
+/** CollectionPage + ItemList of giveaway/raffle names (no Event/Offer). */
+export function buildGiveawaysJsonLd(opts: {
+  name: string;
+  description: string;
+  pageUrl: string;
+  items: { slug: string; title: string }[];
+}): Record<string, unknown> {
+  return {
+    "@context": CTX,
+    "@type": "CollectionPage",
+    name: opts.name,
+    description: opts.description,
+    url: opts.pageUrl,
+    mainEntity: {
+      "@type": "ItemList",
+      numberOfItems: opts.items.length,
+      itemListElement: opts.items.map((item, i) => ({
+        "@type": "ListItem",
+        position: i + 1,
+        name: item.title,
+        url: `${opts.pageUrl}#${item.slug}`,
+      })),
+    },
+  };
+}

@@ -18,6 +18,9 @@ export function AffiliateDisclosure() {
           aria-label="Legal and policies"
           className="mt-4 flex flex-wrap gap-x-4 gap-y-1"
         >
+          <Link href="/giveaways" className={cn(footerLink, focusRing)}>
+            Giveaways
+          </Link>
           <Link href="/policies" className={cn(footerLink, focusRing)}>
             Policies
           </Link>

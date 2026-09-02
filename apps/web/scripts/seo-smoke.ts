@@ -9,6 +9,7 @@ import {
   buildProductItemListJsonLd,
   buildAggregateOfferJsonLd,
   buildFaqPageJsonLd,
+  buildGiveawaysJsonLd,
 } from "../src/lib/jsonLd";
 import { computeDealScore } from "../src/lib/dealScore";
 import { brandToSlug, resolveBrandFromSlug } from "../src/lib/brandPages";
@@ -77,6 +78,21 @@ assert.ok(faq);
 assert.equal(faq!["@type"], "FAQPage");
 assert.equal((faq!.mainEntity as unknown[]).length, 1);
 assert.equal(buildFaqPageJsonLd([]), null);
+
+const giveawaysLd = buildGiveawaysJsonLd({
+  name: "MTB giveaways and raffles — The Dropper",
+  description: "Active mountain bike giveaways and raffles.",
+  pageUrl: "https://example.com/giveaways",
+  items: [{ slug: "norco-rampage", title: "Win a custom Norco Rampage" }],
+});
+assert.equal(giveawaysLd["@type"], "CollectionPage");
+const giveawayList = giveawaysLd.mainEntity as Record<string, unknown>;
+assert.equal(giveawayList["@type"], "ItemList");
+assert.equal(giveawayList.numberOfItems, 1);
+const giveawayItems = giveawayList.itemListElement as Record<string, unknown>[];
+assert.equal(giveawayItems[0].url, "https://example.com/giveaways#norco-rampage");
+assert.equal(JSON.stringify(giveawaysLd).includes('"Event"'), false);
+assert.equal(JSON.stringify(giveawaysLd).includes('"Offer"'), false);
 
 assert.equal(brandToSlug("RockShox"), "rockshox");
 assert.equal(resolveBrandFromSlug("fox", ["Fox", "SRAM"]), "Fox");

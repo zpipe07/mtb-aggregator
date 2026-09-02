@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { fetchCategoryTree, fetchDeals, fetchStatus } from "@/api";
+import { fetchCategoryTree, fetchDeals, fetchGiveaways, fetchStatus } from "@/api";
 import { JsonLd } from "@/components/JsonLd";
 import { buildItemListJsonLd, buildWebSiteSearchJsonLd } from "@/lib/jsonLd";
 import {
@@ -63,7 +63,7 @@ export const metadata: Metadata = {
 };
 
 export default async function Home() {
-  const [categoryTree, status, priceDropsResponse, ...sectionResponses] =
+  const [categoryTree, status, priceDropsResponse, giveawaysResponse, ...sectionResponses] =
     await Promise.all([
     fetchCategoryTree(),
     fetchStatus(),
@@ -73,6 +73,12 @@ export default async function Home() {
       offset: 0,
       exclude_home_demoted: true,
     }),
+    fetchGiveaways().catch(() => ({
+      giveaways: [],
+      open_count: 0,
+      upcoming_count: 0,
+      ended_count: 0,
+    })),
     ...HOME_DEAL_SECTIONS.map((section) =>
       fetchDeals({
         sort: "value",
@@ -133,6 +139,7 @@ export default async function Home() {
         storeCount={heroStats.storeCount}
         dealCount={heroStats.dealCount}
         lastUpdated={heroStats.lastUpdated}
+        openGiveaways={giveawaysResponse.giveaways}
         hubLinks={
           <SeoHubLinksGlobal title="Popular deal searches" />
         }

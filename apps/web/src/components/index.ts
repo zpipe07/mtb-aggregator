@@ -14,6 +14,8 @@ export type { SortOption } from "../lib/filterParams";
 export { DealGrid } from "./DealGrid";
 export { Pagination } from "./Pagination";
 export { DealCard } from "./DealCard";
+export { GiveawayCard } from "./GiveawayCard";
+export { HomeGiveawaysStrip } from "./HomeGiveawaysStrip";
 export { ErrorMessage } from "./ErrorMessage";
 export { EmptyState } from "./EmptyState";
 export { JsonLd } from "./JsonLd";

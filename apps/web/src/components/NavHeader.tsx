@@ -32,7 +32,10 @@ export function NavHeader({ categoryTree = [] }: NavHeaderProps) {
     setDesktopDealsMenuOpen,
   );
 
-  const navLinks = [{ href: "/", label: "Home", exact: true }];
+  const navLinks = [
+    { href: "/", label: "Home", exact: true },
+    { href: "/giveaways", label: "Giveaways", exact: false },
+  ];
 
   const isDealsActive = pathname.startsWith("/deals");
 
