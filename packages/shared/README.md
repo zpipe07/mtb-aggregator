@@ -9,7 +9,7 @@ Schema, migrations, seed data, and JSON config files shared across the mtb-aggre
 | `schema.sql` | Base schema (stores, store_listings, price_history, etc.) |
 | `seed.sql` | Seed data (stores: JensonUSA, Worldwide Cyclery, Revel, Ride Bicycles, Thunder Mountain Bikes, Competitive Cyclist, etc.) |
 | `migrations/` | Numbered incremental migrations; run in sorted order |
-| `brand_aliases.json` | Brand normalization; maps variants → canonical names |
+| `brand_aliases.json` | Brand normalization; maps variants → canonical names (e.g. `santa cruz bicycles` → Santa Cruz, `sram` → SRAM). Copied into the API Docker image. |
 | `category_taxonomy.json` | Legacy category tree; used for seed when `category_mappings` empty |
 | `categories.export.json` | Point-in-time export of live `categories` rows from Neon (regenerate when taxonomy changes). Used by the web app [`apps/web/src/lib/categorySeo.ts`](../../apps/web/src/lib/categorySeo.ts) for category-page titles/descriptions; also useful for comparing taxonomy locally. |
 | `llm_prompt_profiles.export.json` | Optional point-in-time export of live `llm_prompt_profiles` rows (not loaded by the app) |
@@ -41,5 +41,5 @@ See [migrations/README.md](migrations/README.md) for migration conventions.
 
 ## Config Files
 
-- **brand_aliases.json** — Used by `internal/brand/` in the API for normalizing listing brands
+- **brand_aliases.json** — Used by `internal/brand/` in the API for normalizing listing brands at scrape ingest. Lookup is case-insensitive, indexes canonical names, and retries after stripping suffixes such as Bicycles/Cycles/Inc. After adding aliases, run `make backfill-brands` or **Re-normalize brands** in the admin Normalization Manager so existing rows update.
 - **category_taxonomy.json** — Bootstraps `category_mappings` when DB is empty; deprecated in favor of structured `categories` tree
