@@ -11,6 +11,10 @@ import (
 
 const publicGiveawayCap = 100
 
+// Must match api.GiveawayRecentEndedWindow. Computed in Go so a bound
+// timestamptz is never mixed with an INTERVAL literal (SQLSTATE 42883 on GET /giveaways).
+const publicGiveawayEndedWindow = 30 * 24 * time.Hour
+
 type Giveaway struct {
 	ID                int
 	Slug              string
@@ -75,32 +79,33 @@ func scanGiveaway(row interface{ Scan(dest ...any) error }) (Giveaway, error) {
 
 func (db *DB) ListPublicGiveaways(ctx context.Context, now time.Time, kind string) ([]Giveaway, error) {
 	kind = strings.ToLower(strings.TrimSpace(kind))
+	cutoff := now.Add(-publicGiveawayEndedWindow)
 	query := `
 		SELECT ` + giveawaySelectCols + `
 		FROM giveaways
 		WHERE published = true
-		  AND ends_at >= $1 - INTERVAL '30 days'
+		  AND ends_at >= $1
 	`
-	args := []any{now}
+	args := []any{cutoff, now}
 	if kind == "giveaway" || kind == "raffle" {
-		query += ` AND kind = $2`
+		query += ` AND kind = $3`
 		args = append(args, kind)
 	}
 	query += `
 		ORDER BY
 		  CASE
-		    WHEN ends_at <= $1 THEN 2
-		    WHEN starts_at IS NOT NULL AND starts_at > $1 THEN 1
+		    WHEN ends_at <= $2 THEN 2
+		    WHEN starts_at IS NOT NULL AND starts_at > $2 THEN 1
 		    ELSE 0
 		  END ASC,
 		  CASE
-		    WHEN ends_at > $1 AND (starts_at IS NULL OR starts_at <= $1) THEN ends_at
+		    WHEN ends_at > $2 AND (starts_at IS NULL OR starts_at <= $2) THEN ends_at
 		  END ASC NULLS LAST,
 		  CASE
-		    WHEN starts_at IS NOT NULL AND starts_at > $1 AND ends_at > $1 THEN starts_at
+		    WHEN starts_at IS NOT NULL AND starts_at > $2 AND ends_at > $2 THEN starts_at
 		  END ASC NULLS LAST,
 		  CASE
-		    WHEN ends_at <= $1 THEN ends_at
+		    WHEN ends_at <= $2 THEN ends_at
 		  END DESC NULLS LAST,
 		  id ASC
 		LIMIT ` + fmt.Sprintf("%d", publicGiveawayCap)
