@@ -1,4 +1,6 @@
+import type { Giveaway, GiveawayKind } from "@/api";
 import { getApiBase } from "@/lib/api";
+import { GIVEAWAYS_CACHE_TAG } from "@/lib/revalidate";
 
 const ADMIN_TOKEN_KEY = "adminPassword";
 
@@ -339,6 +341,101 @@ export async function deleteStore(id: number): Promise<void> {
     headers: adminHeaders(),
   });
   if (!res.ok) throw new Error("Delete failed");
+}
+
+// --- Giveaways & raffles ---
+
+export type AdminGiveaway = Giveaway & {
+  published: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type GiveawayWriteBody = {
+  slug?: string | null;
+  kind: GiveawayKind;
+  title: string;
+  summary: string;
+  prize_name: string;
+  prize_description?: string | null;
+  image_url?: string | null;
+  host_name: string;
+  entry_url: string;
+  official_rules_url: string;
+  starts_at?: string | null;
+  ends_at: string;
+  eligibility?: string | null;
+  entry_requirements?: string | null;
+  ticket_price?: number | null;
+  ticket_currency?: string | null;
+  beneficiary?: string | null;
+  published: boolean;
+};
+
+export async function fetchAdminGiveaways(): Promise<AdminGiveaway[]> {
+  const res = await fetch(`${getApiBase()}/admin/giveaways`, {
+    headers: adminHeaders(),
+  });
+  if (!res.ok)
+    throw new Error(
+      res.status === 401 ? "Unauthorized" : "Failed to fetch giveaways",
+    );
+  const data = await res.json();
+  return Array.isArray(data) ? data : [];
+}
+
+export async function createGiveaway(
+  body: GiveawayWriteBody,
+): Promise<{ id: number }> {
+  const res = await fetch(`${getApiBase()}/admin/giveaways`, {
+    method: "POST",
+    headers: adminHeaders(),
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || "Create failed");
+  }
+  return res.json();
+}
+
+export async function updateGiveaway(
+  id: number,
+  body: GiveawayWriteBody,
+): Promise<AdminGiveaway> {
+  const res = await fetch(`${getApiBase()}/admin/giveaways/${id}`, {
+    method: "PUT",
+    headers: adminHeaders(),
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || "Update failed");
+  }
+  return res.json();
+}
+
+export async function deleteGiveaway(id: number): Promise<void> {
+  const res = await fetch(`${getApiBase()}/admin/giveaways/${id}`, {
+    method: "DELETE",
+    headers: adminHeaders(),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || "Delete failed");
+  }
+}
+
+/** Best-effort ISR/fetch purge after admin giveaway writes. Failure is non-fatal. */
+export async function revalidateGiveawaysPages(): Promise<void> {
+  try {
+    await revalidateCache({
+      paths: ["/giveaways", "/"],
+      tags: [GIVEAWAYS_CACHE_TAG],
+    });
+  } catch (err) {
+    console.error("giveaways cache revalidate failed", err);
+  }
 }
 
 // --- Categories (structured category tree) ---

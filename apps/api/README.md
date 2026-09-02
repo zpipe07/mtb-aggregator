@@ -34,6 +34,7 @@ Go HTTP server that orchestrates scraping, enrichment, and serves the REST API. 
 - `GET /facets` — Filter facets for current query (`spec_facets`, `brand_facets`, `price_range`, `total_matching`). Counts only **in-stock, non-hidden** listings—the same visibility as `GET /deals`. Accepts the same repeated `brand` / `spec_*` params as `GET /deals`, plus **`min_price`** / **`max_price`** when the UI scopes by price (e.g. SEO hub pages). Faceted behavior: `brand_facets` omit all `brand` params when aggregating brands; each `spec_facets` key’s value list omits that key’s `spec_*` filter—so users can add values without collapsing the facet. Top 50 values per facet dimension.
 - `GET /spec-values` — Spec values for filters
 - `GET /status` — Health: last scrape per store, scraper reachable
+- `GET /giveaways` — Published MTB giveaways and raffles whose `ends_at` is within the last 30 days. Optional `?kind=giveaway|raffle`. Each row includes derived `status` (`open` / `upcoming` / `ended`); `published` is omitted. Hard cap 100.
 
 ### Trigger (cron or manual)
 
@@ -46,6 +47,7 @@ Go HTTP server that orchestrates scraping, enrichment, and serves the REST API. 
 ### Admin (Bearer token via `ADMIN_PASSWORD`)
 
 - `POST /admin/auth` — Validate password (`{"password":"..."}`); use same value as `Authorization: Bearer` on other `/admin/*` routes
+- `GET/POST /admin/giveaways` — List all curated giveaways/raffles (optional `?published=true|false`, `?kind=`); create (`201` `{"id": n}`). `GET/PUT/DELETE /admin/giveaways/:id` — read (includes `published`), full replace, hard delete (`204`). Unique `slug` / `entry_url` → `409`. Ticket price is rejected when `kind=giveaway`.
 - `GET/POST/PUT/PATCH/DELETE /admin/*` — Dashboard, stores, taxonomy, profiles, etc.
 - **`POST /admin/renormalize-brands`** — Re-apply `brand_aliases.json` (plus suffix/case rules) to every `store_listings.brand`. Same work as `make backfill-brands`. Response `{"updated": N}`. Use after deploying new aliases so existing rows merge (e.g. Santa Cruz Bicycles → Santa Cruz, Sram → SRAM). The Normalization Manager admin page exposes this as **Re-normalize brands**.
 - **`GET /admin/metrics/pipeline`** — Flow-centric pipeline health for admin Insights. Query: optional `days` (default 30, max 90). Returns scrape→extract latency (p50/p95), daily successful `enrichment_events` throughput by step, PDP freshness buckets by `pdp_fetched_at`, per-store PDP drainer status (due, in-flight, cooldown, last fetch), and recent scrape jobs for charts.

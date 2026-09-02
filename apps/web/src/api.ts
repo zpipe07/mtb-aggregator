@@ -1,6 +1,14 @@
 import { getApiBase } from "@/lib/api";
 import { normalizeCategoryTree } from "@/lib/categoryTree";
-import { PUBLIC_DATA_CACHE_TAG, PUBLIC_ISR_REVALIDATE_SECONDS } from "@/lib/revalidate";
+import {
+  GIVEAWAYS_CACHE_TAG,
+  GIVEAWAYS_REVALIDATE_SECONDS,
+  PUBLIC_DATA_CACHE_TAG,
+  PUBLIC_ISR_REVALIDATE_SECONDS,
+} from "@/lib/revalidate";
+import type { GiveawayKind, GiveawayStatus } from "@/lib/giveawayStatus";
+
+export type { GiveawayKind, GiveawayStatus };
 
 /** One SKU variant when deals are grouped (Shopify). */
 export interface DealVariantRow {
@@ -431,4 +439,62 @@ export async function fetchStatus(): Promise<Status> {
   const res = await fetch(`${getApiBase()}/status`, PUBLIC_FETCH_CACHE);
   if (!res.ok) throw new Error("Failed to fetch status");
   return res.json();
+}
+
+export type Giveaway = {
+  id: number;
+  slug: string;
+  kind: GiveawayKind;
+  title: string;
+  summary: string;
+  prize_name: string;
+  prize_description?: string | null;
+  image_url?: string | null;
+  host_name: string;
+  entry_url: string;
+  official_rules_url: string;
+  starts_at?: string | null;
+  ends_at: string;
+  eligibility?: string | null;
+  entry_requirements?: string | null;
+  ticket_price?: number | null;
+  ticket_currency?: string;
+  beneficiary?: string | null;
+  status: GiveawayStatus;
+};
+
+export type GiveawaysResponse = {
+  giveaways: Giveaway[];
+  open_count: number;
+  upcoming_count: number;
+  ended_count: number;
+};
+
+const GIVEAWAYS_FETCH_CACHE: RequestInit = {
+  next: {
+    revalidate: GIVEAWAYS_REVALIDATE_SECONDS,
+    tags: [PUBLIC_DATA_CACHE_TAG, GIVEAWAYS_CACHE_TAG],
+  },
+};
+
+export async function fetchGiveaways(options?: {
+  kind?: GiveawayKind;
+  noStore?: boolean;
+}): Promise<GiveawaysResponse> {
+  const search = new URLSearchParams();
+  if (options?.kind) search.set("kind", options.kind);
+  const qs = search.toString();
+  const init = options?.noStore ? { cache: "no-store" as const } : GIVEAWAYS_FETCH_CACHE;
+  const res = await fetchWithRetry(
+    `${getApiBase()}/giveaways${qs ? `?${qs}` : ""}`,
+    init,
+  );
+  if (!res.ok) throw new Error("Failed to fetch giveaways");
+  const data = (await res.json()) as GiveawaysResponse;
+  return {
+    giveaways: Array.isArray(data.giveaways) ? data.giveaways : [],
+    open_count: data.open_count ?? 0,
+    upcoming_count: data.upcoming_count ?? 0,
+    ended_count: data.ended_count ?? 0,
+  };
 }

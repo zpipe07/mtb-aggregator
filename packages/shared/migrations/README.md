@@ -53,6 +53,7 @@ Override the migrations directory: `MIGRATIONS_DIR=path/to/migrations make db-mi
 | `046_complete_bikes_not_suspension.sql` | Complete bikes: high-priority `full suspension` / `front suspension` → Mountain Bikes and `full suspension frames` → Frames so store taxonomy cannot dump bikes onto Components › Suspension (ZAC-238). Mapping-only; remap after API restart. |
 | `047_unhide_latest_scrape_confirmed_listings.sql` | ZAC-217: unhide listings whose `last_scraped` is on/after that store’s latest completed scrape (`listings_upserted >= 10`), then re-apply Jenson `025` and Universal Cycles `026` parent-hide predicates. Idempotent. Numbered 047 because 046 is ZAC-238. |
 | `048_most_specific_category_path.sql` | ZAC-245: high-priority `wheelset` / `bike wheels` / `complete wheels` → Complete wheels so store breadcrumbs like `Cycling Gear > … > Gravel Bike Wheels and Wheelsets` are not classified as Bikes or Gear. Also retargets the legacy `["Components", "Wheels"]` catch-all to `Wheels/Tires`. Mapping-only; remap after API restart. |
+| `049_giveaways.sql` | ZAC-47: `giveaways` table for curated MTB giveaways and raffles (unique `slug` / `entry_url`). Admin CRUD; not scraped. |
 
 After 019, run **`make backfill-field-library`** once (from repo root) to rename ambiguous `type` / `material` keys in `extraction_schema` and `metadata.llm_specs`, seed shared defs, and populate `llm_prompt_profile_fields`.
 

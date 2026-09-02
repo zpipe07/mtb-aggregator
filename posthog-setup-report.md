@@ -14,6 +14,8 @@ The wizard has completed a deep integration of PostHog analytics into The Droppe
 | `apps/web/src/views/HomePageContent.tsx` | Added `search_submitted` event capture |
 | `apps/web/src/components/CategoryCard.tsx` | Added `category_clicked` event capture |
 | `apps/web/src/views/DealsPageContent.tsx` | Added `filter_applied`, `filters_cleared`, `deals_paginated`, `filter_drawer_opened` event captures |
+| `apps/web/src/views/GiveawaysPageContent.tsx` | Added `giveaway_page_viewed` and `filter_applied` (`filter_type: "giveaway_kind"`) |
+| `apps/web/src/components/GiveawayCard.tsx` | Added `giveaway_outbound_click` |
 | `apps/web/src/components/Toolbar.tsx` | Added `sort_changed` event capture |
 | `apps/web/src/app/(public)/deals/[id]/DealDetailContent.tsx` | Added `deal_detail_viewed` event capture (top of store-referral funnel) |
 | `apps/web/src/components/ScrollToTop.tsx` | Added `scroll_to_top_clicked` event capture |
@@ -24,7 +26,9 @@ The wizard has completed a deep integration of PostHog analytics into The Droppe
 |-------|-------------|------|
 | `search_submitted` | User submits a search query from the home page hero search form | `apps/web/src/views/HomePageContent.tsx` |
 | `category_clicked` | User clicks a category card on the home page to browse deals by category | `apps/web/src/components/CategoryCard.tsx` |
-| `filter_applied` | User applies a filter (store, brand, category, min_discount, spec) on the deals page. For **category**, properties include `nav_source` (`breadcrumb` \| `chip` \| `all_clear`), `category_slug` (when set), and `value` (slug or empty) | `apps/web/src/views/DealsPageContent.tsx` |
+| `filter_applied` | User applies a filter (store, brand, category, min_discount, spec) on the deals page, or a giveaway kind chip (`filter_type: "giveaway_kind"`, `value`: `all` \| `giveaway` \| `raffle`). For **category**, properties include `nav_source` (`breadcrumb` \| `chip` \| `all_clear`), `category_slug` (when set), and `value` (slug or empty) | `apps/web/src/views/DealsPageContent.tsx`, `apps/web/src/views/GiveawaysPageContent.tsx` |
+| `giveaway_page_viewed` | User opens the `/giveaways` list | `apps/web/src/views/GiveawaysPageContent.tsx` |
+| `giveaway_outbound_click` | User clicks Enter / Get tickets. Properties: `giveaway_id`, `kind`, `status`, `host_name`, `surface` (`home` \| `giveaways`). Do not send `entry_url` or titles | `apps/web/src/components/GiveawayCard.tsx` |
 | `sort_changed` | User changes the sort order on the deals page | `apps/web/src/components/Toolbar.tsx` |
 | `deal_detail_viewed` | User opens the deal detail page — top of store-referral funnel | `apps/web/src/app/(public)/deals/[id]/DealDetailContent.tsx` |
 | `deals_paginated` | User navigates to a new page of results | `apps/web/src/views/DealsPageContent.tsx` |

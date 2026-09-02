@@ -8,6 +8,11 @@ import {
   createStore,
   updateStore,
   deleteStore,
+  createGiveaway,
+  updateGiveaway,
+  deleteGiveaway,
+  revalidateGiveawaysPages,
+  type GiveawayWriteBody,
   enrichListing,
   runListingLLMSpecs,
   setListingHidden,
@@ -61,6 +66,7 @@ import {
 } from "../api";
 import {
   adminStoreKeys,
+  adminGiveawayKeys,
   adminStoreTypeKeys,
   adminDashboardKeys,
   adminScrapeJobKeys,
@@ -196,6 +202,40 @@ export function useDeleteStore() {
     mutationFn: deleteStore,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: adminStoreKeys.all });
+    },
+  });
+}
+
+export function useCreateGiveaway() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: createGiveaway,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: adminGiveawayKeys.all });
+      await revalidateGiveawaysPages();
+    },
+  });
+}
+
+export function useUpdateGiveaway() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, body }: { id: number; body: GiveawayWriteBody }) =>
+      updateGiveaway(id, body),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: adminGiveawayKeys.all });
+      await revalidateGiveawaysPages();
+    },
+  });
+}
+
+export function useDeleteGiveaway() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: deleteGiveaway,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: adminGiveawayKeys.all });
+      await revalidateGiveawaysPages();
     },
   });
 }

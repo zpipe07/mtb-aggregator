@@ -4,6 +4,7 @@ import {
   fetchPipelineMetrics,
   fetchEnrichmentStepMetrics,
   fetchAdminStores,
+  fetchAdminGiveaways,
   fetchStoreTypes,
   fetchStoreTypesWithEnrichers,
   fetchScrapeJobs,
@@ -33,6 +34,7 @@ import {
   adminPipelineMetricsKeys,
   adminEnrichmentStepMetricsKeys,
   adminStoreKeys,
+  adminGiveawayKeys,
   adminStoreTypeKeys,
   adminStoreTypesWithEnrichersKeys,
   adminScrapeJobKeys,
@@ -77,6 +79,14 @@ export function useAdminStores() {
     queryKey: adminStoreKeys.all,
     queryFn: fetchAdminStores,
     staleTime: 60 * 1000,
+  });
+}
+
+export function useAdminGiveaways() {
+  return useQuery({
+    queryKey: adminGiveawayKeys.all,
+    queryFn: fetchAdminGiveaways,
+    staleTime: 30 * 1000,
   });
 }
 

@@ -6,6 +6,7 @@ import { useRevalidateCache } from "./hooks/mutations";
 
 const PRESET_PATHS = [
   { label: "Home", path: "/" },
+  { label: "Giveaways", path: "/giveaways" },
   { label: "All deals", path: "/deals" },
   { label: "Price drops", path: "/deals?sort=price_drop" },
   { label: "Categories hub", path: "/categories" },
@@ -69,7 +70,9 @@ export function CacheManager() {
     <div>
       <h2 className="text-xl font-semibold text-stone-800 mb-1">Cache</h2>
       <p className="text-sm text-stone-600 mb-6 max-w-2xl">
-        Public pages use {HOURS}-hour ISR. After a deploy, stale HTML or API fetch
+        Public pages use {HOURS}-hour ISR (except{" "}
+        <code className="text-stone-700">/giveaways</code>, which revalidates
+        every 60s). After a deploy, stale HTML or API fetch
         cache can hide new behavior until the next scheduled revalidation. Enter a
         path or full URL — query params (e.g.{" "}
         <code className="text-stone-700">?sort=price_drop</code>) are accepted for
