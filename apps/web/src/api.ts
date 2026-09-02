@@ -8,6 +8,8 @@ import {
 } from "@/lib/revalidate";
 import type { GiveawayKind, GiveawayStatus } from "@/lib/giveawayStatus";
 
+export type { GiveawayKind, GiveawayStatus };
+
 /** One SKU variant when deals are grouped (Shopify). */
 export interface DealVariantRow {
   id: number;
