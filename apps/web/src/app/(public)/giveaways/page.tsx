@@ -1,17 +1,9 @@
 import type { Metadata } from "next";
-import { PHASE_PRODUCTION_BUILD } from "next/constants";
 import { fetchGiveaways } from "@/api";
 import { JsonLd } from "@/components/JsonLd";
 import { buildGiveawaysJsonLd } from "@/lib/jsonLd";
 import { absoluteUrl } from "@/lib/siteUrl";
 import { GiveawaysPageContent } from "@/views/GiveawaysPageContent";
-
-const emptyGiveaways = {
-  giveaways: [],
-  open_count: 0,
-  upcoming_count: 0,
-  ended_count: 0,
-};
 
 /** 60s — contests can close between the 4h listing ISR cadence. Literal required by Next.js. */
 export const revalidate = 60;
@@ -35,18 +27,7 @@ export const metadata: Metadata = {
 };
 
 export default async function GiveawaysPage() {
-  let data;
-  try {
-    data = await fetchGiveaways();
-  } catch (err) {
-    // Only swallow during `next build`. Runtime / ISR rethrow so error.tsx runs.
-    if (process.env.NEXT_PHASE === PHASE_PRODUCTION_BUILD) {
-      console.error("GET /giveaways failed during static generation", err);
-      data = emptyGiveaways;
-    } else {
-      throw err;
-    }
-  }
+  const data = await fetchGiveaways();
 
   return (
     <>
