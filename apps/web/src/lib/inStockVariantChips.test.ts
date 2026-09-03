@@ -282,7 +282,7 @@ describe("extracted bike_size", () => {
     expect(extractedBikeSize(deal)).toBe("M");
     const summary = summarizeDealSizeChips(deal);
     expect(summary?.sizes.map((c) => c.label)).toEqual(["M"]);
-    expect(compactChipGroup(summary!).kind).toBe("size");
+    expect(compactChipGroup(summary!)?.kind).toBe("size");
   });
 
   it("prefers in-stock variant sizes over extracted bike_size", () => {
