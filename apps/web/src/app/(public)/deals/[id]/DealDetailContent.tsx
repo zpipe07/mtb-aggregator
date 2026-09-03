@@ -14,7 +14,7 @@ import { formatMoney } from "@/lib/formatMoney";
 import {
   displayPriceRange,
   inStockDealVariants,
-  summarizeInStockVariantChips,
+  summarizeDealSizeChips,
 } from "@/lib/inStockVariantChips";
 import { Button } from "@/components/ui/button";
 import { PriceHistoryChart } from "@/components/PriceHistoryChart";
@@ -124,7 +124,7 @@ function DealDetailContentInner({
   const dealScore = computeDealScore(deal, priceHistory);
   const priceLabel = pricePositionLabel(deal, priceHistory);
   const inStockVariants = inStockDealVariants(deal);
-  const variantChips = summarizeInStockVariantChips(deal);
+  const variantChips = summarizeDealSizeChips(deal);
 
   useEffect(() => {
     posthog.capture("deal_detail_viewed", {
@@ -297,6 +297,7 @@ function DealDetailContentInner({
                 <VariantChips deal={deal} density="detail" className="w-full" />
 
                 <Button asChild className="w-full sm:w-auto" size="lg">
+
                   <a
                     href={viewUrl}
                     target="_blank"
@@ -331,6 +332,7 @@ function DealDetailContentInner({
                 {priceRange != null &&
                   priceRange[0] !== priceRange[1] && (
                     <p className={cn(monoMicro, "text-muted-foreground")}>
+
                       From ${formatMoney(priceRange[0])} to $
                       {formatMoney(priceRange[1])} across in-stock variants
                     </p>

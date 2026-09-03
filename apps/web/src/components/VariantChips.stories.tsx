@@ -147,6 +147,26 @@ export const ColorsOnly: Story = {
   },
 };
 
+export const ExtractedBikeSize: Story = {
+  args: {
+    deal: {
+      ...baseDeal,
+      product_name: "Juliana Roubion CC Medium",
+      variant_count: 1,
+      metadata: { llm_specs: { bike_size: "M" } },
+    },
+    density: "compact",
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Single-SKU bikes without variant_options still show Size from llm_specs.bike_size.",
+      },
+    },
+  },
+};
+
 export const NoOptions: Story = {
   args: {
     deal: baseDeal,

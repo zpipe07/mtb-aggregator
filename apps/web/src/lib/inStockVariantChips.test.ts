@@ -4,9 +4,11 @@ import {
   compactChipGroup,
   compareVariantChipLabels,
   displayPriceRange,
+  extractedBikeSize,
   inStockDealVariants,
   inStockPriceRange,
   limitChips,
+  summarizeDealSizeChips,
   summarizeInStockVariantChips,
 } from "./inStockVariantChips";
 
@@ -289,5 +291,44 @@ describe("summarizeInStockVariantChips", () => {
       "XL",
       "XXL",
     ]);
+  });
+});
+
+describe("extracted bike_size", () => {
+  it("reads llm_specs.bike_size when no variant sizes exist", () => {
+    const deal: Deal = {
+      ...baseDeal,
+      metadata: { llm_specs: { bike_size: "M" } },
+    };
+    expect(extractedBikeSize(deal)).toBe("M");
+    const summary = summarizeDealSizeChips(deal);
+    expect(summary?.sizes.map((c) => c.label)).toEqual(["M"]);
+    expect(compactChipGroup(summary!)?.kind).toBe("size");
+  });
+
+  it("prefers in-stock variant sizes over extracted bike_size", () => {
+    const deal: Deal = {
+      ...baseDeal,
+      metadata: { llm_specs: { bike_size: "S" } },
+      variants: [
+        row({
+          id: 2,
+          store_sku: "xl",
+          variant_options: { Size: "XL" },
+        }),
+      ],
+    };
+    expect(summarizeDealSizeChips(deal)?.sizes.map((c) => c.label)).toEqual([
+      "XL",
+    ]);
+  });
+
+  it("hides extracted size when the listing is sold out", () => {
+    const deal: Deal = {
+      ...baseDeal,
+      is_in_stock: false,
+      metadata: { llm_specs: { bike_size: "L" } },
+    };
+    expect(summarizeDealSizeChips(deal)).toBeNull();
   });
 });

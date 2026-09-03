@@ -195,6 +195,9 @@ func SpecExtractionStep(ctx context.Context, pool *db.DB, client *llm.Client, li
 	if err := pool.SyncClothingSizeFromVariant(ctx, listingID); err != nil {
 		log.Printf("[llmlisting] listing %d: sync clothing_size: %v", listingID, err)
 	}
+	if err := pool.SyncBikeSizeFromVariant(ctx, listingID); err != nil {
+		log.Printf("[llmlisting] listing %d: sync bike_size: %v", listingID, err)
+	}
 	log.Printf("[llmlisting] listing %d: LLM extracted specs", listingID)
 	return nil
 }

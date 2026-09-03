@@ -43,7 +43,7 @@ func (db *DB) ListingsInGroup(ctx context.Context, storeID int, productGroupKey 
 }
 
 // UpdateListingVariantInfo sets variant_options (optional), is_in_stock, and sets product_group_key when provided.
-// Also syncs metadata.llm_specs.clothing_size from the Size variant when present.
+// Also syncs metadata.llm_specs.clothing_size and bike_size from the Size variant when present.
 func (db *DB) UpdateListingVariantInfo(ctx context.Context, listingID int, variantOpts *json.RawMessage, isInStock bool, productGroupKey string) error {
 	var opts interface{}
 	var optsBytes []byte
@@ -64,6 +64,7 @@ func (db *DB) UpdateListingVariantInfo(ctx context.Context, listingID int, varia
 	meta := existingMeta
 	if len(optsBytes) > 0 {
 		meta = metadata.ApplyClothingSizeFromVariant(existingMeta, optsBytes)
+		meta = metadata.ApplyBikeSizeFromVariant(meta, optsBytes)
 	}
 
 	_, err := db.pool.Exec(ctx, `
