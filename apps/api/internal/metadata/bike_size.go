@@ -8,12 +8,30 @@ import (
 )
 
 var (
-	reBikeInch         = regexp.MustCompile(`(?i)^\s*(\d{2}(?:\.\d)?)\s*(?:in(?:ch(?:es)?)?|"|'')?\s*$`)
+	reBikeInch         = regexp.MustCompile(`(?i)^\s*(\d{2}(?:\.\d{1,2})?)\s*(?:in(?:ch(?:es)?)?|"|'')?\s*$`)
+	reBikeCM           = regexp.MustCompile(`(?i)(\d{2}(?:\.\d)?)\s*(?:cm|cms)\b`)
+	reBikeTT           = regexp.MustCompile(`(?i)(\d{2}(?:\.\d{1,2})?)\s*(?:in(?:ch(?:es)?)?|"|'')?\s*(?:tt|top\s*tube)\b`)
 	reSpecializedS     = regexp.MustCompile(`(?i)^\s*s\s*([1-6])\s*$`)
 	reWheelSizeToken   = regexp.MustCompile(`(?i)^(29|27\.5|27,5|650b|700c|mx)$`)
 	reOptionIndexKey   = regexp.MustCompile(`(?i)^option\s*\d+$`)
 	reTrailingWordSize = regexp.MustCompile(`(?i)\b(xx-small|x-small|extra small|small|medium|large|xx-large|x-large|xxl|xl|xs)\s*$`)
 )
+
+const (
+	bikeInchMin = 13
+	bikeInchMax = 23
+	bikeCMMin   = 44
+	bikeCMMax   = 64
+	bikeTTMin   = 18
+	bikeTTMax   = 23
+)
+
+func formatBikeNumber(n float64) string {
+	if n == float64(int(n)) {
+		return strconv.Itoa(int(n))
+	}
+	return strings.TrimRight(strings.TrimRight(strconv.FormatFloat(n, 'f', 2, 64), "0"), ".")
+}
 
 // VariantBikeSizeFromOptions reads Size / Bike Size / Frame Size from variant_options JSON.
 func VariantBikeSizeFromOptions(variantOpts []byte) string {
@@ -70,6 +88,13 @@ func NormalizeBikeSize(raw string) string {
 	if m := reSpecializedS.FindStringSubmatch(s); len(m) == 2 {
 		return "S" + m[1]
 	}
+	// Explicit cm / top-tube before trailing "Medium" so "54cm (Medium)" stays 54cm.
+	if cm := normalizeBikeCM(s); cm != "" {
+		return cm
+	}
+	if tt := normalizeBikeTT(s); tt != "" {
+		return tt
+	}
 	if letter := normalizeSingleLetterSize(s); letter != "" {
 		return letter
 	}
@@ -85,14 +110,50 @@ func NormalizeBikeSize(raw string) string {
 	}
 	if m := reBikeInch.FindStringSubmatch(s); len(m) == 2 {
 		n, err := strconv.ParseFloat(m[1], 64)
-		if err == nil && n >= 13 && n <= 23 {
-			if n == float64(int(n)) {
-				return strconv.Itoa(int(n))
+		if err == nil && n >= bikeInchMin && n <= bikeInchMax {
+			return formatBikeNumber(n)
+		}
+		// Bare 47–64 (no inch unit) is traditional road/gravel cm.
+		if err == nil && n >= bikeCMMin && n <= bikeCMMax {
+			unit := strings.ToLower(s)
+			if !strings.Contains(unit, "in") && !strings.Contains(s, `"`) && !strings.Contains(s, "''") {
+				return formatBikeNumber(n) + "cm"
 			}
-			return strings.TrimRight(strings.TrimRight(strconv.FormatFloat(n, 'f', 1, 64), "0"), ".")
 		}
 	}
 	return ""
+}
+
+func parseBoundedNumber(raw string, min, max float64) (float64, bool) {
+	n, err := strconv.ParseFloat(raw, 64)
+	if err != nil || n < min || n > max {
+		return 0, false
+	}
+	return n, true
+}
+
+func normalizeBikeCM(s string) string {
+	m := reBikeCM.FindStringSubmatch(s)
+	if len(m) != 2 {
+		return ""
+	}
+	n, ok := parseBoundedNumber(m[1], bikeCMMin, bikeCMMax)
+	if !ok {
+		return ""
+	}
+	return formatBikeNumber(n) + "cm"
+}
+
+func normalizeBikeTT(s string) string {
+	m := reBikeTT.FindStringSubmatch(s)
+	if len(m) != 2 {
+		return ""
+	}
+	n, ok := parseBoundedNumber(m[1], bikeTTMin, bikeTTMax)
+	if !ok {
+		return ""
+	}
+	return formatBikeNumber(n)
 }
 
 // normalizeBikeSizeCommaList accepts "M, MX" (frame + wheel) but rejects size-run charts like "S, M, L".

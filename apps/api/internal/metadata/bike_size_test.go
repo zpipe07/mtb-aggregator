@@ -22,12 +22,20 @@ func TestNormalizeBikeSize(t *testing.T) {
 		{"15 in", "15"},
 		{"19", "19"},
 		{"17.5", "17.5"},
+		{"22", "22"},
 		{"29", ""},
 		{"27.5", ""},
 		{"MX", ""},
 		{"S, M, L", ""},
 		{"M, MX", "M"},
 		{`39cm (15.5") - Small`, "S"},
+		{"58cm", "58cm"},
+		{"58 cm", "58cm"},
+		{"58", "58cm"},
+		{"54cm (Medium)", "54cm"},
+		{"21.5inch TT", "21.5"},
+		{`21.5" Top Tube`, "21.5"},
+		{"21.25 TT", "21.25"},
 		{"One Size", ""},
 		{"", ""},
 	}
@@ -68,6 +76,18 @@ func TestApplyBikeSizeFromVariant_setsNormalized(t *testing.T) {
 	}
 	specs, _ := m["llm_specs"].(map[string]interface{})
 	if specs["bike_size"] != "M" {
+		t.Fatalf("bike_size = %v", specs["bike_size"])
+	}
+}
+
+func TestApplyBikeSizeFromVariant_roadCM(t *testing.T) {
+	got := ApplyBikeSizeFromVariant([]byte(`{}`), []byte(`{"Size":"58cm"}`))
+	var m map[string]interface{}
+	if err := json.Unmarshal(got, &m); err != nil {
+		t.Fatal(err)
+	}
+	specs, _ := m["llm_specs"].(map[string]interface{})
+	if specs["bike_size"] != "58cm" {
 		t.Fatalf("bike_size = %v", specs["bike_size"])
 	}
 }

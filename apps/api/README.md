@@ -146,7 +146,7 @@ make backfill-canonical-categories   # Recategorize after taxonomy changes (skip
 make backfill-bikesonline-clothing-protective   # Bikes Online Clothing & Protective Gear → LLM Protection/Helmets/Gloves (DRY_RUN=1 preview)
 make backfill-llm-specs              # Populate llm_specs from specs
 make backfill-clothing-size          # After migration 041: copy normalized variant Size into llm_specs.clothing_size
-make backfill-bike-size              # After migration 050: copy normalized variant Size into llm_specs.bike_size (Bikes tree)
+make backfill-bike-size              # After migration 050/051: copy normalized variant Size into llm_specs.bike_size (Bikes tree; cm + TT)
 make backfill-field-library          # After migration 019: rename ambiguous keys, seed field defs, fill profile_fields
 make backfill-variant-options        # After migration 021: fetch Shopify JSON to fill variant_options for existing rows
 make backfill-jenson-variants        # JensonUSA: PDP enrich once per product_group_key; fan out variant_options + is_in_stock (scraper must be running)
