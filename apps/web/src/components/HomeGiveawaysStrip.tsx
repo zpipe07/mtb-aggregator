@@ -18,7 +18,7 @@ export function HomeGiveawaysStrip({ giveaways, sectionNumber }: Props) {
   if (open.length === 0) return null;
 
   return (
-    <section className="mb-12 lg:mb-16">
+    <section className="mt-12 lg:mt-16">
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div className="flex flex-wrap items-end gap-4">
           <span className="pb-0.5 font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
