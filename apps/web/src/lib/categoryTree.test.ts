@@ -3,6 +3,7 @@ import type { CategoryTreeNode } from "../api";
 import {
   categoryHasDeals,
   categoryNavDealCount,
+  filterCategoryTreeForNav,
   normalizeCategoryTree,
 } from "./categoryTree";
 
@@ -72,6 +73,78 @@ describe("categoryNavDealCount", () => {
     expect(
       categoryNavDealCount(node({ deal_count: 0, product_count: 0 })),
     ).toBe(0);
+  });
+});
+
+describe("filterCategoryTreeForNav", () => {
+  it("drops hide_from_nav nodes and their descendants (ZAC-251)", () => {
+    const tree = [
+      node({
+        id: 1,
+        slug: "gear",
+        name: "Gear",
+        deal_count: 10,
+        product_count: 8,
+        children: [
+          node({
+            id: 2,
+            slug: "gear-helmets",
+            name: "Helmets",
+            parent_id: 1,
+            depth: 1,
+            deal_count: 5,
+            product_count: 4,
+          }),
+          node({
+            id: 3,
+            slug: "gear-helmet-parts",
+            name: "Helmet parts",
+            parent_id: 1,
+            depth: 1,
+            hide_from_nav: true,
+            deal_count: 2,
+            product_count: 2,
+            children: [
+              node({
+                id: 4,
+                slug: "gear-helmet-parts-visors",
+                name: "Visors",
+                parent_id: 3,
+                depth: 2,
+                deal_count: 1,
+                product_count: 1,
+              }),
+            ],
+          }),
+        ],
+      }),
+    ];
+
+    const filtered = filterCategoryTreeForNav(tree);
+    expect(filtered).toHaveLength(1);
+    expect(filtered[0].children.map((c) => c.slug)).toEqual(["gear-helmets"]);
+  });
+
+  it("omits a hidden root and treats missing hide_from_nav as visible", () => {
+    const tree = [
+      node({
+        id: 1,
+        slug: "bikes",
+        name: "Bikes",
+        hide_from_nav: true,
+        deal_count: 3,
+      }),
+      node({
+        id: 2,
+        slug: "components",
+        name: "Components",
+        deal_count: 4,
+      }),
+    ];
+
+    expect(filterCategoryTreeForNav(tree).map((n) => n.slug)).toEqual([
+      "components",
+    ]);
   });
 });
 

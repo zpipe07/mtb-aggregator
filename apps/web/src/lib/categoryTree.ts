@@ -95,6 +95,25 @@ export function filterCategoryTreeWithDeals(
 }
 
 /**
+ * Drop categories flagged `hide_from_nav` (and their descendants) for the
+ * header mega-menu. `/categories`, deals browse chips, and classification
+ * still use the full tree (ZAC-251).
+ */
+export function filterCategoryTreeForNav(
+  tree: CategoryTreeNode[],
+): CategoryTreeNode[] {
+  const out: CategoryTreeNode[] = [];
+  for (const n of tree) {
+    if (n.hide_from_nav) continue;
+    const children = n.children?.length
+      ? filterCategoryTreeForNav(n.children)
+      : [];
+    out.push({ ...n, children });
+  }
+  return out;
+}
+
+/**
  * Map API `canonical_category` (e.g. `["Bikes", "Electric"]`) to a `categories.slug`
  * by walking the tree and matching names at each depth. Returns null if no match.
  */

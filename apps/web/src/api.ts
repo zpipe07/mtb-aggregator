@@ -307,6 +307,8 @@ export interface CategoryTreeNode {
    * `categoryNavDealCount`. When missing (older API), fall back to `deal_count`.
    */
   product_count?: number;
+  /** When true, omit from the header mega-menu. Still shown on /categories. */
+  hide_from_nav?: boolean;
   children: CategoryTreeNode[];
 }
 

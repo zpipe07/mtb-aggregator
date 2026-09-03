@@ -57,6 +57,7 @@ Override the migrations directory: `MIGRATIONS_DIR=path/to/migrations make db-mi
 | `050_bike_size_extraction.sql` | ZAC-241: `bike_size` field def (filterable + extractable) and Bikes parent LLM profile so frame size is extracted and faceted; Mountain/Frames/BMX prompts get the size rubric. |
 | `051_bike_size_cross_discipline.sql` | ZAC-241 follow-up: keep `bike_size` a **scalar enum** (one size per listing row; in-stock sets stay on chips) and expand values for road/gravel **cm** and BMX **top-tube** inches. Inherited by all Bikes children. |
 | `052_gear_helmet_parts.sql` | ZAC-246: Gear › **Helmet parts** sibling of Helmets so replacement visors/liners/pads are not listed on `/deals/c/gear/helmets`. High-priority mappings + product-name backfill; remap after API restart. |
+| `053_category_hide_from_nav.sql` | ZAC-251: `categories.hide_from_nav` so admins can omit a shelf from the header mega-menu without hiding it from `/categories` or classification. Seeds Helmet parts as hidden from nav. |
 
 After 019, run **`make backfill-field-library`** once (from repo root) to rename ambiguous `type` / `material` keys in `extraction_schema` and `metadata.llm_specs`, seed shared defs, and populate `llm_prompt_profile_fields`.
 

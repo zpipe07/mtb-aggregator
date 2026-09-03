@@ -16,7 +16,13 @@ function CategoryForm({
   onCancel,
   submitLabel,
 }: {
-  initial?: { slug: string; name: string; sort_order: number; description?: string };
+  initial?: {
+    slug: string;
+    name: string;
+    sort_order: number;
+    description?: string;
+    hide_from_nav?: boolean;
+  };
   parentId?: number | null;
   onSubmit: (body: CreateCategoryBody) => Promise<void>;
   onCancel: () => void;
@@ -26,6 +32,7 @@ function CategoryForm({
   const [name, setName] = useState(initial?.name ?? "");
   const [sortOrder, setSortOrder] = useState(initial?.sort_order ?? 0);
   const [description, setDescription] = useState(initial?.description ?? "");
+  const [hideFromNav, setHideFromNav] = useState(initial?.hide_from_nav ?? false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -46,6 +53,7 @@ function CategoryForm({
         parent_id: parentId ?? undefined,
         sort_order: sortOrder,
         description: description.trim(),
+        hide_from_nav: hideFromNav,
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Request failed");
@@ -128,6 +136,21 @@ function CategoryForm({
           className="w-full rounded border border-stone-300 px-2 py-1.5 text-sm text-stone-900"
         />
       </div>
+      <div className="flex items-start gap-2">
+        <input
+          id="cat-hide-from-nav"
+          type="checkbox"
+          checked={hideFromNav}
+          onChange={(e) => setHideFromNav(e.target.checked)}
+          className="mt-0.5 rounded border-stone-300"
+        />
+        <label htmlFor="cat-hide-from-nav" className="text-sm text-stone-700">
+          Hide from main nav
+          <span className="block text-xs font-normal text-stone-500">
+            Still listed on /categories and used for product classification.
+          </span>
+        </label>
+      </div>
     </form>
   );
 }
@@ -179,6 +202,11 @@ function CategoryRow({
         </span>
         <span className="text-xs text-stone-400 truncate">/{node.slug}</span>
         <span className="text-xs text-stone-400">#{node.id}</span>
+        {node.hide_from_nav ? (
+          <span className="text-[10px] font-medium uppercase tracking-wide text-stone-500 bg-stone-200 px-1.5 py-0.5 rounded">
+            Nav hidden
+          </span>
+        ) : null}
         <div className="ml-auto flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
           <button
             type="button"
@@ -219,6 +247,7 @@ function CategoryRow({
               name: node.name,
               sort_order: node.sort_order,
               description: node.description ?? "",
+              hide_from_nav: node.hide_from_nav ?? false,
             }}
             onSubmit={async (body) => {
               await onUpdate(node.id, {
@@ -226,6 +255,7 @@ function CategoryRow({
                 name: body.name,
                 sort_order: body.sort_order,
                 description: body.description ?? "",
+                hide_from_nav: body.hide_from_nav ?? false,
               });
               setEditingId(null);
             }}
@@ -337,7 +367,9 @@ export function CategoryManager() {
       <p className="text-sm text-stone-600">
         Manage the structured category tree used for deals filtering. Slug is used in URLs (e.g.{" "}
         <code className="bg-stone-200 px-1 rounded">/deals?category=brakes</code>). Optional descriptions are sent to
-        the LLM category classifier as rubrics (not the same as SEO copy on public category pages).
+        the LLM category classifier as rubrics (not the same as SEO copy on public category pages).{" "}
+        <strong className="font-medium text-stone-700">Hide from main nav</strong> omits a category from the header
+        mega-menu only.
       </p>
       {addingRoot && (
         <div className="p-4 bg-stone-50 rounded border border-stone-200">

@@ -93,7 +93,31 @@ const tree: CategoryTreeNode[] = [
     depth: 0,
     deal_count: 4,
     product_count: 4,
-    children: [],
+    children: [
+      {
+        id: 9,
+        slug: "gear-helmets",
+        name: "Helmets",
+        parent_id: 8,
+        sort_order: 0,
+        depth: 1,
+        deal_count: 3,
+        product_count: 3,
+        children: [],
+      },
+      {
+        id: 10,
+        slug: "gear-helmet-parts",
+        name: "Helmet parts",
+        parent_id: 8,
+        sort_order: 1,
+        depth: 1,
+        deal_count: 1,
+        product_count: 1,
+        hide_from_nav: true,
+        children: [],
+      },
+    ],
   },
 ];
 

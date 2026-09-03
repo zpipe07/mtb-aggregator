@@ -58,7 +58,21 @@ jobs:
         run: pnpm --filter @mtb-aggregator/web run test
 
       - name: Node dependency audit
-        run: pnpm audit --audit-level=high
+        env:
+          # The npm security-audits endpoint is flaky (ERR_SOCKET_TIMEOUT).
+          npm_config_fetch_retries: "5"
+          npm_config_fetch_retry_maxtimeout: "120000"
+        run: |
+          for attempt in 1 2 3; do
+            if pnpm audit --audit-level=high; then
+              exit 0
+            fi
+            echo "pnpm audit failed (attempt ${attempt}/3)"
+            if [ "$attempt" -lt 3 ]; then
+              sleep $((attempt * 20))
+            fi
+          done
+          exit 1
 
       - name: Go vet
         working-directory: apps/api
