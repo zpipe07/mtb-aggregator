@@ -76,10 +76,10 @@ func (d *PDPDrainer) Run(ctx context.Context) {
 				continue
 			}
 			item := items[0]
-			if err := d.Pacer.RecordPDPFetch(ctx, storeType, now); err != nil {
-				log.Printf("[pdp-drainer] record fetch %s: %v", storeType, err)
-			}
 			didWork = true
+			// Do not stamp pdp_last_fetch_at here. RunWorkItem checks min-interval
+			// against that timestamp and skips the scraper when it looks too recent
+			// (ZAC-247). Pacing is recorded inside RunWorkItem when the fetch starts.
 			ok, runErr := d.Pipeline.RunWorkItem(ctx, StepPDP, item, d.Force, nil, cfg, d.BypassMinInterval)
 			if runErr != nil {
 				threshold := d.CBThreshold
