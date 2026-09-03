@@ -71,7 +71,7 @@ flowchart LR
 
 **PDP (resident drainer + optional burst):**
 
-1. On API start, a **resident PDP drainer** goroutine round-robins enricher stores, claiming **one due listing per store** at a polite pace (`ENRICH_PDP_MIN_INTERVAL`, default 15s). Pacing and circuit-breaker cooldown persist on `stores` (`pdp_last_fetch_at`, `pdp_cooldown_until`; migration `043`). No `enrich_jobs` row is created for drainer work.
+1. On API start, a **resident PDP drainer** goroutine round-robins enricher stores, claiming **one due listing per store** at a polite pace (`ENRICH_PDP_MIN_INTERVAL`, default 15s). Pacing and circuit-breaker cooldown persist on `stores` (`pdp_last_fetch_at`, `pdp_cooldown_until`; migration `043`). **`pdp_last_fetch_at` is stamped when the scraper call starts**, not when a blank `listing_enrichment` row is ensured — stamping earlier makes the min-interval check skip the fetch (ZAC-247). No `enrich_jobs` row is created for drainer work.
 2. **`POST /enrich-now`** (async; returns 202) runs a **burst** PDP job (`job_type=enrich`) that bypasses min-interval pacing but still skips stores in cooldown unless `force=1`. Optional legacy nightly cron via **`ENRICH_CRON_SPEC`** (default **`disabled`**) uses the same burst path.
 3. PDP claims use `listing_enrichment` (`FOR UPDATE SKIP LOCKED` + per-step `*_leased_until`). Snapshots land in `pdp_snapshots`; failures record backoff in `enrichment_events`. Only **in-stock, non-hidden** rows are eligible. Stale horizon defaults to **30 days** (`ENRICH_PDP_STALE_AFTER`).
 4. After each **successful drainer PDP**, the scheduler kicks a debounced async **`llm_specs` job** for that store (skips if one is already in flight). Burst PDP jobs kick LLM once when the job finalizes.

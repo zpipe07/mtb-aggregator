@@ -182,3 +182,85 @@ func (t *trackingStateStore) ResetStep(ctx context.Context, listingID int, step 
 func (t *trackingStateStore) StampLLMSkipInputs(ctx context.Context, listingID int, pdpHash string, promptProfileVersion *time.Time) error {
 	return t.inner.StampLLMSkipInputs(ctx, listingID, pdpHash, promptProfileVersion)
 }
+
+// Reproduces ZAC-247: the drainer used to RecordPDPFetch before RunWorkItem, so
+// ShouldSkipPDP saw a just-stamped last_fetch and skipped the scraper. Empty
+// listing_enrichment rows accumulated and PDP Due never drained.
+func TestPDPDrainer_fetchesInsteadOfSkippingOnOwnPacingStamp(t *testing.T) {
+	t.Parallel()
+	pacer := newFakePDPPacer(15*time.Second, 5, 30*time.Minute)
+	scraper := &countingScraper{}
+	events := &fakeEvents{}
+	snaps := &fakeSnapshots{snaps: map[int]*Snapshot{}}
+	state := &trackingStateStore{
+		inner:  newFakeStateStore(map[Step][]WorkItem{}),
+		claims: make(map[string]int),
+		queue: map[string][]WorkItem{
+			"jensonusa": {{ListingID: 42, StoreType: "jensonusa", ProductURL: "http://jenson.invalid/p/42"}},
+		},
+	}
+	pipeline := &Pipeline{
+		State:      state,
+		Snapshots:  snaps,
+		Events:     events,
+		Scraper:    scraper,
+		Listings:   fakeListings{},
+		Config:     DefaultConfig(),
+		StorePacer: pacer,
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	t.Cleanup(cancel)
+	go func() {
+		time.Sleep(50 * time.Millisecond)
+		cancel()
+	}()
+	d := &PDPDrainer{
+		StoreTypes: []string{"jensonusa"},
+		Pipeline:   pipeline,
+		Pacer:      pacer,
+		Config:     Config{ClaimLease: time.Minute, PDPMinInterval: 15 * time.Second, PDPStaleAfter: time.Hour},
+		Sleep:      func(time.Duration) {},
+		IdleSleep:  time.Millisecond,
+	}
+	d.Run(ctx)
+	if scraper.calls == 0 {
+		t.Fatal("expected scraper Enrich call; min-interval skip after claim means the drainer stamped last_fetch too early")
+	}
+	if snaps.snaps[42] == nil {
+		t.Fatal("expected pdp snapshot after drainer fetch")
+	}
+	if got := countEvents(events.events, StepPDP, StatusSuccess); got != 1 {
+		t.Fatalf("pdp success events = %d, want 1", got)
+	}
+}
+
+// Callers must not stamp last_fetch before RunWorkItem: that is the ZAC-247 skip.
+func TestRunWorkItem_skipsScraperWhenLastFetchJustRecorded(t *testing.T) {
+	t.Parallel()
+	pacer := newFakePDPPacer(15*time.Second, 5, 30*time.Minute)
+	if err := pacer.RecordPDPFetch(context.Background(), "jensonusa", time.Now()); err != nil {
+		t.Fatal(err)
+	}
+	scraper := &countingScraper{}
+	state := newFakeStateStore(map[Step][]WorkItem{})
+	p := &Pipeline{
+		State:      state,
+		Snapshots:  &fakeSnapshots{snaps: map[int]*Snapshot{}},
+		Events:     &fakeEvents{},
+		Scraper:    scraper,
+		Listings:   fakeListings{},
+		Config:     DefaultConfig(),
+		StorePacer: pacer,
+	}
+	item := WorkItem{ListingID: 7, StoreType: "jensonusa", ProductURL: "http://jenson.invalid/p/7"}
+	ok, err := p.RunWorkItem(context.Background(), StepPDP, item, false, nil, Config{PDPMinInterval: 15 * time.Second, ClaimLease: time.Minute}, false)
+	if err != nil {
+		t.Fatalf("RunWorkItem: %v", err)
+	}
+	if ok {
+		t.Fatal("expected skip (not success) when last fetch is within min interval")
+	}
+	if scraper.calls != 0 {
+		t.Fatalf("scraper calls = %d, want 0 (pacing skip)", scraper.calls)
+	}
+}
