@@ -98,14 +98,16 @@ export function HomePageContent({
   );
   const dealDetailHref = (dealId: number) => `/deals/${dealId}`;
   let sectionSeq = 1;
-  const openEntriesNumber = showOpenGiveaways
-    ? String(sectionSeq++).padStart(2, "0")
-    : "01";
   const priceDropsNumber = showPriceDrops
     ? String(sectionSeq++).padStart(2, "0")
     : "01";
   const categoryNumber = String(sectionSeq++).padStart(2, "0");
   const dealsStartNumber = sectionSeq;
+  const dealsSectionCount =
+    visibleDealSections.length > 0 ? visibleDealSections.length : 1;
+  const openEntriesNumber = String(
+    dealsStartNumber + dealsSectionCount,
+  ).padStart(2, "0");
 
   const handleSearchSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -175,13 +177,6 @@ export function HomePageContent({
             </div>
           </form>
         </section>
-
-        {showOpenGiveaways ? (
-          <HomeGiveawaysStrip
-            giveaways={openGiveaways}
-            sectionNumber={openEntriesNumber}
-          />
-        ) : null}
 
       {showPriceDrops ? (
         <section className="mb-12 lg:mb-16">
@@ -290,6 +285,13 @@ export function HomePageContent({
           </p>
         </section>
       )}
+
+      {showOpenGiveaways ? (
+        <HomeGiveawaysStrip
+          giveaways={openGiveaways}
+          sectionNumber={openEntriesNumber}
+        />
+      ) : null}
 
       {hubLinks ? (
         <section className="mt-12 border-t border-foreground/15 pt-10 lg:mt-16">
