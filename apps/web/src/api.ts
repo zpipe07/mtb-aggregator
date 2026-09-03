@@ -43,6 +43,7 @@ export interface Deal {
   canonical_category?: string[];
   metadata?: {
     specs?: Record<string, string>;
+    llm_specs?: Record<string, unknown>;
   };
   is_in_stock: boolean;
   discount_pct?: number;

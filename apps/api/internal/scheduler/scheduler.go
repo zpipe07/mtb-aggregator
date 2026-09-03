@@ -557,6 +557,7 @@ func (s *Scheduler) ingestScrapeResults(ctx context.Context, store db.Store, res
 			variantOpts = r.VariantOptions
 		}
 		listingMeta = db.ApplyClothingSizeToListingMetadata(listingMeta, variantOpts)
+		listingMeta = db.ApplyBikeSizeToListingMetadata(listingMeta, variantOpts)
 		listing := db.Listing{
 			StoreID:            store.ID,
 			StoreSKU:           r.StoreSKU,

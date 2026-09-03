@@ -89,6 +89,10 @@ backfill-llm-specs:
 backfill-clothing-size:
 	cd apps/api && go run ./cmd/backfill-clothing-size
 
+# Copy normalized variant Size into metadata.llm_specs.bike_size for Bikes listings (run after migration 050)
+backfill-bike-size:
+	cd apps/api && go run ./cmd/backfill-bike-size
+
 # Clear last_enriched_at on listings whose metadata was wiped by scrape-after-enrich; then run enrich-now FORCE=1
 requeue-wiped-enrichment:
 	cd apps/api && go run ./cmd/requeue-wiped-enrichment

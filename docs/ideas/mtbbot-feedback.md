@@ -55,7 +55,7 @@ Priority is **user value × how often it was asked × whether we already have it
 > “Sucks to get to the page only to find out XXL is the only size, or that size small is discounted, but size large is normal price.”
 > Marin Hawk Hill “said size XS available. When I browsed the website all sizes were available.”
 
-This is the same class of trust bug as hidden Jenson in-stock rows. Grouped variants exist (`group_variants=true`); surfacing **in-stock sizes/colors and per-size prices on the card/PDP** is the gap. Track under [ZAC-161](https://linear.app/zacks-personal-projects/issue/ZAC-161/normalize-scraping-enrichment-variants-across-store) plus a dedicated UI ticket.
+This is the same class of trust bug as hidden Jenson in-stock rows. Grouped variants exist (`group_variants=true`). [ZAC-241](https://linear.app/zacks-personal-projects/issue/ZAC-241/show-in-stock-sizes-and-variant-prices-on-deal-cards) adds **in-stock size/color chips** plus a Bikes **`bike_size`** LLM field (scalar per listing row; letters / cm / TT inches; visible on cards when there are no variant sizes, and filterable as Size on `/deals/c/bikes`). Remaining store-to-store `variant_options` consistency is still [ZAC-161](https://linear.app/zacks-personal-projects/issue/ZAC-161/normalize-scraping-enrichment-variants-across-store).
 
 **2. Trust the discount (Jenson “faux deals”).**
 

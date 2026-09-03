@@ -53,7 +53,7 @@ flowchart LR
 
 **Scrape job timeouts:** Fetch (HTTP scrape / Impact catalog) and ingest (DB upsert) use separate budgets (`SCRAPE_JOB_TIMEOUT`, default 20m; `SCRAPE_INGEST_TIMEOUT`, default 15m). **JensonUSA** fetch is floored at 45m so a 50-page `/sale` scrape can finish. Terminal job status is persisted via a detached DB context so timeouts still land as `timed_out` with partial counts. Stale-listing cleanup runs only when ingest completes fully **and** the scrape was not truncated by a page cap (`X-Scrape-Truncated`).
 
-**Shopify variants:** For Shopify-based stores, each variant is a row (`store_sku` unique per store). `product_group_key` is `{store_id}:{product_handle}` for grouping; `variant_options` holds option dimensions (e.g. `Size`, `Color`) from the products JSON API. `GET /deals?group_variants=true` returns one representative deal per group with `variants[]`, `variant_count`, and optional `price_range`. Backfill `make backfill-variant-options` (API) primarily paginates each store’s **`stores.scrape_url`** collection **`/products.json`** (same as scrapers), then optionally falls back to **`/products/{handle}.json`** for handles not in that index; see [apps/api/README.md](../apps/api/README.md).
+**Shopify variants:** For Shopify-based stores, each variant is a row (`store_sku` unique per store). `product_group_key` is `{store_id}:{product_handle}` for grouping; `variant_options` holds option dimensions (e.g. `Size`, `Color`) from the products JSON API. `GET /deals?group_variants=true` returns one representative deal per group with `variants[]`, `variant_count`, and optional `price_range`. The web UI ([`VariantChips`](../apps/web/src/components/VariantChips.tsx)) shows **in-stock** size/color chips on listing cards and the deal PDP; sold-out options are omitted (not struck). Card/PDP **price range** is computed from in-stock variants only so a sold-out SKU cannot widen the range. When in-stock sizes have different prices, the PDP chips include per-size prices. Groups without parseable `variant_options` keep the existing `N variants` badge. Backfill `make backfill-variant-options` (API) primarily paginates each store’s **`stores.scrape_url`** collection **`/products.json`** (same as scrapers), then optionally falls back to **`/products/{handle}.json`** for handles not in that index; see [apps/api/README.md](../apps/api/README.md).
 
 **JensonUSA variants:** Clearance listing cards hydrate `data-product-result-dto` with a `variants` array. The scraper emits one row per variant (`store_sku` = `variant.code`, `product_group_key` = parent `code`) with listing-time `variant_options` (often incomplete vs the PDP). Enrichment calls the scraper’s Jenson PDP parser, which reads `serverSideViewModel.variants` from the HTML and returns structured dimensions plus `is_orderable`; the API applies that to **every** listing row with the same `product_group_key` (deduped: one PDP fetch per parent per batch). Listing prices are not overwritten from the PDP. Migration **`025_jenson_hide_superseded_parent_listings`** hides legacy parent-only rows that share a `product_url` with longer variant SKUs so the deals list does not duplicate products.
 
@@ -71,7 +71,7 @@ flowchart LR
 
 **PDP (resident drainer + optional burst):**
 
-1. On API start, a **resident PDP drainer** goroutine round-robins enricher stores, claiming **one due listing per store** at a polite pace (`ENRICH_PDP_MIN_INTERVAL`, default 15s). Pacing and circuit-breaker cooldown persist on `stores` (`pdp_last_fetch_at`, `pdp_cooldown_until`; migration `043`). No `enrich_jobs` row is created for drainer work.
+1. On API start, a **resident PDP drainer** goroutine round-robins enricher stores, claiming **one due listing per store** at a polite pace (`ENRICH_PDP_MIN_INTERVAL`, default 15s). Pacing and circuit-breaker cooldown persist on `stores` (`pdp_last_fetch_at`, `pdp_cooldown_until`; migration `043`). **`pdp_last_fetch_at` is stamped when the scraper call starts**, not when a blank `listing_enrichment` row is ensured — stamping earlier makes the min-interval check skip the fetch (ZAC-247). No `enrich_jobs` row is created for drainer work.
 2. **`POST /enrich-now`** (async; returns 202) runs a **burst** PDP job (`job_type=enrich`) that bypasses min-interval pacing but still skips stores in cooldown unless `force=1`. Optional legacy nightly cron via **`ENRICH_CRON_SPEC`** (default **`disabled`**) uses the same burst path.
 3. PDP claims use `listing_enrichment` (`FOR UPDATE SKIP LOCKED` + per-step `*_leased_until`). Snapshots land in `pdp_snapshots`; failures record backoff in `enrichment_events`. Only **in-stock, non-hidden** rows are eligible. Stale horizon defaults to **30 days** (`ENRICH_PDP_STALE_AFTER`).
 4. After each **successful drainer PDP**, the scheduler kicks a debounced async **`llm_specs` job** for that store (skips if one is already in flight). Burst PDP jobs kick LLM once when the job finalizes.
@@ -92,7 +92,7 @@ flowchart LR
 
 **Admin Insights (pipeline observability):** [`GET /admin/metrics/pipeline`](apps/api/README.md) and [`GET /admin/metrics/enrichment-steps`](apps/api/README.md) report flow-centric health — scrape→extract latency, per-step due/in-flight/dead gauges, daily `enrichment_events` throughput, PDP freshness, and per-store drainer cooldown — not nightly `enrich_jobs` windows (the drainer has no job boundary). Burst/LLM job history remains on the Operations page.
 
-**LLM extraction profiles:** For each category, `llm_prompt_profiles` drives structured spec extraction. When migration `019` composition rows exist (`llm_prompt_profile_fields`), the API **hydrates** `extraction_schema` at read time from `llm_extraction_field_defs` plus per-profile overrides (and appends `confidence` when not composed). If there are no composition rows, the stored `extraction_schema` JSONB is used unchanged. Field defs may set **`extractable = false`** (migration `041`) to keep a field in facets/schema while omitting it from the LLM JSON schema — e.g. **`clothing_size`** is copied from `variant_options.Size` on scrape ingest, variant fanout, and after LLM extract (`make backfill-clothing-size` for existing rows).
+**LLM extraction profiles:** For each category, `llm_prompt_profiles` drives structured spec extraction. When migration `019` composition rows exist (`llm_prompt_profile_fields`), the API **hydrates** `extraction_schema` at read time from `llm_extraction_field_defs` plus per-profile overrides (and appends `confidence` when not composed). If there are no composition rows, the stored `extraction_schema` JSONB is used unchanged. Field defs may set **`extractable = false`** (migration `041`) to keep a field in facets/schema while omitting it from the LLM JSON schema — e.g. **`clothing_size`** is copied from `variant_options.Size` on scrape ingest, variant fanout, and after LLM extract (`make backfill-clothing-size` for existing rows). **`bike_size`** (migrations `050`/`051`) is a scalar extractable enum on the Bikes parent profile (inherited by Road/Gravel/BMX and the rest) so complete-bike listings get a Size facet — letters, Specialized S-sizing, MTB inches, road/gravel cm, or BMX top-tube. It is not `multi_enum`: live in-stock size sets stay on variant chips. Scrape ingest and `make backfill-bike-size` also copy normalized variant Size into `llm_specs.bike_size`. Listing cards fall back to that extracted size when a group has no parseable `variant_options` sizes.
 
 **Inheritance (category tree):** On hot paths `GetLLMPromptProfileForCategory` and `GetLLMPromptProfileForCategoryID`, the API builds an **effective** extraction schema by merging **enabled** profiles along the path from the **category root to the leaf** (in order). A field `key` defined on a **deeper** category **replaces** the same key from an ancestor (child wins). `system_prompt`, profile `name`, and admin-facing identity use the **nearest enabled** profile to the leaf (most specific). A single `confidence` field is appended after the merge (same source as composition hydration). `GetLLMPromptProfileByID` still loads one stored profile (for editing); `GET /admin/llm-profiles/:id` includes **`effective_extraction_schema`** when `category_id` is set so operators can preview the merged schema. Listings that match a legacy profile row only via `canonical_category` text (no resolved `category_id`) use that row without ancestor merge.
 
@@ -120,7 +120,7 @@ Hot paths (`GetLLMPromptProfileForCategory*`, `GetLLMPromptProfileByID`) hydrate
 | `apps/api/internal/metadata/`   | Spec extraction from enriched data                                             |
 | `apps/scraper/src/parsers/`     | One parser per store                                                           |
 | `apps/web/src/components/ui/`   | shadcn primitives (Button, Input, Card, Drawer/Vaul, etc.)                     |
-| `apps/web/src/components/`      | Composed components (DealCard, CategoryCard, Pagination, etc.)                 |
+| `apps/web/src/components/`      | Composed components (DealCard, VariantChips, CategoryCard, Pagination, etc.)   |
 | `apps/web/.storybook/`          | Storybook config, preview decorators                                           |
 
 ## Component Library
@@ -151,7 +151,7 @@ Add new primitives via `pnpm dlx shadcn@latest add <component>` in `apps/web`.
 
 ### Composed Components
 
-High-level components (DealCard, CategoryCard, Pagination, SearchBar, FilterSelect) use the primitives. When adding or changing UI, prefer primitives over raw HTML and add Storybook stories.
+High-level components (DealCard, VariantChips, CategoryCard, Pagination, SearchBar, FilterSelect) use the primitives. When adding or changing UI, prefer primitives over raw HTML and add Storybook stories.
 
 ### SEO (metadata)
 
@@ -171,7 +171,8 @@ The web app uses [Vercel Web Analytics](https://vercel.com/docs/analytics) via `
 
 **Custom events** (require Vercel Pro or an alternative such as PostHog) are wired via `track()` and/or `posthog.capture()` in [DealCard](apps/web/src/components/DealCard.tsx), [DealDetailModal](apps/web/src/components/DealDetailModal.tsx), [DealFilters](apps/web/src/components/DealFilters.tsx), [SearchBar](apps/web/src/components/SearchBar.tsx), [DealsPageContent](apps/web/src/views/DealsPageContent.tsx), and related components:
 
-- `deal_card_click` — user opens deal modal (deal_id, store, brand)
+- `deal_card_click` — user opens deal detail (`deal_id`, `store`, `brand`, `list_surface`, `in_stock_size_count`, `in_stock_color_count`)
+- `deal_detail_viewed` — deal PDP mount (same identity fields plus `in_stock_variant_count`)
 - `view_deal` / `view_at_store` — user clicks through to retailer (deal_id, store, brand)
 - `filter_applied` — store, brand, category, sort, min_discount, spec, or **giveaway kind chips** (`filter_type: "giveaway_kind"`, `value`: `all` | `giveaway` | `raffle`)
 - `giveaway_page_viewed` — `/giveaways` list mount

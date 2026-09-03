@@ -148,12 +148,17 @@ func (p *Pipeline) RunWorkItem(ctx context.Context, step Step, item WorkItem, fo
 	}
 	now := time.Now()
 	if p.StorePacer != nil && step == StepPDP {
+		// ShouldSkipPDP must run before RecordPDPFetch. Stamping last_fetch first
+		// makes the min-interval check treat this listing as already paced and
+		// skip the scraper (ZAC-247). Callers (the resident drainer) must not
+		// record fetch before this function either.
 		skip, err := p.StorePacer.ShouldSkipPDP(ctx, item.StoreType, bypassMinInterval, force, now, cfg.PDPMinInterval)
 		if err != nil {
 			return false, err
 		}
 		if skip {
 			_ = p.State.ReleaseLease(ctx, item.ListingID, step)
+			log.Printf("[enrichstate] skip PDP listing %d store %s: pacing", item.ListingID, item.StoreType)
 			return false, nil
 		}
 		if err := p.StorePacer.RecordPDPFetch(ctx, item.StoreType, now); err != nil {
