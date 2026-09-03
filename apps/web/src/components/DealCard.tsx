@@ -12,7 +12,7 @@ import { cn, focusRingWithin } from "@/lib/utils";
 import { formatMoney } from "@/lib/formatMoney";
 import { computeDealScore } from "@/lib/dealScore";
 import { dealsListSurfaceFromPathname } from "@/lib/dealsListSurface";
-import { summarizeInStockVariantChips, displayPriceRange } from "@/lib/inStockVariantChips";
+import { summarizeDealSizeChips, displayPriceRange } from "@/lib/inStockVariantChips";
 
 const monoMicro =
   "font-mono text-[10px] font-semibold uppercase tracking-[0.14em]";
@@ -66,7 +66,7 @@ export function DealCard({
   const listSurface = dealsListSurfaceFromPathname(pathname);
   const viewUrl = deal.affiliate_url || deal.product_url;
 
-  const variantChips = summarizeInStockVariantChips(deal);
+  const variantChips = summarizeDealSizeChips(deal);
   const priceRange = displayPriceRange(deal);
   const analyticsBase = {
     deal_id: deal.id,
@@ -158,7 +158,9 @@ export function DealCard({
           {deal.product_name}
         </h2>
       </div>
-      {variantChips ? <VariantChips deal={deal} density="compact" /> : null}
+      {variantChips ? (
+        <VariantChips deal={deal} density="compact" className="w-full" />
+      ) : null}
       {priceRow}
     </div>
   );

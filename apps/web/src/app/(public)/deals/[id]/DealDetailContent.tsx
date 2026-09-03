@@ -14,7 +14,7 @@ import { formatMoney } from "@/lib/formatMoney";
 import {
   displayPriceRange,
   inStockDealVariants,
-  summarizeInStockVariantChips,
+  summarizeDealSizeChips,
 } from "@/lib/inStockVariantChips";
 import { Button } from "@/components/ui/button";
 import { PriceHistoryChart } from "@/components/PriceHistoryChart";
@@ -124,7 +124,7 @@ function DealDetailContentInner({
   const dealScore = computeDealScore(deal, priceHistory);
   const priceLabel = pricePositionLabel(deal, priceHistory);
   const inStockVariants = inStockDealVariants(deal);
-  const variantChips = summarizeInStockVariantChips(deal);
+  const variantChips = summarizeDealSizeChips(deal);
 
   useEffect(() => {
     posthog.capture("deal_detail_viewed", {
@@ -242,9 +242,10 @@ function DealDetailContentInner({
                   ) : null}
                 </div>
 
+                <div className="mt-4 space-y-5 border-t border-border pt-4">
                 <div
                   className={cn(
-                    "mt-4 flex flex-wrap items-end gap-3 border-t border-border pt-4",
+                    "flex w-full flex-wrap items-end gap-3",
                     savings != null && savings > 0 ? "justify-between" : "",
                   )}
                 >
@@ -293,9 +294,10 @@ function DealDetailContentInner({
                   </div>
                 </div>
 
-                <VariantChips deal={deal} density="detail" className="mt-5" />
+                <VariantChips deal={deal} density="detail" className="w-full" />
 
-                <Button asChild className="mt-5" size="lg">
+                <Button asChild className="w-full sm:w-auto" size="lg">
+
                   <a
                     href={viewUrl}
                     target="_blank"
@@ -329,11 +331,13 @@ function DealDetailContentInner({
                 </Button>
                 {priceRange != null &&
                   priceRange[0] !== priceRange[1] && (
-                    <p className={cn(monoMicro, "mt-3 text-muted-foreground")}>
+                    <p className={cn(monoMicro, "text-muted-foreground")}>
+
                       From ${formatMoney(priceRange[0])} to $
                       {formatMoney(priceRange[1])} across in-stock variants
                     </p>
                   )}
+                </div>
                 {showCategoryChip ? (
                   <p className="mt-4 max-w-full">
                     <Link

@@ -226,6 +226,27 @@ describe("summarizeInStockVariantChips", () => {
     expect(displayPriceRange(deal)).toEqual([4199, 5199]);
   });
 
+  it("omits hex-only color swatches", () => {
+    const deal: Deal = {
+      ...baseDeal,
+      variants: [
+        row({
+          id: 1,
+          store_sku: "a",
+          variant_options: { Color: "#A3938B : #231F18", Size: "S1" },
+        }),
+        row({
+          id: 2,
+          store_sku: "b",
+          variant_options: { Color: "#4F4E53" },
+        }),
+      ],
+    };
+    const summary = summarizeInStockVariantChips(deal)!;
+    expect(summary.colors).toEqual([]);
+    expect(summary.sizes.map((c) => c.label)).toEqual(["S1"]);
+  });
+
   it("treats Bike Size as a size dimension", () => {
     const deal: Deal = {
       ...baseDeal,
