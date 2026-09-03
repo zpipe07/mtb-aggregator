@@ -3,7 +3,9 @@ import type { Deal, DealVariantRow } from "@/api";
 import {
   compactChipGroup,
   compareVariantChipLabels,
+  displayPriceRange,
   inStockDealVariants,
+  inStockPriceRange,
   limitChips,
   summarizeInStockVariantChips,
 } from "./inStockVariantChips";
@@ -180,6 +182,67 @@ describe("summarizeInStockVariantChips", () => {
         ],
       }),
     ).toBeNull();
+  });
+
+  it("computes price range from in-stock variants only", () => {
+    const deal: Deal = {
+      ...baseDeal,
+      current_price: 3490,
+      price_range: [3490, 6999],
+      variants: [
+        row({
+          id: 1,
+          store_sku: "l",
+          variant_options: { Size: "Large" },
+          current_price: 3490,
+        }),
+        row({
+          id: 2,
+          store_sku: "xl",
+          variant_options: { Size: "X-Large" },
+          current_price: 6999,
+          is_in_stock: false,
+        }),
+      ],
+    };
+    expect(inStockPriceRange(deal)).toEqual({
+      min: 3490,
+      max: 3490,
+      spread: false,
+    });
+    expect(displayPriceRange(deal)).toBeUndefined();
+  });
+
+  it("keeps an in-stock price spread for display", () => {
+    const deal: Deal = {
+      ...baseDeal,
+      variants: [
+        row({ id: 1, store_sku: "s", variant_options: { Size: "S" }, current_price: 4199 }),
+        row({ id: 2, store_sku: "l", variant_options: { Size: "L" }, current_price: 5199 }),
+      ],
+    };
+    expect(displayPriceRange(deal)).toEqual([4199, 5199]);
+  });
+
+  it("treats Bike Size as a size dimension", () => {
+    const deal: Deal = {
+      ...baseDeal,
+      variants: [
+        row({
+          id: 1,
+          store_sku: "s",
+          variant_options: { "Bike Size": "S1", Color: "Red" },
+        }),
+        row({
+          id: 2,
+          store_sku: "m",
+          variant_options: { "Bike Size": "S2", Color: "Red" },
+        }),
+      ],
+    };
+    expect(summarizeInStockVariantChips(deal)!.sizes.map((c) => c.label)).toEqual(
+      ["S1", "S2"],
+    );
   });
 
   it("prefers size over color for compact cards and caps overflow", () => {
