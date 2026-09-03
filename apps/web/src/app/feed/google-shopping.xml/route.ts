@@ -4,7 +4,7 @@ import { absoluteUrl } from "@/lib/siteUrl";
 export const revalidate = 14400;
 
 const MAX_ITEMS = 10_000;
-/** Keep each deals page under Next.js's ~2MB data-cache limit (~3KB/deal). */
+/** Match sitemap paging; `noStore` skips Next.js’s ~2MB fetch cache. */
 const PAGE_SIZE = 500;
 
 function escapeXml(value: string): string {
@@ -27,6 +27,7 @@ export async function GET() {
         offset,
         sort: "newest",
         group_variants: true,
+        noStore: true,
       });
       const deals = res.deals ?? [];
       if (deals.length === 0) break;
