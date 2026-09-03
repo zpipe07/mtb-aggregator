@@ -26,7 +26,9 @@ How MTB categories are structured and mapped from store-specific paths to a cano
 
 ## Gear branch (wear / protect)
 
-Under **Gear**, first-level children include Helmets, Shoes, **Eyewear** (Sunglasses, Goggles), Gloves, Protection, and Clothing. Migration `027` added Eyewear with high-priority mappings for store paths containing goggle/sunglass/eyewear keywords, plus a product-name backfill for misfiled listings.
+Under **Gear**, first-level children include Helmets, **Helmet parts**, Shoes, **Eyewear** (Sunglasses, Goggles), Gloves, Protection, and Clothing. Migration `027` added Eyewear with high-priority mappings for store paths containing goggle/sunglass/eyewear keywords, plus a product-name backfill for misfiled listings.
+
+**Helmets vs Helmet parts (ZAC-246):** `/deals?category_slug=gear-helmets` includes the Helmets subtree only. Replacement visors, liners, cheek pads, and pad kits are a **sibling** (`gear-helmet-parts`) so cheap accessories do not sort to the top of the helmets page. Mappings use **specific** keywords (`helmet parts`, `helmet accessories`, `helmet visor`, `cheek pad`, etc.) — not bare `helmet`, which still maps complete lids. After applying `052`, **restart the API** and run **`make backfill-canonical-categories`** (the migration also backfills by product name from Helmets).
 
 Under **Gear → Clothing**, Jerseys, Jackets, Shirts, Shorts, Pants, and Socks are **direct leaves** (migration `037` removed the intermediate Tops/Bottoms layer so mega-menu browse matches shoppable shelves). High-priority leaf mappings classify store paths and product names into the specific apparel type.
 
@@ -71,7 +73,7 @@ Under **Bikes**, **BMX Bikes** is a dedicated leaf (migration `039`) for complet
 ## Backfills
 
 ```bash
-make backfill-canonical-categories   # Recategorize after taxonomy changes
+make backfill-canonical-categories   # Recategorize after taxonomy changes (after 052 / helmet parts: restart API first)
 make backfill-bikesonline-clothing-protective   # Bikes Online Clothing & Protective Gear → LLM Protection/Helmets/Gloves (DRY_RUN=1 preview)
 make backfill-field-library          # After migration 019: LLM field defs + profile composition rows
 ```

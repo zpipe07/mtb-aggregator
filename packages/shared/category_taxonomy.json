@@ -216,6 +216,30 @@
       ],
       "canonical": ["Components", "Cockpit"]
     },
+    {
+      "raw": [
+        "helmet parts",
+        "helmet part",
+        "helmet accessories",
+        "helmet accessory",
+        "helmet visor",
+        "helmet visors",
+        "helmet liner",
+        "helmet liners",
+        "helmet pad",
+        "helmet pads",
+        "helmet padding",
+        "replacement visor",
+        "replacement visors",
+        "replacement liner",
+        "replacement liners",
+        "cheek pad",
+        "cheek pads",
+        "cheekpad",
+        "cheekpads"
+      ],
+      "canonical": ["Gear", "Helmet parts"]
+    },
     { "raw": ["helmet", "helmets"], "canonical": ["Gear", "Helmets"] },
     {
       "raw": [
