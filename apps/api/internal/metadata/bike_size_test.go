@@ -26,6 +26,8 @@ func TestNormalizeBikeSize(t *testing.T) {
 		{"27.5", ""},
 		{"MX", ""},
 		{"S, M, L", ""},
+		{"M, MX", "M"},
+		{`39cm (15.5") - Small`, "S"},
 		{"One Size", ""},
 		{"", ""},
 	}

@@ -8,10 +8,11 @@ import (
 )
 
 var (
-	reBikeInch       = regexp.MustCompile(`(?i)^\s*(\d{2}(?:\.\d)?)\s*(?:in(?:ch(?:es)?)?|"|'')?\s*$`)
-	reSpecializedS   = regexp.MustCompile(`(?i)^\s*s\s*([1-6])\s*$`)
-	reWheelSizeToken = regexp.MustCompile(`(?i)^(29|27\.5|27,5|650b|700c|mx)$`)
-	reOptionIndexKey = regexp.MustCompile(`(?i)^option\s*\d+$`)
+	reBikeInch         = regexp.MustCompile(`(?i)^\s*(\d{2}(?:\.\d)?)\s*(?:in(?:ch(?:es)?)?|"|'')?\s*$`)
+	reSpecializedS     = regexp.MustCompile(`(?i)^\s*s\s*([1-6])\s*$`)
+	reWheelSizeToken   = regexp.MustCompile(`(?i)^(29|27\.5|27,5|650b|700c|mx)$`)
+	reOptionIndexKey   = regexp.MustCompile(`(?i)^option\s*\d+$`)
+	reTrailingWordSize = regexp.MustCompile(`(?i)\b(xx-small|x-small|extra small|small|medium|large|xx-large|x-large|xxl|xl|xs)\s*$`)
 )
 
 // VariantBikeSizeFromOptions reads Size / Bike Size / Frame Size from variant_options JSON.
@@ -57,7 +58,7 @@ func NormalizeBikeSize(raw string) string {
 		return ""
 	}
 	if strings.Contains(s, ",") {
-		return ""
+		return normalizeBikeSizeCommaList(s)
 	}
 	lower := strings.ToLower(s)
 	if reWheelSizeToken.MatchString(lower) {
@@ -71,6 +72,11 @@ func NormalizeBikeSize(raw string) string {
 	}
 	if letter := normalizeSingleLetterSize(s); letter != "" {
 		return letter
+	}
+	if m := reTrailingWordSize.FindStringSubmatch(s); len(m) == 2 {
+		if letter := normalizeSingleLetterSize(m[1]); letter != "" {
+			return letter
+		}
 	}
 	if strings.Contains(s, "/") || strings.Contains(s, "\\") {
 		if combo := normalizeSizeCombo(s); combo != "" {
@@ -87,6 +93,34 @@ func NormalizeBikeSize(raw string) string {
 		}
 	}
 	return ""
+}
+
+// normalizeBikeSizeCommaList accepts "M, MX" (frame + wheel) but rejects size-run charts like "S, M, L".
+func normalizeBikeSizeCommaList(s string) string {
+	parts := strings.Split(s, ",")
+	if len(parts) < 2 {
+		return ""
+	}
+	first := strings.TrimSpace(parts[0])
+	letter := normalizeSingleLetterSize(first)
+	if letter == "" {
+		if m := reSpecializedS.FindStringSubmatch(first); len(m) == 2 {
+			letter = "S" + m[1]
+		}
+	}
+	if letter == "" {
+		return ""
+	}
+	for _, p := range parts[1:] {
+		p = strings.TrimSpace(p)
+		if normalizeSingleLetterSize(p) != "" {
+			return ""
+		}
+		if reSpecializedS.MatchString(p) {
+			return ""
+		}
+	}
+	return letter
 }
 
 // ApplyBikeSizeFromVariant merges normalized bike_size into metadata.llm_specs.
