@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { clearStoredAdminToken } from "./api";
@@ -35,7 +36,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
       <aside className="w-52 shrink-0 border-r border-stone-200 bg-white flex flex-col min-h-screen">
         <div className="p-4 border-b border-stone-200">
           <div className="flex items-center gap-2">
-            <img src="/logo.png" alt="" className="h-8 w-auto shrink-0" />
+            <Image src="/logo.png" alt="" width={73} height={200} className="h-8 w-auto shrink-0" />
             <h1 className="font-semibold text-stone-800">Admin</h1>
           </div>
         </div>

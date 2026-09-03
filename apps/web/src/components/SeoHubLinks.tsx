@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { fetchDeals } from "@/api";
 import {
   listSeoHubs,
   buildSeoHubPublicPath,

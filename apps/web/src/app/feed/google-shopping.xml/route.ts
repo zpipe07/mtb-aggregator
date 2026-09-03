@@ -4,7 +4,8 @@ import { absoluteUrl } from "@/lib/siteUrl";
 export const revalidate = 14400;
 
 const MAX_ITEMS = 10_000;
-const PAGE_SIZE = 5000;
+/** Keep each deals page under Next.js's ~2MB data-cache limit (~4.3KB/deal at 500). */
+const PAGE_SIZE = 400;
 
 function escapeXml(value: string): string {
   return value

@@ -17,6 +17,7 @@ import {
   summarizeDealSizeChips,
 } from "@/lib/inStockVariantChips";
 import { Button } from "@/components/ui/button";
+import { RemoteImg } from "@/components/RemoteImg";
 import { PriceHistoryChart } from "@/components/PriceHistoryChart";
 import { VariantChips } from "@/components/VariantChips";
 import { useDealDetailListContext } from "./DealDetailBackNav";
@@ -139,7 +140,18 @@ function DealDetailContentInner({
       in_stock_size_count: variantChips?.sizes.length ?? 0,
       in_stock_color_count: variantChips?.colors.length ?? 0,
     });
-  }, []);
+  }, [
+    deal.brand,
+    deal.current_price,
+    deal.id,
+    deal.store_name,
+    discountPct,
+    inStockVariants.length,
+    listSurface,
+    priceHistory?.price_dropped,
+    variantChips?.colors.length,
+    variantChips?.sizes.length,
+  ]);
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
@@ -179,7 +191,7 @@ function DealDetailContentInner({
             <div className="flex flex-col gap-6 sm:flex-row sm:gap-8">
               <div className="mx-auto w-40 shrink-0 overflow-hidden rounded-sm border border-foreground bg-muted sm:mx-0 sm:w-44">
                 {deal.image_url ? (
-                  <img
+                  <RemoteImg
                     src={deal.image_url}
                     alt={deal.product_name}
                     className="aspect-square h-full w-full object-cover"

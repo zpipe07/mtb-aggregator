@@ -363,7 +363,7 @@ export function DealsPageContent({
               {deals.length > 0 ? (
                 <DealGrid
                   deals={deals}
-                  getHref={(d) => buildDealDetailHref(d.id, dealsListPath)}
+                  getHref={(d) => buildDealDetailHref(d.id)}
                   onDealNavigate={() => storeDealDetailBackHref(dealsListPath)}
                 />
               ) : (

@@ -4,6 +4,7 @@ import { PriceHistoryChart } from "./PriceHistoryChart";
 import { Button } from "./ui/button";
 import { cn, focusRing } from "@/lib/utils";
 import { formatMoney } from "@/lib/formatMoney";
+import { RemoteImg } from "./RemoteImg";
 
 type DealDetailModalProps = {
   dealId: number | null;
@@ -119,7 +120,7 @@ export function DealDetailModal({ dealId, onClose }: DealDetailModalProps) {
               <div className="flex flex-col gap-6 sm:flex-row sm:gap-8">
                 <div className="mx-auto w-36 shrink-0 overflow-hidden rounded-sm border border-foreground bg-muted sm:mx-0 sm:w-40">
                   {deal.image_url ? (
-                    <img
+                    <RemoteImg
                       src={deal.image_url}
                       alt={deal.product_name}
                       className="aspect-square h-full w-full object-cover"

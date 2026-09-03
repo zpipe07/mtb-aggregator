@@ -10,6 +10,7 @@ import {
   formatGiveawayDate,
   formatTicketPrice,
 } from "@/lib/giveawayStatus";
+import { RemoteImg } from "@/components/RemoteImg";
 
 const monoMicro =
   "font-mono text-[10px] font-semibold uppercase tracking-[0.14em]";
@@ -84,7 +85,7 @@ export function GiveawayCard({
         )}
       >
         {giveaway.image_url ? (
-          <img
+          <RemoteImg
             src={giveaway.image_url}
             alt=""
             className="size-full object-cover"

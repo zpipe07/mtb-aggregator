@@ -219,6 +219,7 @@ export function CategoryMultiPicker({
                 <li
                   key={opt.value}
                   role="option"
+                  aria-selected={value.some((p) => pathKey(p) === opt.value)}
                   onClick={() => handleAdd(opt.path)}
                   className="px-3 py-2 text-sm cursor-pointer text-stone-700 hover:bg-stone-100"
                 >

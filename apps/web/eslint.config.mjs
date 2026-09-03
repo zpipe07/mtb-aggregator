@@ -14,6 +14,9 @@ export default defineConfig([
       "react-hooks/set-state-in-effect": "off",
       "react-hooks/refs": "off",
       "react-hooks/preserve-manual-memoization": "off",
+      // Typed Record/Map lookups are not prototype-pollution vectors; the rule
+      // floods Vercel/CI with false positives on admin and filter code.
+      "security/detect-object-injection": "off",
     },
   },
   globalIgnores([
