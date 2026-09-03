@@ -22,6 +22,7 @@ func TestUpsertListingsBatch_onConflictMatchesSingleRow(t *testing.T) {
 		"hidden = false",
 		"llm_specs",
 		"clothing_size",
+		"bike_size",
 	} {
 		if !strings.Contains(conflict, frag) {
 			t.Errorf("ON CONFLICT SQL missing fragment %q", frag)

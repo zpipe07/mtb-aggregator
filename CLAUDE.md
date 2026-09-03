@@ -145,6 +145,7 @@ make backfill-brands
 make backfill-canonical-categories   # recategorize listings after taxonomy changes
 make backfill-llm-specs              # populate llm_specs from specs (after migration 016)
 make backfill-field-library          # migration 019: field defs + profile_fields + key renames
+make backfill-bike-size              # migration 050: copy variant Size into llm_specs.bike_size (Bikes)
 make backfill-cc-variants            # CC: PDP hasVariant grouping for existing Impact rows
 make requeue-wiped-enrichment        # clear last_enriched_at when scrape wiped metadata; then enrich-now FORCE=1
 
@@ -186,7 +187,7 @@ pnpm --filter @mtb-aggregator/web run build-storybook  # static build to storybo
 - `internal/impact/` — Impact Partner **product catalog** client (Competitive Cyclist ingest in the scheduler when credentials are set)
 - `internal/db/categories.go` — structured category tree (id, slug, name, parent_id). Single source of truth; `category_id` FKs on listings, profiles, mappings
 - `internal/metadata/` — extracts structured specs from enriched category paths and raw spec data
-- Spec filters are LLM-driven: `llm_prompt_profiles` extraction schema (label, sort_order, filterable per field) controls which specs appear as filters per category; **ancestor profiles on the category tree contribute fields** to the effective schema unless a descendant overrides the same `field_key`. The legacy SpecFilterManager (spec_filter_config) is deprecated. With migration `019`, composed fields (`llm_prompt_profile_fields`) are hydrated to JSON on profile reads used by enrichment/facets. Field types include `multi_enum` (migration `020`) for multiple values per key (e.g. `intended_use`); facets and `/deals` filters match against scalars or any element of a stored JSON array.
+- Spec filters are LLM-driven: `llm_prompt_profiles` extraction schema (label, sort_order, filterable per field) controls which specs appear as filters per category; **ancestor profiles on the category tree contribute fields** to the effective schema unless a descendant overrides the same `field_key`. The legacy SpecFilterManager (spec_filter_config) is deprecated. With migration `019`, composed fields (`llm_prompt_profile_fields`) are hydrated to JSON on profile reads used by enrichment/facets. Field types include `multi_enum` (migration `020`) for multiple values per key (e.g. `intended_use`); facets and `/deals` filters match against scalars or any element of a stored JSON array. **`bike_size`** (migration `050`) is extractable on the Bikes parent profile (Size facet on `/deals/c/bikes`); variant Size is also copied into `llm_specs.bike_size` (`make backfill-bike-size`).
 - Admin endpoints under `/admin/*` require Bearer token auth (password set via `ADMIN_PASSWORD`)
 - Public API: `GET /deals` (optional `group_variants=true`; repeated `brand`, `spec_<key>` params OR within the same key on `metadata.llm_specs`; `min_price`, **`max_price`**, `exclude_category_slug`; `sort` includes `discount`, `value` (savings amount), etc.), `/stores`, `/brands`, `/categories/tree`, `/facets` (`spec_facets`, `brand_facets`, `price_range`), `/spec-values`, `/status`, **`GET /giveaways`** (published giveaways/raffles; derived `status`; optional `kind`). Deprecated: `/canonical-categories` (use `/categories/tree`)
 

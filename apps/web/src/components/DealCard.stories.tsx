@@ -158,3 +158,25 @@ export const InStockSizes: Story = {
     },
   },
 };
+
+export const ExtractedBikeSize: Story = {
+  args: {
+    deal: {
+      ...mockDeal,
+      id: 5,
+      product_name: "Juliana Roubion CC Medium",
+      brand: "Juliana",
+      category_path: ["Bikes", "Mountain"],
+      metadata: { llm_specs: { bike_size: "M" } },
+    },
+    href: "/deals/5",
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Single-SKU bike without variant options still shows Size from LLM/spec extraction.",
+      },
+    },
+  },
+};

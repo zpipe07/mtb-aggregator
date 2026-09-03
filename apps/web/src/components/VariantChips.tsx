@@ -3,7 +3,7 @@ import { formatMoney } from "@/lib/formatMoney";
 import {
   compactChipGroup,
   limitChips,
-  summarizeInStockVariantChips,
+  summarizeDealSizeChips,
   type VariantChip,
   type VariantChipGroup,
 } from "@/lib/inStockVariantChips";
@@ -97,7 +97,7 @@ export function VariantChips({
   density = "compact",
   className,
 }: VariantChipsProps) {
-  const summary = summarizeInStockVariantChips(deal);
+  const summary = summarizeDealSizeChips(deal);
   if (!summary) return null;
 
   if (density === "compact") {

@@ -263,6 +263,59 @@ export function summarizeInStockVariantChips(
   };
 }
 
+/** Frame size from LLM / variant sync when the listing has no parseable size options. */
+export function extractedBikeSize(deal: Deal): string | null {
+  const raw = deal.metadata?.llm_specs?.bike_size;
+  if (typeof raw !== "string") return null;
+  const label = raw.trim();
+  return label || null;
+}
+
+function extractedSizeGroup(deal: Deal): VariantChipGroup | null {
+  const label = extractedBikeSize(deal);
+  if (!label) return null;
+  if (!deal.is_in_stock) return null;
+  return {
+    key: "Size",
+    kind: "size",
+    chips: [
+      {
+        label,
+        minPrice: deal.current_price,
+        maxPrice: deal.current_price,
+      },
+    ],
+    hasPriceSpread: false,
+  };
+}
+
+/** Variant-option chips, plus extracted bike_size when no in-stock size options exist. */
+export function summarizeDealSizeChips(
+  deal: Deal,
+): InStockVariantChipSummary | null {
+  const summary = summarizeInStockVariantChips(deal);
+  if (summary?.sizes.length) return summary;
+  const extracted = extractedSizeGroup(deal);
+  if (!extracted) return summary;
+  if (!summary) {
+    return {
+      inStockCount: 1,
+      listedCount: 1,
+      sizes: extracted.chips,
+      colors: [],
+      groups: [extracted],
+      sizesHavePriceSpread: false,
+      colorsHavePriceSpread: false,
+    };
+  }
+  return {
+    ...summary,
+    sizes: extracted.chips,
+    groups: [extracted, ...summary.groups],
+    sizesHavePriceSpread: false,
+  };
+}
+
 /** Compact cards: sizes if present, else colors, else the first remaining group. */
 export function compactChipGroup(
   summary: InStockVariantChipSummary,
