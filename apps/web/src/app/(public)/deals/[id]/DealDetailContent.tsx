@@ -12,6 +12,7 @@ import { computeDealScore, pricePositionLabel } from "@/lib/dealScore";
 import { cn, focusRing } from "@/lib/utils";
 import { formatMoney } from "@/lib/formatMoney";
 import {
+  displayPriceRange,
   inStockDealVariants,
   summarizeInStockVariantChips,
 } from "@/lib/inStockVariantChips";
@@ -106,13 +107,11 @@ function DealDetailContentInner({
         ? Math.round((1 - deal.current_price / deal.original_price) * 100)
         : null;
 
+  const priceRange = displayPriceRange(deal);
   const savings =
     deal.original_price != null &&
     deal.original_price > deal.current_price &&
-    !(
-      deal.price_range?.length === 2 &&
-      deal.price_range[0] !== deal.price_range[1]
-    )
+    !(priceRange != null && priceRange[0] !== priceRange[1])
       ? deal.original_price - deal.current_price
       : null;
 
@@ -271,7 +270,7 @@ function DealDetailContentInner({
                   >
                     {deal.original_price != null &&
                       deal.original_price > deal.current_price &&
-                      !(deal.price_range && deal.price_range.length === 2) && (
+                      !priceRange && (
                         <span
                           className={cn(
                             monoMicro,
@@ -281,12 +280,10 @@ function DealDetailContentInner({
                           was ${formatMoney(deal.original_price)}
                         </span>
                       )}
-                    {deal.price_range != null &&
-                    deal.price_range.length === 2 &&
-                    deal.price_range[0] !== deal.price_range[1] ? (
+                    {priceRange != null && priceRange[0] !== priceRange[1] ? (
                       <span className="font-mono text-2xl font-semibold tabular-nums text-foreground sm:text-3xl">
-                        ${formatMoney(deal.price_range[0])} – $
-                        {formatMoney(deal.price_range[1])}
+                        ${formatMoney(priceRange[0])} – $
+                        {formatMoney(priceRange[1])}
                       </span>
                     ) : (
                       <span className="font-mono text-2xl font-semibold tabular-nums text-foreground sm:text-3xl">
@@ -330,12 +327,11 @@ function DealDetailContentInner({
                     </span>
                   </a>
                 </Button>
-                {deal.price_range != null &&
-                  deal.price_range.length === 2 &&
-                  deal.price_range[0] !== deal.price_range[1] && (
+                {priceRange != null &&
+                  priceRange[0] !== priceRange[1] && (
                     <p className={cn(monoMicro, "mt-3 text-muted-foreground")}>
-                      From ${formatMoney(deal.price_range[0])} to $
-                      {formatMoney(deal.price_range[1])} across variants
+                      From ${formatMoney(priceRange[0])} to $
+                      {formatMoney(priceRange[1])} across in-stock variants
                     </p>
                   )}
                 {showCategoryChip ? (

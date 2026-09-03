@@ -12,7 +12,7 @@ import { cn, focusRingWithin } from "@/lib/utils";
 import { formatMoney } from "@/lib/formatMoney";
 import { computeDealScore } from "@/lib/dealScore";
 import { dealsListSurfaceFromPathname } from "@/lib/dealsListSurface";
-import { summarizeInStockVariantChips } from "@/lib/inStockVariantChips";
+import { summarizeInStockVariantChips, displayPriceRange } from "@/lib/inStockVariantChips";
 
 const monoMicro =
   "font-mono text-[10px] font-semibold uppercase tracking-[0.14em]";
@@ -67,6 +67,7 @@ export function DealCard({
   const viewUrl = deal.affiliate_url || deal.product_url;
 
   const variantChips = summarizeInStockVariantChips(deal);
+  const priceRange = displayPriceRange(deal);
   const analyticsBase = {
     deal_id: deal.id,
     store: deal.store_name,
@@ -96,10 +97,7 @@ export function DealCard({
   const savings =
     deal.original_price != null &&
     deal.original_price > deal.current_price &&
-    !(
-      deal.price_range?.length === 2 &&
-      deal.price_range[0] !== deal.price_range[1]
-    )
+    !(priceRange != null && priceRange[0] !== priceRange[1])
       ? deal.original_price - deal.current_price
       : null;
 
@@ -123,7 +121,7 @@ export function DealCard({
       <div className="space-y-0.5 text-right">
         {deal.original_price != null &&
           deal.original_price > deal.current_price &&
-          !(deal.price_range && deal.price_range.length === 2) && (
+          !priceRange && (
             <span
               className={cn(
                 monoMicro,
@@ -133,12 +131,10 @@ export function DealCard({
               was ${formatMoney(deal.original_price)}
             </span>
           )}
-        {deal.price_range != null &&
-        deal.price_range.length === 2 &&
-        deal.price_range[0] !== deal.price_range[1] ? (
+        {priceRange != null && priceRange[0] !== priceRange[1] ? (
           <span className="font-mono text-xl font-semibold leading-none tabular-nums text-foreground sm:text-2xl">
-            ${formatMoney(deal.price_range[0])} – $
-            {formatMoney(deal.price_range[1])}
+            ${formatMoney(priceRange[0])} – $
+            {formatMoney(priceRange[1])}
           </span>
         ) : (
           <span className="font-mono text-xl font-semibold leading-none tabular-nums text-foreground sm:text-2xl">

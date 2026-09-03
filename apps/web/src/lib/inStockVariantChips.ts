@@ -134,6 +134,34 @@ export function inStockDealVariants(deal: Deal): DealVariantRow[] {
   return collectRows(deal).filter((row) => row.is_in_stock);
 }
 
+/** Min/max current price among in-stock variants (ignores sold-out SKUs). */
+export function inStockPriceRange(
+  deal: Deal,
+): { min: number; max: number; spread: boolean } | null {
+  const rows = inStockDealVariants(deal);
+  if (rows.length === 0) return null;
+  let min = rows[0].current_price;
+  let max = rows[0].current_price;
+  for (const row of rows) {
+    min = Math.min(min, row.current_price);
+    max = Math.max(max, row.current_price);
+  }
+  return { min, max, spread: min !== max };
+}
+
+/** Price range to render: in-stock spread when variants exist, else API `price_range`. */
+export function displayPriceRange(deal: Deal): number[] | undefined {
+  const stock = inStockPriceRange(deal);
+  if (stock) {
+    return stock.spread ? [stock.min, stock.max] : undefined;
+  }
+  const range = deal.price_range;
+  if (range != null && range.length === 2 && range[0] !== range[1]) {
+    return range;
+  }
+  return undefined;
+}
+
 function addChip(
   byLabel: Map<string, VariantChip>,
   label: string,
