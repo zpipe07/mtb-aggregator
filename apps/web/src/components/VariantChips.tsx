@@ -110,7 +110,7 @@ export function VariantChips({
           ? "colors"
           : group.key.toLowerCase();
     return (
-      <div className={cn("flex min-w-0 items-center gap-2", className)}>
+      <div className={cn("flex min-w-0 w-full items-center gap-2", className)}>
         <span className={cn(monoMicro, "shrink-0 text-muted-foreground")}>
           {kicker}
         </span>

@@ -78,6 +78,13 @@ function optionKind(key: string): "size" | "color" | "other" {
   return "other";
 }
 
+/** Specialized and similar stores store swatch hex in Color; skip those as chips. */
+function isMachineColorLabel(label: string): boolean {
+  const parts = label.split(/[\s:/|,]+/).filter(Boolean);
+  if (parts.length === 0) return true;
+  return parts.every((p) => /^#?[0-9a-f]{3,8}$/i.test(p));
+}
+
 function letterSizeRank(raw: string): number | null {
   const t = raw.toUpperCase().replace(/[\s-]/g, "");
   if (t in LETTER_SIZE_RANK) return LETTER_SIZE_RANK[t];
@@ -210,7 +217,9 @@ export function summarizeInStockVariantChips(
       if (kind === "size") {
         addChip(sizeByLabel, val, row.current_price);
       } else if (kind === "color") {
-        addChip(colorByLabel, val, row.current_price);
+        if (!isMachineColorLabel(val)) {
+          addChip(colorByLabel, val, row.current_price);
+        }
       } else {
         const bucket = otherByKey.get(key) ?? new Map<string, VariantChip>();
         addChip(bucket, val, row.current_price);

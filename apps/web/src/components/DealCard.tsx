@@ -158,7 +158,9 @@ export function DealCard({
           {deal.product_name}
         </h2>
       </div>
-      {variantChips ? <VariantChips deal={deal} density="compact" /> : null}
+      {variantChips ? (
+        <VariantChips deal={deal} density="compact" className="w-full" />
+      ) : null}
       {priceRow}
     </div>
   );
