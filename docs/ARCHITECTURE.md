@@ -262,3 +262,4 @@ Configure alerts in each Sentry project (email, Slack, etc.).
 - **Repo overview for agents:** [`CLAUDE.md`](../CLAUDE.md) at the repository root.
 - **Cloud agent environment:** [`.cursor/environment.json`](../.cursor/environment.json) + [`.cursor/Dockerfile`](../.cursor/Dockerfile) (Node 20, pnpm, Go 1.26.6). See [AGENTS.md](../AGENTS.md).
 - **Sentry → draft PR (ZAC-210):** [docs/ideas/sentry-to-pr-automation.md](ideas/sentry-to-pr-automation.md) — Cursor Automation on Sentry **issue created** (production, `mtb-aggregator-web` + `mtb-aggregator-api` only). Classify first; operational noise comments on Sentry and stops. Draft PRs include `Fixes <SHORT-ID>`; Sentry resolves when that commit is in a release (GitHub integration). Create the automation in the Agents Window (`/automate`).
+- **MTBbot community feedback (ZAC-93):** [docs/ideas/mtbbot-feedback.md](ideas/mtbbot-feedback.md) — ranked Reddit themes to apply (or skip) on The Dropper.
