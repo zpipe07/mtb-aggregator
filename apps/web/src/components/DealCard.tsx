@@ -7,10 +7,12 @@ import posthog from "posthog-js";
 import { track } from "@vercel/analytics";
 import type { Deal } from "../api";
 import { Button } from "./ui/button";
+import { VariantChips } from "./VariantChips";
 import { cn, focusRingWithin } from "@/lib/utils";
 import { formatMoney } from "@/lib/formatMoney";
 import { computeDealScore } from "@/lib/dealScore";
 import { dealsListSurfaceFromPathname } from "@/lib/dealsListSurface";
+import { summarizeInStockVariantChips } from "@/lib/inStockVariantChips";
 
 const monoMicro =
   "font-mono text-[10px] font-semibold uppercase tracking-[0.14em]";
@@ -64,11 +66,14 @@ export function DealCard({
   const listSurface = dealsListSurfaceFromPathname(pathname);
   const viewUrl = deal.affiliate_url || deal.product_url;
 
+  const variantChips = summarizeInStockVariantChips(deal);
   const analyticsBase = {
     deal_id: deal.id,
     store: deal.store_name,
     brand: deal.brand || "",
     list_surface: listSurface,
+    in_stock_size_count: variantChips?.sizes.length ?? 0,
+    in_stock_color_count: variantChips?.colors.length ?? 0,
     ...(homeSection ? { home_section: homeSection } : {}),
   };
 
@@ -157,6 +162,7 @@ export function DealCard({
           {deal.product_name}
         </h2>
       </div>
+      {variantChips ? <VariantChips deal={deal} density="compact" /> : null}
       {priceRow}
     </div>
   );
@@ -255,7 +261,9 @@ export function DealCard({
         </div>
       )}
       {(showScore ||
-        (deal.variant_count != null && deal.variant_count > 1)) && (
+        (!variantChips &&
+          deal.variant_count != null &&
+          deal.variant_count > 1)) && (
         <div className="absolute bottom-3 right-3 flex flex-col items-end gap-1">
           {showScore ? (
             <span
@@ -268,7 +276,9 @@ export function DealCard({
               {dealScore.displayLabel}
             </span>
           ) : null}
-          {deal.variant_count != null && deal.variant_count > 1 ? (
+          {!variantChips &&
+          deal.variant_count != null &&
+          deal.variant_count > 1 ? (
             <span
               className={cn(
                 "inline-flex items-center gap-1.5 rounded-sm border border-foreground/40 bg-card/90 px-2 py-0.5 backdrop-blur-sm",
