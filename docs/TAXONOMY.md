@@ -7,8 +7,9 @@ How MTB categories are structured and mapped from store-specific paths to a cano
 ### 1. Categories Table (Structured Tree)
 
 - **Location**: `apps/api/internal/db/categories.go`
-- **Table**: `categories` — id, slug, name, parent_id
+- **Table**: `categories` — id, slug, name, parent_id, optional `description`, `hide_from_nav` (migration `053`)
 - **Single source of truth** for the category hierarchy used by listings, mappings, and profiles
+- **`hide_from_nav`**: when true, the node (and its descendants) is omitted from the header CATEGORIES mega-menu. Products stay categorized there and the node still appears on `/categories`. Editable in admin CategoryManager. **Helmet parts** is hidden from nav by default.
 
 ### 2. Category Mappings
 
@@ -65,7 +66,7 @@ Under **Bikes**, **BMX Bikes** is a dedicated leaf (migration `039`) for complet
 
 ## Admin UI
 
-- **CategoryManager**: Tree CRUD for `categories`
+- **CategoryManager**: Tree CRUD for `categories`, including **Hide from main nav**
 - **TaxonomyManager**: View/edit mappings
 - **CategoryClassifierManager**: LLM classifier config
 - **PromptProfileManager**: LLM extraction profiles per category

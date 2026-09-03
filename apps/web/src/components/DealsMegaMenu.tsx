@@ -15,6 +15,7 @@ import type { CategoryTreeNode } from "@/api";
 import {
   categoryHasDeals,
   categoryNavDealCount,
+  filterCategoryTreeForNav,
   findCategoryWithAncestors,
 } from "@/lib/categoryTree";
 import { buildDealsCategoryPath, parseCategorySlugFromDealsPath } from "@/lib/dealsCategoryPath";
@@ -289,9 +290,13 @@ export function DealsMegaMenuPanel({
   onClose,
   className,
 }: DealsMegaMenuPanelProps) {
+  const navTree = useMemo(
+    () => filterCategoryTreeForNav(categoryTree),
+    [categoryTree],
+  );
   const defaultExpanded = useMemo(
-    () => getDefaultExpandedSecondLevels(categoryTree, activeCategorySlug),
-    [categoryTree, activeCategorySlug],
+    () => getDefaultExpandedSecondLevels(navTree, activeCategorySlug),
+    [navTree, activeCategorySlug],
   );
   const [expandedSecondLevels, setExpandedSecondLevels] =
     useState<Set<string>>(defaultExpanded);
@@ -333,7 +338,7 @@ export function DealsMegaMenuPanel({
               </Button>
             ) : null}
           </div>
-          {categoryTree.length === 0 ? (
+          {navTree.length === 0 ? (
             <p className="text-sm text-muted-foreground">
               Categories are unavailable right now.{" "}
               <Link
@@ -351,10 +356,10 @@ export function DealsMegaMenuPanel({
             <div
               className={cn(
                 "grid gap-6 lg:gap-8",
-                categoryGridClass(categoryTree.length),
+                categoryGridClass(navTree.length),
               )}
             >
-              {categoryTree.map((root) => (
+              {navTree.map((root) => (
                 <RootCategoryColumn
                   key={root.slug}
                   root={root}

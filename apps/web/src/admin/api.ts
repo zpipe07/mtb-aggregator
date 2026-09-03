@@ -453,6 +453,8 @@ export interface AdminCategoryTreeNode {
   deal_count?: number;
   /** Distinct product groups per subtree (matches grouped deals list). */
   product_count?: number;
+  /** Omit from the header mega-menu; still listed on /categories. */
+  hide_from_nav?: boolean;
   children: AdminCategoryTreeNode[];
 }
 
@@ -477,6 +479,8 @@ export interface CreateCategoryBody {
   sort_order?: number;
   /** Optional rubric for LLM category classification. */
   description?: string;
+  /** Omit from the header mega-menu. */
+  hide_from_nav?: boolean;
 }
 
 export async function createAdminCategory(
@@ -491,6 +495,7 @@ export async function createAdminCategory(
       parent_id: body.parent_id ?? null,
       sort_order: body.sort_order ?? 0,
       description: body.description ?? "",
+      hide_from_nav: body.hide_from_nav ?? false,
     }),
   });
   if (!res.ok) {
@@ -505,6 +510,7 @@ export interface UpdateCategoryBody {
   name: string;
   sort_order?: number;
   description?: string;
+  hide_from_nav?: boolean;
 }
 
 export async function updateAdminCategory(
@@ -519,6 +525,7 @@ export async function updateAdminCategory(
       name: body.name,
       sort_order: body.sort_order ?? 0,
       description: body.description ?? "",
+      hide_from_nav: body.hide_from_nav ?? false,
     }),
   });
   if (!res.ok) {
