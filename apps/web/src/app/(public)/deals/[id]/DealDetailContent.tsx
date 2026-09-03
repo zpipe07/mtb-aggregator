@@ -146,8 +146,11 @@ function DealDetailContentInner({
     deal.id,
     deal.store_name,
     discountPct,
+    inStockVariants.length,
     listSurface,
     priceHistory?.price_dropped,
+    variantChips?.colors.length,
+    variantChips?.sizes.length,
   ]);
 
   return (
