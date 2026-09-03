@@ -11,6 +11,7 @@ import { cn, focusRingWithin } from "@/lib/utils";
 import { formatMoney } from "@/lib/formatMoney";
 import { computeDealScore } from "@/lib/dealScore";
 import { dealsListSurfaceFromPathname } from "@/lib/dealsListSurface";
+import { RemoteImg } from "./RemoteImg";
 
 const monoMicro =
   "font-mono text-[10px] font-semibold uppercase tracking-[0.14em]";
@@ -231,7 +232,7 @@ export function DealCard({
   const imageBlock = (
     <div className="group/image relative aspect-[16/9] overflow-hidden border-b border-foreground bg-muted sm:aspect-square">
       {deal.image_url ? (
-        <img
+        <RemoteImg
           src={deal.image_url}
           alt={deal.product_name}
           className="h-full w-full object-cover transition-transform duration-300 group-hover/card:scale-[1.03]"

@@ -9,7 +9,6 @@ import {
   fetchCategoryTree,
   DEFAULT_PAGE_SIZE,
   normalizeFacetsResponse,
-  type FacetsResponse,
 } from "@/api";
 import { parseFilterParamsFromSearch, parsePriceParam } from "@/lib/filterParams";
 import { searchParamsRecordToDealsCategoryListPath } from "@/lib/dealsBackHref";

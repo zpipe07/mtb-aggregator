@@ -45,6 +45,7 @@ import type {
 import { CategoryPicker } from "./CategoryPicker";
 import { sanitizeForHtmlId } from "../lib/htmlId";
 import { formatMoney } from "@/lib/formatMoney";
+import { RemoteImg } from "@/components/RemoteImg";
 
 const PAGE_SIZE = 25;
 
@@ -1448,7 +1449,7 @@ export function DataBrowser() {
               <div className="space-y-4 text-sm">
                 <div className="flex gap-4">
                   {detail.image_url ? (
-                    <img
+                    <RemoteImg
                       src={detail.image_url}
                       alt=""
                       className="h-32 w-32 shrink-0 rounded border border-stone-200 object-cover"

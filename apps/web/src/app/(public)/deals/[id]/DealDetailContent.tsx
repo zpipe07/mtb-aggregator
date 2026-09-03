@@ -12,6 +12,7 @@ import { computeDealScore, pricePositionLabel } from "@/lib/dealScore";
 import { cn, focusRing } from "@/lib/utils";
 import { formatMoney } from "@/lib/formatMoney";
 import { Button } from "@/components/ui/button";
+import { RemoteImg } from "@/components/RemoteImg";
 import { PriceHistoryChart } from "@/components/PriceHistoryChart";
 import { useDealDetailListContext } from "./DealDetailBackNav";
 
@@ -130,7 +131,15 @@ function DealDetailContentInner({
       price_dropped: priceHistory?.price_dropped ?? false,
       list_surface: listSurface,
     });
-  }, []);
+  }, [
+    deal.brand,
+    deal.current_price,
+    deal.id,
+    deal.store_name,
+    discountPct,
+    listSurface,
+    priceHistory?.price_dropped,
+  ]);
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
@@ -170,7 +179,7 @@ function DealDetailContentInner({
             <div className="flex flex-col gap-6 sm:flex-row sm:gap-8">
               <div className="mx-auto w-40 shrink-0 overflow-hidden rounded-sm border border-foreground bg-muted sm:mx-0 sm:w-44">
                 {deal.image_url ? (
-                  <img
+                  <RemoteImg
                     src={deal.image_url}
                     alt={deal.product_name}
                     className="aspect-square h-full w-full object-cover"

@@ -75,7 +75,7 @@ export function sanitizeDealsListBackHref(
 }
 
 /** Canonical deal detail URL (back context stored in sessionStorage on click). */
-export function buildDealDetailHref(dealId: number, _dealsListPath?: string): string {
+export function buildDealDetailHref(dealId: number): string {
   return `/deals/${dealId}`;
 }
 

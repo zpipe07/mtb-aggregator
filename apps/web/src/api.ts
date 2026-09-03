@@ -166,8 +166,9 @@ export type FetchDealsParams = {
 export function dealsStableCountParams(
   params: FetchDealsParams,
 ): FetchDealsParams {
-  const { stableTotalCount: _ignored, ...rest } = params;
-  return { ...rest, offset: 0, limit: 1 };
+  const rest = { ...params, offset: 0, limit: 1 };
+  delete rest.stableTotalCount;
+  return rest;
 }
 
 export async function fetchDeals(
