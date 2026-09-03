@@ -236,6 +236,79 @@ func TestMap_singleSegmentUnchanged(t *testing.T) {
 	}
 }
 
+// ZAC-246: specific helmet-part phrases must beat bare "helmet" / "helmets"
+// so store paths like "Helmet Parts" and "Helmet Accessories" do not land
+// on complete Helmets (cheap pads/visors sort to the top of /deals/c/gear/helmets).
+func helmetVsPartsMappings() []Mapping {
+	return []Mapping{
+		{Raw: []string{
+			"helmet parts", "helmet part", "helmet accessories", "helmet accessory",
+			"helmet visor", "helmet visors", "helmet liner", "helmet liners",
+			"helmet pad", "helmet pads", "helmet padding",
+			"replacement visor", "replacement visors", "replacement liner", "replacement liners",
+			"cheek pad", "cheek pads", "cheekpad", "cheekpads",
+		}, Canonical: []string{"Gear", "Helmet parts"}},
+		{Raw: []string{"helmet", "helmets"}, Canonical: []string{"Gear", "Helmets"}},
+		{Raw: []string{"gear", "equipment"}, Canonical: []string{"Gear"}},
+	}
+}
+
+func TestMap_legacyBareHelmetKeywordWouldTrapHelmetParts(t *testing.T) {
+	SetMappings([]Mapping{
+		{Raw: []string{"helmet", "helmets"}, Canonical: []string{"Gear", "Helmets"}},
+		{Raw: []string{"gear", "equipment"}, Canonical: []string{"Gear"}},
+	})
+	t.Cleanup(func() { SetMappings(nil) })
+
+	got := Map([]string{"Helmet Parts"})
+	if !slices.Equal(got, []string{"Gear", "Helmets"}) {
+		t.Fatalf("legacy bare helmet mapping should still demonstrate the ZAC-246 trap, got %v", got)
+	}
+}
+
+func TestMap_helmetPartsPathsAreNotHelmets(t *testing.T) {
+	SetMappings(helmetVsPartsMappings())
+	t.Cleanup(func() { SetMappings(nil) })
+
+	cases := []struct {
+		raw  []string
+		want []string
+	}{
+		{[]string{"Helmet Parts"}, []string{"Gear", "Helmet parts"}},
+		{[]string{"Apparel", "Helmets", "Helmet Accessories"}, []string{"Gear", "Helmet parts"}},
+		{[]string{"Helmet Accessories"}, []string{"Gear", "Helmet parts"}},
+		{[]string{"Cycling Gear", "Bike Accessories", "Bike Helmets", "Mountain Bike Helmets"}, []string{"Gear", "Helmets"}},
+		{[]string{"MTB Helmets"}, []string{"Gear", "Helmets"}},
+		{[]string{"Cycling", "Helmets"}, []string{"Gear", "Helmets"}},
+	}
+	for _, tc := range cases {
+		got := Map(tc.raw)
+		if !slices.Equal(got, tc.want) {
+			t.Errorf("Map(%v) = %v, want %v", tc.raw, got, tc.want)
+		}
+	}
+}
+
+func TestMap_seedTaxonomyMapsHelmetPartsPath(t *testing.T) {
+	path := filepath.Join("..", "..", "..", "..", "packages", "shared", "category_taxonomy.json")
+	if err := Load(path); err != nil {
+		t.Fatalf("Load(%s): %v", path, err)
+	}
+	t.Cleanup(func() { SetMappings(nil) })
+
+	got := Map([]string{"Helmet Parts"})
+	want := []string{"Gear", "Helmet parts"}
+	if !slices.Equal(got, want) {
+		t.Fatalf("Map(seed taxonomy, Helmet Parts) = %v, want %v", got, want)
+	}
+
+	gotHelmet := Map([]string{"Cycling", "Helmets"})
+	wantHelmet := []string{"Gear", "Helmets"}
+	if !slices.Equal(gotHelmet, wantHelmet) {
+		t.Fatalf("Map(seed taxonomy, Cycling > Helmets) = %v, want %v", gotHelmet, wantHelmet)
+	}
+}
+
 func TestMap_suspensionPartsAndFramesStillMatch(t *testing.T) {
 	SetMappings(suspensionVsBikeMappings())
 	t.Cleanup(func() { SetMappings(nil) })

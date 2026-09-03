@@ -263,7 +263,13 @@ const HAND_TUNED: Partial<Record<string, Partial<CategorySeoMeta>>> = {
     description:
       "Find the best deals on mountain bike helmets. Compare prices across brands and retailers.",
     intro:
-      "Shop helmet discounts and compare prices across top retailers.",
+      "Shop complete helmet discounts and compare prices across top retailers. Replacement visors, liners, and pad kits live under Helmet parts.",
+  },
+  "gear-helmet-parts": {
+    description:
+      "Compare deals on helmet visors, liners, cheek pads, and other replacement helmet parts.",
+    intro:
+      "Shop sale prices on helmet accessories sold without a helmet—visors, liners, pad kits, and fit parts.",
   },
   "gear-eyewear": {
     description:
