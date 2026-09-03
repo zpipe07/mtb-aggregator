@@ -30,7 +30,7 @@ The wizard has completed a deep integration of PostHog analytics into The Droppe
 | `giveaway_page_viewed` | User opens the `/giveaways` list | `apps/web/src/views/GiveawaysPageContent.tsx` |
 | `giveaway_outbound_click` | User clicks Enter / Get tickets. Properties: `giveaway_id`, `kind`, `status`, `host_name`, `surface` (`home` \| `giveaways`). Do not send `entry_url` or titles | `apps/web/src/components/GiveawayCard.tsx` |
 | `sort_changed` | User changes the sort order on the deals page | `apps/web/src/components/Toolbar.tsx` |
-| `deal_detail_viewed` | User opens the deal detail page — top of store-referral funnel | `apps/web/src/app/(public)/deals/[id]/DealDetailContent.tsx` |
+| `deal_detail_viewed` | User opens the deal detail page — top of store-referral funnel. Also sends `in_stock_size_count`, `in_stock_color_count`, `in_stock_variant_count` | `apps/web/src/app/(public)/deals/[id]/DealDetailContent.tsx` |
 | `deals_paginated` | User navigates to a new page of results | `apps/web/src/views/DealsPageContent.tsx` |
 | `filter_drawer_opened` | User opens the mobile filter drawer | `apps/web/src/views/DealsPageContent.tsx` |
 | `filters_cleared` | User clears all active filters at once. Property **`had_category_path`**: `true` when the URL was `/deals/c/...` before clearing (category path retained; clears query-backed filters only) | `apps/web/src/views/DealsPageContent.tsx` |

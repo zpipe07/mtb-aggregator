@@ -11,8 +11,13 @@ import { dealsListSurfaceFromListHref } from "@/lib/dealsListSurface";
 import { computeDealScore, pricePositionLabel } from "@/lib/dealScore";
 import { cn, focusRing } from "@/lib/utils";
 import { formatMoney } from "@/lib/formatMoney";
+import {
+  inStockDealVariants,
+  summarizeInStockVariantChips,
+} from "@/lib/inStockVariantChips";
 import { Button } from "@/components/ui/button";
 import { PriceHistoryChart } from "@/components/PriceHistoryChart";
+import { VariantChips } from "@/components/VariantChips";
 import { useDealDetailListContext } from "./DealDetailBackNav";
 
 const monoMicro =
@@ -119,6 +124,8 @@ function DealDetailContentInner({
 
   const dealScore = computeDealScore(deal, priceHistory);
   const priceLabel = pricePositionLabel(deal, priceHistory);
+  const inStockVariants = inStockDealVariants(deal);
+  const variantChips = summarizeInStockVariantChips(deal);
 
   useEffect(() => {
     posthog.capture("deal_detail_viewed", {
@@ -129,6 +136,9 @@ function DealDetailContentInner({
       discount_pct: discountPct,
       price_dropped: priceHistory?.price_dropped ?? false,
       list_surface: listSurface,
+      in_stock_variant_count: inStockVariants.length,
+      in_stock_size_count: variantChips?.sizes.length ?? 0,
+      in_stock_color_count: variantChips?.colors.length ?? 0,
     });
   }, []);
 
@@ -286,6 +296,8 @@ function DealDetailContentInner({
                   </div>
                 </div>
 
+                <VariantChips deal={deal} density="detail" className="mt-5" />
+
                 <Button asChild className="mt-5" size="lg">
                   <a
                     href={viewUrl}
@@ -343,9 +355,9 @@ function DealDetailContentInner({
               </div>
             </div>
 
-            {deal.variants != null && deal.variants.length > 1 && (
+            {inStockVariants.length > 1 && (
               <div className="mt-8 border-t border-border pt-8">
-                <SectionLabel kicker="// 01" title="Variants" />
+                <SectionLabel kicker="// 01" title="In-stock variants" />
                 <div className="overflow-x-auto rounded-sm border border-foreground bg-card">
                   <table className="w-full min-w-[min(100%,20rem)] text-sm">
                     <thead>
@@ -366,18 +378,10 @@ function DealDetailContentInner({
                         >
                           Price
                         </th>
-                        <th
-                          className={cn(
-                            monoMicro,
-                            "w-[7.5rem] px-3 py-2.5 text-right font-semibold text-foreground",
-                          )}
-                        >
-                          Availability
-                        </th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
-                      {deal.variants.map((v) => (
+                      {inStockVariants.map((v) => (
                         <tr
                           key={v.id}
                           className="transition-colors hover:bg-muted/40"
@@ -420,27 +424,14 @@ function DealDetailContentInner({
                                 </span>
                               )}
                           </td>
-                          <td className="px-3 py-3 align-top text-right">
-                            <span
-                              className={cn(
-                                "inline-flex rounded-sm border px-2 py-0.5",
-                                monoMicro,
-                                v.is_in_stock
-                                  ? "border-foreground/40 bg-primary/15 text-foreground"
-                                  : "border-border bg-muted text-muted-foreground",
-                              )}
-                            >
-                              {v.is_in_stock ? "IN STOCK" : "OUT"}
-                            </span>
-                          </td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
                 <p className={cn(monoMicro, "mt-3 text-muted-foreground")}>
-                  Prices and availability are from the retailer; open the deal
-                  to select a variant on the store site.
+                  Sold-out sizes are hidden. Open the retailer to pick a
+                  variant — this is not a store cart.
                 </p>
               </div>
             )}
