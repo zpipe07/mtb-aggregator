@@ -327,6 +327,7 @@ Route: `/giveaways` (not `/raffles`).
 
 - Fetch `GET /giveaways` in `page.tsx` alongside existing `Promise.all`.
 - Render **only open** rows, max **3**, heading like `// 0x Open entries` matching home numbered eyebrows.
+- Place the strip **below the deal carousels** (before Popular deal searches), not under the hero.
 - Hide the whole section if `open_count === 0`.
 - Cards can be compact; “See all” → `/giveaways`.
 - Outbound click `list_surface: "home"` analog: property `surface: "home" | "giveaways"` on `giveaway_outbound_click`.
