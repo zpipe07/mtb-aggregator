@@ -306,6 +306,17 @@ describe("extracted bike_size", () => {
     expect(compactChipGroup(summary!)?.kind).toBe("size");
   });
 
+  it("shows extracted road cm size", () => {
+    const deal: Deal = {
+      ...baseDeal,
+      metadata: { llm_specs: { bike_size: "58cm" } },
+    };
+    expect(extractedBikeSize(deal)).toBe("58cm");
+    expect(summarizeDealSizeChips(deal)?.sizes.map((c) => c.label)).toEqual([
+      "58cm",
+    ]);
+  });
+
   it("prefers in-stock variant sizes over extracted bike_size", () => {
     const deal: Deal = {
       ...baseDeal,
