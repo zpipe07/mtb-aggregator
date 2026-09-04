@@ -18,6 +18,7 @@ permissions:
   pull-requests: read
 
 # Jobs run in parallel. Wall-clock is the slowest job (usually `web`: Next build + Lighthouse).
+# Lint/tsc/tests run in `web-check` so they do not block the production build.
 # A `test` aggregator job keeps the historical required-check name green only when all jobs pass.
 
 jobs:
@@ -36,6 +37,39 @@ jobs:
         uses: gitleaks/gitleaks-action@v3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  web-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: ./.github/actions/setup-pnpm
+
+      # Lint (eslint-plugin-security) and tsc are independent; overlap them.
+      - name: Lint and typecheck web app
+        run: |
+          set +e
+          pnpm --filter @mtb-aggregator/web run lint &
+          lint_pid=$!
+          pnpm --filter @mtb-aggregator/web exec tsc --noEmit &
+          tsc_pid=$!
+          wait "$lint_pid"
+          lint_status=$?
+          wait "$tsc_pid"
+          tsc_status=$?
+          if [ "$lint_status" -ne 0 ] || [ "$tsc_status" -ne 0 ]; then
+            echo "lint exit=${lint_status} tsc exit=${tsc_status}"
+            exit 1
+          fi
+
+      - name: SEO smoke (JSON-LD builders)
+        run: pnpm --filter @mtb-aggregator/web run seo:smoke
+
+      - name: Web tests
+        run: pnpm --filter @mtb-aggregator/web run test
 
   web:
     runs-on: ubuntu-latest
@@ -58,22 +92,41 @@ jobs:
             nextjs-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-
             nextjs-${{ runner.os }}-
 
-      - name: Lint web app
-        run: pnpm --filter @mtb-aggregator/web run lint
+      # Restore/install LHCI before the Next.js build so a cache miss overlaps compile time.
+      - name: Cache Lighthouse CI CLI
+        if: ${{ vars.API_URL != '' }}
+        id: lhci-cache
+        uses: actions/cache@v4
+        with:
+          path: /tmp/lhci
+          key: lhci-cli-0.14.0-${{ runner.os }}-node20
 
-      - name: Type check web app
-        run: pnpm --filter @mtb-aggregator/web exec tsc --noEmit
-
-      - name: SEO smoke (JSON-LD builders)
-        run: pnpm --filter @mtb-aggregator/web run seo:smoke
-
-      - name: Web tests
-        run: pnpm --filter @mtb-aggregator/web run test
+      - name: Start Lighthouse CI CLI install
+        if: ${{ vars.API_URL != '' && steps.lhci-cache.outputs.cache-hit != 'true' }}
+        run: |
+          mkdir -p /tmp/lhci
+          (
+            npm install --prefix /tmp/lhci @lhci/cli@0.14.0
+            echo $? > /tmp/lhci-install.exit
+          ) > /tmp/lhci-install.log 2>&1 &
+          echo $! > /tmp/lhci-install.pid
 
       # API_URL must be set so Next.js can fetch data during static generation.
       # Add API_URL in repo Settings → Secrets and variables → Actions (Secrets).
       - name: Web build
         run: pnpm --filter @mtb-aggregator/web run build
+
+      - name: Wait for Lighthouse CI CLI
+        if: ${{ vars.API_URL != '' && steps.lhci-cache.outputs.cache-hit != 'true' }}
+        run: |
+          pid=$(cat /tmp/lhci-install.pid)
+          while kill -0 "$pid" 2>/dev/null; do sleep 1; done
+          cat /tmp/lhci-install.log
+          if [ ! -f /tmp/lhci-install.exit ]; then
+            echo "lhci install did not write an exit code"
+            exit 1
+          fi
+          exit "$(cat /tmp/lhci-install.exit)"
 
       # Lighthouse SEO assertions (requires a running Next server + live API). Enable by setting
       # API_URL in repository Variables (same value as for the web build).
@@ -84,7 +137,7 @@ jobs:
         env:
           API_URL: ${{ vars.API_URL }}
           NEXT_PUBLIC_SITE_URL: http://127.0.0.1:3000
-        run: npx --yes @lhci/cli@0.14.0 autorun
+        run: /tmp/lhci/node_modules/.bin/lhci autorun
 
   api:
     runs-on: ubuntu-latest
@@ -215,7 +268,7 @@ jobs:
 
   # Historical required-check name. Fails if any parallel job failed/cancelled/skipped.
   test:
-    needs: [secrets, web, api, scraper, docker, audit]
+    needs: [secrets, web, web-check, api, scraper, docker, audit]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 2
