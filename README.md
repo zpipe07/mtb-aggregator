@@ -151,6 +151,7 @@ Develop and document UI components in isolation. See [docs/ARCHITECTURE.md](docs
 ## Documentation
 
 - **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** — System overview, data flow, component library, Sentry / Cursor cloud env
+- **[docs/MARKETING.md](docs/MARKETING.md)** — Go-to-market plan (SEO, community, content, social, email; success = traffic)
 - **[docs/SCRAPING.md](docs/SCRAPING.md)** — Scraper deep dive, parser structure, adding stores
 - **[docs/TAXONOMY.md](docs/TAXONOMY.md)** — Category taxonomy and mappings
 - **[docs/DESIGN.md](docs/DESIGN.md)** — Visual identity, copy, design tokens (current production)

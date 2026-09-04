@@ -1,5 +1,7 @@
 # The Dropper — distribution, SEO, and business viability
 
+Go-to-market channels, sequencing, and the traffic north star: **[docs/MARKETING.md](../MARKETING.md)**. This note stays the SEO / inventory / affiliate-viability brief.
+
 ## Problem Statement
 
 How might we grow The Dropper into a durable product by capturing **buyer-intent traffic** (especially SEO), **earning repeat usage**, and operating as a **legitimate trade or business**—without thinning the site into low-value programmatic pages?
