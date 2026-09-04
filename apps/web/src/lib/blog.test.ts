@@ -176,7 +176,7 @@ Nope
       "utf8",
     );
     expect(mdx).toContain('sort="price_asc"');
-    expect(mdx).toContain("maxPrice={2000}");
-    expect(mdx).toContain("maxPrice={150}");
+    expect(mdx).toContain('maxPrice="2000"');
+    expect(mdx).toContain('maxPrice="150"');
   });
 });

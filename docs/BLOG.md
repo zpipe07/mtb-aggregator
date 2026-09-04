@@ -62,12 +62,12 @@ UI microcopy (buttons, nav) stays in [DESIGN.md](DESIGN.md). Longform follows th
      categorySlug="gear-helmets"
      title="Helmets under $150"
      sort="price_asc"
-     maxPrice={150}
+     maxPrice="150"
      seeAllLabel="Helmets under $150 →"
    />
    ```
 
-   Optional props: `q` (full-text), `href` (override the “see all” path), `limit` (default 4), `sort` (default `value`), `maxPrice` (inclusive current-price cap). “See all” inherits `sort` / `max_price` / `q` so the category page matches the rail.
+   Optional props: `q` (full-text), `href` (override the “see all” path), `limit` (default 4), `sort` (default `value`), `maxPrice` (inclusive current-price cap). Pass `maxPrice` as a quoted string (`maxPrice="150"`) — `next-mdx-remote` does not always evaluate `{150}` expressions. “See all” inherits `sort` / `max_price` / `q` so the category page matches the rail.
 
    Prefer **category and hub URLs** (`/deals/c/...`, `/deals/hub/...`) over a pinned SKU. Inventory moves; the checklist should not.
 5. Date the advice in prose (“prices as of …”). The post template already prints `updated` in the byline.
