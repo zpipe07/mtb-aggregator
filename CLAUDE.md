@@ -197,7 +197,7 @@ pnpm --filter @mtb-aggregator/web run build-storybook  # static build to storybo
 
 ### Web (`apps/web/`)
 
-- React App Router routes: `/` (Home), `/deals`, **`/giveaways`** (curated giveaways & raffles), `/admin/*`
+- React App Router routes: `/` (Home), `/deals`, **`/giveaways`** (curated giveaways & raffles), **`/links`** (Instagram link-in-bio, `noindex`), `/admin/*`
 - **Component library**: shadcn/ui primitives (Button, Input, Card) in `src/components/ui/`; composed components (DealCard, VariantChips, CategoryCard, Pagination, etc.) in `src/components/`. Use primitives for new UI; add Storybook stories for new components. Grouped DealCards show in-stock size/color chips (sold-out options hidden). The deal PDP lists in-stock variants in a table with an In stock badge on each row (no chips), including when only one remains.
 - **Storybook**: `pnpm --filter @mtb-aggregator/web run storybook` — develop and document components in isolation; theme toolbar for light/dark.
 - **Styling**: Tailwind v4 + CSS variables; semantic tokens (`bg-primary`, `text-muted-foreground`) over raw colors.
@@ -217,6 +217,7 @@ For remote (Neon, etc.): `make db-migrate-remote` (uses `go run ./cmd/migrate`)
 
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — Data flow, services, component library, **error monitoring (Sentry) policy**, **logging**, Cursor cloud env / Sentry→PR automation
 - [docs/MARKETING.md](docs/MARKETING.md) — Go-to-market plan (SEO, community, content, social, The Friday Drop; success = traffic)
+- [docs/SOCIAL.md](docs/SOCIAL.md) — Instagram + Reddit posting plan, bio copy, `/links` link-in-bio (ZAC-228)
 - [docs/DESIGN.md](docs/DESIGN.md) — Visual identity, copy guidelines, "dialed-in" vibe
 - [docs/SCRAPING.md](docs/SCRAPING.md) — Parser structure, adding stores
 - [docs/TAXONOMY.md](docs/TAXONOMY.md) — Category mappings, LLM classifier
