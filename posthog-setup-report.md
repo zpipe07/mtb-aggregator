@@ -44,8 +44,19 @@ We've built some insights and a dashboard for you to keep an eye on user behavio
 - **Store referral funnel: deal viewed → snag the deal**: https://us.posthog.com/project/355496/insights/FxucFAfI
 - **Discovery: searches and category clicks**: https://us.posthog.com/project/355496/insights/d77QmM2y
 - **Filter usage by type**: https://us.posthog.com/project/355496/insights/IQaUoSLn
-- **Deal detail views over time**: https://us.posthog.com/project/355496/insights/R3IbmzVV
+- **Deal detail views over time**: https://us.posthog.com/project/355496/insights/R3IbmzVV — still charts the retired `view_at_store` event; use **Weekly deal outbound clicks** for live shop-outs
 - **Sort preference distribution**: https://us.posthog.com/project/355496/insights/J95ji78g
+
+### Marketing readout (ZAC-259)
+
+Pinned **[Weekly marketing readout](https://us.posthog.com/project/355496/dashboard/2066236)** — weekly unique visitors, outbound clicks, referring domains, plus the store-referral funnel. Friday checklist and the 2026-09-04 baseline live in [docs/MARKETING.md](docs/MARKETING.md#weekly-readout-zac-259). Recurring email: Mondays 13:00 UTC to `zpipe07@gmail.com` (subscription `143550`, no AI summary).
+
+| Insight | URL |
+| --- | --- |
+| Weekly unique visitors | https://us.posthog.com/project/355496/insights/OpUInR4V |
+| Returning vs new visitors (weekly) | https://us.posthog.com/project/355496/insights/kSiWEmig |
+| Weekly deal outbound clicks | https://us.posthog.com/project/355496/insights/tgi4n48V |
+| Visitors by referring domain (14d) | https://us.posthog.com/project/355496/insights/wvcbgHqI |
 
 ### Agent skill
 
