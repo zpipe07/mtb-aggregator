@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 import { fetchCategoryTree, fetchDeals, fetchFacets } from "@/api";
+import { blogPostPath, listPublishedPosts } from "@/lib/blog";
 import { filterCategoryTreeWithDeals } from "@/lib/categoryTree";
 import { allDealsCategoryPathsFromTree } from "@/lib/dealsCategoryPath";
 import { absoluteUrl } from "@/lib/siteUrl";
@@ -103,6 +104,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.7,
     },
     {
+      url: absoluteUrl("/blog"),
+      changeFrequency: "weekly",
+      priority: 0.7,
+    },
+    {
       url: absoluteUrl("/policies"),
       changeFrequency: "yearly",
       priority: 0.3,
@@ -113,6 +119,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.3,
     },
   ];
+
+  for (const post of listPublishedPosts()) {
+    entries.push({
+      url: absoluteUrl(blogPostPath(post.slug)),
+      lastModified: new Date(`${post.updated ?? post.date}T00:00:00.000Z`),
+      changeFrequency: "monthly",
+      priority: 0.6,
+    });
+  }
 
   try {
     const tree = await fetchCategoryTree();

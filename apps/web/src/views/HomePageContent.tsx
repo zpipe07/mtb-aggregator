@@ -70,6 +70,8 @@ type Props = {
   dealCount: number;
   lastUpdated: string;
   openGiveaways?: Giveaway[];
+  /** Latest published blog post for crawl + returning-reader discovery. */
+  featuredPost?: { href: string; title: string; description: string } | null;
   /** Server-rendered curated hub links for crawl discovery. */
   hubLinks?: ReactNode;
 };
@@ -82,6 +84,7 @@ export function HomePageContent({
   dealCount,
   lastUpdated,
   openGiveaways = [],
+  featuredPost = null,
   hubLinks,
 }: Props) {
   const router = useRouter();
@@ -291,6 +294,29 @@ export function HomePageContent({
           giveaways={openGiveaways}
           sectionNumber={openEntriesNumber}
         />
+      ) : null}
+
+      {featuredPost ? (
+        <section className="mt-12 border-t border-foreground/15 pt-10 lg:mt-16">
+          <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+            {"// field notes"}
+          </p>
+          <h2 className="mt-2 text-2xl font-semibold tracking-[-0.02em] text-foreground">
+            {featuredPost.title}
+          </h2>
+          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+            {featuredPost.description}
+          </p>
+          <Link
+            href={featuredPost.href}
+            className={cn(
+              "mt-4 inline-block rounded-sm font-mono text-xs font-semibold tracking-wide text-foreground underline-offset-4 hover:underline",
+              focusRing,
+            )}
+          >
+            Read the checklist →
+          </Link>
+        </section>
       ) : null}
 
       {hubLinks ? (

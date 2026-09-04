@@ -10,6 +10,8 @@ import {
   buildAggregateOfferJsonLd,
   buildFaqPageJsonLd,
   buildGiveawaysJsonLd,
+  buildBlogIndexJsonLd,
+  buildBlogPostingJsonLd,
 } from "../src/lib/jsonLd";
 import { computeDealScore } from "../src/lib/dealScore";
 import { brandToSlug, resolveBrandFromSlug } from "../src/lib/brandPages";
@@ -93,6 +95,31 @@ const giveawayItems = giveawayList.itemListElement as Record<string, unknown>[];
 assert.equal(giveawayItems[0].url, "https://example.com/giveaways#norco-rampage");
 assert.equal(JSON.stringify(giveawaysLd).includes('"Event"'), false);
 assert.equal(JSON.stringify(giveawaysLd).includes('"Offer"'), false);
+
+const blogIndexLd = buildBlogIndexJsonLd({
+  name: "The Dropper blog",
+  description: "Checklists.",
+  pageUrl: "https://example.com/blog",
+  posts: [
+    {
+      slug: "mtb-starter-kit",
+      title: "Starter kit",
+      path: "/blog/mtb-starter-kit",
+    },
+  ],
+});
+assert.equal(blogIndexLd["@type"], "CollectionPage");
+const blogList = blogIndexLd.mainEntity as Record<string, unknown>;
+assert.equal(blogList.numberOfItems, 1);
+
+const blogPostLd = buildBlogPostingJsonLd({
+  title: "Starter kit",
+  description: "A checklist.",
+  pageUrl: "https://example.com/blog/mtb-starter-kit",
+  datePublished: "2026-09-04T00:00:00.000Z",
+});
+assert.equal(blogPostLd["@type"], "BlogPosting");
+assert.equal(JSON.stringify(blogPostLd).includes('"Offer"'), false);
 
 assert.equal(brandToSlug("RockShox"), "rockshox");
 assert.equal(resolveBrandFromSlug("fox", ["Fox", "SRAM"]), "Fox");

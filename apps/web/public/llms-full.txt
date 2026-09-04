@@ -24,6 +24,8 @@ The Dropper aggregates publicly listed mountain bike deals from participating re
 | `/deals/{id}` | Single deal detail (stable id) |
 | `/deals/{id}/price-history` | Price tracker page for a listing |
 | `/categories` | Category hub |
+| `/blog` | Editorial index (MDX) |
+| `/blog/{slug}` | A single checklist or note; embeds live deals |
 | `/policies` | Site policies (aggregator, shipping, affiliates) |
 | `/returns` | Returns & refunds policy |
 | `/feed/google-shopping.xml` | Google Merchant Center product feed |
@@ -34,7 +36,7 @@ Legacy query `?category=` on `/deals` redirects to the matching `/deals/c/...` p
 
 ## Structured data (schema.org)
 
-Public HTML includes JSON-LD where appropriate: WebSite + SearchAction (home), ItemList and BreadcrumbList (deals hub, category pages, deal detail), Product + Offer (deal detail), CollectionPage (categories hub).
+Public HTML includes JSON-LD where appropriate: WebSite + SearchAction (home), ItemList and BreadcrumbList (deals hub, category pages, deal detail), Product + Offer (deal detail), CollectionPage (categories hub, blog index), BlogPosting (blog posts).
 
 ## Preferred citation
 

@@ -10,6 +10,7 @@ import {
 } from "@/lib/homeDealSections";
 import { deriveHeroStats } from "@/lib/heroStats";
 import { absoluteUrl } from "@/lib/siteUrl";
+import { blogPostPath, listPublishedPosts } from "@/lib/blog";
 import { HomePageContent } from "@/views/HomePageContent";
 import { SeoHubLinksGlobal } from "@/components/SeoHubLinks";
 
@@ -107,6 +108,15 @@ export default async function Home() {
     ...dealSections.flatMap((section) => section.deals),
   ];
 
+  const latestPost = listPublishedPosts()[0];
+  const featuredPost = latestPost
+    ? {
+        href: blogPostPath(latestPost.slug),
+        title: latestPost.title,
+        description: latestPost.description,
+      }
+    : null;
+
   const avantlinkMarkup = avantlinkVerificationScriptMarkup(
     process.env.NEXT_PUBLIC_AVANTLINK_VERIFY_SCRIPT_SRC ?? "",
   );
@@ -140,6 +150,7 @@ export default async function Home() {
         dealCount={heroStats.dealCount}
         lastUpdated={heroStats.lastUpdated}
         openGiveaways={giveawaysResponse.giveaways}
+        featuredPost={featuredPost}
         hubLinks={
           <SeoHubLinksGlobal title="Popular deal searches" />
         }

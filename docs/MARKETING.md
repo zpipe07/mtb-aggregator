@@ -16,7 +16,7 @@ Reddit has been tried as a launch channel and **did not move the needle**. Same 
 What is **not** true yet:
 
 - Organic search is not a traffic engine. Google Search Console has shown ~0 deal-intent clicks; impressions skew toward brand-name confusion around “dropper” (the component), not “MTB deals.”
-- There is **no social presence**, **no email list / Friday Drop backend**, and **no blog**.
+- There is **no social presence** and **no email list / Friday Drop backend**. The on-site MDX blog is live at [`/blog`](https://thedropper.shop/blog) (first post: starter kit).
 - SEO and GEO plumbing is ahead of demand: category URLs, curated hubs, sitemap/robots, JSON-LD, `llms.txt`. More markup will not create visitors.
 
 So this plan is **create demand and a repeatable way to send people to live inventory**, not another technical SEO sprint.
@@ -141,11 +141,11 @@ MTBbot grew on Reddit. The Dropper already posted there and it **did not get tra
 
 **Job:** Give search and social something shareable that is not another empty “blog.”
 
-There is no blog route today. Do not stand up a magazine. Ship **one or two indexable articles** that deep-link to current `/deals` filters and hubs.
+MDX posts live at [`/blog`](https://thedropper.shop/blog) (publish path: [docs/BLOG.md](BLOG.md)). Do not stand up a magazine. Keep **one or two indexable article formats** that deep-link to current `/deals` filters and hubs.
 
-**First piece (already ticketed):** [ZAC-250](https://linear.app/zacks-personal-projects/issue/ZAC-250) — “products you need to get started.” Frame it as a **returning-rider / first-bike checklist** (bike or a sane used-bike note, helmet, shoes, pedals, dropper, tires, pack/tool). Every item links to the live category or a filtered deals URL, not a static product pick that goes stale. Date the page (“prices as of …”) and re-scrape mentally when inventory shifts.
+**First piece (shipped):** [ZAC-250](https://linear.app/zacks-personal-projects/issue/ZAC-250) — [MTB starter kit](https://thedropper.shop/blog/mtb-starter-kit). Returning-rider / first-bike checklist (bike or a sane used-bike note, helmet, shoes, pedals, dropper, tires, pack/tool). Every item links to the live category or a filtered deals URL and embeds current listings. Date the page (“prices as of …”) and bump `updated` when inventory or copy shifts.
 
-**Second piece (only after the first is live and linked):** a single recurring format — **“This week’s drops”** — 5–8 listings with savings dollars, store, and in-stock honesty. That template becomes Friday Drop + Instagram fodder. Do not invent a new format each week.
+**Second piece (only after the first is live and linked):** a single recurring format — **“This week’s drops”** ([ZAC-261](https://linear.app/zacks-personal-projects/issue/ZAC-261)) — 5–8 listings with savings dollars, store, and in-stock honesty. That template becomes Friday Drop + Instagram fodder. Do not invent a new format each week.
 
 **Later / maybe:** seasonal “when to buy” (Black Friday → spring) once we have price-history stories worth telling. Industry-data ticket [ZAC-17](https://linear.app/zacks-personal-projects/issue/ZAC-17) is product, not a reason to write eight guides.
 
@@ -210,7 +210,7 @@ No dates. Finish or explicitly skip a step before starting the next.
 | --- | --- | --- |
 | **0. Measurement** | Confirm Vercel Analytics + PostHog see production; GSC property is `sc-domain:thedropper.shop`; note a one-week baseline of visitors / sources. | **Done 2026-09-04.** [Weekly marketing readout](https://us.posthog.com/project/355496/dashboard/2066236) + baseline in this doc. GSC remains a manual Friday cell. |
 | **1. SEO proof** | Request indexing on the four money URLs; Bing + sitemap; eMTB intro is answer-shaped. | Those URLs are indexed (or we know why not). |
-| **2. First article** | Ship ZAC-250 (starter kit) with live deal links; add it to sitemap/nav as appropriate. | URL is live, indexed or submitted, and internally linked from home or `/deals`. |
+| **2. First article** | Ship ZAC-250 (starter kit) with live deal links; add it to sitemap/nav as appropriate. | URL is live (`/blog/mtb-starter-kit`), indexed or submitted ([ZAC-262](https://linear.app/zacks-personal-projects/issue/ZAC-262)), and internally linked from home and the header. |
 | **3. Social handle** | Claim Instagram; publish deal-of-the-week using the same picks as the weekly template. | Profile exists; first post links to a live hub. |
 | **4. Friday Drop** | ESP + domain auth + first real Friday send, **then** site signup. | Issue 1 sent; capture form goes live the same week. |
 
@@ -244,5 +244,5 @@ Steps 3 and 4 can swap if email is more natural than Instagram — both need the
 
 - After two to four weeks of GSC data: is the failure “not indexed,” “indexed but wrong queries (dropper post),” or “right queries, no CTR”? That chooses copy vs hubs vs brand clarification.
 - Instagram vs skipping social until Friday Drop has a list — default Instagram first because ZAC-228 exists; revisit if posting is not happening.
-- Whether the starter-kit article lives at `/blog/…` or a single `/guides/get-started` URL. Prefer **one guide URL** until there is a second article.
+- Whether a second article format (“This week’s drops”) earns a weekly habit, or the starter kit is enough until Friday Drop exists.
 - At what weekly visitor count we bother with paid tests or a second content series. Default: not before organic + email are both producing sessions we can see.
