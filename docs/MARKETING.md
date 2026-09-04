@@ -11,7 +11,7 @@ This is the go-to-market plan. Technical SEO, GEO, and product distribution deta
 
 The Dropper is a live US-focused MTB deals aggregator: multi-store sale pages, category/brand/price hubs, filters, price history, and a curated [giveaways](https://thedropper.shop/giveaways) directory. Monetization is **affiliate-first**. The product already does the job MTBbot proved riders want — one fast sale feed.
 
-Reddit has been tried as a launch channel and **did not move the needle**. The r/MTB post [I created a mtbbot replacement](https://www.reddit.com/r/MTB/comments/1v2t40h/i_created_a_mtbbot_replacement/) got little traction. Do not treat another “I built the MTBbot successor” thread as a traffic plan.
+Reddit has been tried as a launch channel and **did not move the needle**. Same post, two subs, little traction: [r/MTB](https://www.reddit.com/r/MTB/comments/1v2t40h/i_created_a_mtbbot_replacement/) and [r/MTBDeals](https://www.reddit.com/r/MTBDeals/comments/1v2tdce/i_created_a_mtbbot_replacement/). Do not treat another “I built the MTBbot successor” thread as a traffic plan.
 
 What is **not** true yet:
 
@@ -83,16 +83,16 @@ The technical baseline is already built. Do not open a second SEO workstream. Ex
 
 **Job:** Be findable when someone is already looking for a deals list. Not: manufacture a second launch spike.
 
-MTBbot grew on Reddit. The Dropper already posted there and it **did not get traction** — [I created a mtbbot replacement](https://www.reddit.com/r/MTB/comments/1v2t40h/i_created_a_mtbbot_replacement/) (`1v2t40h` on r/MTB). A cold “I built this” thread is a spent move. Community stays **experimental and low-volume**.
+MTBbot grew on Reddit. The Dropper already posted there and it **did not get traction** — [r/MTB `1v2t40h`](https://www.reddit.com/r/MTB/comments/1v2t40h/i_created_a_mtbbot_replacement/) and [r/MTBDeals `1v2tdce`](https://www.reddit.com/r/MTBDeals/comments/1v2tdce/i_created_a_mtbbot_replacement/). A cold “I built this” thread is a spent move on both the general and the deals-specific sub. Community stays **experimental and low-volume**.
 
 **In**
 
-- **r/MTB** and **r/mtbdeals** only. Reply when someone asks “where do I find sales?” or “is mtbbot dead?” with the site and a specific category/hub URL — not a generic homepage dump. Keep the name in the reply; people forgot “mtbbot” and searched by description.
+- **r/MTB** and **r/MTBDeals** only. Reply when someone asks “where do I find sales?” or “is mtbbot dead?” with the site and a specific category/hub URL — not a generic homepage dump. Keep the name in the reply; people forgot “mtbbot” and searched by description.
 - At most one useful follow-up **if** there is a real story (new store coverage, a dense week of eMTB closeouts, giveaways strip actually has open entries). Same tone as the product: no fluff. Not another replacement announcement.
 
 **Out**
 
-- Another launch / “MTBbot replacement” post. We ran that experiment.
+- Another launch / “MTBbot replacement” post on r/MTB, r/MTBDeals, or anywhere else. We ran that experiment on both.
 - Daily deal dumps, affiliate-looking titles, or brigading.
 - Making Reddit the **plan**, or counting on a post to refill the funnel.
 
@@ -175,7 +175,7 @@ No dates. Finish or explicitly skip a step before starting the next.
 | **3. Social handle** | Claim Instagram; publish deal-of-the-week using the same picks as the weekly template. | Profile exists; first post links to a live hub. |
 | **4. Friday Drop** | ESP + domain auth + first real Friday send, **then** site signup. | Issue 1 sent; capture form goes live the same week. |
 
-Reddit launch is **already done** (low traction on [`1v2t40h`](https://www.reddit.com/r/MTB/comments/1v2t40h/i_created_a_mtbbot_replacement/)). Do not insert another community step in this sequence. Replies-only, opportunistic.
+Reddit launch is **already done** (low traction on [r/MTB `1v2t40h`](https://www.reddit.com/r/MTB/comments/1v2t40h/i_created_a_mtbbot_replacement/) and [r/MTBDeals `1v2tdce`](https://www.reddit.com/r/MTBDeals/comments/1v2tdce/i_created_a_mtbbot_replacement/)). Do not insert another community step in this sequence. Replies-only, opportunistic.
 
 Steps 3 and 4 can swap if email is more natural than Instagram — both need the weekly drops template from step 2.
 
@@ -185,7 +185,7 @@ Steps 3 and 4 can swap if email is more natural than Instagram — both need the
 - A high-volume blog or YouTube channel.
 - Programmatic thin pages or every-filter indexation.
 - Fake email capture.
-- Relying on Reddit as the only plan, posting there on a schedule, or a second “I built an MTBbot replacement” thread ([already tried](https://www.reddit.com/r/MTB/comments/1v2t40h/i_created_a_mtbbot_replacement/)).
+- Relying on Reddit as the only plan, posting there on a schedule, or another “I built an MTBbot replacement” thread ([r/MTB](https://www.reddit.com/r/MTB/comments/1v2t40h/i_created_a_mtbbot_replacement/), [r/MTBDeals](https://www.reddit.com/r/MTBDeals/comments/1v2tdce/i_created_a_mtbbot_replacement/) — already tried).
 - Entity/tax structuring as a substitute for visitors ([distribution one-pager](ideas/thedropper-distribution-seo.md)).
 
 ## Related work
@@ -197,7 +197,7 @@ Steps 3 and 4 can swap if email is more natural than Instagram — both need the
 | [ZAC-201](https://linear.app/zacks-personal-projects/issue/ZAC-201) / [ai-agent-citation.md](ideas/ai-agent-citation.md) | GEO supporting work |
 | [thedropper-distribution-seo.md](ideas/thedropper-distribution-seo.md) | SEO + business constraints this plan follows |
 | [price-band-hub-indexing.md](ideas/price-band-hub-indexing.md) | Hub indexation proof |
-| [mtbbot-feedback.md](ideas/mtbbot-feedback.md) | Audience and why community / email alerts matter |
+| [mtbbot-feedback.md](ideas/mtbbot-feedback.md) | Audience; includes the low-traction r/MTB (`1v2t40h`) and r/MTBDeals (`1v2tdce`) shares |
 | [DESIGN.md](DESIGN.md) | Voice; “The Friday Drop” naming |
 
 ## Open questions
