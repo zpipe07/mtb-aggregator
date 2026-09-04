@@ -169,13 +169,15 @@ The web app sets `metadataBase`, default Open Graph/Twitter fields (including a 
 
 ## Analytics
 
-The web app uses [Vercel Web Analytics](https://vercel.com/docs/analytics) via `@vercel/analytics`. Enable Web Analytics in the Vercel project dashboard (Analytics → Enable) after deploying. Page views and visitors are tracked automatically.
+The web app uses [Vercel Web Analytics](https://vercel.com/docs/analytics) via `@vercel/analytics`. Enable Web Analytics in the Vercel project dashboard (Analytics → Enable) after deploying. Page views and visitors are tracked automatically. Hobby does not record custom events; **PostHog** is the source of truth for `deal_outbound_click` and other product events.
+
+Weekly unique visitors, outbound clicks, and referring domains: pinned **[Weekly marketing readout](https://us.posthog.com/project/355496/dashboard/2066236)** (checklist + baseline in [docs/MARKETING.md](MARKETING.md#weekly-readout-zac-259)). Product-behavior tiles: [Analytics basics](https://us.posthog.com/project/355496/dashboard/1395138).
 
 **Custom events** (require Vercel Pro or an alternative such as PostHog) are wired via `track()` and/or `posthog.capture()` in [DealCard](apps/web/src/components/DealCard.tsx), [DealDetailModal](apps/web/src/components/DealDetailModal.tsx), [DealFilters](apps/web/src/components/DealFilters.tsx), [SearchBar](apps/web/src/components/SearchBar.tsx), [DealsPageContent](apps/web/src/views/DealsPageContent.tsx), and related components:
 
 - `deal_card_click` — user opens deal detail (`deal_id`, `store`, `brand`, `list_surface`, `in_stock_size_count`, `in_stock_color_count`)
 - `deal_detail_viewed` — deal PDP mount (same identity fields plus `in_stock_variant_count`)
-- `view_deal` / `view_at_store` — user clicks through to retailer (deal_id, store, brand)
+- `deal_outbound_click` — user clicks through to retailer (`cta`, `deal_id`, `store`, `brand`, `list_surface`). Prefer this over retired `view_deal` / `view_at_store`.
 - `filter_applied` — store, brand, category, sort, min_discount, spec, or **giveaway kind chips** (`filter_type: "giveaway_kind"`, `value`: `all` | `giveaway` | `raffle`)
 - `giveaway_page_viewed` — `/giveaways` list mount
 - `giveaway_outbound_click` — primary enter/ticket CTA (`giveaway_id`, `kind`, `status`, `host_name`, `surface`: `home` | `giveaways`)

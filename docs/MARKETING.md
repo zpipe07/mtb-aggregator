@@ -1,6 +1,6 @@
 # The Dropper — marketing plan
 
-**Status:** Written plan (ZAC-258). Campaigns are not launched yet.  
+**Status:** Written plan (ZAC-258). Step 0 (measurement) is in place ([ZAC-259](https://linear.app/zacks-personal-projects/issue/ZAC-259)). Campaigns are not launched yet.  
 **Site:** [thedropper.shop](https://thedropper.shop)  
 **Owner:** Zack  
 **Created:** 2026-09-04
@@ -40,6 +40,45 @@ Traffic is the right north star while the site is still unknown. Affiliate reven
 **Guardrails:** bounce-and-leave on home, outbound click-through on deal cards, and “did they hit a money page” (`/deals`, `/deals/c/…`, `/deals/hub/…`). More sessions that never see a listing are not a win.
 
 No calendar deadline. Sequence below is **order of leverage**, not a date-bound OKR.
+
+## Weekly readout (ZAC-259)
+
+Bookmark **[Weekly marketing readout](https://us.posthog.com/project/355496/dashboard/2066236)** (project *The Dropper*, pinned, tags `marketing` / `zac-259`). Product-behavior tiles stay on [Analytics basics](https://us.posthog.com/project/355496/dashboard/1395138).
+
+**Friday check (about five minutes)**
+
+1. Open the dashboard. Read **Weekly unique visitors** (north star) and **Weekly deal outbound clicks** (quality). Calendar weeks are **UTC Sunday–Saturday**; the current week is marked partial.
+2. Scan **Visitors by referring domain (14d)** for Reddit / Google vs `$direct`. `thedropper.shop` is internal hops, not a channel.
+3. GSC is still **manual**: [Search Console](https://search.google.com/search-console) property `sc-domain:thedropper.shop` → Performance → last 7 days → clicks and impressions. No GSC API in this repo.
+4. Optional second visitor count: Vercel Analytics (Hobby). Do **not** expect `deal_outbound_click` there — custom events need Pro; PostHog is the source of truth for outbound.
+
+**Sources**
+
+| Metric | Source of truth | Notes |
+| --- | --- | --- |
+| Weekly unique visitors | PostHog `$pageview` unique users, weekly | [OpUInR4V](https://us.posthog.com/project/355496/insights/OpUInR4V). Filter test accounts on. |
+| Returning vs new | PostHog lifecycle (identified only) + week-over-week uniques | [kSiWEmig](https://us.posthog.com/project/355496/insights/kSiWEmig) stays at **zero** while shoppers are anonymous. Compare this week’s unique visitors to last week until we identify users. Vercel “returning” is a backup. |
+| `deal_outbound_click` | PostHog | [tgi4n48V](https://us.posthog.com/project/355496/insights/tgi4n48V) — totals + unique clickers. Cards and PDP both fire this event. |
+| Referral domain | PostHog `$referring_domain` | [wvcbgHqI](https://us.posthog.com/project/355496/insights/wvcbgHqI) |
+| Organic clicks / impressions | Google Search Console `sc-domain:thedropper.shop` | Manual. Plan already notes ~0 deal-intent clicks. |
+| Second visitor count | Vercel Web Analytics | Hobby pageviews/visitors only. |
+
+**Baseline captured 2026-09-04** (test accounts filtered; PostHog timezone UTC)
+
+| Window | Unique visitors | Outbound clicks (events / unique clickers) |
+| --- | --- | --- |
+| Week of 2026-08-23 | 28 | 113 / 11 |
+| Week of 2026-08-30 (partial through Sep 4) | 51 | 126 / 18 |
+
+Last-14d unique visitors by `$referring_domain` (2026-08-21 → 2026-09-04): `$direct` 56, `thedropper.shop` 17, `github.com` 8, `www.reddit.com` 6, `com.reddit.frontpage` 2, `www.google.com` 2, `search.google.com` 1, `vercel.com` 1.
+
+Store-referral funnel on the same dashboard ([FxucFAfI](https://us.posthog.com/project/355496/insights/FxucFAfI), last 30d, 30-minute window): 76 people `deal_detail_viewed` → 45 `deal_outbound_click` (59%). Card-level snags without a PDP view are **not** in this funnel — use the weekly outbound tile for total shop-outs.
+
+Vercel Web Analytics (Hobby) for 2026-08-28 → 2026-09-04: **67 visitors / 594 pageviews**. Same window as a rolling week, not the PostHog Sunday-start week — expect the counts to differ.
+
+GSC clicks/impressions were **not** pulled in this baseline (no API). Fill that cell the first Friday you open Search Console.
+
+Want a Monday-morning email or Slack of this dashboard? Say who should receive it and the cadence — it is not subscribed yet.
 
 ## Positioning
 
@@ -169,7 +208,7 @@ No dates. Finish or explicitly skip a step before starting the next.
 
 | Step | Work | Done when |
 | --- | --- | --- |
-| **0. Measurement** | Confirm Vercel Analytics + PostHog see production; GSC property is `sc-domain:thedropper.shop`; note a one-week baseline of visitors / sources. | You can answer “how many people came this week, and from where?” |
+| **0. Measurement** | Confirm Vercel Analytics + PostHog see production; GSC property is `sc-domain:thedropper.shop`; note a one-week baseline of visitors / sources. | **Done 2026-09-04.** [Weekly marketing readout](https://us.posthog.com/project/355496/dashboard/2066236) + baseline in this doc. GSC remains a manual Friday cell. |
 | **1. SEO proof** | Request indexing on the four money URLs; Bing + sitemap; eMTB intro is answer-shaped. | Those URLs are indexed (or we know why not). |
 | **2. First article** | Ship ZAC-250 (starter kit) with live deal links; add it to sitemap/nav as appropriate. | URL is live, indexed or submitted, and internally linked from home or `/deals`. |
 | **3. Social handle** | Claim Instagram; publish deal-of-the-week using the same picks as the weekly template. | Profile exists; first post links to a live hub. |
@@ -192,6 +231,7 @@ Steps 3 and 4 can swap if email is more natural than Instagram — both need the
 
 | Item | Role |
 | --- | --- |
+| [ZAC-259](https://linear.app/zacks-personal-projects/issue/ZAC-259) Marketing measurement baseline | Weekly readout + first numbers (this doc) |
 | [ZAC-228](https://linear.app/zacks-personal-projects/issue/ZAC-228) Create social media presence | Execute channel 4 |
 | [ZAC-250](https://linear.app/zacks-personal-projects/issue/ZAC-250) Blog post: products you need to get started | Execute channel 3, first article |
 | [ZAC-201](https://linear.app/zacks-personal-projects/issue/ZAC-201) / [ai-agent-citation.md](ideas/ai-agent-citation.md) | GEO supporting work |
