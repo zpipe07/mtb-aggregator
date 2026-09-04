@@ -3,6 +3,11 @@ import { withSentryConfig } from "@sentry/nextjs";
 
 const nextConfig: NextConfig = {
   transpilePackages: ["@mtb-aggregator/logging"],
+  // CI/Vercel already lint via `pnpm run lint` (includes eslint-plugin-security).
+  // Skipping Next's duplicate lint pass during `next build` (~30s in Actions).
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
   // Expose release/environment to the browser bundle (Sentry client + Vercel git SHA)
   env: {
     NEXT_PUBLIC_SENTRY_RELEASE:

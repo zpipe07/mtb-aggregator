@@ -9,6 +9,7 @@
       ],
       "numberOfRuns": 1,
       "settings": {
+        "onlyCategories": ["seo"],
         "chromeFlags": "--no-sandbox --disable-gpu"
       }
     },

@@ -50,7 +50,7 @@ React frontend for the MTB deal aggregator. Built with Next.js 15 (App Router), 
 
 ## SEO monitoring (CI)
 
-GitHub Actions runs **Lighthouse CI** against `http://127.0.0.1:3000/` and `/deals` after a production build **when** repository **Actions → Variables** defines `API_URL` (same value the web build uses so pages can render with data). Config: [`lighthouserc.json`](lighthouserc.json). Reports are written under `apps/web/.lighthouseci/` (gitignored). Tune thresholds in `ci.assert.assertions` if the SEO score gate is too strict for your templates.
+GitHub Actions runs **Lighthouse CI** in the parallel `web` job against `http://127.0.0.1:3000/` and `/deals` after a production build **when** repository **Actions → Variables** defines `API_URL` (same value the web build uses so pages can render with data). Config: [`lighthouserc.json`](lighthouserc.json) (SEO category only). Reports are written under `apps/web/.lighthouseci/` (gitignored). Tune thresholds in `ci.assert.assertions` if the SEO score gate is too strict for your templates. The Next.js compiler cache (`apps/web/.next/cache`) is restored between CI runs. Lint, `tsc`, SEO smoke, and Vitest run in a separate **`web-check`** job so they do not block the production build. `next.config.ts` sets `eslint.ignoreDuringBuilds` because CI already runs `pnpm run lint` (including `eslint-plugin-security`). The Lighthouse CLI is cached in Actions (`/tmp/lhci`, `@lhci/cli@0.14.0`) instead of `npx --yes` on every run.
 
 **Optional MCP (local):** [`.cursor/mcp.json`](../../.cursor/mcp.json) can register `google-searchconsole-mcp` and `pagespeed-insights-mcp` for Search Console and PageSpeed Insights from the IDE.
 
@@ -78,7 +78,7 @@ The API must be running for data. Configure `NEXT_PUBLIC_API_URL` (client) or `A
 
 - **Vercel Production:** `NEXT_PUBLIC_SITE_URL` is **required** — the app throws if it is unset (see [`src/lib/siteUrl.ts`](src/lib/siteUrl.ts)). Do **not** rely on `VERCEL_URL` in production; it is the deployment hostname and would poison canonicals and sitemap URLs.
 - **Vercel Preview:** When unset, the origin falls back to `https://${VERCEL_URL}` so preview deployments still work.
-- **Local dev:** Defaults to `http://localhost:3000` (set `NEXT_PUBLIC_SITE_URL` if you use another port). GitHub Actions sets `NEXT_PUBLIC_SITE_URL` for CI builds — see [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml).
+- **Local dev:** Defaults to `http://localhost:3000` (set `NEXT_PUBLIC_SITE_URL` if you use another port). GitHub Actions sets `NEXT_PUBLIC_SITE_URL=http://127.0.0.1:3000` on the `web` job — see [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml).
 
 **Avantlink homepage verification (optional):** Set `NEXT_PUBLIC_AVANTLINK_VERIFY_SCRIPT_SRC` in Vercel (Production only, or Preview if you verify there) to the exact script URL Avantlink gives you (`http://` or `https://...affiliate_app_confirm.php?mode=js&authResponse=...`). Do **not** paste that URL into tracked source—it trips secret scanners. The homepage injects that tag via static HTML (not `next/script`), with a **literal** `&` between query parameters in the source—React’s normal `src={url}` escapes `&` as `&amp;`, which some verifiers mistakenly reject. Remove the variable after Avantlink confirms.
 
