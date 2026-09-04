@@ -16,6 +16,7 @@ When making code changes, update relevant docs so they stay accurate. Check if a
 | New features, data flow, deployment | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [CLAUDE.md](CLAUDE.md), [README.md](README.md) |
 | Component library, primitives, Storybook | [apps/web/README.md](apps/web/README.md), [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
 | Visual identity, copy, design tokens | [docs/DESIGN.md](docs/DESIGN.md) |
+| Marketing / growth channels, traffic goals | [docs/MARKETING.md](docs/MARKETING.md) |
 | Sentry / error-reporting behavior or conventions | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) (Error monitoring), affected app README(s), [.cursor/rules/error-reporting.mdc](error-reporting.mdc) |
 | PostHog / product analytics events or user flows | [.cursor/rules/posthog-analytics.mdc](posthog-analytics.mdc), [apps/web/README.md](apps/web/README.md), [posthog-setup-report.md](posthog-setup-report.md) if you maintain it |
 
