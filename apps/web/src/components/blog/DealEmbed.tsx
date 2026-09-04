@@ -26,7 +26,8 @@ export async function DealEmbed({
   seeAllLabel = "See all deals →",
 }: Props) {
   const slug = categorySlug.trim();
-  let seeAllHref = href?.trim() || "/deals";
+  // Query form 308s to `/deals/c/...` via middleware when the live tree is unavailable.
+  let seeAllHref = href?.trim() || `/deals?category=${encodeURIComponent(slug)}`;
   let deals: Awaited<ReturnType<typeof fetchDeals>>["deals"] = [];
 
   try {
