@@ -19,7 +19,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { RemoteImg } from "@/components/RemoteImg";
 import { PriceHistoryChart } from "@/components/PriceHistoryChart";
-import { VariantChips } from "@/components/VariantChips";
 import { useDealDetailListContext } from "./DealDetailBackNav";
 
 const monoMicro =
@@ -306,10 +305,7 @@ function DealDetailContentInner({
                   </div>
                 </div>
 
-                <VariantChips deal={deal} density="detail" className="w-full" />
-
                 <Button asChild className="w-full sm:w-auto" size="lg">
-
                   <a
                     href={viewUrl}
                     target="_blank"
@@ -390,6 +386,14 @@ function DealDetailContentInner({
                         >
                           Price
                         </th>
+                        <th
+                          className={cn(
+                            monoMicro,
+                            "w-[7.5rem] px-3 py-2.5 text-right font-semibold text-foreground",
+                          )}
+                        >
+                          Availability
+                        </th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
@@ -435,6 +439,19 @@ function DealDetailContentInner({
                                   ${v.original_price.toFixed(2)}
                                 </span>
                               )}
+                          </td>
+                          <td className="px-3 py-3 align-top text-right">
+                            <span
+                              className={cn(
+                                "inline-flex rounded-sm border px-2 py-0.5",
+                                monoMicro,
+                                v.is_in_stock
+                                  ? "border-foreground/40 bg-primary/15 text-foreground"
+                                  : "border-border bg-muted text-muted-foreground",
+                              )}
+                            >
+                              {v.is_in_stock ? "In stock" : "Out"}
+                            </span>
                           </td>
                         </tr>
                       ))}

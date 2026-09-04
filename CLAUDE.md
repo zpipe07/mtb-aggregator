@@ -198,7 +198,7 @@ pnpm --filter @mtb-aggregator/web run build-storybook  # static build to storybo
 ### Web (`apps/web/`)
 
 - React App Router routes: `/` (Home), `/deals`, **`/giveaways`** (curated giveaways & raffles), `/admin/*`
-- **Component library**: shadcn/ui primitives (Button, Input, Card) in `src/components/ui/`; composed components (DealCard, VariantChips, CategoryCard, Pagination, etc.) in `src/components/`. Use primitives for new UI; add Storybook stories for new components. Grouped DealCards and the deal PDP show in-stock size/color chips (sold-out options hidden).
+- **Component library**: shadcn/ui primitives (Button, Input, Card) in `src/components/ui/`; composed components (DealCard, VariantChips, CategoryCard, Pagination, etc.) in `src/components/`. Use primitives for new UI; add Storybook stories for new components. Grouped DealCards show in-stock size/color chips (sold-out options hidden). The deal PDP lists in-stock variants in a table with an In stock badge on each row (no chips).
 - **Storybook**: `pnpm --filter @mtb-aggregator/web run storybook` — develop and document components in isolation; theme toolbar for light/dark.
 - **Styling**: Tailwind v4 + CSS variables; semantic tokens (`bg-primary`, `text-muted-foreground`) over raw colors.
 - Admin section includes: Dashboard, DataBrowser, StoreManager, **GiveawayManager**, TaxonomyManager, Categories (tree CRUD), SpecFilterManager (deprecated), PromptProfileManager, CategoryClassifierManager, NormalizationManager, Operations. Taxonomy, profiles, and classifier use category pickers backed by the structured tree.

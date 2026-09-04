@@ -14,7 +14,7 @@ const monoMicro =
 
 type VariantChipsProps = {
   deal: Deal;
-  /** Compact = one row for listing cards. Detail = labeled groups on the PDP. */
+  /** Compact = one row for listing cards. Detail = labeled wrapping groups. */
   density?: "compact" | "detail";
   className?: string;
 };

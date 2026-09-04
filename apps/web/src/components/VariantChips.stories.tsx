@@ -58,7 +58,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "In-stock size/color chips for grouped deals. Sold-out options are omitted. Compact density is a single row for listing cards; detail density wraps and can show per-size prices.",
+          "In-stock size/color chips for grouped listing cards. Sold-out options are omitted. Compact density is a single row; detail density wraps and can show per-size prices. The deal PDP uses a variant table instead of these chips.",
       },
     },
   },
