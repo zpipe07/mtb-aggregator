@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -166,5 +166,17 @@ Nope
     const listed = listPublishedPosts();
     expect(listed.some((p) => p.slug === "mtb-starter-kit")).toBe(true);
     expect(getPublishedPost("mtb-starter-kit")?.meta.title).toMatch(/starter kit/i);
+  });
+
+  it("keeps starter-kit rails on the cheap end of the feed", () => {
+    cwdSpy.mockRestore();
+    // eslint-disable-next-line security/detect-non-literal-fs-filename -- repo fixture
+    const mdx = readFileSync(
+      join(process.cwd(), "content", "blog", "mtb-starter-kit.mdx"),
+      "utf8",
+    );
+    expect(mdx).toContain('sort="price_asc"');
+    expect(mdx).toContain("maxPrice={2000}");
+    expect(mdx).toContain("maxPrice={150}");
   });
 });

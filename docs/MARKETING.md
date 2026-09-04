@@ -143,7 +143,7 @@ MTBbot grew on Reddit. The Dropper already posted there and it **did not get tra
 
 MDX posts live at [`/blog`](https://thedropper.shop/blog) (publish path: [docs/BLOG.md](BLOG.md)). Do not stand up a magazine. Keep **one or two indexable article formats** that deep-link to current `/deals` filters and hubs.
 
-**First piece (shipped):** [ZAC-250](https://linear.app/zacks-personal-projects/issue/ZAC-250) — [MTB starter kit](https://thedropper.shop/blog/mtb-starter-kit). Returning-rider / first-bike checklist (bike or a sane used-bike note, helmet, shoes, pedals, dropper, tires, pack/tool). Every item links to the live category or a filtered deals URL and embeds current listings. Date the page (“prices as of …”) and bump `updated` when inventory or copy shifts.
+**First piece (shipped):** [ZAC-250](https://linear.app/zacks-personal-projects/issue/ZAC-250) — [MTB starter kit](https://thedropper.shop/blog/mtb-starter-kit). Returning-rider / first-bike checklist (bike or a sane used-bike note, helmet, shoes, pedals, dropper, tires, pack/tool). Voice: [docs/BLOG.md](BLOG.md#voice). Rails are cheapest-first with beginner price caps. Date the page (“prices as of …”) and bump `updated` when inventory or copy shifts.
 
 **Second piece (only after the first is live and linked):** a single recurring format — **“This week’s drops”** ([ZAC-261](https://linear.app/zacks-personal-projects/issue/ZAC-261)) — 5–8 listings with savings dollars, store, and in-stock honesty. That template becomes Friday Drop + Instagram fodder. Do not invent a new format each week.
 
