@@ -6,44 +6,57 @@ on:
   pull_request:
     branches: [main]
 
+# Cancel superseded PR runs; keep every push to main.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 # gitleaks lists PR commits via the GitHub API; the default GITHUB_TOKEN often lacks
 # pull-requests:read unless declared (otherwise 403 Resource not accessible by integration).
 permissions:
   contents: read
   pull-requests: read
 
+# Jobs run in parallel. Wall-clock is the slowest job (usually `web`: Next build + Lighthouse).
+# A `test` aggregator job keeps the historical required-check name green only when all jobs pass.
+
 jobs:
-  test:
+  secrets:
     runs-on: ubuntu-latest
-    env:
-      API_URL: ${{ vars.API_URL }}
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
-      - uses: pnpm/action-setup@v6
-
-      - uses: actions/setup-node@v7
-        with:
-          node-version: "20"
-          cache: "pnpm"
-
-      - uses: actions/setup-go@v7
-        with:
-          go-version: "1.26.6"
-          cache-dependency-path: apps/api/go.sum
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
       - name: Verify Docker and CI tool versions
-        run: pnpm run check:build-versions
+        run: bash scripts/check-build-version-sync.sh
 
       - name: Secret scan
         uses: gitleaks/gitleaks-action@v3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  web:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      API_URL: ${{ vars.API_URL }}
+      NEXT_PUBLIC_SITE_URL: http://127.0.0.1:3000
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: ./.github/actions/setup-pnpm
+
+      - name: Cache Next.js build
+        uses: actions/cache@v4
+        with:
+          path: apps/web/.next/cache
+          key: nextjs-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.sha }}
+          restore-keys: |
+            nextjs-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-
+            nextjs-${{ runner.os }}-
 
       - name: Lint web app
         run: pnpm --filter @mtb-aggregator/web run lint
@@ -56,6 +69,132 @@ jobs:
 
       - name: Web tests
         run: pnpm --filter @mtb-aggregator/web run test
+
+      # API_URL must be set so Next.js can fetch data during static generation.
+      # Add API_URL in repo Settings → Secrets and variables → Actions (Secrets).
+      - name: Web build
+        run: pnpm --filter @mtb-aggregator/web run build
+
+      # Lighthouse SEO assertions (requires a running Next server + live API). Enable by setting
+      # API_URL in repository Variables (same value as for the web build).
+      - name: Lighthouse CI (SEO category)
+        if: ${{ vars.API_URL != '' }}
+        timeout-minutes: 6
+        working-directory: apps/web
+        env:
+          API_URL: ${{ vars.API_URL }}
+          NEXT_PUBLIC_SITE_URL: http://127.0.0.1:3000
+        run: npx --yes @lhci/cli@0.14.0 autorun
+
+  api:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-go@v7
+        id: setup-go
+        with:
+          go-version: "1.26.6"
+          cache-dependency-path: apps/api/go.sum
+
+      - name: Add cached Go tools to PATH
+        run: echo "${{ github.workspace }}/.gopath/bin" >> "$GITHUB_PATH"
+
+      - name: Cache Go analysis tools
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/.gopath/bin
+          key: go-tools-staticcheck-v0.7.0-govulncheck-v1.2.0-${{ runner.os }}-${{ steps.setup-go.outputs.go-version }}
+
+      - name: Install Go analysis tools
+        env:
+          GOBIN: ${{ github.workspace }}/.gopath/bin
+        run: |
+          mkdir -p "$GOBIN"
+          if [ ! -x "$GOBIN/staticcheck" ]; then
+            go install honnef.co/go/tools/cmd/staticcheck@v0.7.0
+          fi
+          if [ ! -x "$GOBIN/govulncheck" ]; then
+            go install golang.org/x/vuln/cmd/govulncheck@v1.2.0
+          fi
+
+      - name: Go vet
+        working-directory: apps/api
+        run: go vet ./...
+
+      - name: Staticcheck
+        working-directory: apps/api
+        run: staticcheck ./...
+
+      - name: Go vulnerability check
+        working-directory: apps/api
+        run: govulncheck ./...
+
+      - name: API tests
+        working-directory: apps/api
+        run: go test ./...
+
+      - name: API build
+        run: cd apps/api && go build -o /dev/null .
+
+  scraper:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: ./.github/actions/setup-pnpm
+
+      - name: Build logging package
+        run: pnpm --filter @mtb-aggregator/logging run build
+
+      - name: Logging package tests
+        run: pnpm --filter @mtb-aggregator/logging run test
+
+      - name: Build scraper
+        run: pnpm --filter @mtb-aggregator/scraper run build
+
+      - name: Scraper tests
+        run: pnpm --filter @mtb-aggregator/scraper run test
+
+  docker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: api
+            dockerfile: apps/api/Dockerfile
+            image: mtb-api-ci
+          - name: scraper
+            dockerfile: apps/scraper/Dockerfile
+            image: mtb-scraper-ci
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build ${{ matrix.name }} Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          tags: ${{ matrix.image }}:ci
+          cache-from: type=gha,scope=ci-docker-${{ matrix.name }}
+          cache-to: type=gha,mode=max,scope=ci-docker-${{ matrix.name }}
+          # Attestations require pushing the image.
+          provenance: false
+          sbom: false
+
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: ./.github/actions/setup-pnpm
 
       - name: Node dependency audit
         env:
@@ -74,58 +213,24 @@ jobs:
           done
           exit 1
 
-      - name: Go vet
-        working-directory: apps/api
-        run: go vet ./...
-
-      - name: Staticcheck
-        working-directory: apps/api
-        run: |
-          go install honnef.co/go/tools/cmd/staticcheck@v0.7.0
-          staticcheck ./...
-
-      - name: Go vulnerability check
-        working-directory: apps/api
-        run: |
-          go install golang.org/x/vuln/cmd/govulncheck@v1.2.0
-          govulncheck ./...
-
-      - name: API tests
-        working-directory: apps/api
-        run: go test ./...
-
-      - name: Build logging package
-        run: pnpm --filter @mtb-aggregator/logging run build
-
-      - name: Logging package tests
-        run: pnpm --filter @mtb-aggregator/logging run test
-
-      - name: Build scraper
-        run: pnpm --filter @mtb-aggregator/scraper run build
-
-      - name: Scraper tests
-        run: pnpm --filter @mtb-aggregator/scraper run test
-
-      - name: Build API Docker image
-        run: docker build -t mtb-api-ci -f apps/api/Dockerfile .
-
-      - name: Build scraper Docker image
-        run: docker build -t mtb-scraper-ci -f apps/scraper/Dockerfile .
-
-      - name: API build
-        run: cd apps/api && go build -o /dev/null .
-
-      # API_URL must be set so Next.js can fetch data during static generation.
-      # Add API_URL in repo Settings → Secrets and variables → Actions (Secrets).
-      - name: Web build
-        run: pnpm --filter @mtb-aggregator/web run build
-
-      # Lighthouse SEO assertions (requires a running Next server + live API). Enable by setting
-      # API_URL in repository Variables (same value as for the web build).
-      - name: Lighthouse CI (SEO category)
-        if: ${{ vars.API_URL != '' }}
-        working-directory: apps/web
+  # Historical required-check name. Fails if any parallel job failed/cancelled/skipped.
+  test:
+    needs: [secrets, web, api, scraper, docker, audit]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: All jobs passed
         env:
-          API_URL: ${{ vars.API_URL }}
-          NEXT_PUBLIC_SITE_URL: http://127.0.0.1:3000
-        run: npx --yes @lhci/cli@0.14.0 autorun
+          NEEDS: ${{ toJSON(needs) }}
+        run: |
+          python3 - <<'PY'
+          import json, os, sys
+          needs = json.loads(os.environ["NEEDS"])
+          bad = [name for name, job in needs.items() if job.get("result") != "success"]
+          print("job results:", {name: job.get("result") for name, job in needs.items()})
+          if bad:
+              print("required jobs that did not succeed:", ", ".join(bad))
+              sys.exit(1)
+          print("all required jobs succeeded")
+          PY
