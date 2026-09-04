@@ -363,7 +363,7 @@ function DealDetailContentInner({
               </div>
             </div>
 
-            {inStockVariants.length > 1 && (
+            {inStockVariants.length > 0 && (
               <div className="mt-8 border-t border-border pt-8">
                 <SectionLabel kicker="// 01" title="In-stock variants" />
                 <div className="overflow-x-auto rounded-sm border border-foreground bg-card">

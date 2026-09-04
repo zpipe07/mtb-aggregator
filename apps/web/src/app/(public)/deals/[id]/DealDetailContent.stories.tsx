@@ -71,3 +71,53 @@ export const InStockVariantTable: Story = {
     categoryTree: [],
   },
 };
+
+/** One in-stock size (sold-out siblings hidden) — still show the table. */
+export const SingleInStockVariant: Story = {
+  args: {
+    deal: {
+      id: 1966452,
+      store_id: 23,
+      store_name: "Cambria Bikes",
+      store_sku: "GM022025-62",
+      product_name: "Smith Payroll MIPS MTB Helmet - Matt Forest",
+      current_price: 149.99,
+      original_price: 230,
+      product_url: "https://example.com/payroll",
+      image_url: "https://placehold.co/400x400/1a1a1a/fff?text=Payroll",
+      brand: "Smith",
+      is_in_stock: true,
+      discount_pct: 35,
+      last_scraped: "2026-09-01T12:00:00Z",
+      variant_count: 3,
+      variant_options: { Size: "Small", Color: "Matt Forest" },
+      price_range: [115, 149.99],
+      variants: [
+        row({
+          id: 1966453,
+          store_sku: "GM022025-63",
+          variant_options: { Size: "Medium", Color: "Matt Forest" },
+          current_price: 115,
+          original_price: 230,
+          is_in_stock: false,
+        }),
+        row({
+          id: 1966452,
+          store_sku: "GM022025-62",
+          variant_options: { Size: "Small", Color: "Matt Forest" },
+          current_price: 149.99,
+          original_price: 230,
+        }),
+        row({
+          id: 1966454,
+          store_sku: "GM022025-64",
+          variant_options: { Size: "Large", Color: "Matt Forest" },
+          current_price: 149.99,
+          original_price: 230,
+          is_in_stock: false,
+        }),
+      ],
+    },
+    categoryTree: [],
+  },
+};
