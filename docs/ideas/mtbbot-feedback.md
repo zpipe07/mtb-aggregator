@@ -102,7 +102,7 @@ MTBbot’s love was speed. Open Dropper tickets that violate that promise: [ZAC-
 - **First-time buyer codes** (OP: 20% CC vs Backcountry on the same OneUp dropper).
 - **Dedup across stores** — [ZAC-215](https://linear.app/zacks-personal-projects/issue/ZAC-215/should-we-combine-duplicate-products-across-stores).
 - **Industry “best time to buy”** (OP: Black Friday → early spring) — [ZAC-17](https://linear.app/zacks-personal-projects/issue/ZAC-17/display-industry-data).
-- **Distribution:** r/mtbdeals sticky, Instagram stories, people searching “that redditor deals site.” [ZAC-228](https://linear.app/zacks-personal-projects/issue/ZAC-228/create-social-media-presence). The name **must** be memorable; `drlqi8` is a warning that “mtbbot” was already forgettable.
+- **Distribution:** r/MTBDeals sticky, Instagram stories, people searching “that redditor deals site.” Launch posts on r/MTB and r/MTBDeals already landed with **low traction** (`1v2t40h`, `1v2tdce`) — see [MARKETING.md](../MARKETING.md). [ZAC-228](https://linear.app/zacks-personal-projects/issue/ZAC-228/create-social-media-presence). The name **must** be memorable; `drlqi8` is a warning that “mtbbot” was already forgettable.
 - **Affiliate is expected** if the tool is good: “when I see affiliate links I get annoyed — but in this case you 100% earned your cut.”
 - **LBS tension:** one comment, low score: “even easier to give Amazon or Jenson your money than your local bike shop.” Not a blocker; optional “support your LBS” copy is enough.
 
