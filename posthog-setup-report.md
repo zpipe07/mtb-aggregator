@@ -35,6 +35,8 @@ The wizard has completed a deep integration of PostHog analytics into The Droppe
 | `filter_drawer_opened` | User opens the mobile filter drawer | `apps/web/src/views/DealsPageContent.tsx` |
 | `filters_cleared` | User clears all active filters at once. Property **`had_category_path`**: `true` when the URL was `/deals/c/...` before clearing (category path retained; clears query-backed filters only) | `apps/web/src/views/DealsPageContent.tsx` |
 | `scroll_to_top_clicked` | User clicks the floating scroll-to-top control after scrolling down a page. Property **`pathname`**: current route | `apps/web/src/components/ScrollToTop.tsx` |
+| `link_in_bio_viewed` | User opens `/links` (Instagram website-field landing) | `apps/web/src/views/LinksPageContent.tsx` |
+| `link_in_bio_clicked` | User taps a destination on `/links`. Properties: `link_id` (stable key, e.g. `all_deals`), `href` | `apps/web/src/views/LinksPageContent.tsx` |
 
 ## Next steps
 

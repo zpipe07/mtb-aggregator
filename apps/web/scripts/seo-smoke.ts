@@ -10,6 +10,7 @@ import {
   buildAggregateOfferJsonLd,
   buildFaqPageJsonLd,
   buildGiveawaysJsonLd,
+  buildWebSiteSearchJsonLd,
 } from "../src/lib/jsonLd";
 import { computeDealScore } from "../src/lib/dealScore";
 import { brandToSlug, resolveBrandFromSlug } from "../src/lib/brandPages";
@@ -156,5 +157,14 @@ const historyMeta = buildDealPriceHistoryMetadata({
   store_name: "Shop",
 });
 assert.deepEqual(historyMeta.robots, { index: false, follow: true });
+
+const website = buildWebSiteSearchJsonLd();
+assert.equal(website["@type"], "WebSite");
+assert.ok(Array.isArray(website.sameAs));
+assert.ok(
+  (website.sameAs as string[]).includes(
+    "https://www.instagram.com/thedropper.shop/",
+  ),
+);
 
 console.log("seo-smoke: ok");

@@ -9,6 +9,7 @@ export function buildWebSiteSearchJsonLd(): Record<string, unknown> {
     "@type": "WebSite",
     name: "The Dropper",
     url: absoluteUrl("/"),
+    sameAs: ["https://www.instagram.com/thedropper.shop/"],
     potentialAction: {
       "@type": "SearchAction",
       target: `${absoluteUrl("/deals")}?q={search_term_string}`,
