@@ -78,7 +78,7 @@ Vercel Web Analytics (Hobby) for 2026-08-28 → 2026-09-04: **67 visitors / 594 
 
 GSC clicks/impressions were **not** pulled in this baseline (no API). Fill that cell the first Friday you open Search Console.
 
-Want a Monday-morning email or Slack of this dashboard? Say who should receive it and the cadence — it is not subscribed yet.
+**Email:** PostHog subscription [Weekly marketing readout](https://us.posthog.com/project/355496/dashboard/2066236) → `zpipe07@gmail.com`, every **Monday 13:00 UTC** (subscription `143550`). Charts only — no AI summary. A test send was fired on create. Manage or pause under [Subscriptions](https://us.posthog.com/project/355496/subscriptions).
 
 ## Positioning
 

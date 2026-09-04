@@ -49,7 +49,7 @@ We've built some insights and a dashboard for you to keep an eye on user behavio
 
 ### Marketing readout (ZAC-259)
 
-Pinned **[Weekly marketing readout](https://us.posthog.com/project/355496/dashboard/2066236)** — weekly unique visitors, outbound clicks, referring domains, plus the store-referral funnel. Friday checklist and the 2026-09-04 baseline live in [docs/MARKETING.md](docs/MARKETING.md#weekly-readout-zac-259).
+Pinned **[Weekly marketing readout](https://us.posthog.com/project/355496/dashboard/2066236)** — weekly unique visitors, outbound clicks, referring domains, plus the store-referral funnel. Friday checklist and the 2026-09-04 baseline live in [docs/MARKETING.md](docs/MARKETING.md#weekly-readout-zac-259). Recurring email: Mondays 13:00 UTC to `zpipe07@gmail.com` (subscription `143550`, no AI summary).
 
 | Insight | URL |
 | --- | --- |
