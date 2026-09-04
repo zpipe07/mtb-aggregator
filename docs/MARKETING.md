@@ -9,7 +9,9 @@ This is the go-to-market plan. Technical SEO, GEO, and product distribution deta
 
 ## Situation
 
-The Dropper is a live US-focused MTB deals aggregator: multi-store sale pages, category/brand/price hubs, filters, price history, and a curated [giveaways](https://thedropper.shop/giveaways) directory. Monetization is **affiliate-first**. The product already does the job MTBbot proved riders want — one fast sale feed — and launched on Reddit as that successor.
+The Dropper is a live US-focused MTB deals aggregator: multi-store sale pages, category/brand/price hubs, filters, price history, and a curated [giveaways](https://thedropper.shop/giveaways) directory. Monetization is **affiliate-first**. The product already does the job MTBbot proved riders want — one fast sale feed.
+
+Reddit has been tried as a launch channel and **did not move the needle**. The r/MTB post [I created a mtbbot replacement](https://www.reddit.com/r/MTB/comments/1v2t40h/i_created_a_mtbbot_replacement/) got little traction. Do not treat another “I built the MTBbot successor” thread as a traffic plan.
 
 What is **not** true yet:
 
@@ -55,7 +57,7 @@ No calendar deadline. Sequence below is **order of leverage**, not a date-bound 
 
 ## Channel strategy
 
-Priority for a solo operator: **SEO (compounding) + community (near-term sessions)**, then **one content asset**, then **social handle + Friday Drop** once there is something worth repeating.
+Priority for a solo operator: **SEO (compounding)**, then **one content asset**, then **social handle + Friday Drop** once there is something worth repeating. Community stays a **reply-when-asked** channel, not a launch bet — we already posted.
 
 ### 1. SEO — primary compounding channel
 
@@ -77,24 +79,24 @@ The technical baseline is already built. Do not open a second SEO workstream. Ex
 
 **Traffic test:** GSC clicks to a money page > 0, then a rising 28-day click trend. Until then, SEO is hygiene + proof, not a content factory.
 
-### 2. Community — fastest honest traffic (worthy extra)
+### 2. Community — reply when asked, not a launch engine
 
-**Job:** Send riders who already want a deals list to a bookmarkable URL.
+**Job:** Be findable when someone is already looking for a deals list. Not: manufacture a second launch spike.
 
-MTBbot grew on Reddit and died from ops, not demand. The Dropper already has a launch thread. Community is **experimental and high-leverage**, not a spam engine.
+MTBbot grew on Reddit. The Dropper already posted there and it **did not get traction** — [I created a mtbbot replacement](https://www.reddit.com/r/MTB/comments/1v2t40h/i_created_a_mtbbot_replacement/) (`1v2t40h` on r/MTB). A cold “I built this” thread is a spent move. Community stays **experimental and low-volume**.
 
 **In**
 
-- Treat **r/MTB** and **r/mtbdeals** as the only regular surfaces. Reply when someone asks “where do I find sales?” or “is mtbbot dead?” with the site and a specific category/hub URL — not a generic homepage dump.
-- One useful follow-up post when there is a **real** story (new store coverage, a dense week of eMTB closeouts, giveaways strip actually has open entries). Same tone as the product: no fluff.
-- Keep the name in the post body. People forgot “mtbbot” and searched by description.
+- **r/MTB** and **r/mtbdeals** only. Reply when someone asks “where do I find sales?” or “is mtbbot dead?” with the site and a specific category/hub URL — not a generic homepage dump. Keep the name in the reply; people forgot “mtbbot” and searched by description.
+- At most one useful follow-up **if** there is a real story (new store coverage, a dense week of eMTB closeouts, giveaways strip actually has open entries). Same tone as the product: no fluff. Not another replacement announcement.
 
 **Out**
 
-- Daily deal dumps, affiliate-looking titles, or brigading. One bad week can close the only channel that has ever worked for this category of site.
-- Making Reddit the **plan**. If it spikes traffic, capture those people into email as soon as Friday Drop exists.
+- Another launch / “MTBbot replacement” post. We ran that experiment.
+- Daily deal dumps, affiliate-looking titles, or brigading.
+- Making Reddit the **plan**, or counting on a post to refill the funnel.
 
-**Traffic test:** referral sessions from reddit.com and whether they reach `/deals` or a hub (PostHog path).
+**Traffic test:** incidental reddit.com referrals that reach `/deals` or a hub (PostHog). Do not hold other channels for a Reddit win.
 
 ### 3. Content — few pages that point at live deals
 
@@ -169,12 +171,13 @@ No dates. Finish or explicitly skip a step before starting the next.
 | --- | --- | --- |
 | **0. Measurement** | Confirm Vercel Analytics + PostHog see production; GSC property is `sc-domain:thedropper.shop`; note a one-week baseline of visitors / sources. | You can answer “how many people came this week, and from where?” |
 | **1. SEO proof** | Request indexing on the four money URLs; Bing + sitemap; eMTB intro is answer-shaped. | Those URLs are indexed (or we know why not). |
-| **2. Community** | One genuine Reddit help-reply or update when there is news; UTM on the links. | At least one non-zero reddit.com week in analytics, or a written “we tried, it did not land.” |
-| **3. First article** | Ship ZAC-250 (starter kit) with live deal links; add it to sitemap/nav as appropriate. | URL is live, indexed or submitted, and internally linked from home or `/deals`. |
-| **4. Social handle** | Claim Instagram; publish deal-of-the-week using the same picks as the weekly template. | Profile exists; first post links to a live hub. |
-| **5. Friday Drop** | ESP + domain auth + first real Friday send, **then** site signup. | Issue 1 sent; capture form goes live the same week. |
+| **2. First article** | Ship ZAC-250 (starter kit) with live deal links; add it to sitemap/nav as appropriate. | URL is live, indexed or submitted, and internally linked from home or `/deals`. |
+| **3. Social handle** | Claim Instagram; publish deal-of-the-week using the same picks as the weekly template. | Profile exists; first post links to a live hub. |
+| **4. Friday Drop** | ESP + domain auth + first real Friday send, **then** site signup. | Issue 1 sent; capture form goes live the same week. |
 
-Steps 4 and 5 can swap if email is more natural than Instagram — both need the weekly drops template from step 3.
+Reddit launch is **already done** (low traction on [`1v2t40h`](https://www.reddit.com/r/MTB/comments/1v2t40h/i_created_a_mtbbot_replacement/)). Do not insert another community step in this sequence. Replies-only, opportunistic.
+
+Steps 3 and 4 can swap if email is more natural than Instagram — both need the weekly drops template from step 2.
 
 ## What we will not do (yet)
 
@@ -182,7 +185,7 @@ Steps 4 and 5 can swap if email is more natural than Instagram — both need the
 - A high-volume blog or YouTube channel.
 - Programmatic thin pages or every-filter indexation.
 - Fake email capture.
-- Relying on Reddit as the only plan, or posting there on a schedule.
+- Relying on Reddit as the only plan, posting there on a schedule, or a second “I built an MTBbot replacement” thread ([already tried](https://www.reddit.com/r/MTB/comments/1v2t40h/i_created_a_mtbbot_replacement/)).
 - Entity/tax structuring as a substitute for visitors ([distribution one-pager](ideas/thedropper-distribution-seo.md)).
 
 ## Related work
