@@ -94,6 +94,24 @@
     },
     {
       "raw": [
+        "mountain bike clothing",
+        "mtb clothing",
+        "bike clothing",
+        "mountain bike bottoms",
+        "mtb bottoms",
+        "bike bottoms",
+        "mountain bike tops",
+        "mtb tops",
+        "bike tops",
+        "road bike clothing",
+        "road bike tops",
+        "road bike bottoms",
+        "triathlon clothing"
+      ],
+      "canonical": ["Gear", "Clothing"]
+    },
+    {
+      "raw": [
         "mountain bike",
         "mtb",
         "mountain bikes",
@@ -306,7 +324,10 @@
         "bib shorts",
         "cycling shorts",
         "mtb shorts",
-        "liner shorts"
+        "liner shorts",
+        "liner short",
+        "men's liners",
+        "women's liners"
       ],
       "canonical": ["Gear", "Clothing", "Shorts"]
     },
@@ -317,6 +338,27 @@
     {
       "raw": ["socks", "cycling socks"],
       "canonical": ["Gear", "Clothing", "Socks"]
+    },
+    {
+      "raw": [
+        "skirt",
+        "skirts",
+        "skort",
+        "skorts",
+        "skinsuit",
+        "skinsuits",
+        "cycling tops",
+        "casual cycling",
+        "tri tops",
+        "tri top",
+        "cycling hat",
+        "cycling hats",
+        "bike hat",
+        "bike hats",
+        "cycling cap",
+        "cycling caps"
+      ],
+      "canonical": ["Gear", "Clothing"]
     },
     {
       "raw": ["clothing"],

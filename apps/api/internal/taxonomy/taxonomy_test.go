@@ -309,6 +309,117 @@ func TestMap_seedTaxonomyMapsHelmetPartsPath(t *testing.T) {
 	}
 }
 
+// ZAC-264: Competitive Cyclist apparel breadcrumbs include "mountain bike"
+// / "road bike" (e.g. "Women's Mountain Bike Bottoms"). Unmapped leaves
+// ("Women's Skirts", "Men's Liners") fall back to that parent and hit
+// generic bike keywords unless more specific apparel phrases run first.
+func ccApparelVsBikeMappings() []Mapping {
+	return []Mapping{
+		{Raw: []string{
+			"mountain bike clothing", "mtb clothing", "bike clothing",
+			"mountain bike bottoms", "mtb bottoms", "bike bottoms",
+			"mountain bike tops", "bike tops",
+			"road bike clothing", "road bike tops", "road bike bottoms",
+			"triathlon clothing",
+		}, Canonical: []string{"Gear", "Clothing"}},
+		{Raw: []string{
+			"skirt", "skirts", "skort", "skorts",
+			"skinsuit", "skinsuits",
+			"cycling tops", "casual cycling",
+			"tri tops", "tri top",
+			"cycling hat", "bike hat", "cycling cap",
+		}, Canonical: []string{"Gear", "Clothing"}},
+		{Raw: []string{
+			"shorts", "bib shorts", "cycling shorts", "mtb shorts",
+			"liner shorts", "liner short", "men's liners", "women's liners",
+		}, Canonical: []string{"Gear", "Clothing", "Shorts"}},
+		{Raw: []string{"clothing"}, Canonical: []string{"Gear", "Clothing"}},
+		{Raw: []string{"hardtail"}, Canonical: []string{"Bikes", "Mountain Bikes"}},
+		{Raw: []string{"mountain bike", "mtb", "mountain bikes"}, Canonical: []string{"Bikes", "Mountain Bikes"}},
+		{Raw: []string{"road bike", "road"}, Canonical: []string{"Bikes", "Road Bikes"}},
+		{Raw: []string{"bike", "bikes", "bicycle"}, Canonical: []string{"Bikes"}},
+	}
+}
+
+func TestMap_legacyMountainBikeKeywordWouldTrapCCApparel(t *testing.T) {
+	SetMappings([]Mapping{
+		{Raw: []string{"shorts", "liner shorts"}, Canonical: []string{"Gear", "Clothing", "Shorts"}},
+		{Raw: []string{"clothing"}, Canonical: []string{"Gear", "Clothing"}},
+		{Raw: []string{"mountain bike", "mtb", "mountain bikes"}, Canonical: []string{"Bikes", "Mountain Bikes"}},
+		{Raw: []string{"bike", "bikes"}, Canonical: []string{"Bikes"}},
+	})
+	t.Cleanup(func() { SetMappings(nil) })
+
+	got := Map([]string{
+		"Women's Clothing",
+		"Women's Mountain Bike Clothing",
+		"Women's Mountain Bike Bottoms",
+		"Women's Skirts",
+	})
+	if !slices.Equal(got, []string{"Bikes", "Mountain Bikes"}) {
+		t.Fatalf("legacy mountain-bike mapping should still demonstrate the ZAC-264 trap, got %v", got)
+	}
+}
+
+func TestMap_ccApparelPathsAreNotBikes(t *testing.T) {
+	SetMappings(ccApparelVsBikeMappings())
+	t.Cleanup(func() { SetMappings(nil) })
+
+	cases := []struct {
+		raw  []string
+		want []string
+	}{
+		{[]string{"Women's Clothing", "Women's Mountain Bike Clothing", "Women's Mountain Bike Bottoms", "Women's Skirts"}, []string{"Gear", "Clothing"}},
+		{[]string{"Men's Clothing", "Men's Mountain Bike Clothing", "Men's Mountain Bike Bottoms", "Men's Liners"}, []string{"Gear", "Clothing", "Shorts"}},
+		{[]string{"Women's Clothing", "Women's Mountain Bike Clothing", "Women's Mountain Bike Bottoms", "Women's Liners"}, []string{"Gear", "Clothing", "Shorts"}},
+		{[]string{"Men's Clothing", "Men's Road Bike Clothing", "Men's Road Bike Tops", "Men's Casual Cycling Tops"}, []string{"Gear", "Clothing"}},
+		{[]string{"Men's Clothing", "Men's Road Bike Clothing", "Men's Road Bike Tops", "Men's Skinsuits"}, []string{"Gear", "Clothing"}},
+		{[]string{"Men's Clothing", "Men's Triathlon Clothing", "Men's Tri Bike", "Men's Tri Tops"}, []string{"Gear", "Clothing"}},
+		{[]string{"Men's Clothing", "Men's Mountain Bike Clothing", "Men's Mountain Bike Accessories", "Men's Bike Hats", "Cycling Hats & Caps"}, []string{"Gear", "Clothing"}},
+		{[]string{"Hardtail Mountain Bike"}, []string{"Bikes", "Mountain Bikes"}},
+		{[]string{"Bikes", "Mountain Bikes", "Pre-Configured Mountain Bikes"}, []string{"Bikes", "Mountain Bikes"}},
+	}
+	for _, tc := range cases {
+		got := Map(tc.raw)
+		if !slices.Equal(got, tc.want) {
+			t.Errorf("Map(%v) = %v, want %v", tc.raw, got, tc.want)
+		}
+	}
+}
+
+func TestMap_seedTaxonomyMapsCCApparelPaths(t *testing.T) {
+	path := filepath.Join("..", "..", "..", "..", "packages", "shared", "category_taxonomy.json")
+	if err := Load(path); err != nil {
+		t.Fatalf("Load(%s): %v", path, err)
+	}
+	t.Cleanup(func() { SetMappings(nil) })
+
+	gotSkirt := Map([]string{
+		"Women's Clothing",
+		"Women's Mountain Bike Clothing",
+		"Women's Mountain Bike Bottoms",
+		"Women's Skirts",
+	})
+	if !slices.Equal(gotSkirt, []string{"Gear", "Clothing"}) {
+		t.Fatalf("Map(seed taxonomy, CC skirt path) = %v, want [Gear Clothing]", gotSkirt)
+	}
+
+	gotLiner := Map([]string{
+		"Men's Clothing",
+		"Men's Mountain Bike Clothing",
+		"Men's Mountain Bike Bottoms",
+		"Men's Liners",
+	})
+	if !slices.Equal(gotLiner, []string{"Gear", "Clothing", "Shorts"}) {
+		t.Fatalf("Map(seed taxonomy, CC liner path) = %v, want [Gear Clothing Shorts]", gotLiner)
+	}
+
+	gotBike := Map([]string{"Bikes", "Mountain Bikes", "Pre-Configured Mountain Bikes"})
+	if !slices.Equal(gotBike, []string{"Bikes", "Mountain"}) {
+		t.Fatalf("Map(seed taxonomy, CC complete bike path) = %v, want [Bikes Mountain]", gotBike)
+	}
+}
+
 func TestMap_suspensionPartsAndFramesStillMatch(t *testing.T) {
 	SetMappings(suspensionVsBikeMappings())
 	t.Cleanup(func() { SetMappings(nil) })
