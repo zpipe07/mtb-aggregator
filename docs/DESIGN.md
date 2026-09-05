@@ -33,6 +33,8 @@ Legacy raster marks (`logo.png`, `logo-light.png`, `the-dropper-logo.png`, `the-
 
 Speak the language of the trailhead. Avoid generic "Save money!" fluff.
 
+**Blog longform** is a tighter, Pinkbike-adjacent rider voice — succinct, not salesy. See [docs/BLOG.md](BLOG.md#voice). Do not reuse UI lines like “Snag the Deal” inside articles.
+
 ### Headlines
 
 - "Every MTB sale. One feed."

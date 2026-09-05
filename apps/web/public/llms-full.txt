@@ -25,6 +25,8 @@ The Dropper aggregates publicly listed mountain bike deals from participating re
 | `/deals/{id}/price-history` | Price tracker page for a listing |
 | `/categories` | Category hub |
 | `/giveaways` | Curated giveaways and raffles (enter on the host site) |
+| `/blog` | Editorial index (MDX) |
+| `/blog/{slug}` | A single checklist or note; embeds live deals |
 | `/links` | Instagram link-in-bio utility page (not for citation; `noindex`) |
 | `/policies` | Site policies (aggregator, shipping, affiliates) |
 | `/returns` | Returns & refunds policy |
@@ -36,7 +38,7 @@ Legacy query `?category=` on `/deals` redirects to the matching `/deals/c/...` p
 
 ## Structured data (schema.org)
 
-Public HTML includes JSON-LD where appropriate: WebSite + SearchAction (home; `sameAs` includes Instagram), ItemList and BreadcrumbList (deals hub, category pages, deal detail), Product + Offer (deal detail), CollectionPage (categories hub).
+Public HTML includes JSON-LD where appropriate: WebSite + SearchAction (home; `sameAs` includes Instagram), ItemList and BreadcrumbList (deals hub, category pages, deal detail), Product + Offer (deal detail), CollectionPage (categories hub, blog index), BlogPosting (blog posts).
 
 ## Preferred citation
 

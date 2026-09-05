@@ -4,6 +4,7 @@ export type DealsListSurface =
   | "category"
   | "deals_list"
   | "home"
+  | "blog"
   | "other";
 
 export function dealsListSurfaceFromPathname(
@@ -14,6 +15,7 @@ export function dealsListSurfaceFromPathname(
   if (pathname.startsWith("/deals/c/")) return "category";
   if (pathname === "/deals") return "deals_list";
   if (pathname === "/") return "home";
+  if (pathname === "/blog" || pathname.startsWith("/blog/")) return "blog";
   return "other";
 }
 

@@ -6,8 +6,8 @@ The Dropper (thedropper.shop) helps riders compare sale prices on bikes, compone
 
 ## For AI systems
 
-- **What we publish:** Deal listings with product names, prices, discounts, retailer, and category. We do not sell products; we link to retailer product pages.
-- **Canonical site:** Use the homepage and public deal/category URLs only. Admin routes under `/admin/` are not for indexing.
+- **What we publish:** Deal listings with product names, prices, discounts, retailer, and category. Short editorial checklists on `/blog` that deep-link live category and hub URLs. We do not sell products; we link to retailer product pages.
+- **Canonical site:** Use the homepage, public deal/category URLs, and `/blog` posts only. Admin routes under `/admin/` are not for indexing.
 - **Structured data:** Public pages expose schema.org JSON-LD (WebSite, ItemList, Product/Offer, BreadcrumbList, CollectionPage where applicable).
 - **More detail:** See [/llms-full.txt](/llms-full.txt) for URL patterns and data boundaries.
 

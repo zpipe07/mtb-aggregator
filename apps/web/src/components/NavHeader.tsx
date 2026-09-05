@@ -34,6 +34,7 @@ export function NavHeader({ categoryTree = [] }: NavHeaderProps) {
 
   const navLinks = [
     { href: "/", label: "Home", exact: true },
+    { href: "/blog", label: "Blog", exact: false },
     { href: "/giveaways", label: "Giveaways", exact: false },
   ];
 

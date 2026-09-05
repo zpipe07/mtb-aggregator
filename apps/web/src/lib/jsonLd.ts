@@ -222,6 +222,62 @@ export function buildCollectionPageJsonLd(opts: {
   };
 }
 
+/** CollectionPage + ItemList of blog posts (no Product/Offer). */
+export function buildBlogIndexJsonLd(opts: {
+  name: string;
+  description: string;
+  pageUrl: string;
+  posts: { slug: string; title: string; path: string }[];
+}): Record<string, unknown> {
+  return {
+    "@context": CTX,
+    "@type": "CollectionPage",
+    name: opts.name,
+    description: opts.description,
+    url: opts.pageUrl,
+    mainEntity: {
+      "@type": "ItemList",
+      numberOfItems: opts.posts.length,
+      itemListElement: opts.posts.map((post, i) => ({
+        "@type": "ListItem",
+        position: i + 1,
+        name: post.title,
+        url: absoluteUrl(post.path),
+      })),
+    },
+  };
+}
+
+/** BlogPosting for an MDX article. */
+export function buildBlogPostingJsonLd(opts: {
+  title: string;
+  description: string;
+  pageUrl: string;
+  datePublished: string;
+  dateModified?: string;
+}): Record<string, unknown> {
+  return {
+    "@context": CTX,
+    "@type": "BlogPosting",
+    headline: opts.title,
+    description: opts.description,
+    url: opts.pageUrl,
+    mainEntityOfPage: opts.pageUrl,
+    datePublished: opts.datePublished,
+    dateModified: opts.dateModified ?? opts.datePublished,
+    author: {
+      "@type": "Organization",
+      name: "The Dropper",
+      url: absoluteUrl("/"),
+    },
+    publisher: {
+      "@type": "Organization",
+      name: "The Dropper",
+      url: absoluteUrl("/"),
+    },
+  };
+}
+
 /** CollectionPage + ItemList of giveaway/raffle names (no Event/Offer). */
 export function buildGiveawaysJsonLd(opts: {
   name: string;

@@ -25,5 +25,6 @@ export default defineConfig([
     "build/**",
     "storybook-static/**",
     "next-env.d.ts",
+    "content/blog/**",
   ]),
 ]);
