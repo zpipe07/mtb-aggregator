@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { INSTAGRAM_PROFILE_URL } from "@/lib/linkInBio";
 import { cn, focusRing } from "@/lib/utils";
 
 const footerLink =
@@ -30,6 +31,16 @@ export function AffiliateDisclosure() {
           <Link href="/returns" className={cn(footerLink, focusRing)}>
             Returns &amp; refunds
           </Link>
+        </nav>
+        <nav aria-label="Social" className="mt-3 flex flex-wrap gap-x-4 gap-y-1">
+          <a
+            href={INSTAGRAM_PROFILE_URL}
+            className={cn(footerLink, focusRing)}
+            rel="noopener noreferrer"
+            target="_blank"
+          >
+            Instagram
+          </a>
         </nav>
       </div>
     </footer>

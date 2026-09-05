@@ -16,7 +16,7 @@ Reddit has been tried as a launch channel and **did not move the needle**. Same 
 What is **not** true yet:
 
 - Organic search is not a traffic engine. Google Search Console has shown ~0 deal-intent clicks; impressions skew toward brand-name confusion around “dropper” (the component), not “MTB deals.”
-- There is **no social presence** and **no email list / Friday Drop backend**. The on-site MDX blog is live at [`/blog`](https://thedropper.shop/blog) (first post: starter kit).
+- Instagram [@thedropper.shop](https://www.instagram.com/thedropper.shop/) exists; the posting plan and `/links` bio page are in [SOCIAL.md](SOCIAL.md). First feed posts are still manual (Zack). The on-site MDX blog is live at [`/blog`](https://thedropper.shop/blog) (first post: starter kit). There is **no email list / Friday Drop backend**.
 - SEO and GEO plumbing is ahead of demand: category URLs, curated hubs, sitemap/robots, JSON-LD, `llms.txt`. More markup will not create visitors.
 
 So this plan is **create demand and a repeatable way to send people to live inventory**, not another technical SEO sprint.
@@ -155,19 +155,20 @@ MDX posts live at [`/blog`](https://thedropper.shop/blog) (publish path: [docs/B
 
 ### 4. Social — light presence, not a second job
 
-**Job:** Be findable and have a place to put the weekly drops. Ticket: [ZAC-228](https://linear.app/zacks-personal-projects/issue/ZAC-228).
+**Job:** Be findable and have a place to put the weekly drops. Ticket: [ZAC-228](https://linear.app/zacks-personal-projects/issue/ZAC-228). Operating doc: [SOCIAL.md](SOCIAL.md).
 
-**Default: Instagram first** (visual product, deal-of-the-week). Claim the handle to match the site. Optional later: a single short-form account (TikTok/Reels) only if Instagram posting is already a habit.
+**v1 channels:** Instagram ([@thedropper.shop](https://www.instagram.com/thedropper.shop/)) + Reddit replies. Website field → [`/links`](../apps/web/src/app/(public)/links/page.tsx) (link-in-bio, `noindex`). Optional later: a single short-form account (TikTok/Reels) only if Instagram posting is already a habit.
 
-**Cadence that a solo operator can keep**
+**Cadence that a solo operator can keep** (detail and starter captions in [SOCIAL.md](SOCIAL.md))
 
-- **1× per week:** Deal of the week — one bike or one component, price + store + “see all on The Dropper,” link in bio to the matching hub or the Friday Drop archive.
-- **Optional story:** screenshot of the live hub (eMTB / under-$3k) when inventory is actually dense.
-- Profile: the one-liner + `thedropper.shop` + affiliate disclosure in bio.
+- **1× per week:** one feed post. Rotate deal of the week / best save, hub or category highlight, new store, open giveaways; blog and Friday Drop teasers after those tickets ship.
+- **Optional story:** screenshot of a live hub when inventory is actually dense.
+- **Reddit:** reply when asked (templates in SOCIAL.md). No schedule. No second launch thread.
+- Profile: one-liner + affiliate line in bio; website = `thedropper.shop/links` with UTM.
 
 **Do not:** daily posting, a Twitter/X firehose, or building a content team. If weekly posts do not produce measurable referral sessions after a couple of months of honest posting, pause — do not add platforms.
 
-**Traffic test:** Instagram (or whatever we chose) as a referrer, plus link-in-bio clicks if the host provides them.
+**Traffic test:** `instagram.com` / `l.instagram.com` as a referrer on the weekly readout, plus PostHog `link_in_bio_viewed` / `link_in_bio_clicked`.
 
 ### 5. Email — The Friday Drop (owned compounding)
 
@@ -211,7 +212,7 @@ No dates. Finish or explicitly skip a step before starting the next.
 | **0. Measurement** | Confirm Vercel Analytics + PostHog see production; GSC property is `sc-domain:thedropper.shop`; note a one-week baseline of visitors / sources. | **Done 2026-09-04.** [Weekly marketing readout](https://us.posthog.com/project/355496/dashboard/2066236) + baseline in this doc. GSC remains a manual Friday cell. |
 | **1. SEO proof** | Request indexing on the four money URLs; Bing + sitemap; eMTB intro is answer-shaped. | Those URLs are indexed (or we know why not). |
 | **2. First article** | Ship ZAC-250 (starter kit) with live deal links; add it to sitemap/nav as appropriate. | URL is live (`/blog/mtb-starter-kit`), indexed or submitted ([ZAC-262](https://linear.app/zacks-personal-projects/issue/ZAC-262)), and internally linked from home and the header. |
-| **3. Social handle** | Claim Instagram; publish deal-of-the-week using the same picks as the weekly template. | Profile exists; first post links to a live hub. |
+| **3. Social handle** | Instagram bio + `/links`; weekly post from [SOCIAL.md](SOCIAL.md). | Bio/website set; first three feed posts live; Reddit stays replies-only. |
 | **4. Friday Drop** | ESP + domain auth + first real Friday send, **then** site signup. | Issue 1 sent; capture form goes live the same week. |
 
 Reddit launch is **already done** (low traction on [r/MTB `1v2t40h`](https://www.reddit.com/r/MTB/comments/1v2t40h/i_created_a_mtbbot_replacement/) and [r/MTBDeals `1v2tdce`](https://www.reddit.com/r/MTBDeals/comments/1v2tdce/i_created_a_mtbbot_replacement/)). Do not insert another community step in this sequence. Replies-only, opportunistic.
@@ -232,7 +233,7 @@ Steps 3 and 4 can swap if email is more natural than Instagram — both need the
 | Item | Role |
 | --- | --- |
 | [ZAC-259](https://linear.app/zacks-personal-projects/issue/ZAC-259) Marketing measurement baseline | Weekly readout + first numbers (this doc) |
-| [ZAC-228](https://linear.app/zacks-personal-projects/issue/ZAC-228) Create social media presence | Execute channel 4 |
+| [ZAC-228](https://linear.app/zacks-personal-projects/issue/ZAC-228) Create social media presence | Execute channel 4 — [SOCIAL.md](SOCIAL.md) |
 | [ZAC-250](https://linear.app/zacks-personal-projects/issue/ZAC-250) Blog post: products you need to get started | Execute channel 3, first article |
 | [ZAC-201](https://linear.app/zacks-personal-projects/issue/ZAC-201) / [ai-agent-citation.md](ideas/ai-agent-citation.md) | GEO supporting work |
 | [thedropper-distribution-seo.md](ideas/thedropper-distribution-seo.md) | SEO + business constraints this plan follows |
@@ -243,6 +244,6 @@ Steps 3 and 4 can swap if email is more natural than Instagram — both need the
 ## Open questions
 
 - After two to four weeks of GSC data: is the failure “not indexed,” “indexed but wrong queries (dropper post),” or “right queries, no CTR”? That chooses copy vs hubs vs brand clarification.
-- Instagram vs skipping social until Friday Drop has a list — default Instagram first because ZAC-228 exists; revisit if posting is not happening.
+- Whether weekly IG posts produce referral sessions after a couple of months — if not, pause (do not add TikTok/Reels).
 - Whether a second article format (“This week’s drops”) earns a weekly habit, or the starter kit is enough until Friday Drop exists.
 - At what weekly visitor count we bother with paid tests or a second content series. Default: not before organic + email are both producing sessions we can see.
