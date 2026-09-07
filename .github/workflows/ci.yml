@@ -84,7 +84,7 @@ jobs:
       - uses: ./.github/actions/setup-pnpm
 
       - name: Cache Next.js build
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: apps/web/.next/cache
           key: nextjs-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.sha }}
@@ -96,7 +96,7 @@ jobs:
       - name: Cache Lighthouse CI CLI
         if: ${{ vars.API_URL != '' }}
         id: lhci-cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: /tmp/lhci
           key: lhci-cli-0.14.0-${{ runner.os }}-node20
@@ -155,7 +155,7 @@ jobs:
         run: echo "${{ github.workspace }}/.gopath/bin" >> "$GITHUB_PATH"
 
       - name: Cache Go analysis tools
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ${{ github.workspace }}/.gopath/bin
           key: go-tools-staticcheck-v0.7.0-govulncheck-v1.2.0-${{ runner.os }}-${{ steps.setup-go.outputs.go-version }}
