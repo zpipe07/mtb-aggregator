@@ -1,6 +1,8 @@
 # Scraper Service Deep Dive
 
-The scraper is a Node.js Express server that uses Playwright to scrape MTB retailer sale pages and product detail pages.
+The scraper is a Node.js Express server that uses Playwright **or fetch** to scrape MTB retailer sale pages and product detail pages.
+
+**Shared scrape contract** (required fields, pagination completeness, variant grain, errors, “done” for a new store, and gaps vs current parsers): [docs/specs/scrape-contract-zac-255.md](specs/scrape-contract-zac-255.md). OOS / `stock_from_plp`: [docs/ideas/oos-policy-zac-256.md](ideas/oos-policy-zac-256.md).
 
 ## Endpoints
 
@@ -20,12 +22,17 @@ When `SCRAPER_SERVICE_SECRET` is set (recommended in production), `POST /scrape`
 
 ### Adding a New Store
 
-1. Create `parsers/{storename}.ts` with:
+Follow the **“done” checklist** in [the scrape contract](specs/scrape-contract-zac-255.md#what-done-means-for-a-new-store). Registration-only is not done.
+
+1. Pick a **store family** (Shopify JSON, Demandware grid, catalog API, …) and reuse its helpers.
+2. Create `parsers/{storename}.ts` with:
    - `scrape{StoreName}(url: string): Promise<ScrapeResult[]>` — sale page parser
-   - `enrich{StoreName}(url: string): Promise<EnrichResult>` — PDP parser (if store has detail pages)
-2. Add store to `STORE_TYPES` in `types.ts`
-3. Register in `parsers/index.ts`: `PARSERS` and optionally `ENRICHERS`
-4. Insert store record in DB (`stores` table) with `store_type` matching the key
+   - `enrich{StoreName}(url: string): Promise<EnrichResult>` — PDP parser (if the store has detail pages)
+3. Add store to `STORE_TYPES` in `types.ts`
+4. Register in `parsers/index.ts`: `PARSERS` and optionally `ENRICHERS`; if PDP exists, add `store_type` to API `StoreTypesWithEnrichers`
+5. Insert store record in DB (`stores` table) with `store_type` matching the key; add `make scrape-now-{store}`
+6. Exhaust pagination or set `X-Scrape-Truncated`; emit one row per purchasable SKU when the source lists SKUs; stamp `stock_from_plp` per [ZAC-256](ideas/oos-policy-zac-256.md) once that field exists
+7. Vitest fixtures (gitleaks-safe) + a manual `scrape-now` that does not HideStale the catalog on a thin run
 
 ### Test fixtures and CI (gitleaks)
 

@@ -420,11 +420,15 @@ Parsers live in `src/parsers/` — one file per store:
 
 ## Adding a New Store
 
+Contract, pagination completeness, variant grain, and the full “done” checklist: [docs/specs/scrape-contract-zac-255.md](../../docs/specs/scrape-contract-zac-255.md).
+
 1. Create parser in `src/parsers/<store>.ts`
 2. Export `scrape<Store>` and optionally `enrich<Store>`
 3. Add to `PARSERS` and `ENRICHERS` in `parsers/index.ts`
 4. Add store enum value to `ScrapeRequestSchema` in `types.ts` (and `EnrichRequestSchema` / `ENRICH_STORE_TYPES` if enrich-only)
-5. Insert store record in DB (via admin or seed)
+5. If PDP: add `store_type` to API `StoreTypesWithEnrichers`
+6. Insert store record in DB (via admin or seed); add `make scrape-now-<store>`
+7. Exhaust the sale catalog or set `X-Scrape-Truncated`; do not return `[]` on WAF/HTTP failure
 
 ## ScrapeResult Shape
 
