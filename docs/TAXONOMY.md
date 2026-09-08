@@ -9,7 +9,7 @@ How MTB categories are structured and mapped from store-specific paths to a cano
 - **Location**: `apps/api/internal/db/categories.go`
 - **Table**: `categories` — id, slug, name, parent_id, optional `description`, `hide_from_nav` (migration `053`)
 - **Single source of truth** for the category hierarchy used by listings, mappings, and profiles
-- **`hide_from_nav`**: when true, the node (and its descendants) is omitted from the header CATEGORIES mega-menu. Products stay categorized there and the node still appears on `/categories`. Editable in admin CategoryManager. **Helmet parts** is hidden from nav by default.
+- **`hide_from_nav`**: when true, the node (and its descendants) is omitted from the header CATEGORIES mega-menu. Products stay categorized there and the node still appears on `/categories`. Editable in admin CategoryManager. **Helmet parts** and **Components › * › {Parent} parts** (migration `057` / ZAC-271) are hidden from nav by default.
 
 ### 2. Category Mappings
 
@@ -29,13 +29,15 @@ How MTB categories are structured and mapped from store-specific paths to a cano
 
 Under **Gear**, first-level children include Helmets, **Helmet parts**, Shoes, **Eyewear** (Sunglasses, Goggles), Gloves, Protection, and Clothing. Migration `027` added Eyewear with high-priority mappings for store paths containing goggle/sunglass/eyewear keywords, plus a product-name backfill for misfiled listings.
 
-**Helmets vs Helmet parts (ZAC-246):** `/deals?category_slug=gear-helmets` includes the Helmets subtree only. Replacement visors, liners, cheek pads, and pad kits are a **sibling** (`gear-helmet-parts`) so cheap accessories do not sort to the top of the helmets page. Mappings use **specific** keywords (`helmet parts`, `helmet accessories`, `helmet visor`, `cheek pad`, etc.) — not bare `helmet`, which still maps complete lids. After applying `052`, **restart the API** and run **`make backfill-canonical-categories`** (the migration also backfills by product name from Helmets).
+**Helmets vs Helmet parts (ZAC-246):** `/deals?category_slug=gear-helmets` includes the Helmets subtree only. Replacement visors, liners, cheek pads, and pad kits are a **sibling** (`gear-helmet-parts`) so cheap accessories do not sort to the top of the helmets page. Mappings use **specific** keywords (`helmet parts`, `helmet accessories`, `helmet visor`, `cheek pad`, `helmet peak`, etc.) — not bare `helmet`, which still maps complete lids. After applying `052` / `057`, **restart the API** and run **`make backfill-canonical-categories`**.
+
+**Component parts vs complete leaves (ZAC-271):** Each Components family has a `{Parent} parts` catch-all (renamed from bare `Parts`, hidden from nav like Helmet parts). Small hardware that used to substring-match the complete-product leaf (`fork` → Forks for “Fork Seals”, `headset` → Headsets for “Headset Spacers”) maps to the parts shelf via high-priority keywords. Classifier rubrics on Forks, Shocks, Brakesets, Handlebars, and the other product leaves send seal kits / olives / bar ends / hangers / spokes to the parts leaf. After applying `057`, **restart the API** and run **`make backfill-canonical-categories`**.
 
 Under **Gear → Clothing**, Jerseys, Jackets, Shirts, Shorts, Pants, and Socks are **direct leaves** (migration `037` removed the intermediate Tops/Bottoms layer so mega-menu browse matches shoppable shelves). High-priority leaf mappings classify store paths and product names into the specific apparel type.
 
 **Bikes Online combined product_type:** Shopify sale rows use `product_type` `Clothing & Protective Gear` for both apparel and protective gear (pads, helmets, gloves). Substring mapping hits `clothing` first, so path-based canonical lands on **Gear > Clothing** even for knee sleeves. Do **not** add a blanket `protective gear` mapping — it would misfile jerseys in the same bucket. After LLM classification (Protection / Helmets / Gloves at ≥ classifier threshold), run `make backfill-bikesonline-clothing-protective` to copy the live LLM path onto `canonical_category`, then rely on PDP preserve + recategorize skip (confident `metadata.llm_category`) so the column is not remapped back to Clothing.
 
-Under **Components → Drivetrain**, **Bottom Brackets** is a dedicated leaf (migration `032`) with high-priority mappings for bottom-bracket keywords and LLM extraction of `bb_standard` / `bb_shell_width` for facet filters. Under **Components → Cockpit**, **Headsets** is a dedicated leaf with mappings for headset keywords and `headset_standard` extraction. Spacers, stem caps, and install tools stay in Cockpit Parts or Accessories → Tools.
+Under **Components → Drivetrain**, **Bottom Brackets** is a dedicated leaf (migration `032`) with high-priority mappings for bottom-bracket keywords and LLM extraction of `bb_standard` / `bb_shell_width` for facet filters. Under **Components → Cockpit**, **Headsets** is a dedicated leaf with mappings for headset keywords and `headset_standard` extraction. Spacers, stem caps, and install tools stay in **Cockpit parts** or Accessories → Tools.
 
 Under **Components → Wheels/Tires**, **Tubeless** is a dedicated leaf (migration `036`) for valves, rim tape, sealant, kits, and tire inserts. Mappings use **specific** keywords (`tubeless valve`, `rim tape`, `tire sealant`, etc.) — not bare `tubeless`, which would misclassify tubeless-ready tires. The legacy `tube`/`tubes` mapping is substring-based, so paths like `Tubeless Kits` previously landed in **Tubes** until the high-priority Tubeless rule runs first.
 
@@ -78,7 +80,7 @@ Under **Bikes**, **BMX Bikes** is a dedicated leaf (migration `039`) for complet
 ## Backfills
 
 ```bash
-make backfill-canonical-categories   # Recategorize after taxonomy changes (after 052 / helmet parts: restart API first)
+make backfill-canonical-categories   # Recategorize after taxonomy changes (after 052 / 057 parts shelves: restart API first)
 make backfill-bikesonline-clothing-protective   # Bikes Online Clothing & Protective Gear → LLM Protection/Helmets/Gloves (DRY_RUN=1 preview)
 make backfill-field-library          # After migration 019: LLM field defs + profile composition rows
 ```

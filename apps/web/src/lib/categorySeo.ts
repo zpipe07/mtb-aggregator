@@ -219,6 +219,36 @@ const HAND_TUNED: Partial<Record<string, Partial<CategorySeoMeta>>> = {
     intro:
       "Shop bottom bracket markdowns by standard and shell width. Match your frame before you buy.",
   },
+  "components-drivetrain-parts": {
+    description:
+      "Compare deals on drivetrain hardware: hangers, jockey wheels, chains, and cable housing.",
+    intro:
+      "Small drivetrain parts sold without a complete cassette, derailleur, or crankset.",
+  },
+  "components-brakes-parts": {
+    description:
+      "Find deals on brake olives, inserts, pistons, and hoses sold without a complete brakeset.",
+    intro:
+      "Shop small brake hardware. Complete brakesets, pads, and rotors have their own shelves.",
+  },
+  "components-suspension-parts": {
+    description:
+      "Compare deals on fork and shock seal kits, dust wipers, volume spacers, and rebuild kits.",
+    intro:
+      "Replacement suspension hardware sold without a complete fork or shock. Pumps live under Accessories.",
+  },
+  "components-wheels-tires-parts": {
+    description:
+      "Find deals on spokes, nipples, rim strips, and thru-axles. Wheelsets and tires have their own shelves.",
+    intro:
+      "Shop small wheel hardware. Complete wheels, rims, hubs, and tubeless kits are listed separately.",
+  },
+  "components-cockpit-parts": {
+    description:
+      "Compare deals on bar ends, stem caps, headset spacers, and dropper remotes sold alone.",
+    intro:
+      "Small cockpit hardware. Complete bars, stems, seatposts, and headsets have their own shelves.",
+  },
   "components-cockpit-headsets": {
     description:
       "Find headset deals for mountain bikes. Compare ZS, EC, and integrated (IS) standards across retailers.",
