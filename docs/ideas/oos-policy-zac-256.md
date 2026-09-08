@@ -171,14 +171,15 @@ cd apps/api && go test ./internal/db/... ./internal/enrichstate/... ./internal/s
 cd apps/api && go vet ./...
 ```
 
-## Open Questions
+## Closed leftovers
 
-- Default stock-check interval **24h vs 7d** if no-signal OOS volume is large (Cambria-scale). 24h is the SLA this spec assumes; tighten the env if the drainer falls behind.
-- Whether `stock_from_plp` should live only on the scrape payload or also as `stores.stock_signal` for admin visibility (not required for MVP).
-- Canyon `limitedStock` is a heuristic, not a true qty flag — treat as PLP signal unless we see false restocks.
+- **24h vs 7d stock-check:** **24h stays.** That is the no-signal restock SLA. Volume is bounded by the existing **15s/store** PDP pace (stock-check shares the drainer; it cannot stampede). If Insights OOS-due age grows, set `ENRICH_OOS_STOCK_CHECK_AFTER=168h` without a code change. Do not start at 7d without evidence.
+- **Canyon `limitedStock`:** **Stays a PLP signal** (`stock_from_plp=true`). The tile regex `/only available in/i` means “not buyable from this sale page” (geo/config), not inventory qty. For a US deals site that is the right `is_in_stock=false`; restock is the next scrape when the banner is gone. Demote to no-signal only if we see false OOS from marketing copy or false in-stock while sizes are sold out.
+- **`stores.stock_signal` column:** **Not in MVP.** Payload `stock_from_plp` is enough; add a store column later if admin needs to see the class.
 
 ## Assumptions to invalidate if production disagrees
 
 - [ ] Jenson / Trek / Specialized / Bell / Giro / Fox / UC sale pages list OOS SKUs (so presence ≠ stock).
 - [ ] Shopify `available` is trustworthy enough to write stock without PDP.
 - [ ] A 24h no-signal stock-check fits existing 15s/store PDP pace (OOS subset only).
+- [ ] Canyon “Only available in” is a stable buyability signal, not noisy copy.
