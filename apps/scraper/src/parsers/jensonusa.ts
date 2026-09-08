@@ -11,6 +11,7 @@ import { parsePdpVariantsFromHtml, type PdpEnrichVariant } from "./jensonusa-pdp
 import {
   JENSON_MIN_FULL_PAGE,
   buildJensonNextPageUrl,
+  jensonEmptyPageAfterFullPage,
   jensonMaxPages,
   jensonScrapeTruncated,
   jensonShouldFetchNextPage,
@@ -185,8 +186,21 @@ export async function scrapeJensonUSA(url: string): Promise<ScrapeResult[]> {
           }
         }
 
+        const pageCount = results.length;
+        if (
+          jensonEmptyPageAfterFullPage({
+            currentPageListingCount: pageCount,
+            previousPageListingCount: lastPageCount,
+          })
+        ) {
+          truncated = true;
+          console.warn(
+            `[scraper] JensonUSA page ${pageNum}: empty after full page (${lastPageCount} listings); marking truncated so stale-hide is skipped`,
+          );
+          break;
+        }
         allResults.push(...results);
-        lastPageCount = results.length;
+        lastPageCount = pageCount;
         nextUrl = buildJensonNextPageUrl(currentUrl);
         console.log(
           `[scraper] JensonUSA page ${pageNum}: got ${results.length} listings, nextPageUrl=${nextUrl ?? "none"}, total=${allResults.length} (MAX_PAGES=${maxPages})`,

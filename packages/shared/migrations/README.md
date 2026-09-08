@@ -59,6 +59,7 @@ Override the migrations directory: `MIGRATIONS_DIR=path/to/migrations make db-mi
 | `052_gear_helmet_parts.sql` | ZAC-246: Gear › **Helmet parts** sibling of Helmets so replacement visors/liners/pads are not listed on `/deals/c/gear/helmets`. High-priority mappings + product-name backfill; remap after API restart. |
 | `053_category_hide_from_nav.sql` | ZAC-251: `categories.hide_from_nav` so admins can omit a shelf from the header mega-menu without hiding it from `/categories` or classification. Seeds Helmet parts as hidden from nav. |
 | `054_apparel_not_mountain_bikes.sql` | ZAC-264: high-priority apparel phrases (`mountain bike clothing`, `skirt`, `men's liners`, `road bike tops`, …) so Competitive Cyclist clothing breadcrumbs cannot land on Bikes. Path/name backfill from the Bikes tree; remap after API restart. |
+| `055_unhide_latest_full_scrape_confirmed_listings.sql` | ZAC-270: unhide listings confirmed by each store’s latest **full** scrape (at least half of that store’s 14-day max `listings_upserted`), then re-apply Jenson `025` / UC `026` parent-hide. Unlike `047`, ignores thin completed jobs (e.g. Jenson 149 vs 13k). Idempotent. |
 
 After 019, run **`make backfill-field-library`** once (from repo root) to rename ambiguous `type` / `material` keys in `extraction_schema` and `metadata.llm_specs`, seed shared defs, and populate `llm_prompt_profile_fields`.
 

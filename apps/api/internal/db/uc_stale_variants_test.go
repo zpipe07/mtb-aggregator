@@ -40,3 +40,18 @@ func TestHideStaleListingsSQL(t *testing.T) {
 		t.Fatalf("hideStaleListingsSQL should only hide currently visible rows: %q", sql)
 	}
 }
+
+func TestMaxRecentCompletedScrapeUpsertedSQL(t *testing.T) {
+	t.Parallel()
+	sql := maxRecentCompletedScrapeUpsertedSQLString()
+	for _, want := range []string{
+		"MAX(listings_upserted)",
+		"status = 'completed'",
+		"INTERVAL '14 days'",
+		"store_id = $1",
+	} {
+		if !strings.Contains(sql, want) {
+			t.Fatalf("maxRecentCompletedScrapeUpsertedSQL missing %q in:\n%s", want, sql)
+		}
+	}
+}

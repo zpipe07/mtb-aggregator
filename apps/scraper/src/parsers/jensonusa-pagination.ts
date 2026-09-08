@@ -65,3 +65,14 @@ export function jensonScrapeTruncated(args: {
     args.nextUrl != null
   );
 }
+
+/** Empty page after a full page is a load miss (WAF/JS timeout), not end of /sale. */
+export function jensonEmptyPageAfterFullPage(args: {
+  currentPageListingCount: number;
+  previousPageListingCount: number;
+}): boolean {
+  return (
+    args.currentPageListingCount === 0 &&
+    args.previousPageListingCount >= JENSON_MIN_FULL_PAGE
+  );
+}

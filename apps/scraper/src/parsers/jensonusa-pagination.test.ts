@@ -4,6 +4,7 @@ import {
   buildJensonNextPageUrl,
   isJensonScrapeTruncated,
   jensonMaxPages,
+  jensonEmptyPageAfterFullPage,
   jensonScrapeTruncated,
   jensonShouldFetchNextPage,
   markJensonScrapeTruncated,
@@ -77,6 +78,27 @@ describe("jenson pagination stop", () => {
     };
     expect(jensonShouldFetchNextPage(args)).toBe(false);
     expect(jensonScrapeTruncated(args)).toBe(false);
+  });
+
+  it("treats an empty page after a full page as truncated (ZAC-270)", () => {
+    expect(
+      jensonEmptyPageAfterFullPage({
+        currentPageListingCount: 0,
+        previousPageListingCount: 149,
+      }),
+    ).toBe(true);
+    expect(
+      jensonEmptyPageAfterFullPage({
+        currentPageListingCount: 0,
+        previousPageListingCount: 0,
+      }),
+    ).toBe(false);
+    expect(
+      jensonEmptyPageAfterFullPage({
+        currentPageListingCount: 20,
+        previousPageListingCount: 149,
+      }),
+    ).toBe(false);
   });
 });
 

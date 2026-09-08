@@ -374,12 +374,34 @@ func (s *Scheduler) scrapeStore(store db.Store, triggeredBy string) {
 	found := len(results)
 	errStrs := validationErrorStrings(validation)
 	warnStrs := validationWarningStrings(validation)
+	recentMax := 0
+	recentMaxOK := true
+	maxCtx, maxCancel := context.WithTimeout(context.Background(), 10*time.Second)
+	n, maxErr := s.db.MaxRecentCompletedScrapeUpserted(maxCtx, store.ID)
+	maxCancel()
+	if maxErr != nil {
+		recentMaxOK = false
+		schedulerLog.Error("recent scrape max lookup failed; skipping stale listing hide", "store", store.Name, logutil.ErrAttr(maxErr))
+		sentryutil.CaptureError(maxErr, map[string]string{"component": "scheduler", "job": "scrape", "store": store.Name, "phase": "recent_scrape_max"})
+		warnStrs = append(warnStrs, "recent scrape max lookup failed; skipped stale listing hide")
+	} else {
+		recentMax = n
+	}
+
 	if truncated {
 		warnStrs = append(warnStrs, "scrape truncated by page cap; skipped stale listing hide")
 		schedulerLog.Warn("scrape truncated by page cap; skipping stale listing hide", "store", store.Name, "found", found, "upserted", validCount)
 		sentryutil.CaptureWarning(
 			store.Name+": scrape truncated by page cap; skipping HideStaleListings so off-page sale SKUs stay visible",
 			map[string]string{"component": "scheduler", "job": "scrape", "store": store.Name, "phase": "truncated"},
+		)
+	} else if recentMaxOK && isThinScrape(validCount, recentMax) {
+		msg := fmt.Sprintf("thin scrape (%d upserted vs recent max %d); skipped stale listing hide", validCount, recentMax)
+		warnStrs = append(warnStrs, msg)
+		schedulerLog.Warn("thin scrape; skipping stale listing hide", "store", store.Name, "upserted", validCount, "recent_max", recentMax)
+		sentryutil.CaptureWarning(
+			store.Name+": "+msg,
+			map[string]string{"component": "scheduler", "job": "scrape", "store": store.Name, "phase": "thin_scrape"},
 		)
 	}
 
@@ -407,8 +429,10 @@ func (s *Scheduler) scrapeStore(store db.Store, triggeredBy string) {
 	// otherwise stay in the DB indefinitely with stale prices.
 	// Guard: only run when we got a meaningful result count to avoid hiding
 	// everything if the scrape silently returned too little. Skip when the
-	// scraper hit a page cap (ZAC-217: Jenson MAX_PAGES=10 left Fox 40 hidden).
-	if shouldHideStaleAfterScrape(validCount, truncated) {
+	// scraper hit a page cap (ZAC-217: Jenson MAX_PAGES=10 left Fox 40 hidden)
+	// or when this run is thin vs recent full scrapes (ZAC-270: 149 vs 13120).
+	hideStale := recentMaxOK && shouldHideStaleAfterScrape(validCount, truncated, recentMax)
+	if hideStale {
 		cleanupCtx, cleanupCancel := context.WithTimeout(context.Background(), 2*time.Minute)
 		defer cleanupCancel()
 		if strings.EqualFold(store.StoreType, "universalcycles") {
@@ -431,7 +455,7 @@ func (s *Scheduler) scrapeStore(store db.Store, triggeredBy string) {
 		// that variant fan-out superseded. Re-apply those parent hides after cleanup.
 		s.hideSupersededParentsAfterScrape(cleanupCtx, store)
 	} else if validCount >= minResultsForStaleCleanup {
-		// Truncated scrape still unhides on upsert; re-hide superseded parents only.
+		// Truncated/thin scrape still unhides on upsert; re-hide superseded parents only.
 		cleanupCtx, cleanupCancel := context.WithTimeout(context.Background(), 2*time.Minute)
 		defer cleanupCancel()
 		s.hideSupersededParentsAfterScrape(cleanupCtx, store)
@@ -440,8 +464,18 @@ func (s *Scheduler) scrapeStore(store db.Store, triggeredBy string) {
 	s.maybeKickLLMAfterScrape(enricherStoreType(store, storeType))
 }
 
-func shouldHideStaleAfterScrape(validCount int, truncated bool) bool {
-	return validCount >= minResultsForStaleCleanup && !truncated
+func isThinScrape(validCount, recentMaxUpserted int) bool {
+	return recentMaxUpserted >= minResultsForStaleCleanup && validCount < recentMaxUpserted/2
+}
+
+func shouldHideStaleAfterScrape(validCount int, truncated bool, recentMaxUpserted int) bool {
+	if truncated || validCount < minResultsForStaleCleanup {
+		return false
+	}
+	if isThinScrape(validCount, recentMaxUpserted) {
+		return false
+	}
+	return true
 }
 
 func (s *Scheduler) hideSupersededParentsAfterScrape(ctx context.Context, store db.Store) {

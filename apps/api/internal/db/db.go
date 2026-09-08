@@ -1279,6 +1279,36 @@ func (db *DB) GetScrapeJobs(ctx context.Context, storeID int, limit, offset int)
 	return jobs, rows.Err()
 }
 
+// maxRecentCompletedScrapeUpsertedSQL is the 14-day max listings_upserted among
+// completed jobs. Thin scrapes compare against this before HideStaleListings (ZAC-270).
+const maxRecentCompletedScrapeUpsertedSQL = `
+		SELECT MAX(listings_upserted)
+		FROM scrape_jobs
+		WHERE store_id = $1
+		  AND status = 'completed'
+		  AND listings_upserted IS NOT NULL
+		  AND started_at > NOW() - INTERVAL '14 days'
+	`
+
+func maxRecentCompletedScrapeUpsertedSQLString() string {
+	return maxRecentCompletedScrapeUpsertedSQL
+}
+
+// MaxRecentCompletedScrapeUpserted returns the largest listings_upserted among
+// completed scrapes for the store in the last 14 days (0 if none). The current
+// running job is excluded because it is not status=completed.
+func (db *DB) MaxRecentCompletedScrapeUpserted(ctx context.Context, storeID int) (int, error) {
+	var max *int
+	err := db.pool.QueryRow(ctx, maxRecentCompletedScrapeUpsertedSQL, storeID).Scan(&max)
+	if err != nil {
+		return 0, err
+	}
+	if max == nil {
+		return 0, nil
+	}
+	return *max, nil
+}
+
 // CancelScrapeJob sets status='cancelled' and completed_at=NOW() for a scrape job that is currently 'running'.
 // Returns (true, nil) if the job was updated, (false, nil) if it was not running or not found.
 func (db *DB) CancelScrapeJob(ctx context.Context, id int) (bool, error) {
