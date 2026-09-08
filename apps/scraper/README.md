@@ -439,6 +439,8 @@ Parsers live in `src/parsers/` — one file per store:
   brand: string | null;
   category_path: string[] | null;
   is_in_stock: boolean;
+  // Planned (ZAC-256): true = API may overwrite is_in_stock on upsert
+  stock_from_plp?: boolean;
   // Shopify stores: product handle + per-variant options (Size, Color, …)
   product_group_key?: string | null;
   variant_options?: Record<string, string> | null;
