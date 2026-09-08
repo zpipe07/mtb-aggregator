@@ -159,6 +159,44 @@ export const InStockSizes: Story = {
   },
 };
 
+export const CtaAlignment: Story = {
+  args: {
+    deal: mockDeal,
+    href: "/deals/1",
+  },
+  parameters: {
+    layout: "padded",
+    docs: {
+      description: {
+        story:
+          "CTAs pin to the card footer so Snag / View details line up across a row when titles wrap to different lengths.",
+      },
+    },
+  },
+  render: () => (
+    <div className="grid max-w-5xl grid-cols-1 items-stretch gap-4 sm:grid-cols-3">
+      <DealCard
+        deal={{
+          ...mockDeal,
+          id: 11,
+          product_name: "XT cassette",
+        }}
+        href="/deals/11"
+      />
+      <DealCard
+        deal={{
+          ...mockDeal,
+          id: 12,
+          product_name:
+            "Shimano XT M8100 12-Speed Groupset with extra long product title",
+        }}
+        href="/deals/12"
+      />
+      <DealCard deal={mockDealWithSizes} href="/deals/4" />
+    </div>
+  ),
+};
+
 export const ExtractedBikeSize: Story = {
   args: {
     deal: {

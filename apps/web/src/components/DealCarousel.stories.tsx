@@ -70,3 +70,93 @@ export const Default: Story = {
     ariaLabel: "Top mountain bike deals",
   },
 };
+
+const overflowDeals: Deal[] = [
+  ...mockDeals,
+  {
+    id: 4,
+    store_id: 1,
+    store_name: "Worldwide Cyclery",
+    store_sku: "SKU-4",
+    product_name:
+      "Santa Cruz Bronson CC MX with a title that wraps onto two lines",
+    current_price: 5499,
+    original_price: 7999,
+    product_url: "https://example.com/4",
+    image_url: "https://placehold.co/400x400/1a1a1a/fff?text=Bronson",
+    brand: "Santa Cruz",
+    is_in_stock: true,
+    discount_pct: 31,
+    last_scraped: "2024-01-15T12:00:00Z",
+  },
+  {
+    id: 5,
+    store_id: 2,
+    store_name: "Jenson USA",
+    store_sku: "SKU-5",
+    product_name: "OneUp EDC Tool",
+    current_price: 34,
+    original_price: 42,
+    product_url: "https://example.com/5",
+    image_url: "https://placehold.co/400x400/1a1a1a/fff?text=Tool",
+    brand: "OneUp",
+    is_in_stock: true,
+    discount_pct: 19,
+    last_scraped: "2024-01-15T12:00:00Z",
+  },
+  {
+    id: 6,
+    store_id: 3,
+    store_name: "REI",
+    store_sku: "SKU-6",
+    product_name: "Giro Manifest Spherical",
+    current_price: 199,
+    original_price: 280,
+    product_url: "https://example.com/6",
+    image_url: "https://placehold.co/400x400/1a1a1a/fff?text=Helmet",
+    brand: "Giro",
+    is_in_stock: true,
+    discount_pct: 29,
+    last_scraped: "2024-01-15T12:00:00Z",
+  },
+];
+
+export const Overflow: Story = {
+  args: {
+    deals: overflowDeals,
+    getHref: (deal) => `/deals/${deal.id}`,
+    homeSection: "gear",
+    ariaLabel: "Top gear deals",
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Edge fade plus prev/next arrows when the row overflows. Cards stretch so CTAs stay aligned.",
+      },
+    },
+  },
+  decorators: [
+    (Story) => (
+      <div className="max-w-3xl">
+        <Story />
+      </div>
+    ),
+  ],
+};
+
+export const FitsWithoutScroll: Story = {
+  args: {
+    deals: mockDeals.slice(0, 1),
+    getHref: (deal) => `/deals/${deal.id}`,
+    homeSection: "mtb",
+    ariaLabel: "Single mountain bike deal",
+  },
+  parameters: {
+    docs: {
+      description: {
+        story: "Arrows and fade stay hidden when every card already fits.",
+      },
+    },
+  },
+};
