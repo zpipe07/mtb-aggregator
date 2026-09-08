@@ -81,7 +81,7 @@ export function DealCarousel({
         id={listId}
         ref={scrollerRef}
         className={cn(
-          "flex items-stretch gap-4 overflow-x-auto overscroll-x-contain pb-2 snap-x snap-mandatory",
+          "flex w-full min-w-0 items-stretch gap-4 overflow-x-auto overscroll-x-contain pb-2 snap-x snap-mandatory",
           "[-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
         )}
         role="list"
@@ -92,7 +92,7 @@ export function DealCarousel({
             key={deal.id}
             role="listitem"
             data-rail-item
-            className="flex w-[min(78vw,20rem)] shrink-0 snap-start sm:w-[20rem]"
+            className="flex w-[min(78vw,20rem)] shrink-0 snap-start self-stretch sm:w-[20rem]"
           >
             <DealCard
               deal={deal}
@@ -118,44 +118,32 @@ export function DealCarousel({
         )}
       />
 
-      <Button
-        type="button"
-        variant="outline"
-        size="icon-sm"
-        aria-controls={listId}
-        aria-label={`Scroll ${ariaLabel} backward`}
-        aria-hidden={!canScrollLeft}
-        tabIndex={canScrollLeft ? 0 : -1}
-        disabled={!canScrollLeft}
-        onClick={() => scrollByPage("prev")}
-        className={cn(
-          "absolute left-1 top-1/2 z-20 -translate-y-1/2 border-foreground bg-card/95 shadow-sm backdrop-blur-sm sm:left-2",
-          canScrollLeft
-            ? "opacity-100"
-            : "pointer-events-none opacity-0",
-        )}
-      >
-        <ChevronLeft />
-      </Button>
-      <Button
-        type="button"
-        variant="outline"
-        size="icon-sm"
-        aria-controls={listId}
-        aria-label={`Scroll ${ariaLabel} forward`}
-        aria-hidden={!canScrollRight}
-        tabIndex={canScrollRight ? 0 : -1}
-        disabled={!canScrollRight}
-        onClick={() => scrollByPage("next")}
-        className={cn(
-          "absolute right-1 top-1/2 z-20 -translate-y-1/2 border-foreground bg-card/95 shadow-sm backdrop-blur-sm sm:right-2",
-          canScrollRight
-            ? "opacity-100"
-            : "pointer-events-none opacity-0",
-        )}
-      >
-        <ChevronRight />
-      </Button>
+      {canScrollLeft ? (
+        <Button
+          type="button"
+          variant="outline"
+          size="icon-sm"
+          aria-controls={listId}
+          aria-label={`Scroll ${ariaLabel} backward`}
+          onClick={() => scrollByPage("prev")}
+          className="absolute left-1 top-1/2 z-20 -translate-y-1/2 border-foreground bg-card/95 shadow-sm backdrop-blur-sm sm:left-2"
+        >
+          <ChevronLeft />
+        </Button>
+      ) : null}
+      {canScrollRight ? (
+        <Button
+          type="button"
+          variant="outline"
+          size="icon-sm"
+          aria-controls={listId}
+          aria-label={`Scroll ${ariaLabel} forward`}
+          onClick={() => scrollByPage("next")}
+          className="absolute right-1 top-1/2 z-20 -translate-y-1/2 border-foreground bg-card/95 shadow-sm backdrop-blur-sm sm:right-2"
+        >
+          <ChevronRight />
+        </Button>
+      ) : null}
     </div>
   );
 }

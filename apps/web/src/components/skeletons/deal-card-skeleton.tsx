@@ -8,7 +8,12 @@ type DealCardSkeletonProps = {
 /** Mirrors {@link DealCard} — store tab, 16:9 media on mobile, body, price row, stacked CTAs. */
 export function DealCardSkeleton({ className }: DealCardSkeletonProps) {
   return (
-    <div className={cn("relative flex h-full flex-col pt-3 rounded-sm", className)}>
+    <div
+      className={cn(
+        "relative flex h-full min-h-full w-full flex-col self-stretch pt-3 rounded-sm",
+        className,
+      )}
+    >
       <Skeleton
         className={cn(
           "absolute right-4 top-0 z-10 h-6 w-36 max-w-[14rem] rounded-t-sm rounded-b-none",
