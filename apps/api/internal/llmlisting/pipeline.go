@@ -13,6 +13,7 @@ import (
 	"github.com/mtb-aggregator/api/internal/llm"
 	"github.com/mtb-aggregator/api/internal/metadata"
 	"github.com/mtb-aggregator/api/internal/sentryutil"
+	"github.com/mtb-aggregator/api/internal/taxonomy"
 )
 
 const maxLLMErrorSentryPerJob = 5
@@ -117,6 +118,7 @@ func ClassificationStep(ctx context.Context, pool *db.DB, client *llm.Client, li
 	if result == nil {
 		return nil
 	}
+	result.CanonicalCategory = taxonomy.RefineWheelsTires(result.CanonicalCategory, listing.ProductName)
 	llmCategory := map[string]interface{}{
 		"canonical_category": result.CanonicalCategory,
 		"confidence":         result.Confidence,

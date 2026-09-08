@@ -1,5 +1,6 @@
 // backfill-canonical-categories sets store_listings.canonical_category from category_path
-// using category_mappings in the database. Run after updating mappings in the admin UI or DB.
+// using category_mappings in the database, then Wheels/Tires title refine (ZAC-263).
+// Run after updating mappings in the admin UI or DB.
 //
 // From repo root: make backfill-canonical-categories
 // From apps/api:  go run ./cmd/backfill-canonical-categories

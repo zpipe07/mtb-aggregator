@@ -1854,7 +1854,8 @@ func (db *DB) UpdateListingEnrichment(ctx context.Context, id int, categoryPath 
 
 	// Fetch existing metadata so we can merge PDP-derived specs into it.
 	var existingMeta []byte
-	if err := db.pool.QueryRow(ctx, `SELECT metadata FROM store_listings WHERE id = $1`, id).Scan(&existingMeta); err != nil {
+	var productName string
+	if err := db.pool.QueryRow(ctx, `SELECT COALESCE(metadata, '{}'), COALESCE(product_name, '') FROM store_listings WHERE id = $1`, id).Scan(&existingMeta, &productName); err != nil {
 		// If the row disappeared between selection and update, treat as non-fatal for the caller.
 		if err.Error() == "no rows in result set" {
 			return nil
@@ -1884,7 +1885,7 @@ func (db *DB) UpdateListingEnrichment(ctx context.Context, id int, categoryPath 
 			`, pq.Array(categoryPath), mergedMeta, id)
 			return err
 		}
-		canonicalCat := taxonomy.Map(categoryPath)
+		canonicalCat := taxonomy.MapListing(categoryPath, productName)
 		var categoryID interface{}
 		if len(canonicalCat) > 0 {
 			if cid, err := db.ResolveCategoryIDFromPath(ctx, canonicalCat); err == nil && cid != nil {
@@ -2092,11 +2093,12 @@ func (db *DB) RequeueWipedEnrichment(ctx context.Context) (int64, error) {
 }
 
 // BackfillCanonicalCategories sets canonical_category and category_id from category_path using the given mapper (e.g. taxonomy.Map).
-// Skips listings with manual_category_override or confident metadata.llm_category so path remap cannot clobber LLM-owned categories.
-// Returns the number of rows updated.
+// Skips listings with manual_category_override so admin picks stay. Confident metadata.llm_category still skips
+// path remap (ZAC-234), but Wheels/Tires title refine still runs on the existing path so wheelset/rim titles
+// cannot stay stuck on Tires (ZAC-263). Returns the number of rows updated.
 func (db *DB) BackfillCanonicalCategories(ctx context.Context, mapFn func([]string) []string) (int, error) {
 	threshold := db.resolveLLMPreserveThreshold(ctx)
-	rows, err := db.pool.Query(ctx, `SELECT id, COALESCE(category_path, '{}'), COALESCE(canonical_category, '{}'), COALESCE(metadata, '{}'::jsonb) FROM store_listings`)
+	rows, err := db.pool.Query(ctx, `SELECT id, COALESCE(category_path, '{}'), COALESCE(canonical_category, '{}'), COALESCE(metadata, '{}'::jsonb), COALESCE(product_name, '') FROM store_listings`)
 	if err != nil {
 		return 0, err
 	}
@@ -2105,17 +2107,37 @@ func (db *DB) BackfillCanonicalCategories(ctx context.Context, mapFn func([]stri
 	var id int
 	var cp, existing pgtype.FlatArray[string]
 	var meta []byte
+	var productName string
 	updated := 0
 	for rows.Next() {
-		if err := rows.Scan(&id, &cp, &existing, &meta); err != nil {
+		if err := rows.Scan(&id, &cp, &existing, &meta, &productName); err != nil {
 			return updated, err
 		}
-		if ShouldPreserveCanonicalForBackfill(meta, threshold) {
+		if metadata.HasManualCategoryOverride(meta) {
 			continue
 		}
 		raw := []string(cp)
-		canonical := mapFn(raw)
-		if sliceEqual(canonical, []string(existing)) {
+		mapped := mapFn(raw)
+		existingPath := []string(existing)
+		preserveLLM := ShouldPreserveCanonicalForBackfill(meta, threshold)
+		var canonical []string
+		switch {
+		case preserveLLM:
+			canonical = taxonomy.RefineWheelsTires(existingPath, productName)
+		case len(mapped) > 0:
+			canonical = taxonomy.RefineWheelsTires(mapped, productName)
+		default:
+			refined := taxonomy.RefineWheelsTires(existingPath, productName)
+			if !sliceEqual(refined, existingPath) {
+				canonical = refined
+				break
+			}
+			if taxonomy.IsWheelsTiresPath(existingPath) {
+				continue
+			}
+			canonical = mapped
+		}
+		if sliceEqual(canonical, existingPath) {
 			continue
 		}
 		var categoryID interface{}

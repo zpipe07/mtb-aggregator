@@ -53,6 +53,7 @@ Override the migrations directory: `MIGRATIONS_DIR=path/to/migrations make db-mi
 | `046_complete_bikes_not_suspension.sql` | Complete bikes: high-priority `full suspension` / `front suspension` → Mountain Bikes and `full suspension frames` → Frames so store taxonomy cannot dump bikes onto Components › Suspension (ZAC-238). Mapping-only; remap after API restart. |
 | `047_unhide_latest_scrape_confirmed_listings.sql` | ZAC-217: unhide listings whose `last_scraped` is on/after that store’s latest completed scrape (`listings_upserted >= 10`), then re-apply Jenson `025` and Universal Cycles `026` parent-hide predicates. Idempotent. Numbered 047 because 046 is ZAC-238. |
 | `048_most_specific_category_path.sql` | ZAC-245: high-priority `wheelset` / `bike wheels` / `complete wheels` → Complete wheels so store breadcrumbs like `Cycling Gear > … > Gravel Bike Wheels and Wheelsets` are not classified as Bikes or Gear. Also retargets the legacy `["Components", "Wheels"]` catch-all to `Wheels/Tires`. Mapping-only; remap after API restart. |
+| `056_wheelsets_rims_not_tires.sql` | ZAC-263: classifier rubrics so Tires excludes wheelsets/rims/bundles; product-name backfill from Tires / Wheels/Tires parent to Complete wheels or Rims; copy confident `llm_category` Complete wheels / Rims onto canonical. Pair with `taxonomy.RefineWheelsTires`. Restart API after apply. |
 | `049_giveaways.sql` | ZAC-47: `giveaways` table for curated MTB giveaways and raffles (unique `slug` / `entry_url`). Admin CRUD; not scraped. |
 | `050_bike_size_extraction.sql` | ZAC-241: `bike_size` field def (filterable + extractable) and Bikes parent LLM profile so frame size is extracted and faceted; Mountain/Frames/BMX prompts get the size rubric. |
 | `051_bike_size_cross_discipline.sql` | ZAC-241 follow-up: keep `bike_size` a **scalar enum** (one size per listing row; in-stock sets stay on chips) and expand values for road/gravel **cm** and BMX **top-tube** inches. Inherited by all Bikes children. |
@@ -69,7 +70,7 @@ After 050, run **`make backfill-bike-size`** to populate `metadata.llm_specs.bik
 
 After 051, **restart the API** so the expanded `bike_size` enum (cm / TT) is used on the next LLM pass. Re-run **`make backfill-bike-size`** if existing variant labels were `58cm` / `21.5inch TT` and previously failed to normalize.
 
-After 027, 032, 036, 037, 038, 039, 045, 046, 048, **052**, or **054**, run **`make backfill-canonical-categories`** and **restart the API** so in-memory taxonomy reloads; these migrations also backfill by product name where applicable (`045`/`046`/`048` are mapping-only). Recategorize skips confident `metadata.llm_category` (ZAC-234 Lights leftovers with a good LLM path still need admin classify or a copy-from-LLM pass).
+After 027, 032, 036, 037, 038, 039, 045, 046, 048, **052**, **054**, or **056**, run **`make backfill-canonical-categories`** and **restart the API** so in-memory taxonomy reloads; these migrations also backfill by product name where applicable (`045`/`046`/`048` are mapping-only). Recategorize skips `manual_category_override`; confident `metadata.llm_category` still skips path remap (ZAC-234 Lights leftovers with a good LLM path still need admin classify or a copy-from-LLM pass) but **Wheels/Tires title refine still runs** (ZAC-263).
 
 ## Verifying Phase 2 changes (currency, scraper health, category_path)
 
