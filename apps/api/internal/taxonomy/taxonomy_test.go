@@ -82,7 +82,7 @@ func suspensionVsBikeMappings() []Mapping {
 		{Raw: []string{"xc full suspension"}, Canonical: []string{"Bikes", "Mountain Bikes", "XC Bikes"}},
 		{Raw: []string{"trail bike", "trail mountain"}, Canonical: []string{"Bikes", "Mountain Bikes", "Trail Bikes"}},
 		{Raw: []string{"enduro bike", "enduro"}, Canonical: []string{"Bikes", "Mountain Bikes", "Enduro Bikes"}},
-		{Raw: []string{"fork parts", "shock kit", "fork kit"}, Canonical: []string{"Components", "Suspension", "Parts"}},
+		{Raw: []string{"fork parts", "shock kit", "fork kit"}, Canonical: []string{"Components", "Suspension", "Suspension parts"}},
 		{Raw: []string{"shock", "shocks"}, Canonical: []string{"Components", "Suspension", "Shocks"}},
 		{Raw: []string{"fork", "forks"}, Canonical: []string{"Components", "Suspension", "Forks"}},
 		{Raw: []string{"full suspension frames", "full suspension frame", "full-suspension frames", "full-suspension frame"}, Canonical: []string{"Bikes", "Frames"}},
@@ -247,6 +247,8 @@ func helmetVsPartsMappings() []Mapping {
 			"helmet pad", "helmet pads", "helmet padding",
 			"replacement visor", "replacement visors", "replacement liner", "replacement liners",
 			"cheek pad", "cheek pads", "cheekpad", "cheekpads",
+			"helmet peak", "helmet peaks", "helmet cover", "helmet covers",
+			"helmet screw", "helmet screws", "helmet fit kit",
 		}, Canonical: []string{"Gear", "Helmet parts"}},
 		{Raw: []string{"helmet", "helmets"}, Canonical: []string{"Gear", "Helmets"}},
 		{Raw: []string{"gear", "equipment"}, Canonical: []string{"Gear"}},
@@ -277,6 +279,7 @@ func TestMap_helmetPartsPathsAreNotHelmets(t *testing.T) {
 		{[]string{"Helmet Parts"}, []string{"Gear", "Helmet parts"}},
 		{[]string{"Apparel", "Helmets", "Helmet Accessories"}, []string{"Gear", "Helmet parts"}},
 		{[]string{"Helmet Accessories"}, []string{"Gear", "Helmet parts"}},
+		{[]string{"Helmet Peaks"}, []string{"Gear", "Helmet parts"}},
 		{[]string{"Cycling Gear", "Bike Accessories", "Bike Helmets", "Mountain Bike Helmets"}, []string{"Gear", "Helmets"}},
 		{[]string{"MTB Helmets"}, []string{"Gear", "Helmets"}},
 		{[]string{"Cycling", "Helmets"}, []string{"Gear", "Helmets"}},
@@ -306,6 +309,47 @@ func TestMap_seedTaxonomyMapsHelmetPartsPath(t *testing.T) {
 	wantHelmet := []string{"Gear", "Helmets"}
 	if !slices.Equal(gotHelmet, wantHelmet) {
 		t.Fatalf("Map(seed taxonomy, Cycling > Helmets) = %v, want %v", gotHelmet, wantHelmet)
+	}
+}
+
+// ZAC-271: small hardware store paths must beat bare fork/shock/handlebar/headset
+// keywords so they land on "{Parent} parts" instead of the complete-product leaf.
+func TestMap_seedTaxonomyMapsComponentPartsNotCompleteLeaves(t *testing.T) {
+	path := filepath.Join("..", "..", "..", "..", "packages", "shared", "category_taxonomy.json")
+	if err := Load(path); err != nil {
+		t.Fatalf("Load(%s): %v", path, err)
+	}
+	t.Cleanup(func() { SetMappings(nil) })
+
+	cases := []struct {
+		raw  []string
+		want []string
+	}{
+		{[]string{"Fork Seals"}, []string{"Components", "Suspension", "Suspension parts"}},
+		{[]string{"Components", "Forks", "Dust Wipers"}, []string{"Components", "Suspension", "Suspension parts"}},
+		{[]string{"Shock Kit"}, []string{"Components", "Suspension", "Suspension parts"}},
+		{[]string{"Volume Spacers"}, []string{"Components", "Suspension", "Suspension parts"}},
+		{[]string{"Suspension Forks"}, []string{"Components", "Suspension", "Forks"}},
+		{[]string{"Rear Shocks"}, []string{"Components", "Suspension", "Shocks"}},
+		{[]string{"Brake Olives"}, []string{"Components", "Brakes", "Brake parts"}},
+		{[]string{"Hydraulic Hose"}, []string{"Components", "Brakes", "Brake parts"}},
+		{[]string{"Disc Brake"}, []string{"Components", "Brakes"}},
+		{[]string{"Headset Spacers"}, []string{"Components", "Cockpit", "Cockpit parts"}},
+		{[]string{"Bar Ends"}, []string{"Components", "Cockpit", "Cockpit parts"}},
+		{[]string{"Dropper Remote"}, []string{"Components", "Cockpit", "Cockpit parts"}},
+		{[]string{"Integrated Headset"}, []string{"Components", "Cockpit", "Headsets"}},
+		{[]string{"Derailleur Hangers"}, []string{"Components", "Drivetrain", "Drivetrain parts"}},
+		{[]string{"Jockey Wheels"}, []string{"Components", "Drivetrain", "Drivetrain parts"}},
+		{[]string{"Rear Derailleur"}, []string{"Components", "Drivetrain"}},
+		{[]string{"Spoke Nipples"}, []string{"Components", "Wheels/Tires", "Wheels/Tires parts"}},
+		{[]string{"Thru-Axle"}, []string{"Components", "Wheels/Tires", "Wheels/Tires parts"}},
+		{[]string{"Helmet Peak"}, []string{"Gear", "Helmet parts"}},
+	}
+	for _, tc := range cases {
+		got := Map(tc.raw)
+		if !slices.Equal(got, tc.want) {
+			t.Errorf("Map(%v) = %v, want %v", tc.raw, got, tc.want)
+		}
 	}
 }
 
@@ -434,7 +478,7 @@ func TestMap_suspensionPartsAndFramesStillMatch(t *testing.T) {
 		{[]string{"Components", "Forks & Suspension", "Rear Shocks"}, []string{"Components", "Suspension", "Shocks"}},
 		{[]string{"Full Suspension Frames"}, []string{"Bikes", "Frames"}},
 		{[]string{"Bikes", "Mountain Bikes", "Pre-Configured Mountain Bikes", "XC Full Suspension"}, []string{"Bikes", "Mountain Bikes", "XC Bikes"}},
-		{[]string{"Fork kit"}, []string{"Components", "Suspension", "Parts"}},
+		{[]string{"Fork kit"}, []string{"Components", "Suspension", "Suspension parts"}},
 	}
 	for _, tc := range cases {
 		got := Map(tc.raw)

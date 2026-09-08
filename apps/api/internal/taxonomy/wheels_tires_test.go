@@ -79,7 +79,7 @@ func TestRefineWheelsTires_excludesHubsSpokesBagsTape(t *testing.T) {
 		from  []string
 	}{
 		{"DT Swiss 350 Hub", parent},
-		{"Sapim Race spokes 186mm", []string{"Components", "Wheels/Tires", "Parts"}},
+		{"Sapim Race spokes 186mm", []string{"Components", "Wheels/Tires", "Wheels/Tires parts"}},
 		{"Evoc Wheel Bag", []string{"Components", "Wheels/Tires"}},
 		{"Stan's NoTubes Rim Tape", []string{"Components", "Wheels/Tires", "Tubeless"}},
 		{"SRAM GX Eagle Freewheel", []string{"Components", "Wheels/Tires"}},

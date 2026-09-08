@@ -449,7 +449,7 @@
     {
       "id": 43,
       "slug": "components-drivetrain-parts",
-      "name": "Parts",
+      "name": "Drivetrain parts",
       "parent_id": 10,
       "sort_order": 7,
       "depth": 2,
@@ -469,7 +469,7 @@
     {
       "id": 44,
       "slug": "components-brakes-parts",
-      "name": "Parts",
+      "name": "Brake parts",
       "parent_id": 11,
       "sort_order": 3,
       "depth": 2,
@@ -479,7 +479,7 @@
     {
       "id": 45,
       "slug": "components-suspension-parts",
-      "name": "Parts",
+      "name": "Suspension parts",
       "parent_id": 12,
       "sort_order": 2,
       "depth": 2,
@@ -499,7 +499,7 @@
     {
       "id": 47,
       "slug": "components-wheels-tires-parts",
-      "name": "Parts",
+      "name": "Wheels/Tires parts",
       "parent_id": 13,
       "sort_order": 6,
       "depth": 2,
@@ -519,7 +519,7 @@
     {
       "id": 48,
       "slug": "components-cockpit-parts",
-      "name": "Parts",
+      "name": "Cockpit parts",
       "parent_id": 14,
       "sort_order": 6,
       "depth": 2,

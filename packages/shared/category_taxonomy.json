@@ -67,6 +67,32 @@
       "canonical": ["Bikes", "BMX Bikes"]
     },
     {
+      "raw": [
+        "fork parts",
+        "fork part",
+        "fork kit",
+        "fork kits",
+        "fork seal",
+        "fork seals",
+        "fork bushing",
+        "dust wiper",
+        "dust wipers",
+        "volume spacer",
+        "volume spacers",
+        "shock parts",
+        "shock part",
+        "shock kit",
+        "shock kits",
+        "shock seal",
+        "shock seals",
+        "suspension parts",
+        "seal kit",
+        "seal kits",
+        "lower leg kit"
+      ],
+      "canonical": ["Components", "Suspension", "Suspension parts"]
+    },
+    {
       "raw": ["fork", "forks"],
       "canonical": ["Components", "Suspension", "Forks"]
     },
@@ -157,6 +183,23 @@
     { "raw": ["kid", "kids", "children"], "canonical": ["Bikes", "Kids"] },
     {
       "raw": [
+        "drivetrain parts",
+        "derailleur hanger",
+        "derailleur hangers",
+        "jockey wheel",
+        "jockey wheels",
+        "pulley wheel",
+        "chain guide",
+        "chain guides",
+        "chainguide",
+        "cable housing",
+        "shift cable",
+        "chainring bolt"
+      ],
+      "canonical": ["Components", "Drivetrain", "Drivetrain parts"]
+    },
+    {
+      "raw": [
         "drivetrain",
         "derailleur",
         "cassette",
@@ -182,12 +225,48 @@
     },
     {
       "raw": [
+        "cockpit parts",
+        "bar end",
+        "bar ends",
+        "barend",
+        "bar plug",
+        "bar plugs",
+        "stem cap",
+        "stem caps",
+        "stemcap",
+        "top cap",
+        "headset spacer",
+        "headset spacers",
+        "dropper remote",
+        "dropper remotes",
+        "dropper lever"
+      ],
+      "canonical": ["Components", "Cockpit", "Cockpit parts"]
+    },
+    {
+      "raw": [
         "headset",
         "headsets",
         "integrated headset",
         "threadless headset"
       ],
       "canonical": ["Components", "Cockpit", "Headsets"]
+    },
+    {
+      "raw": [
+        "brake parts",
+        "brake part",
+        "brake hardware",
+        "brake olive",
+        "brake olives",
+        "olive and insert",
+        "banjo bolt",
+        "brake piston",
+        "caliper piston",
+        "brake hose",
+        "hydraulic hose"
+      ],
+      "canonical": ["Components", "Brakes", "Brake parts"]
     },
     {
       "raw": ["brake", "brakes", "brake pad", "disc brake", "rotor"],
@@ -216,6 +295,21 @@
         "tubeless systems"
       ],
       "canonical": ["Components", "Wheels/Tires", "Tubeless"]
+    },
+    {
+      "raw": [
+        "spoke nipple",
+        "spoke nipples",
+        "loose spoke",
+        "loose spokes",
+        "rim strip",
+        "rim strips",
+        "thru-axle",
+        "thru axle",
+        "through axle",
+        "through-axle"
+      ],
+      "canonical": ["Components", "Wheels/Tires", "Wheels/Tires parts"]
     },
     {
       "raw": ["wheel", "wheels", "tire", "tyre", "rim"],
@@ -254,7 +348,14 @@
         "cheek pad",
         "cheek pads",
         "cheekpad",
-        "cheekpads"
+        "cheekpads",
+        "helmet peak",
+        "helmet peaks",
+        "helmet cover",
+        "helmet covers",
+        "helmet screw",
+        "helmet screws",
+        "helmet fit kit"
       ],
       "canonical": ["Gear", "Helmet parts"]
     },
