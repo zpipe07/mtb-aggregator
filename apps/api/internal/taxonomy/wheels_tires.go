@@ -67,7 +67,7 @@ func isRimTitle(name string) bool {
 	return rimRe.MatchString(name) && !rimExcludeRe.MatchString(name)
 }
 
-// MapListing maps a store breadcrumb, then applies Wheels/Tires title refine.
+// MapListing maps a store breadcrumb, then applies title-based leaf refiners.
 func MapListing(categoryPath []string, productName string) []string {
-	return RefineWheelsTires(Map(categoryPath), productName)
+	return RefineListing(Map(categoryPath), productName)
 }

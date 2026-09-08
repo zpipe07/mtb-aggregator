@@ -143,7 +143,7 @@ Run from repo root with API not required:
 
 ```bash
 make backfill-brands                 # Re-apply brand_aliases.json to store_listings.brand (also POST /admin/renormalize-brands)
-make backfill-canonical-categories   # Recategorize after taxonomy changes (skips manual override; confident llm_category skips path remap). After 052 (helmet parts), 054 (CC apparel vs bikes), or 056 (wheelsets/rims vs Tires), restart the API first so mappings/rubrics reload. ZAC-263 title refine still runs on Wheels/Tires rows.
+make backfill-canonical-categories   # Recategorize after taxonomy changes (skips manual override; confident llm_category skips path remap). After 052 (helmet parts), 054 (CC apparel vs bikes), 056 (wheelsets/rims vs Tires), 057 (component parts), or 058 (brakesets vs small parts), restart the API first so mappings/rubrics reload. Title refine still runs (ZAC-263 Wheels/Tires, ZAC-272 Brakesets).
 make backfill-bikesonline-clothing-protective   # Bikes Online Clothing & Protective Gear → LLM Protection/Helmets/Gloves (DRY_RUN=1 preview)
 make backfill-llm-specs              # Populate llm_specs from specs
 make backfill-clothing-size          # After migration 041: copy normalized variant Size into llm_specs.clothing_size

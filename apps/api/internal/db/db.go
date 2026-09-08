@@ -2094,8 +2094,9 @@ func (db *DB) RequeueWipedEnrichment(ctx context.Context) (int64, error) {
 
 // BackfillCanonicalCategories sets canonical_category and category_id from category_path using the given mapper (e.g. taxonomy.Map).
 // Skips listings with manual_category_override so admin picks stay. Confident metadata.llm_category still skips
-// path remap (ZAC-234), but Wheels/Tires title refine still runs on the existing path so wheelset/rim titles
-// cannot stay stuck on Tires (ZAC-263). Returns the number of rows updated.
+// path remap (ZAC-234), but title refine still runs on the existing path so wheelset/rim titles cannot stay
+// stuck on Tires (ZAC-263) and brake cables/olives/adapters cannot stay on Brakesets (ZAC-272).
+// Returns the number of rows updated.
 func (db *DB) BackfillCanonicalCategories(ctx context.Context, mapFn func([]string) []string) (int, error) {
 	threshold := db.resolveLLMPreserveThreshold(ctx)
 	rows, err := db.pool.Query(ctx, `SELECT id, COALESCE(category_path, '{}'), COALESCE(canonical_category, '{}'), COALESCE(metadata, '{}'::jsonb), COALESCE(product_name, '') FROM store_listings`)
@@ -2123,11 +2124,11 @@ func (db *DB) BackfillCanonicalCategories(ctx context.Context, mapFn func([]stri
 		var canonical []string
 		switch {
 		case preserveLLM:
-			canonical = taxonomy.RefineWheelsTires(existingPath, productName)
+			canonical = taxonomy.RefineListing(existingPath, productName)
 		case len(mapped) > 0:
-			canonical = taxonomy.RefineWheelsTires(mapped, productName)
+			canonical = taxonomy.RefineListing(mapped, productName)
 		default:
-			refined := taxonomy.RefineWheelsTires(existingPath, productName)
+			refined := taxonomy.RefineListing(existingPath, productName)
 			if !sliceEqual(refined, existingPath) {
 				canonical = refined
 				break
