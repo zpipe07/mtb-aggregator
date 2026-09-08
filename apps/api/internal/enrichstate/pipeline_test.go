@@ -12,9 +12,15 @@ import (
 )
 
 type fakeStateStore struct {
-	mu     sync.Mutex
-	states map[int]*ListingState
-	items  map[Step][]WorkItem
+	mu             sync.Mutex
+	states         map[int]*ListingState
+	items          map[Step][]WorkItem
+	releaseCalls   []leaseReleaseCall
+}
+
+type leaseReleaseCall struct {
+	ListingID int
+	Step      Step
 }
 
 func newFakeStateStore(items map[Step][]WorkItem) *fakeStateStore {
@@ -44,7 +50,7 @@ func (f *fakeStateStore) GetState(_ context.Context, listingID int) (*ListingSta
 	return &copy, nil
 }
 
-func (f *fakeStateStore) ClaimForStep(_ context.Context, step Step, _ ClaimFilter, limit int, _ bool, _ time.Time) ([]WorkItem, error) {
+func (f *fakeStateStore) ClaimForStep(_ context.Context, step Step, _ ClaimFilter, limit int, _ bool, _, _ time.Time, _ time.Duration) ([]WorkItem, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	batch := f.items[step]
@@ -53,6 +59,13 @@ func (f *fakeStateStore) ClaimForStep(_ context.Context, step Step, _ ClaimFilte
 	}
 	f.items[step] = f.items[step][len(batch):]
 	return batch, nil
+}
+
+func (f *fakeStateStore) ReleaseLease(_ context.Context, listingID int, step Step) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.releaseCalls = append(f.releaseCalls, leaseReleaseCall{ListingID: listingID, Step: step})
+	return nil
 }
 
 func (f *fakeStateStore) RecordStepSuccess(_ context.Context, listingID int, step Step, meta StepSuccessMeta, completedAt time.Time) error {
@@ -99,6 +112,24 @@ func (f *fakeStateStore) RecordStepFailure(_ context.Context, listingID int, ste
 
 func (f *fakeStateStore) ResetStep(context.Context, int, Step) error { return nil }
 
+func (f *fakeStateStore) StampLLMSkipInputs(_ context.Context, listingID int, pdpHash string, promptProfileVersion *time.Time) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	st := f.states[listingID]
+	if st == nil {
+		st = &ListingState{ListingID: listingID}
+		f.states[listingID] = st
+	}
+	if st.PDPHash == "" && pdpHash != "" {
+		st.PDPHash = pdpHash
+	}
+	if st.PromptProfileVersion == nil && promptProfileVersion != nil {
+		v := *promptProfileVersion
+		st.PromptProfileVersion = &v
+	}
+	return nil
+}
+
 type fakeSnapshots struct {
 	mu    sync.Mutex
 	snaps map[int]*Snapshot
@@ -138,6 +169,20 @@ func (f fakeScraper) Enrich(context.Context, string, string) (*scraper.EnrichRes
 	if f.err != nil {
 		return nil, f.err
 	}
+	desc := "test"
+	return &scraper.EnrichResult{
+		CategoryPath: []string{"Components"},
+		RawSpecs:     map[string]string{"weight": "200g"},
+		Description:  &desc,
+	}, nil
+}
+
+type countingScraper struct {
+	calls int
+}
+
+func (c *countingScraper) Enrich(context.Context, string, string) (*scraper.EnrichResult, error) {
+	c.calls++
 	desc := "test"
 	return &scraper.EnrichResult{
 		CategoryPath: []string{"Components"},
@@ -409,6 +454,16 @@ func TestPipeline_CircuitBreakerSkipsRemainingPDPForStore(t *testing.T) {
 	if st3 != nil && st3.PDP.Attempts > 0 {
 		t.Fatalf("listing 3 should be skipped without failure, got %+v", st3)
 	}
+	foundRelease := false
+	for _, call := range state.releaseCalls {
+		if call.ListingID == 3 && call.Step == StepPDP {
+			foundRelease = true
+			break
+		}
+	}
+	if !foundRelease {
+		t.Fatalf("expected ReleaseLease for circuit-breaker-skipped listing 3, got %+v", state.releaseCalls)
+	}
 }
 
 func TestPipeline_SkipClassifyWhenAlreadyDone(t *testing.T) {
@@ -446,5 +501,117 @@ func TestPipeline_SkipClassifyWhenAlreadyDone(t *testing.T) {
 	}
 	if len(events.events) != 1 || events.events[0].Status != StatusSkipped {
 		t.Fatalf("expected skipped event, got %+v", events.events)
+	}
+	foundRelease := false
+	for _, call := range state.releaseCalls {
+		if call.ListingID == 99 && call.Step == StepClassify {
+			foundRelease = true
+			break
+		}
+	}
+	if !foundRelease {
+		t.Fatalf("expected ReleaseLease on LLM skip, got %+v", state.releaseCalls)
+	}
+}
+
+func TestPipeline_SkipClassifyStampsNullHash(t *testing.T) {
+	t.Parallel()
+	now := time.Now()
+	hash := "deadbeef"
+	item := WorkItem{ListingID: 99}
+	completed := now.Add(-time.Hour)
+	state := newFakeStateStore(map[Step][]WorkItem{
+		StepClassify: {item},
+	})
+	state.states[99] = &ListingState{
+		ListingID: 99,
+		PDP:       StepState{CompletedAt: &completed},
+		Classify:  StepState{CompletedAt: &completed},
+		PDPHash:   "",
+	}
+	snap := &Snapshot{ListingID: 99, ContentHash: hash, Payload: SnapshotPayload{}}
+	snaps := &fakeSnapshots{snaps: map[int]*Snapshot{99: snap}}
+	events := &fakeEvents{}
+	p := &Pipeline{
+		State:     state,
+		Snapshots: snaps,
+		Events:    events,
+		LLM:       fakeLLM{},
+		Config:    DefaultConfig(),
+	}
+	ok, err := p.runOne(context.Background(), StepClassify, item, false, nil, now, DefaultConfig())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !ok {
+		t.Fatal("expected skip success")
+	}
+	st, err := state.GetState(context.Background(), 99)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if st.PDPHash != hash {
+		t.Fatalf("expected stamped pdp_hash %q, got %q", hash, st.PDPHash)
+	}
+	in := StepDueInput{
+		Now:      now,
+		Config:   DefaultConfig(),
+		State:    *st,
+		Snapshot: snap,
+	}
+	if StepDue(StepClassify, in) {
+		t.Fatal("classify should not be due after null hash is stamped from snapshot")
+	}
+	if len(events.events) != 1 || events.events[0].Status != StatusSkipped {
+		t.Fatalf("expected skipped event, got %+v", events.events)
+	}
+}
+
+func TestPipeline_RunJobSteps_LLMOnlySkipsPDP(t *testing.T) {
+	t.Parallel()
+	now := time.Now()
+	completed := now.Add(-time.Hour)
+	item := WorkItem{ListingID: 20, ProductURL: "http://x/20"}
+
+	state := newFakeStateStore(map[Step][]WorkItem{
+		StepPDP:      {item},
+		StepClassify: {item},
+	})
+	state.states[20] = &ListingState{
+		ListingID: 20,
+		PDP:       StepState{CompletedAt: &completed},
+	}
+	snaps := &fakeSnapshots{snaps: map[int]*Snapshot{
+		20: {ListingID: 20, ContentHash: "hash-20"},
+	}}
+	events := &fakeEvents{}
+	scraper := &countingScraper{}
+	p := &Pipeline{
+		State:     state,
+		Snapshots: snaps,
+		Events:    events,
+		Scraper:   scraper,
+		LLM:       fakeLLM{},
+		Listings:  fakeListings{},
+		Config:    DefaultConfig(),
+	}
+	processed, succeeded, errStrs := p.RunJobSteps(context.Background(), ClaimFilter{}, false, 10, 0, nil, LLMJobSteps)
+	if len(errStrs) != 0 {
+		t.Fatalf("unexpected errors: %v", errStrs)
+	}
+	if scraper.calls != 0 {
+		t.Fatalf("scraper calls = %d, want 0 (LLM-only job must not fetch PDP)", scraper.calls)
+	}
+	if got := countEvents(events.events, StepPDP, StatusSuccess); got != 0 {
+		t.Errorf("pdp successes = %d, want 0", got)
+	}
+	if got := countEvents(events.events, StepClassify, StatusSuccess); got != 1 {
+		t.Errorf("classify successes = %d, want 1", got)
+	}
+	if processed != 1 || succeeded != 1 {
+		t.Errorf("processed=%d succeeded=%d, want 1/1", processed, succeeded)
+	}
+	if len(state.items[StepPDP]) != 1 {
+		t.Errorf("PDP queue should be untouched, still has %d items", len(state.items[StepPDP]))
 	}
 }

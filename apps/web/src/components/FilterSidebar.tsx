@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import type { BrandFacet, SpecFacet, Store } from "../api";
 import { buildMinDiscountSelectOptions } from "../lib/minDiscountFilterOptions";
 import { FilterSelect } from "./FilterSelect";
+import { PriceRangeFilter } from "./PriceRangeFilter";
 import { Button } from "./ui/button";
 import { CheckboxGroup } from "./ui/checkbox-group";
 
@@ -27,14 +28,17 @@ export type FilterSidebarProps = {
   brandFacets: BrandFacet[];
   storeFilter: string;
   brandFilters: string[];
-  /** Category filter (slug) — used to scope spec facets; category UI lives above the deals grid. */
-  categoryFilter: string;
   minDiscount: string;
+  minPrice: string;
+  maxPrice: string;
+  priceRange?: { min: number; max: number };
   specFilters: Record<string, string[]>;
   specFacets: SpecFacet[];
   onStoreChange: (value: string) => void;
   onToggleBrand: (value: string) => void;
   onMinDiscountChange: (value: string) => void;
+  onMinPriceChange: (value: string) => void;
+  onMaxPriceChange: (value: string) => void;
   onToggleSpecFilter: (key: string, value: string) => void;
   onClearSpecFilter: (key: string) => void;
 };
@@ -44,13 +48,17 @@ export function FilterSidebar({
   brandFacets,
   storeFilter,
   brandFilters,
-  categoryFilter,
   minDiscount,
+  minPrice,
+  maxPrice,
+  priceRange,
   specFilters,
   specFacets,
   onStoreChange,
   onToggleBrand,
   onMinDiscountChange,
+  onMinPriceChange,
+  onMaxPriceChange,
   onToggleSpecFilter,
   onClearSpecFilter,
 }: FilterSidebarProps) {
@@ -91,7 +99,15 @@ export function FilterSidebar({
         options={buildMinDiscountSelectOptions(minDiscount)}
       />
 
-      {categoryFilter && specFacets.length > 0 && (
+      <PriceRangeFilter
+        minPrice={minPrice}
+        maxPrice={maxPrice}
+        priceRange={priceRange}
+        onMinPriceChange={onMinPriceChange}
+        onMaxPriceChange={onMaxPriceChange}
+      />
+
+      {specFacets.length > 0 && (
         <div className="space-y-4 border-t border-foreground/15 pt-4">
           {specFacets.map((facet) => {
             const specValueOptions = mergeSelectedFacetValues(

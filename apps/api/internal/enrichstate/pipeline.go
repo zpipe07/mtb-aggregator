@@ -35,19 +35,37 @@ type Pipeline struct {
 	Config           Config
 	Fanout           VariantFanout
 	BeforeClaimBatch func(step Step)
-	CircuitBreaker   *CircuitBreaker
+	CircuitBreaker   *CircuitBreaker // deprecated: burst jobs use StorePacer; kept for tests
+	StorePacer       StorePDPPacer
+	BypassMinInterval bool
+	OnPDPCooldownTrip func(storeType string)
+	CBThreshold      int
 }
+
+// DefaultJobSteps is the full enrichment pipeline order (PDP, then LLM passes).
+var DefaultJobSteps = []Step{StepPDP, StepClassify, StepExtract}
+
+// LLMJobSteps runs classify and extract only (DB-backed; no store PDP fetches).
+var LLMJobSteps = []Step{StepClassify, StepExtract}
 
 // RunJob executes PDP, classify, and extract passes until batch limits or timeout.
 // maxListings caps each step independently: a large PDP backlog must not starve
 // the classify/extract passes of their budget.
 func (p *Pipeline) RunJob(ctx context.Context, filter ClaimFilter, force bool, batchSize, maxListings int, jobID *int) (processed, succeeded int, errStrs []string) {
+	return p.RunJobSteps(ctx, filter, force, batchSize, maxListings, jobID, DefaultJobSteps)
+}
+
+// RunJobSteps runs the given steps in order (e.g. LLMJobSteps for classify+extract only).
+func (p *Pipeline) RunJobSteps(ctx context.Context, filter ClaimFilter, force bool, batchSize, maxListings int, jobID *int, steps []Step) (processed, succeeded int, errStrs []string) {
 	cfg := p.Config
 	if cfg.BackoffBase == 0 {
 		cfg = DefaultConfig()
 	}
+	if cfg.ClaimLease <= 0 {
+		cfg.ClaimLease = DefaultConfig().ClaimLease
+	}
 
-	for _, step := range []Step{StepPDP, StepClassify, StepExtract} {
+	for _, step := range steps {
 		stepProcessed := 0
 		for {
 			if ctx.Err() != nil {
@@ -64,7 +82,8 @@ func (p *Pipeline) RunJob(ctx context.Context, filter ClaimFilter, force bool, b
 				p.BeforeClaimBatch(step)
 			}
 			now := time.Now()
-			items, err := p.State.ClaimForStep(ctx, step, filter, limit, force, now)
+			leaseUntil := now.Add(cfg.ClaimLease)
+			items, err := p.State.ClaimForStep(ctx, step, filter, limit, force, now, leaseUntil, cfg.PDPStaleAfter)
 			if err != nil {
 				errStrs = append(errStrs, string(step)+": claim: "+err.Error())
 				return processed, succeeded, errStrs
@@ -76,7 +95,17 @@ func (p *Pipeline) RunJob(ctx context.Context, filter ClaimFilter, force bool, b
 				if ctx.Err() != nil {
 					return processed, succeeded, errStrs
 				}
+				if step == StepPDP && p.StorePacer != nil {
+					skip, perr := p.StorePacer.ShouldSkipPDP(ctx, item.StoreType, p.BypassMinInterval, force, now, cfg.PDPMinInterval)
+					if perr != nil {
+						errStrs = append(errStrs, string(step)+": pacer: "+perr.Error())
+					} else if skip {
+						_ = p.State.ReleaseLease(ctx, item.ListingID, step)
+						continue
+					}
+				}
 				if step == StepPDP && p.CircuitBreaker != nil && p.CircuitBreaker.IsTripped(item.StoreType) {
+					_ = p.State.ReleaseLease(ctx, item.ListingID, step)
 					continue
 				}
 				stepProcessed++
@@ -84,6 +113,9 @@ func (p *Pipeline) RunJob(ctx context.Context, filter ClaimFilter, force bool, b
 				ok, stepErr := p.runOne(ctx, step, item, force, jobID, now, cfg)
 				if stepErr != nil {
 					errStrs = append(errStrs, "listing "+strconv.Itoa(item.ListingID)+": "+string(step)+": "+stepErr.Error())
+				}
+				if step == StepPDP {
+					p.recordPDPPacerOutcome(ctx, item.StoreType, ok, stepErr, force, now, cfg)
 				}
 				if step == StepPDP && p.CircuitBreaker != nil {
 					if ok {
@@ -106,8 +138,68 @@ func (p *Pipeline) RunJob(ctx context.Context, filter ClaimFilter, force bool, b
 	return processed, succeeded, errStrs
 }
 
+// RunWorkItem runs a single claimed pipeline step (used by the PDP drainer).
+func (p *Pipeline) RunWorkItem(ctx context.Context, step Step, item WorkItem, force bool, jobID *int, cfg Config, bypassMinInterval bool) (bool, error) {
+	if cfg.BackoffBase == 0 {
+		cfg = p.Config
+		if cfg.BackoffBase == 0 {
+			cfg = DefaultConfig()
+		}
+	}
+	now := time.Now()
+	if p.StorePacer != nil && step == StepPDP {
+		// ShouldSkipPDP must run before RecordPDPFetch. Stamping last_fetch first
+		// makes the min-interval check treat this listing as already paced and
+		// skip the scraper (ZAC-247). Callers (the resident drainer) must not
+		// record fetch before this function either.
+		skip, err := p.StorePacer.ShouldSkipPDP(ctx, item.StoreType, bypassMinInterval, force, now, cfg.PDPMinInterval)
+		if err != nil {
+			return false, err
+		}
+		if skip {
+			_ = p.State.ReleaseLease(ctx, item.ListingID, step)
+			log.Printf("[enrichstate] skip PDP listing %d store %s: pacing", item.ListingID, item.StoreType)
+			return false, nil
+		}
+		if err := p.StorePacer.RecordPDPFetch(ctx, item.StoreType, now); err != nil {
+			return false, err
+		}
+	}
+	ok, err := p.runOne(ctx, step, item, force, jobID, now, cfg)
+	if step == StepPDP {
+		p.recordPDPPacerOutcome(ctx, item.StoreType, ok, err, force, now, cfg)
+	}
+	return ok, err
+}
+
+func (p *Pipeline) recordPDPPacerOutcome(ctx context.Context, storeType string, ok bool, stepErr error, force bool, now time.Time, cfg Config) {
+	if p.StorePacer == nil {
+		return
+	}
+	threshold := p.CBThreshold
+	if threshold <= 0 {
+		threshold = CircuitBreakerThreshold()
+	}
+	if ok {
+		_ = p.StorePacer.RecordPDPSuccess(ctx, storeType)
+		return
+	}
+	if stepErr == nil {
+		return
+	}
+	tripped, _ := p.StorePacer.RecordPDPFailure(ctx, storeType, threshold, cfg.PDPCooldown, now)
+	if tripped && p.OnPDPCooldownTrip != nil {
+		p.OnPDPCooldownTrip(storeType)
+	}
+}
+
 func (p *Pipeline) runOne(ctx context.Context, step Step, item WorkItem, force bool, jobID *int, now time.Time, cfg Config) (success bool, err error) {
 	start := time.Now()
+	defer func() {
+		if p.State != nil {
+			_ = p.State.ReleaseLease(ctx, item.ListingID, step)
+		}
+	}()
 	if err := p.State.EnsureRow(ctx, item.ListingID); err != nil {
 		return false, err
 	}
@@ -126,6 +218,9 @@ func (p *Pipeline) runOne(ctx context.Context, step Step, item WorkItem, force b
 	in := p.buildStepInput(ctx, *state, snap, force, now, cfg, item.ListingID)
 	if ShouldSkipLLMStep(step, in) {
 		p.recordEvent(ctx, item.ListingID, step, StatusSkipped, "", nil, jobID, start)
+		if snap != nil && snap.ContentHash != "" {
+			_ = p.State.StampLLMSkipInputs(ctx, item.ListingID, snap.ContentHash, in.ProfileUpdatedAt)
+		}
 		return true, nil
 	}
 

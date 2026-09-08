@@ -9,7 +9,7 @@ import { DealCarousel } from "../components/DealCarousel";
 import { CategoryCard } from "../components/CategoryCard";
 import { StatTicker } from "../components/StatTicker";
 import { CategoryTreeNode } from "../api";
-import { categoryHasDeals } from "../lib/categoryTree";
+import { categoryHasDeals, categoryNavDealCount } from "../lib/categoryTree";
 import { CATEGORY_IMAGES } from "../lib/categoryImages";
 import { buildDealsCategoryPath } from "../lib/dealsCategoryPath";
 import type { Deal } from "../api";
@@ -17,6 +17,9 @@ import type { HomeDealSection } from "../lib/homeDealSections";
 import { HOME_PRICE_DROPS_SECTION_ID } from "../lib/homeDealSections";
 import { Button } from "../components/ui/button";
 import { cn, focusRing } from "@/lib/utils";
+import type { Giveaway } from "@/api";
+import { HomeGiveawaysStrip } from "@/components/HomeGiveawaysStrip";
+import { deriveGiveawayStatus } from "@/lib/giveawayStatus";
 
 /** Curated category labels for home page CTAs when API has few/empty categories */
 const FALLBACK_CATEGORIES: { path: string; label: string }[] = [
@@ -55,7 +58,7 @@ function buildCategoryCards(categoryTree: CategoryTreeNode[]): {
     path: category.slug,
     label: category.name,
     imageSrc: CATEGORY_IMAGES[category.slug] ?? undefined,
-    dealCount: category.deal_count,
+    dealCount: categoryNavDealCount(category),
   }));
 }
 
@@ -66,6 +69,7 @@ type Props = {
   storeCount: number;
   dealCount: number;
   lastUpdated: string;
+  openGiveaways?: Giveaway[];
   /** Server-rendered curated hub links for crawl discovery. */
   hubLinks?: ReactNode;
 };
@@ -77,6 +81,7 @@ export function HomePageContent({
   storeCount,
   dealCount,
   lastUpdated,
+  openGiveaways = [],
   hubLinks,
 }: Props) {
   const router = useRouter();
@@ -88,8 +93,21 @@ export function HomePageContent({
     (section) => section.deals.length > 0,
   );
   const showPriceDrops = priceDropDeals.length > 0;
+  const showOpenGiveaways = openGiveaways.some(
+    (g) => deriveGiveawayStatus(g) === "open",
+  );
   const dealDetailHref = (dealId: number) => `/deals/${dealId}`;
-  const sectionOffset = showPriceDrops ? 2 : 1;
+  let sectionSeq = 1;
+  const priceDropsNumber = showPriceDrops
+    ? String(sectionSeq++).padStart(2, "0")
+    : "01";
+  const categoryNumber = String(sectionSeq++).padStart(2, "0");
+  const dealsStartNumber = sectionSeq;
+  const dealsSectionCount =
+    visibleDealSections.length > 0 ? visibleDealSections.length : 1;
+  const openEntriesNumber = String(
+    dealsStartNumber + dealsSectionCount,
+  ).padStart(2, "0");
 
   const handleSearchSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -165,7 +183,7 @@ export function HomePageContent({
           <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
             <div className="flex flex-wrap items-end gap-4">
               <span className="pb-0.5 font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                {"// 01"}
+                {`// ${priceDropsNumber}`}
               </span>
               <h2 className="text-2xl font-semibold tracking-[-0.02em] text-foreground">
                 Recent price drops
@@ -195,7 +213,7 @@ export function HomePageContent({
       <section className="mb-12 lg:mb-16">
         <div className="mb-6 flex flex-wrap items-end gap-4">
           <span className="pb-0.5 font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-            {showPriceDrops ? "// 02" : "// 01"}
+            {`// ${categoryNumber}`}
           </span>
           <h2 className="text-2xl font-semibold tracking-[-0.02em] text-foreground">
             Shop by category
@@ -223,7 +241,7 @@ export function HomePageContent({
               <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
                 <div className="flex flex-wrap items-end gap-4">
                   <span className="pb-0.5 font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                    {`// ${String(index + sectionOffset + 1).padStart(2, "0")}`}
+                    {`// ${String(index + dealsStartNumber).padStart(2, "0")}`}
                   </span>
                   <h2 className="text-2xl font-semibold tracking-[-0.02em] text-foreground">
                     {section.title}
@@ -256,7 +274,7 @@ export function HomePageContent({
         <section>
           <div className="mb-6 flex flex-wrap items-end gap-4">
             <span className="pb-0.5 font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-              {showPriceDrops ? "// 03" : "// 02"}
+              {`// ${String(dealsStartNumber).padStart(2, "0")}`}
             </span>
             <h2 className="text-2xl font-semibold tracking-[-0.02em] text-foreground">
               Top deals of the day
@@ -267,6 +285,13 @@ export function HomePageContent({
           </p>
         </section>
       )}
+
+      {showOpenGiveaways ? (
+        <HomeGiveawaysStrip
+          giveaways={openGiveaways}
+          sectionNumber={openEntriesNumber}
+        />
+      ) : null}
 
       {hubLinks ? (
         <section className="mt-12 border-t border-foreground/15 pt-10 lg:mt-16">

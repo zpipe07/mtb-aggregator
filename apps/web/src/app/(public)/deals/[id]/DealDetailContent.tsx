@@ -11,7 +11,13 @@ import { dealsListSurfaceFromListHref } from "@/lib/dealsListSurface";
 import { computeDealScore, pricePositionLabel } from "@/lib/dealScore";
 import { cn, focusRing } from "@/lib/utils";
 import { formatMoney } from "@/lib/formatMoney";
+import {
+  displayPriceRange,
+  inStockDealVariants,
+  summarizeDealSizeChips,
+} from "@/lib/inStockVariantChips";
 import { Button } from "@/components/ui/button";
+import { RemoteImg } from "@/components/RemoteImg";
 import { PriceHistoryChart } from "@/components/PriceHistoryChart";
 import { useDealDetailListContext } from "./DealDetailBackNav";
 
@@ -101,13 +107,11 @@ function DealDetailContentInner({
         ? Math.round((1 - deal.current_price / deal.original_price) * 100)
         : null;
 
+  const priceRange = displayPriceRange(deal);
   const savings =
     deal.original_price != null &&
     deal.original_price > deal.current_price &&
-    !(
-      deal.price_range?.length === 2 &&
-      deal.price_range[0] !== deal.price_range[1]
-    )
+    !(priceRange != null && priceRange[0] !== priceRange[1])
       ? deal.original_price - deal.current_price
       : null;
 
@@ -119,6 +123,8 @@ function DealDetailContentInner({
 
   const dealScore = computeDealScore(deal, priceHistory);
   const priceLabel = pricePositionLabel(deal, priceHistory);
+  const inStockVariants = inStockDealVariants(deal);
+  const variantChips = summarizeDealSizeChips(deal);
 
   useEffect(() => {
     posthog.capture("deal_detail_viewed", {
@@ -129,8 +135,22 @@ function DealDetailContentInner({
       discount_pct: discountPct,
       price_dropped: priceHistory?.price_dropped ?? false,
       list_surface: listSurface,
+      in_stock_variant_count: inStockVariants.length,
+      in_stock_size_count: variantChips?.sizes.length ?? 0,
+      in_stock_color_count: variantChips?.colors.length ?? 0,
     });
-  }, []);
+  }, [
+    deal.brand,
+    deal.current_price,
+    deal.id,
+    deal.store_name,
+    discountPct,
+    inStockVariants.length,
+    listSurface,
+    priceHistory?.price_dropped,
+    variantChips?.colors.length,
+    variantChips?.sizes.length,
+  ]);
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
@@ -170,7 +190,7 @@ function DealDetailContentInner({
             <div className="flex flex-col gap-6 sm:flex-row sm:gap-8">
               <div className="mx-auto w-40 shrink-0 overflow-hidden rounded-sm border border-foreground bg-muted sm:mx-0 sm:w-44">
                 {deal.image_url ? (
-                  <img
+                  <RemoteImg
                     src={deal.image_url}
                     alt={deal.product_name}
                     className="aspect-square h-full w-full object-cover"
@@ -233,9 +253,10 @@ function DealDetailContentInner({
                   ) : null}
                 </div>
 
+                <div className="mt-4 space-y-5 border-t border-border pt-4">
                 <div
                   className={cn(
-                    "mt-4 flex flex-wrap items-end gap-3 border-t border-border pt-4",
+                    "flex w-full flex-wrap items-end gap-3",
                     savings != null && savings > 0 ? "justify-between" : "",
                   )}
                 >
@@ -261,7 +282,7 @@ function DealDetailContentInner({
                   >
                     {deal.original_price != null &&
                       deal.original_price > deal.current_price &&
-                      !(deal.price_range && deal.price_range.length === 2) && (
+                      !priceRange && (
                         <span
                           className={cn(
                             monoMicro,
@@ -271,12 +292,10 @@ function DealDetailContentInner({
                           was ${formatMoney(deal.original_price)}
                         </span>
                       )}
-                    {deal.price_range != null &&
-                    deal.price_range.length === 2 &&
-                    deal.price_range[0] !== deal.price_range[1] ? (
+                    {priceRange != null && priceRange[0] !== priceRange[1] ? (
                       <span className="font-mono text-2xl font-semibold tabular-nums text-foreground sm:text-3xl">
-                        ${formatMoney(deal.price_range[0])} – $
-                        {formatMoney(deal.price_range[1])}
+                        ${formatMoney(priceRange[0])} – $
+                        {formatMoney(priceRange[1])}
                       </span>
                     ) : (
                       <span className="font-mono text-2xl font-semibold tabular-nums text-foreground sm:text-3xl">
@@ -286,7 +305,7 @@ function DealDetailContentInner({
                   </div>
                 </div>
 
-                <Button asChild className="mt-5" size="lg">
+                <Button asChild className="w-full sm:w-auto" size="lg">
                   <a
                     href={viewUrl}
                     target="_blank"
@@ -318,14 +337,15 @@ function DealDetailContentInner({
                     </span>
                   </a>
                 </Button>
-                {deal.price_range != null &&
-                  deal.price_range.length === 2 &&
-                  deal.price_range[0] !== deal.price_range[1] && (
-                    <p className={cn(monoMicro, "mt-3 text-muted-foreground")}>
-                      From ${formatMoney(deal.price_range[0])} to $
-                      {formatMoney(deal.price_range[1])} across variants
+                {priceRange != null &&
+                  priceRange[0] !== priceRange[1] && (
+                    <p className={cn(monoMicro, "text-muted-foreground")}>
+
+                      From ${formatMoney(priceRange[0])} to $
+                      {formatMoney(priceRange[1])} across in-stock variants
                     </p>
                   )}
+                </div>
                 {showCategoryChip ? (
                   <p className="mt-4 max-w-full">
                     <Link
@@ -343,9 +363,9 @@ function DealDetailContentInner({
               </div>
             </div>
 
-            {deal.variants != null && deal.variants.length > 1 && (
+            {inStockVariants.length > 0 && (
               <div className="mt-8 border-t border-border pt-8">
-                <SectionLabel kicker="// 01" title="Variants" />
+                <SectionLabel kicker="// 01" title="In-stock variants" />
                 <div className="overflow-x-auto rounded-sm border border-foreground bg-card">
                   <table className="w-full min-w-[min(100%,20rem)] text-sm">
                     <thead>
@@ -377,7 +397,7 @@ function DealDetailContentInner({
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
-                      {deal.variants.map((v) => (
+                      {inStockVariants.map((v) => (
                         <tr
                           key={v.id}
                           className="transition-colors hover:bg-muted/40"
@@ -430,7 +450,7 @@ function DealDetailContentInner({
                                   : "border-border bg-muted text-muted-foreground",
                               )}
                             >
-                              {v.is_in_stock ? "IN STOCK" : "OUT"}
+                              {v.is_in_stock ? "In stock" : "Out"}
                             </span>
                           </td>
                         </tr>
@@ -439,8 +459,8 @@ function DealDetailContentInner({
                   </table>
                 </div>
                 <p className={cn(monoMicro, "mt-3 text-muted-foreground")}>
-                  Prices and availability are from the retailer; open the deal
-                  to select a variant on the store site.
+                  Sold-out sizes are hidden. Open the retailer to pick a
+                  variant — this is not a store cart.
                 </p>
               </div>
             )}

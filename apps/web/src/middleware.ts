@@ -6,14 +6,13 @@ import {
   redirectClothingCategorySlug,
   redirectClothingDealsPath,
 } from "@/lib/clothingCategoryRedirects";
+import { stripDealDetailFromQuery } from "@/lib/dealPageMetadata";
 import { buildDealsCategoryPath } from "@/lib/dealsCategoryPath";
 
 /** Snapshot for URL building when middleware runs (no API fetch). Regenerate export when taxonomy changes. */
 const middlewareCategoryTree = buildCategoryTreeFromFlat(
   categoriesExport.categories as CategoryFlatRow[],
 );
-
-const DEAL_DETAIL_PATH = /^\/deals\/(\d+)$/;
 
 /**
  * Canonical URL hygiene:
@@ -24,11 +23,9 @@ const DEAL_DETAIL_PATH = /^\/deals\/(\d+)$/;
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  const dealMatch = pathname.match(DEAL_DETAIL_PATH);
-  if (dealMatch && request.nextUrl.searchParams.has("from")) {
-    const url = request.nextUrl.clone();
-    url.searchParams.delete("from");
-    return NextResponse.redirect(url, 308);
+  const fromRedirect = stripDealDetailFromQuery(request.nextUrl);
+  if (fromRedirect) {
+    return NextResponse.redirect(fromRedirect, 308);
   }
 
   const clothingPathRedirect = redirectClothingDealsPath(pathname);

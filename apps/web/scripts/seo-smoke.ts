@@ -9,9 +9,16 @@ import {
   buildProductItemListJsonLd,
   buildAggregateOfferJsonLd,
   buildFaqPageJsonLd,
+  buildGiveawaysJsonLd,
+  buildWebSiteSearchJsonLd,
 } from "../src/lib/jsonLd";
 import { computeDealScore } from "../src/lib/dealScore";
 import { brandToSlug, resolveBrandFromSlug } from "../src/lib/brandPages";
+import {
+  buildDealDetailMetadata,
+  buildDealPriceHistoryMetadata,
+  stripDealDetailFromQuery,
+} from "../src/lib/dealPageMetadata";
 
 const crumb = buildBreadcrumbJsonLd([
   { name: "Home", path: "/" },
@@ -73,6 +80,21 @@ assert.equal(faq!["@type"], "FAQPage");
 assert.equal((faq!.mainEntity as unknown[]).length, 1);
 assert.equal(buildFaqPageJsonLd([]), null);
 
+const giveawaysLd = buildGiveawaysJsonLd({
+  name: "MTB giveaways and raffles — The Dropper",
+  description: "Active mountain bike giveaways and raffles.",
+  pageUrl: "https://example.com/giveaways",
+  items: [{ slug: "norco-rampage", title: "Win a custom Norco Rampage" }],
+});
+assert.equal(giveawaysLd["@type"], "CollectionPage");
+const giveawayList = giveawaysLd.mainEntity as Record<string, unknown>;
+assert.equal(giveawayList["@type"], "ItemList");
+assert.equal(giveawayList.numberOfItems, 1);
+const giveawayItems = giveawayList.itemListElement as Record<string, unknown>[];
+assert.equal(giveawayItems[0].url, "https://example.com/giveaways#norco-rampage");
+assert.equal(JSON.stringify(giveawaysLd).includes('"Event"'), false);
+assert.equal(JSON.stringify(giveawaysLd).includes('"Offer"'), false);
+
 assert.equal(brandToSlug("RockShox"), "rockshox");
 assert.equal(resolveBrandFromSlug("fox", ["Fox", "SRAM"]), "Fox");
 
@@ -111,5 +133,38 @@ const summaryScore = computeDealScore({
   },
 });
 assert.equal(summaryScore.label, "steal");
+
+const dealMeta = buildDealDetailMetadata({
+  id: 421507,
+  product_name: "Test fork",
+  brand: "Fox",
+  current_price: 499,
+  store_name: "Shop",
+});
+assert.deepEqual(dealMeta.robots, { index: true, follow: true });
+assert.equal(dealMeta.alternates?.canonical, "/deals/421507");
+assert.equal(
+  stripDealDetailFromQuery(
+    new URL("https://thedropper.shop/deals/421507?from=/deals/c/components"),
+  )?.pathname,
+  "/deals/421507",
+);
+
+const historyMeta = buildDealPriceHistoryMetadata({
+  id: 421507,
+  product_name: "Test fork",
+  current_price: 499,
+  store_name: "Shop",
+});
+assert.deepEqual(historyMeta.robots, { index: false, follow: true });
+
+const website = buildWebSiteSearchJsonLd();
+assert.equal(website["@type"], "WebSite");
+assert.ok(Array.isArray(website.sameAs));
+assert.ok(
+  (website.sameAs as string[]).includes(
+    "https://www.instagram.com/thedropper.shop/",
+  ),
+);
 
 console.log("seo-smoke: ok");

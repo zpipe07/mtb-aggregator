@@ -88,22 +88,24 @@ func (s *variantFanoutState) reset() {
 	}
 }
 
-func (sch *Scheduler) buildEnrichmentPipeline(llmState *llmlisting.QuotaJobState, errStrs *[]string, fanout *variantFanoutState) *enrichstate.Pipeline {
+func (sch *Scheduler) buildEnrichmentPipeline(llmState *llmlisting.QuotaJobState, errStrs *[]string, fanout *variantFanoutState, bypassMinInterval bool) *enrichstate.Pipeline {
+	cfg := enrichstate.LoadConfigFromEnv()
 	return &enrichstate.Pipeline{
 		State:     db.EnrichmentStateStore{DB: sch.db},
 		Snapshots: db.EnrichmentSnapshotStore{DB: sch.db},
 		Events:    db.EnrichmentEventRecorder{DB: sch.db},
 		Scraper:   sch.scraper,
-		CircuitBreaker: enrichstate.NewCircuitBreaker(
-			enrichstate.CircuitBreakerThreshold(),
-		),
+		StorePacer: db.StorePDPPacer{DB: sch.db},
+		CBThreshold: enrichstate.CircuitBreakerThreshold(),
+		BypassMinInterval: bypassMinInterval,
+		OnPDPCooldownTrip: capturePDPCooldownTrip,
 		LLM: quotaLLMRunner{
 			inner:   schedulerLLMRunner{pool: sch.db, client: sch.llm},
 			state:   llmState,
 			errStrs: errStrs,
 		},
 		Listings: db.EnrichmentListingStore{DB: sch.db},
-		Config: enrichstate.LoadConfigFromEnv(),
+		Config:   cfg,
 		BeforeClaimBatch: func(step enrichstate.Step) {
 			if step == enrichstate.StepPDP && fanout != nil {
 				fanout.reset()

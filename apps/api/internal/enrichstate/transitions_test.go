@@ -29,9 +29,9 @@ func TestStepDue_pdpBackoffPending(t *testing.T) {
 	}
 }
 
-func TestStepDue_pdpStaleAfterSevenDays(t *testing.T) {
+func TestStepDue_pdpStaleAfterDefaultWindow(t *testing.T) {
 	t.Parallel()
-	completed := time.Now().Add(-8 * 24 * time.Hour)
+	completed := time.Now().Add(-31 * 24 * time.Hour)
 	in := StepDueInput{
 		Now:    time.Now(),
 		Config: DefaultConfig(),
@@ -108,6 +108,29 @@ func TestShouldSkipLLMStep_unchangedHashAndProfile(t *testing.T) {
 	}
 	if !ShouldSkipLLMStep(StepClassify, in) {
 		t.Fatal("should skip classify when hash and profile unchanged")
+	}
+}
+
+func TestShouldSkipLLMStep_emptyHashStillSkipsWhenClassifyComplete(t *testing.T) {
+	t.Parallel()
+	now := time.Now()
+	completed := now.Add(-time.Minute)
+	hash := "snapshot-hash"
+	in := StepDueInput{
+		Now:    now,
+		Config: DefaultConfig(),
+		State: ListingState{
+			PDP:      StepState{CompletedAt: &completed},
+			Classify: StepState{CompletedAt: &completed},
+			PDPHash:  "", // migration 028 backfill: classified but hash never stamped
+		},
+		Snapshot: &Snapshot{ContentHash: hash},
+	}
+	if !ShouldSkipLLMStep(StepClassify, in) {
+		t.Fatal("empty pdp_hash with completed classify should skip (stamp path, not re-LLM)")
+	}
+	if llmInvalidated(in) {
+		t.Fatal("empty pdp_hash must not invalidate classify")
 	}
 }
 

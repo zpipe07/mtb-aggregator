@@ -111,6 +111,7 @@ export function PriceHistoryChart({ data, className }: PriceHistoryChartProps) {
             fill={`url(#${fillGradientId})`}
             fillOpacity={1}
             isAnimationActive={false}
+            tooltipType="none"
           />
           <Line
             type="monotone"

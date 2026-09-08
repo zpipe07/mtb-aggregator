@@ -1279,6 +1279,36 @@ func (db *DB) GetScrapeJobs(ctx context.Context, storeID int, limit, offset int)
 	return jobs, rows.Err()
 }
 
+// maxRecentCompletedScrapeUpsertedSQL is the 14-day max listings_upserted among
+// completed jobs. Thin scrapes compare against this before HideStaleListings (ZAC-270).
+const maxRecentCompletedScrapeUpsertedSQL = `
+		SELECT MAX(listings_upserted)
+		FROM scrape_jobs
+		WHERE store_id = $1
+		  AND status = 'completed'
+		  AND listings_upserted IS NOT NULL
+		  AND started_at > NOW() - INTERVAL '14 days'
+	`
+
+func maxRecentCompletedScrapeUpsertedSQLString() string {
+	return maxRecentCompletedScrapeUpsertedSQL
+}
+
+// MaxRecentCompletedScrapeUpserted returns the largest listings_upserted among
+// completed scrapes for the store in the last 14 days (0 if none). The current
+// running job is excluded because it is not status=completed.
+func (db *DB) MaxRecentCompletedScrapeUpserted(ctx context.Context, storeID int) (int, error) {
+	var max *int
+	err := db.pool.QueryRow(ctx, maxRecentCompletedScrapeUpsertedSQL, storeID).Scan(&max)
+	if err != nil {
+		return 0, err
+	}
+	if max == nil {
+		return 0, nil
+	}
+	return *max, nil
+}
+
 // CancelScrapeJob sets status='cancelled' and completed_at=NOW() for a scrape job that is currently 'running'.
 // Returns (true, nil) if the job was updated, (false, nil) if it was not running or not found.
 func (db *DB) CancelScrapeJob(ctx context.Context, id int) (bool, error) {
@@ -1486,14 +1516,33 @@ func (db *DB) LastScrapeJobAge(ctx context.Context) (time.Duration, error) {
 	return time.Duration(age * float64(time.Second)), nil
 }
 
-// LastEnrichJobAge returns how long ago the most recent completed or running enrich job started.
-// Returns -1 if no jobs exist.
+// LastEnrichJobAge returns how long ago the most recent completed or running PDP enrich job started.
+// Returns -1 if no jobs exist. Only considers job_type=enrich (not llm_specs classify/extract jobs).
 func (db *DB) LastEnrichJobAge(ctx context.Context) (time.Duration, error) {
 	var age float64
 	err := db.pool.QueryRow(ctx, `
 		SELECT EXTRACT(EPOCH FROM (NOW() - started_at))
 		FROM enrich_jobs
-		WHERE status IN ('completed', 'running')
+		WHERE job_type = 'enrich' AND status IN ('completed', 'running')
+		ORDER BY started_at DESC LIMIT 1
+	`).Scan(&age)
+	if err != nil {
+		if err.Error() == "no rows in result set" {
+			return -1, nil
+		}
+		return 0, err
+	}
+	return time.Duration(age * float64(time.Second)), nil
+}
+
+// LastLLMSpecsJobAge returns how long ago the most recent completed or running llm_specs job started.
+// Returns -1 if no jobs exist.
+func (db *DB) LastLLMSpecsJobAge(ctx context.Context) (time.Duration, error) {
+	var age float64
+	err := db.pool.QueryRow(ctx, `
+		SELECT EXTRACT(EPOCH FROM (NOW() - started_at))
+		FROM enrich_jobs
+		WHERE job_type = 'llm_specs' AND status IN ('completed', 'running')
 		ORDER BY started_at DESC LIMIT 1
 	`).Scan(&age)
 	if err != nil {
@@ -1805,7 +1854,8 @@ func (db *DB) UpdateListingEnrichment(ctx context.Context, id int, categoryPath 
 
 	// Fetch existing metadata so we can merge PDP-derived specs into it.
 	var existingMeta []byte
-	if err := db.pool.QueryRow(ctx, `SELECT metadata FROM store_listings WHERE id = $1`, id).Scan(&existingMeta); err != nil {
+	var productName string
+	if err := db.pool.QueryRow(ctx, `SELECT COALESCE(metadata, '{}'), COALESCE(product_name, '') FROM store_listings WHERE id = $1`, id).Scan(&existingMeta, &productName); err != nil {
 		// If the row disappeared between selection and update, treat as non-fatal for the caller.
 		if err.Error() == "no rows in result set" {
 			return nil
@@ -1835,7 +1885,7 @@ func (db *DB) UpdateListingEnrichment(ctx context.Context, id int, categoryPath 
 			`, pq.Array(categoryPath), mergedMeta, id)
 			return err
 		}
-		canonicalCat := taxonomy.Map(categoryPath)
+		canonicalCat := taxonomy.MapListing(categoryPath, productName)
 		var categoryID interface{}
 		if len(canonicalCat) > 0 {
 			if cid, err := db.ResolveCategoryIDFromPath(ctx, canonicalCat); err == nil && cid != nil {
@@ -2043,9 +2093,12 @@ func (db *DB) RequeueWipedEnrichment(ctx context.Context) (int64, error) {
 }
 
 // BackfillCanonicalCategories sets canonical_category and category_id from category_path using the given mapper (e.g. taxonomy.Map).
-// Returns the number of rows updated.
+// Skips listings with manual_category_override so admin picks stay. Confident metadata.llm_category still skips
+// path remap (ZAC-234), but Wheels/Tires title refine still runs on the existing path so wheelset/rim titles
+// cannot stay stuck on Tires (ZAC-263). Returns the number of rows updated.
 func (db *DB) BackfillCanonicalCategories(ctx context.Context, mapFn func([]string) []string) (int, error) {
-	rows, err := db.pool.Query(ctx, `SELECT id, COALESCE(category_path, '{}'), COALESCE(canonical_category, '{}') FROM store_listings`)
+	threshold := db.resolveLLMPreserveThreshold(ctx)
+	rows, err := db.pool.Query(ctx, `SELECT id, COALESCE(category_path, '{}'), COALESCE(canonical_category, '{}'), COALESCE(metadata, '{}'::jsonb), COALESCE(product_name, '') FROM store_listings`)
 	if err != nil {
 		return 0, err
 	}
@@ -2053,14 +2106,38 @@ func (db *DB) BackfillCanonicalCategories(ctx context.Context, mapFn func([]stri
 
 	var id int
 	var cp, existing pgtype.FlatArray[string]
+	var meta []byte
+	var productName string
 	updated := 0
 	for rows.Next() {
-		if err := rows.Scan(&id, &cp, &existing); err != nil {
+		if err := rows.Scan(&id, &cp, &existing, &meta, &productName); err != nil {
 			return updated, err
 		}
+		if metadata.HasManualCategoryOverride(meta) {
+			continue
+		}
 		raw := []string(cp)
-		canonical := mapFn(raw)
-		if sliceEqual(canonical, []string(existing)) {
+		mapped := mapFn(raw)
+		existingPath := []string(existing)
+		preserveLLM := ShouldPreserveCanonicalForBackfill(meta, threshold)
+		var canonical []string
+		switch {
+		case preserveLLM:
+			canonical = taxonomy.RefineWheelsTires(existingPath, productName)
+		case len(mapped) > 0:
+			canonical = taxonomy.RefineWheelsTires(mapped, productName)
+		default:
+			refined := taxonomy.RefineWheelsTires(existingPath, productName)
+			if !sliceEqual(refined, existingPath) {
+				canonical = refined
+				break
+			}
+			if taxonomy.IsWheelsTiresPath(existingPath) {
+				continue
+			}
+			canonical = mapped
+		}
+		if sliceEqual(canonical, existingPath) {
 			continue
 		}
 		var categoryID interface{}

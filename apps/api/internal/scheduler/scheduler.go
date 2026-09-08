@@ -8,11 +8,13 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/mtb-aggregator/api/internal/affiliate"
 	"github.com/mtb-aggregator/api/internal/brand"
 	"github.com/mtb-aggregator/api/internal/db"
+	"github.com/mtb-aggregator/api/internal/enrichstate"
 	"github.com/mtb-aggregator/api/internal/impact"
 	"github.com/mtb-aggregator/api/internal/llm"
 	"github.com/mtb-aggregator/api/internal/llmlisting"
@@ -25,12 +27,17 @@ import (
 )
 
 var (
-	schedulerLog   = logutil.Logger("scheduler")
-	enrichmentLog  = logutil.Logger("enrichment")
-	catchUpLog     = logutil.Logger("catch-up")
+	schedulerLog  = logutil.Logger("scheduler")
+	enrichmentLog = logutil.Logger("enrichment")
+	catchUpLog    = logutil.Logger("catch-up")
 )
 
 const defaultEnrichBatchSize = 50
+
+const minResultsForStaleCleanup = 10
+
+// Jenson /sale is ~20s/page; 50 pages does not fit in the 20m default.
+const jensonScrapeFetchMinTimeout = 45 * time.Minute
 
 // enrichListingErrorsSentryMin is the minimum errStrs count before reporting a completed job to Sentry.
 const enrichListingErrorsSentryMin = 5
@@ -69,6 +76,31 @@ func getEnrichJobTimeout() time.Duration {
 	return 4 * time.Hour
 }
 
+func getEnrichLLMJobTimeout() time.Duration {
+	if s := os.Getenv("ENRICH_LLM_JOB_TIMEOUT"); s != "" {
+		if d, err := time.ParseDuration(s); err == nil && d > 0 {
+			return d
+		}
+	}
+	return 30 * time.Minute
+}
+
+func storeHasEnricher(storeType string) bool {
+	for _, t := range db.StoreTypesWithEnrichers {
+		if strings.EqualFold(t, storeType) {
+			return true
+		}
+	}
+	return false
+}
+
+func enricherStoreType(store db.Store, resolvedType string) string {
+	if store.StoreType != "" {
+		return store.StoreType
+	}
+	return resolvedType
+}
+
 func getScrapeJobTimeout() time.Duration {
 	if s := os.Getenv("SCRAPE_JOB_TIMEOUT"); s != "" {
 		if d, err := time.ParseDuration(s); err == nil && d > 0 {
@@ -76,6 +108,14 @@ func getScrapeJobTimeout() time.Duration {
 		}
 	}
 	return 20 * time.Minute
+}
+
+func getScrapeFetchTimeout(storeType string) time.Duration {
+	base := getScrapeJobTimeout()
+	if strings.EqualFold(storeType, "jensonusa") && base < jensonScrapeFetchMinTimeout {
+		return jensonScrapeFetchMinTimeout
+	}
+	return base
 }
 
 func getScrapeIngestTimeout() time.Duration {
@@ -151,6 +191,13 @@ type Scheduler struct {
 	db      *db.DB
 	scraper *scraper.Client
 	llm     *llm.Client
+	// runLLMJob, when set, replaces RunLLMJob (tests observe kicks without OpenAI).
+	runLLMJob func(f db.EnrichmentFilter, triggeredBy string)
+
+	drainerCancel context.CancelFunc
+	drainerDone   chan struct{}
+	llmInflightMu sync.Mutex
+	llmInflight   map[string]bool
 }
 
 func New(database *db.DB, scraperURL string, llmClient *llm.Client) *Scheduler {
@@ -212,6 +259,7 @@ func (s *Scheduler) scrapeStore(store db.Store, triggeredBy string) {
 	}
 
 	validCount := 0
+	truncated := false
 	var results []scraper.ScrapeResult
 	var validation scraper.BatchValidationResult
 	defer func() {
@@ -229,7 +277,7 @@ func (s *Scheduler) scrapeStore(store db.Store, triggeredBy string) {
 	schedulerLog.Info("scraping store", "store", store.Name, "url", store.ScrapeURL)
 
 	scrapeStartedAt := time.Now()
-	fetchCtx, fetchCancel := context.WithTimeout(context.Background(), getScrapeJobTimeout())
+	fetchCtx, fetchCancel := context.WithTimeout(context.Background(), getScrapeFetchTimeout(storeType))
 	if strings.EqualFold(store.StoreType, "competitivecyclist") {
 		icfg := impact.ConfigFromEnv()
 		if !icfg.CatalogConfigured() {
@@ -247,7 +295,7 @@ func (s *Scheduler) scrapeStore(store db.Store, triggeredBy string) {
 			schedulerLog.Info("impact-catalog returned listings", "store", store.Name, "count", len(results))
 		}
 	} else {
-		results, err = s.scraper.Scrape(fetchCtx, store.ScrapeURL, storeType)
+		results, truncated, err = s.scraper.Scrape(fetchCtx, store.ScrapeURL, storeType)
 	}
 	fetchCancel()
 	if err != nil {
@@ -326,6 +374,36 @@ func (s *Scheduler) scrapeStore(store db.Store, triggeredBy string) {
 	found := len(results)
 	errStrs := validationErrorStrings(validation)
 	warnStrs := validationWarningStrings(validation)
+	recentMax := 0
+	recentMaxOK := true
+	maxCtx, maxCancel := context.WithTimeout(context.Background(), 10*time.Second)
+	n, maxErr := s.db.MaxRecentCompletedScrapeUpserted(maxCtx, store.ID)
+	maxCancel()
+	if maxErr != nil {
+		recentMaxOK = false
+		schedulerLog.Error("recent scrape max lookup failed; skipping stale listing hide", "store", store.Name, logutil.ErrAttr(maxErr))
+		sentryutil.CaptureError(maxErr, map[string]string{"component": "scheduler", "job": "scrape", "store": store.Name, "phase": "recent_scrape_max"})
+		warnStrs = append(warnStrs, "recent scrape max lookup failed; skipped stale listing hide")
+	} else {
+		recentMax = n
+	}
+
+	if truncated {
+		warnStrs = append(warnStrs, "scrape truncated by page cap; skipped stale listing hide")
+		schedulerLog.Warn("scrape truncated by page cap; skipping stale listing hide", "store", store.Name, "found", found, "upserted", validCount)
+		sentryutil.CaptureWarning(
+			store.Name+": scrape truncated by page cap; skipping HideStaleListings so off-page sale SKUs stay visible",
+			map[string]string{"component": "scheduler", "job": "scrape", "store": store.Name, "phase": "truncated"},
+		)
+	} else if recentMaxOK && isThinScrape(validCount, recentMax) {
+		msg := fmt.Sprintf("thin scrape (%d upserted vs recent max %d); skipped stale listing hide", validCount, recentMax)
+		warnStrs = append(warnStrs, msg)
+		schedulerLog.Warn("thin scrape; skipping stale listing hide", "store", store.Name, "upserted", validCount, "recent_max", recentMax)
+		sentryutil.CaptureWarning(
+			store.Name+": "+msg,
+			map[string]string{"component": "scheduler", "job": "scrape", "store": store.Name, "phase": "thin_scrape"},
+		)
+	}
 
 	if ingestTimedOut {
 		schedulerLog.Warn("scrape ingest timeout; saving partial progress", "store", store.Name, "found", found, "upserted", validCount)
@@ -350,9 +428,11 @@ func (s *Scheduler) scrapeStore(store db.Store, triggeredBy string) {
 	// longer on sale or have been removed from the store's collection — they would
 	// otherwise stay in the DB indefinitely with stale prices.
 	// Guard: only run when we got a meaningful result count to avoid hiding
-	// everything if the scrape silently returned too little.
-	const minResultsForStaleCleanup = 10
-	if validCount >= minResultsForStaleCleanup {
+	// everything if the scrape silently returned too little. Skip when the
+	// scraper hit a page cap (ZAC-217: Jenson MAX_PAGES=10 left Fox 40 hidden)
+	// or when this run is thin vs recent full scrapes (ZAC-270: 149 vs 13120).
+	hideStale := recentMaxOK && shouldHideStaleAfterScrape(validCount, truncated, recentMax)
+	if hideStale {
 		cleanupCtx, cleanupCancel := context.WithTimeout(context.Background(), 2*time.Minute)
 		defer cleanupCancel()
 		if strings.EqualFold(store.StoreType, "universalcycles") {
@@ -371,7 +451,69 @@ func (s *Scheduler) scrapeStore(store db.Store, triggeredBy string) {
 		} else if hidden > 0 {
 			schedulerLog.Info("hid stale listings", "store", store.Name, "count", hidden)
 		}
+		// Scrape upsert sets hidden=false, which would revive Jenson/UC parent SKUs
+		// that variant fan-out superseded. Re-apply those parent hides after cleanup.
+		s.hideSupersededParentsAfterScrape(cleanupCtx, store)
+	} else if validCount >= minResultsForStaleCleanup {
+		// Truncated/thin scrape still unhides on upsert; re-hide superseded parents only.
+		cleanupCtx, cleanupCancel := context.WithTimeout(context.Background(), 2*time.Minute)
+		defer cleanupCancel()
+		s.hideSupersededParentsAfterScrape(cleanupCtx, store)
 	}
+
+	s.maybeKickLLMAfterScrape(enricherStoreType(store, storeType))
+}
+
+func isThinScrape(validCount, recentMaxUpserted int) bool {
+	return recentMaxUpserted >= minResultsForStaleCleanup && validCount < recentMaxUpserted/2
+}
+
+func shouldHideStaleAfterScrape(validCount int, truncated bool, recentMaxUpserted int) bool {
+	if truncated || validCount < minResultsForStaleCleanup {
+		return false
+	}
+	if isThinScrape(validCount, recentMaxUpserted) {
+		return false
+	}
+	return true
+}
+
+func (s *Scheduler) hideSupersededParentsAfterScrape(ctx context.Context, store db.Store) {
+	var (
+		n    int64
+		err  error
+		kind string
+	)
+	switch {
+	case strings.EqualFold(store.StoreType, "universalcycles"):
+		kind = "uc_parents"
+		n, err = s.db.HideUniversalCyclesSupersededParents(ctx)
+	case strings.EqualFold(store.StoreType, "jensonusa"):
+		kind = "jenson_parents"
+		n, err = s.db.HideJensonSupersededParents(ctx)
+	default:
+		return
+	}
+	if err != nil {
+		schedulerLog.Error("superseded parent hide failed", "store", store.Name, "kind", kind, logutil.ErrAttr(err))
+		sentryutil.CaptureError(err, map[string]string{"component": "scheduler", "job": "scrape", "phase": "superseded_parent_hide", "store": store.Name, "kind": kind})
+	} else if n > 0 {
+		schedulerLog.Info("hid superseded parent listings", "store", store.Name, "kind", kind, "count", n)
+	}
+}
+
+func (s *Scheduler) maybeKickLLMAfterScrape(storeType string) {
+	if storeHasEnricher(storeType) {
+		s.kickLLMJob(db.EnrichmentFilter{StoreType: storeType}, "scrape")
+	}
+}
+
+func (s *Scheduler) kickLLMJob(f db.EnrichmentFilter, triggeredBy string) {
+	if s.runLLMJob != nil {
+		s.runLLMJob(f, triggeredBy)
+		return
+	}
+	go s.RunLLMJob(f, triggeredBy)
 }
 
 func validationErrorStrings(validation scraper.BatchValidationResult) []string {
@@ -429,7 +571,7 @@ func (s *Scheduler) ingestScrapeResults(ctx context.Context, store db.Store, res
 				normalizedBrand = &s
 			}
 		}
-		canonicalCat := taxonomy.Map(r.CategoryPath)
+		canonicalCat := taxonomy.MapListing(r.CategoryPath, r.ProductName)
 		var listingMeta []byte
 		if extracted := metadata.Extract(r.ProductName); len(extracted) > 0 {
 			var m map[string]interface{}
@@ -448,6 +590,8 @@ func (s *Scheduler) ingestScrapeResults(ctx context.Context, store db.Store, res
 		if len(r.VariantOptions) > 0 {
 			variantOpts = r.VariantOptions
 		}
+		listingMeta = db.ApplyClothingSizeToListingMetadata(listingMeta, variantOpts)
+		listingMeta = db.ApplyBikeSizeToListingMetadata(listingMeta, variantOpts)
 		listing := db.Listing{
 			StoreID:            store.ID,
 			StoreSKU:           r.StoreSKU,
@@ -595,7 +739,100 @@ func (s *Scheduler) RunEnrichmentWithFilter(f db.EnrichmentFilter, force bool, t
 	s.runEnrichmentLoop(f, force, triggeredBy)
 }
 
-// runEnrichmentLoop drains all batches of listings for the given filter.
+// RunLLMJob runs classify+extract for listings with PDP snapshots (ClaimForStep); no PDP fetches.
+// triggeredBy is "manual", "cron", "scrape", "pdp", or "catch-up".
+func (s *Scheduler) RunLLMJob(f db.EnrichmentFilter, triggeredBy string) {
+	if triggeredBy == "" {
+		triggeredBy = "manual"
+	}
+	if f.StoreType != "" && !storeHasEnricher(f.StoreType) {
+		enrichmentLog.Warn("no enricher for store_type; skipping LLM job", "store_type", f.StoreType)
+		return
+	}
+	if s.llm == nil || !s.llm.Configured() {
+		enrichmentLog.Warn("OpenAI not configured; skipping LLM job")
+		return
+	}
+	if s.runLLMJob != nil {
+		s.runLLMJob(f, triggeredBy)
+		return
+	}
+	s.runLLMLoop(f, triggeredBy)
+}
+
+func (s *Scheduler) runLLMLoop(f db.EnrichmentFilter, triggeredBy string) {
+	scope := f.StoreType
+	if scope == "" {
+		scope = "all-enricher-stores"
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), getEnrichLLMJobTimeout())
+	defer cancel()
+
+	var stPtr *string
+	if f.StoreType != "" {
+		st := f.StoreType
+		stPtr = &st
+	}
+	jobID, err := s.db.CreateEnrichJob(ctx, stPtr, triggeredBy, false, "llm_specs")
+	if err != nil {
+		enrichmentLog.Error("failed to create LLM job", logutil.ErrAttr(err))
+		sentryutil.CaptureError(err, map[string]string{"component": "scheduler", "job": "llm_specs", "phase": "create_job", "store_type": scope})
+		return
+	}
+
+	totalSuccess := 0
+	totalProcessed := 0
+	var errStrs []string
+	defer func() {
+		if r := recover(); r != nil {
+			enrichmentLog.Error("panic during LLM job", "panic", r)
+			sentryutil.CapturePanicValue(r, map[string]string{"component": "scheduler", "job": "llm_specs", "store_type": scope})
+			if jobID != 0 {
+				panicErrs := append(errStrs, fmt.Sprintf("panic: %v", r))
+				s.finalizeEnrichJob(jobID, "failed", &totalProcessed, &totalSuccess, panicErrs, scope)
+			}
+		}
+	}()
+
+	batchSize := getEnrichBatchSize()
+	maxListings := getEnrichMaxListings()
+	var llmState llmlisting.QuotaJobState
+	pipeline := s.buildEnrichmentPipeline(&llmState, &errStrs, nil, false)
+	claimFilter := enrichmentFilterToClaim(f)
+
+	var jobIDPtr *int
+	if jobID != 0 {
+		jobIDPtr = &jobID
+	}
+	totalProcessed, totalSuccess, runErrs := pipeline.RunJobSteps(ctx, claimFilter, false, batchSize, maxListings, jobIDPtr, enrichstate.LLMJobSteps)
+	errStrs = append(errStrs, runErrs...)
+
+	if ctx.Err() != nil {
+		enrichmentLog.Warn("LLM job timeout; saving partial progress", "scope", scope, "processed", totalProcessed, "enriched", totalSuccess)
+		sentryutil.CaptureError(
+			fmt.Errorf("LLM job timed out for scope=%s (%d processed, %d enriched)", scope, totalProcessed, totalSuccess),
+			map[string]string{"component": "scheduler", "job": "llm_specs", "store_type": scope},
+		)
+		if jobID != 0 {
+			errStrs = append(errStrs, "job timed out")
+			s.finalizeEnrichJob(jobID, "timed_out", &totalProcessed, &totalSuccess, errStrs, scope)
+		}
+		return
+	}
+
+	if jobID != 0 {
+		s.finalizeEnrichJob(jobID, "completed", &totalProcessed, &totalSuccess, errStrs, scope)
+		captureEnrichJobListingErrorsAggregate(scope, totalProcessed, totalSuccess, errStrs)
+	}
+	if totalProcessed > 0 {
+		enrichmentLog.Info("LLM job completed", "scope", scope, "enriched", totalSuccess, "processed", totalProcessed)
+	} else {
+		enrichmentLog.Info("no listings need LLM enrichment", "scope", scope)
+	}
+}
+
+// runEnrichmentLoop drains PDP fetch batches for the given filter, then kicks an async LLM job.
 func (s *Scheduler) runEnrichmentLoop(f db.EnrichmentFilter, force bool, triggeredBy string) {
 	scope := f.StoreType
 	if scope == "" {
@@ -627,6 +864,7 @@ func (s *Scheduler) runEnrichmentLoop(f db.EnrichmentFilter, force bool, trigger
 				panicErrs := append(errStrs, fmt.Sprintf("panic: %v", r))
 				s.finalizeEnrichJob(jobID, "failed", &totalProcessed, &totalSuccess, panicErrs, scope)
 			}
+			s.kickLLMJob(f, "pdp")
 		}
 	}()
 
@@ -634,14 +872,14 @@ func (s *Scheduler) runEnrichmentLoop(f db.EnrichmentFilter, force bool, trigger
 	maxListings := getEnrichMaxListings()
 	var llmState llmlisting.QuotaJobState
 	fanoutState := newVariantFanoutState()
-	pipeline := s.buildEnrichmentPipeline(&llmState, &errStrs, fanoutState)
+	pipeline := s.buildEnrichmentPipeline(&llmState, &errStrs, fanoutState, true)
 	claimFilter := enrichmentFilterToClaim(f)
 
 	var jobIDPtr *int
 	if jobID != 0 {
 		jobIDPtr = &jobID
 	}
-	totalProcessed, totalSuccess, runErrs := pipeline.RunJob(ctx, claimFilter, force, batchSize, maxListings, jobIDPtr)
+	totalProcessed, totalSuccess, runErrs := pipeline.RunJobSteps(ctx, claimFilter, force, batchSize, maxListings, jobIDPtr, []enrichstate.Step{enrichstate.StepPDP})
 	errStrs = append(errStrs, runErrs...)
 
 	if ctx.Err() != nil {
@@ -654,6 +892,7 @@ func (s *Scheduler) runEnrichmentLoop(f db.EnrichmentFilter, force bool, trigger
 			errStrs = append(errStrs, "job timed out")
 			s.finalizeEnrichJob(jobID, "timed_out", &totalProcessed, &totalSuccess, errStrs, scope)
 		}
+		s.kickLLMJob(f, "pdp")
 		return
 	}
 
@@ -662,16 +901,16 @@ func (s *Scheduler) runEnrichmentLoop(f db.EnrichmentFilter, force bool, trigger
 		captureEnrichJobListingErrorsAggregate(scope, totalProcessed, totalSuccess, errStrs)
 	}
 	if totalProcessed > 0 {
-		enrichmentLog.Info("enrichment completed", "scope", scope, "enriched", totalSuccess, "processed", totalProcessed)
+		enrichmentLog.Info("PDP enrichment completed", "scope", scope, "enriched", totalSuccess, "processed", totalProcessed)
 	} else {
-		enrichmentLog.Info("no listings need enrichment", "scope", scope)
+		enrichmentLog.Info("no listings need PDP enrichment", "scope", scope)
 	}
+	s.kickLLMJob(f, "pdp")
 }
 
-// RunCatchUp checks the last scrape/enrich job and runs immediately if overdue.
-// Helps when the process was down during the scheduled time (idle spin-down,
-// deploys, crashes, or restarts) so a missed cron can run on the next startup.
-func (s *Scheduler) RunCatchUp(scrapeInterval, enrichInterval time.Duration) {
+// RunCatchUp checks the last scrape/LLM jobs and runs immediately if overdue.
+// PDP work is handled by the resident drainer (no catch-up burst).
+func (s *Scheduler) RunCatchUp(scrapeInterval, llmInterval time.Duration) {
 	ctx := context.Background()
 
 	scrapeAge, err := s.db.LastScrapeJobAge(ctx)
@@ -688,18 +927,18 @@ func (s *Scheduler) RunCatchUp(scrapeInterval, enrichInterval time.Duration) {
 		catchUpLog.Debug("last scrape not overdue", "age", scrapeAge.Round(time.Minute).String(), "threshold", scrapeInterval.String())
 	}
 
-	enrichAge, err := s.db.LastEnrichJobAge(ctx)
+	llmAge, err := s.db.LastLLMSpecsJobAge(ctx)
 	if err != nil {
-		catchUpLog.Error("failed to check last enrich job", logutil.ErrAttr(err))
-	} else if enrichAge < 0 || enrichAge > enrichInterval {
+		catchUpLog.Error("failed to check last LLM job", logutil.ErrAttr(err))
+	} else if llmAge < 0 || llmAge > llmInterval {
 		label := "never"
-		if enrichAge >= 0 {
-			label = enrichAge.Round(time.Minute).String() + " ago"
+		if llmAge >= 0 {
+			label = llmAge.Round(time.Minute).String() + " ago"
 		}
-		catchUpLog.Info("last enrichment overdue; running now", "last_enrichment", label, "threshold", enrichInterval.String())
-		go s.RunEnrichmentJob(false, "catch-up")
+		catchUpLog.Info("last LLM enrichment overdue; running now", "last_llm", label, "threshold", llmInterval.String())
+		go s.RunLLMJob(db.EnrichmentFilter{}, "catch-up")
 	} else {
-		catchUpLog.Debug("last enrichment not overdue", "age", enrichAge.Round(time.Minute).String(), "threshold", enrichInterval.String())
+		catchUpLog.Debug("last LLM enrichment not overdue", "age", llmAge.Round(time.Minute).String(), "threshold", llmInterval.String())
 	}
 }
 
@@ -720,6 +959,26 @@ func (s *Scheduler) StartEnrichment(spec string) {
 	}
 }
 
+func (s *Scheduler) StartLLM(spec string) {
+	if spec != "" {
+		s.cron.AddFunc(spec, func() { s.RunLLMJob(db.EnrichmentFilter{}, "cron") })
+		schedulerLog.Info("started LLM cron", "spec", spec)
+	}
+}
+
 func (s *Scheduler) Stop() {
 	s.cron.Stop()
+	if s.drainerCancel != nil {
+		s.drainerCancel()
+	}
+	s.waitForPDPDrainerStop(getEnrichCallTimeout())
+}
+
+func getEnrichCallTimeout() time.Duration {
+	if s := os.Getenv("ENRICH_CALL_TIMEOUT"); s != "" {
+		if d, err := time.ParseDuration(s); err == nil && d > 0 {
+			return d
+		}
+	}
+	return 3 * time.Minute
 }

@@ -146,9 +146,9 @@ func (db *DB) ApplyUniversalCyclesVariantFanout(ctx context.Context, parentListi
 	return err
 }
 
-// HideUniversalCyclesSupersededParents hides parent product-id rows when attribute SKU siblings exist.
-func (db *DB) HideUniversalCyclesSupersededParents(ctx context.Context) (int64, error) {
-	tag, err := db.pool.Exec(ctx, `
+// hideUniversalCyclesSupersededParentsSQL matches migration 026: hide parent product-id
+// rows when attribute SKU siblings ({productId}-{attributeId}) exist on the same URL.
+const hideUniversalCyclesSupersededParentsSQL = `
 		UPDATE store_listings sl
 		SET hidden = true
 		FROM stores s
@@ -164,7 +164,11 @@ func (db *DB) HideUniversalCyclesSupersededParents(ctx context.Context) (int64, 
 		      AND sl2.hidden = false
 		      AND sl2.store_sku LIKE sl.store_sku || '-%'
 		  )
-	`)
+	`
+
+// HideUniversalCyclesSupersededParents hides parent product-id rows when attribute SKU siblings exist.
+func (db *DB) HideUniversalCyclesSupersededParents(ctx context.Context) (int64, error) {
+	tag, err := db.pool.Exec(ctx, hideUniversalCyclesSupersededParentsSQL)
 	if err != nil {
 		return 0, err
 	}

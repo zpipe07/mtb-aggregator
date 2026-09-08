@@ -1,12 +1,13 @@
 package db
 
 // DB-backed tests for EnrichmentStateStore. These run only when TEST_DATABASE_URL
-// is set (e.g. postgres://mtb:mtb@localhost:5432/mtb_deals) and migration 028 is
-// applied; otherwise they skip so the default suite stays DB-free.
+// is set (e.g. postgres://mtb:mtb@localhost:5432/mtb_deals) and migrations 028+042
+// are applied; otherwise they skip so the default suite stays DB-free.
 
 import (
 	"context"
 	"os"
+	"sync"
 	"testing"
 	"time"
 
@@ -127,6 +128,48 @@ func TestEnrichmentStateStore_RecordStepSuccess_PDPPreservesLLMProcessedHash(t *
 	}
 }
 
+func TestEnrichmentStateStore_StampLLMSkipInputs_fillsNullHashWithoutBumpingClassify(t *testing.T) {
+	d := testDB(t)
+	ctx := context.Background()
+	listingID := createEnrichmentTestListing(t, d)
+
+	classifiedAt := time.Now().UTC().Add(-48 * time.Hour).Truncate(time.Second)
+	_, err := d.pool.Exec(ctx, `
+		INSERT INTO listing_enrichment (listing_id, pdp_fetched_at, pdp_hash, classified_at)
+		VALUES ($1, NOW() - INTERVAL '2 days', NULL, $2)
+	`, listingID, classifiedAt)
+	if err != nil {
+		t.Fatalf("insert row: %v", err)
+	}
+	_, err = d.pool.Exec(ctx, `
+		INSERT INTO pdp_snapshots (listing_id, payload, content_hash, fetched_at)
+		VALUES ($1, '{}', 'stamp-me', NOW() - INTERVAL '2 days')
+	`, listingID)
+	if err != nil {
+		t.Fatalf("insert snapshot: %v", err)
+	}
+
+	store := EnrichmentStateStore{DB: d}
+	if err := store.StampLLMSkipInputs(ctx, listingID, "stamp-me", nil); err != nil {
+		t.Fatalf("StampLLMSkipInputs: %v", err)
+	}
+
+	var hash *string
+	var gotClassifiedAt time.Time
+	err = d.pool.QueryRow(ctx, `
+		SELECT pdp_hash, classified_at FROM listing_enrichment WHERE listing_id = $1
+	`, listingID).Scan(&hash, &gotClassifiedAt)
+	if err != nil {
+		t.Fatalf("query row: %v", err)
+	}
+	if hash == nil || *hash != "stamp-me" {
+		t.Fatalf("pdp_hash = %v, want stamp-me", hash)
+	}
+	if !gotClassifiedAt.Equal(classifiedAt) {
+		t.Fatalf("classified_at changed: got %v want %v", gotClassifiedAt, classifiedAt)
+	}
+}
+
 // GetState round-trips a fully-populated row (all nullable columns non-NULL).
 func TestEnrichmentStateStore_GetState_populatedRow(t *testing.T) {
 	d := testDB(t)
@@ -157,5 +200,193 @@ func TestEnrichmentStateStore_GetState_populatedRow(t *testing.T) {
 	}
 	if st.LLMConfidence == nil || *st.LLMConfidence < 0.89 || *st.LLMConfidence > 0.91 {
 		t.Fatalf("confidence: got %v", st.LLMConfidence)
+	}
+}
+
+func TestEnrichmentStateStore_ClaimForStep_concurrentClaimsDisjoint(t *testing.T) {
+	d := testDB(t)
+	ctx := context.Background()
+	listingID := createEnrichmentTestListing(t, d)
+	store := EnrichmentStateStore{DB: d}
+	now := time.Now()
+	leaseUntil := now.Add(10 * time.Minute)
+
+	var wg sync.WaitGroup
+	var mu sync.Mutex
+	var results [][]enrichstate.WorkItem
+	for range 2 {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			items, err := store.ClaimForStep(ctx, enrichstate.StepPDP, enrichstate.ClaimFilter{}, 1, false, now, leaseUntil, enrichstate.DefaultConfig().PDPStaleAfter)
+			if err != nil {
+				t.Errorf("claim: %v", err)
+				return
+			}
+			mu.Lock()
+			results = append(results, items)
+			mu.Unlock()
+		}()
+	}
+	wg.Wait()
+
+	claimed := 0
+	for _, batch := range results {
+		for _, item := range batch {
+			if item.ListingID == listingID {
+				claimed++
+			}
+		}
+	}
+	if claimed != 1 {
+		t.Fatalf("expected exactly one claim for listing %d, got %d batches=%+v", listingID, claimed, results)
+	}
+}
+
+func TestEnrichmentStateStore_ClaimForStep_expiredLeaseReclaimable(t *testing.T) {
+	d := testDB(t)
+	ctx := context.Background()
+	listingID := createEnrichmentTestListing(t, d)
+	_, err := d.pool.Exec(ctx, `
+		INSERT INTO listing_enrichment (listing_id, pdp_leased_until)
+		VALUES ($1, NOW() - INTERVAL '1 minute')
+	`, listingID)
+	if err != nil {
+		t.Fatalf("insert row: %v", err)
+	}
+
+	store := EnrichmentStateStore{DB: d}
+	now := time.Now()
+	items, err := store.ClaimForStep(ctx, enrichstate.StepPDP, enrichstate.ClaimFilter{}, 1, false, now, now.Add(10*time.Minute), enrichstate.DefaultConfig().PDPStaleAfter)
+	if err != nil {
+		t.Fatalf("claim: %v", err)
+	}
+	if len(items) != 1 || items[0].ListingID != listingID {
+		t.Fatalf("expected to reclaim expired lease, got %+v", items)
+	}
+}
+
+func TestEnrichmentStateStore_ClaimForStep_activeLeaseNotReclaimed(t *testing.T) {
+	d := testDB(t)
+	ctx := context.Background()
+	listingID := createEnrichmentTestListing(t, d)
+	_, err := d.pool.Exec(ctx, `
+		INSERT INTO listing_enrichment (listing_id, pdp_leased_until)
+		VALUES ($1, NOW() + INTERVAL '10 minutes')
+	`, listingID)
+	if err != nil {
+		t.Fatalf("insert row: %v", err)
+	}
+
+	store := EnrichmentStateStore{DB: d}
+	now := time.Now()
+	items, err := store.ClaimForStep(ctx, enrichstate.StepPDP, enrichstate.ClaimFilter{}, 1, false, now, now.Add(10*time.Minute), enrichstate.DefaultConfig().PDPStaleAfter)
+	if err != nil {
+		t.Fatalf("claim: %v", err)
+	}
+	if len(items) != 0 {
+		t.Fatalf("expected active lease to block claim, got %+v", items)
+	}
+}
+
+func TestEnrichmentStateStore_ClaimForStep_noEnrichmentRowStillClaims(t *testing.T) {
+	d := testDB(t)
+	ctx := context.Background()
+	listingID := createEnrichmentTestListing(t, d)
+	store := EnrichmentStateStore{DB: d}
+	now := time.Now()
+	items, err := store.ClaimForStep(ctx, enrichstate.StepPDP, enrichstate.ClaimFilter{}, 1, false, now, now.Add(10*time.Minute), enrichstate.DefaultConfig().PDPStaleAfter)
+	if err != nil {
+		t.Fatalf("claim: %v", err)
+	}
+	if len(items) != 1 || items[0].ListingID != listingID {
+		t.Fatalf("expected claim without pre-existing enrichment row, got %+v", items)
+	}
+	var leasedUntil *time.Time
+	err = d.pool.QueryRow(ctx, `SELECT pdp_leased_until FROM listing_enrichment WHERE listing_id = $1`, listingID).Scan(&leasedUntil)
+	if err != nil {
+		t.Fatalf("read lease: %v", err)
+	}
+	if leasedUntil == nil {
+		t.Fatal("expected pdp_leased_until to be set after claim")
+	}
+}
+
+func TestEnrichmentStateStore_ClaimForStep_forceIgnoresStaleFilter(t *testing.T) {
+	d := testDB(t)
+	ctx := context.Background()
+	listingID := createEnrichmentTestListing(t, d)
+	_, err := d.pool.Exec(ctx, `
+		INSERT INTO listing_enrichment (listing_id, pdp_fetched_at)
+		VALUES ($1, NOW() - INTERVAL '1 day')
+	`, listingID)
+	if err != nil {
+		t.Fatalf("insert row: %v", err)
+	}
+
+	store := EnrichmentStateStore{DB: d}
+	now := time.Now()
+	items, err := store.ClaimForStep(ctx, enrichstate.StepPDP, enrichstate.ClaimFilter{}, 1, false, now, now.Add(10*time.Minute), enrichstate.DefaultConfig().PDPStaleAfter)
+	if err != nil {
+		t.Fatalf("claim non-force: %v", err)
+	}
+	if len(items) != 0 {
+		t.Fatalf("expected non-force to skip fresh PDP, got %+v", items)
+	}
+
+	_ = store.ReleaseLease(ctx, listingID, enrichstate.StepPDP)
+	items, err = store.ClaimForStep(ctx, enrichstate.StepPDP, enrichstate.ClaimFilter{}, 1, true, now, now.Add(10*time.Minute), enrichstate.DefaultConfig().PDPStaleAfter)
+	if err != nil {
+		t.Fatalf("claim force: %v", err)
+	}
+	if len(items) != 1 || items[0].ListingID != listingID {
+		t.Fatalf("expected force claim, got %+v", items)
+	}
+}
+
+func TestEnrichmentStateStore_RecordStepSuccess_clearsLeaseForNextStep(t *testing.T) {
+	d := testDB(t)
+	ctx := context.Background()
+	listingID := createEnrichmentTestListing(t, d)
+	store := EnrichmentStateStore{DB: d}
+	now := time.Now()
+	leaseUntil := now.Add(10 * time.Minute)
+
+	items, err := store.ClaimForStep(ctx, enrichstate.StepPDP, enrichstate.ClaimFilter{}, 1, false, now, leaseUntil, enrichstate.DefaultConfig().PDPStaleAfter)
+	if err != nil {
+		t.Fatalf("claim pdp: %v", err)
+	}
+	if len(items) != 1 {
+		t.Fatalf("expected pdp claim, got %+v", items)
+	}
+
+	if err := store.RecordStepSuccess(ctx, listingID, enrichstate.StepPDP, enrichstate.StepSuccessMeta{}, now); err != nil {
+		t.Fatalf("RecordStepSuccess(pdp): %v", err)
+	}
+
+	var pdpLease *time.Time
+	err = d.pool.QueryRow(ctx, `SELECT pdp_leased_until FROM listing_enrichment WHERE listing_id = $1`, listingID).Scan(&pdpLease)
+	if err != nil {
+		t.Fatalf("read pdp lease: %v", err)
+	}
+	if pdpLease != nil {
+		t.Fatalf("expected pdp lease cleared after success, got %v", pdpLease)
+	}
+
+	_, err = d.pool.Exec(ctx, `
+		INSERT INTO pdp_snapshots (listing_id, payload, content_hash, fetched_at)
+		VALUES ($1, '{"unavailable": false}'::jsonb, 'hash1', NOW())
+		ON CONFLICT (listing_id) DO UPDATE SET payload = EXCLUDED.payload, content_hash = EXCLUDED.content_hash
+	`, listingID)
+	if err != nil {
+		t.Fatalf("insert snapshot: %v", err)
+	}
+
+	items, err = store.ClaimForStep(ctx, enrichstate.StepClassify, enrichstate.ClaimFilter{}, 1, false, now, leaseUntil, enrichstate.DefaultConfig().PDPStaleAfter)
+	if err != nil {
+		t.Fatalf("claim classify: %v", err)
+	}
+	if len(items) != 1 || items[0].ListingID != listingID {
+		t.Fatalf("expected classify claim after pdp success cleared lease, got %+v", items)
 	}
 }

@@ -70,7 +70,7 @@ func MergeDescription(existing []byte, description string) []byte {
 
 // MergeLLMSpecs merges LLM extraction output into metadata.llm_specs (separate from PDP specs in metadata.specs).
 // Keys in llm_overrides are manual corrections; we do not overwrite them with LLM result.
-// confidence is stored at metadata.llm_confidence.
+// confidence is stored at metadata.llm_confidence; reasoning at metadata.llm_specs_reasoning.
 func MergeLLMSpecs(existing []byte, llmResult map[string]interface{}) []byte {
 	if len(llmResult) == 0 {
 		return existing
@@ -92,6 +92,12 @@ func MergeLLMSpecs(existing []byte, llmResult map[string]interface{}) []byte {
 	for k, v := range llmResult {
 		if k == "confidence" {
 			base["llm_confidence"] = v
+			continue
+		}
+		if k == "reasoning" {
+			if v != nil {
+				base["llm_specs_reasoning"] = fmt.Sprint(v)
+			}
 			continue
 		}
 		if v == nil {

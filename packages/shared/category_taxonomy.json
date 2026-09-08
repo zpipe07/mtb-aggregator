@@ -68,10 +68,79 @@
     },
     {
       "raw": [
+        "fork parts",
+        "fork part",
+        "fork kit",
+        "fork kits",
+        "fork seal",
+        "fork seals",
+        "fork bushing",
+        "dust wiper",
+        "dust wipers",
+        "volume spacer",
+        "volume spacers",
+        "shock parts",
+        "shock part",
+        "shock kit",
+        "shock kits",
+        "shock seal",
+        "shock seals",
+        "suspension parts",
+        "seal kit",
+        "seal kits",
+        "lower leg kit"
+      ],
+      "canonical": ["Components", "Suspension", "Suspension parts"]
+    },
+    {
+      "raw": ["fork", "forks"],
+      "canonical": ["Components", "Suspension", "Forks"]
+    },
+    {
+      "raw": ["shock", "shocks"],
+      "canonical": ["Components", "Suspension", "Shocks"]
+    },
+    {
+      "raw": [
+        "full suspension frames",
+        "full suspension frame",
+        "full-suspension frames",
+        "full-suspension frame"
+      ],
+      "canonical": ["Bikes", "Frames"]
+    },
+    {
+      "raw": [
+        "full suspension",
+        "full-suspension",
+        "front suspension",
+        "front-suspension"
+      ],
+      "canonical": ["Bikes", "Mountain"]
+    },
+    {
+      "raw": [
+        "mountain bike clothing",
+        "mtb clothing",
+        "bike clothing",
+        "mountain bike bottoms",
+        "mtb bottoms",
+        "bike bottoms",
+        "mountain bike tops",
+        "mtb tops",
+        "bike tops",
+        "road bike clothing",
+        "road bike tops",
+        "road bike bottoms",
+        "triathlon clothing"
+      ],
+      "canonical": ["Gear", "Clothing"]
+    },
+    {
+      "raw": [
         "mountain bike",
         "mtb",
         "mountain bikes",
-        "full suspension",
         "hardtail"
       ],
       "canonical": ["Bikes", "Mountain"]
@@ -97,10 +166,38 @@
       ],
       "canonical": ["Bikes", "Electric"]
     },
+    {
+      "raw": [
+        "wheelset",
+        "wheelsets",
+        "complete wheel",
+        "complete wheels",
+        "bike wheels",
+        "bike wheel"
+      ],
+      "canonical": ["Components", "Wheels/Tires", "Complete wheels"]
+    },
     { "raw": ["bike", "bikes", "bicycle"], "canonical": ["Bikes"] },
     { "raw": ["gravel"], "canonical": ["Bikes", "Gravel"] },
     { "raw": ["road bike", "road"], "canonical": ["Bikes", "Road"] },
     { "raw": ["kid", "kids", "children"], "canonical": ["Bikes", "Kids"] },
+    {
+      "raw": [
+        "drivetrain parts",
+        "derailleur hanger",
+        "derailleur hangers",
+        "jockey wheel",
+        "jockey wheels",
+        "pulley wheel",
+        "chain guide",
+        "chain guides",
+        "chainguide",
+        "cable housing",
+        "shift cable",
+        "chainring bolt"
+      ],
+      "canonical": ["Components", "Drivetrain", "Drivetrain parts"]
+    },
     {
       "raw": [
         "drivetrain",
@@ -128,6 +225,26 @@
     },
     {
       "raw": [
+        "cockpit parts",
+        "bar end",
+        "bar ends",
+        "barend",
+        "bar plug",
+        "bar plugs",
+        "stem cap",
+        "stem caps",
+        "stemcap",
+        "top cap",
+        "headset spacer",
+        "headset spacers",
+        "dropper remote",
+        "dropper remotes",
+        "dropper lever"
+      ],
+      "canonical": ["Components", "Cockpit", "Cockpit parts"]
+    },
+    {
+      "raw": [
         "headset",
         "headsets",
         "integrated headset",
@@ -136,11 +253,27 @@
       "canonical": ["Components", "Cockpit", "Headsets"]
     },
     {
+      "raw": [
+        "brake parts",
+        "brake part",
+        "brake hardware",
+        "brake olive",
+        "brake olives",
+        "olive and insert",
+        "banjo bolt",
+        "brake piston",
+        "caliper piston",
+        "brake hose",
+        "hydraulic hose"
+      ],
+      "canonical": ["Components", "Brakes", "Brake parts"]
+    },
+    {
       "raw": ["brake", "brakes", "brake pad", "disc brake", "rotor"],
       "canonical": ["Components", "Brakes"]
     },
     {
-      "raw": ["suspension", "fork", "shock", "damper"],
+      "raw": ["suspension", "damper"],
       "canonical": ["Components", "Suspension"]
     },
     {
@@ -164,8 +297,23 @@
       "canonical": ["Components", "Wheels/Tires", "Tubeless"]
     },
     {
+      "raw": [
+        "spoke nipple",
+        "spoke nipples",
+        "loose spoke",
+        "loose spokes",
+        "rim strip",
+        "rim strips",
+        "thru-axle",
+        "thru axle",
+        "through axle",
+        "through-axle"
+      ],
+      "canonical": ["Components", "Wheels/Tires", "Wheels/Tires parts"]
+    },
+    {
       "raw": ["wheel", "wheels", "tire", "tyre", "rim"],
-      "canonical": ["Components", "Wheels"]
+      "canonical": ["Components", "Wheels/Tires"]
     },
     {
       "raw": [
@@ -179,6 +327,37 @@
         "pedal"
       ],
       "canonical": ["Components", "Cockpit"]
+    },
+    {
+      "raw": [
+        "helmet parts",
+        "helmet part",
+        "helmet accessories",
+        "helmet accessory",
+        "helmet visor",
+        "helmet visors",
+        "helmet liner",
+        "helmet liners",
+        "helmet pad",
+        "helmet pads",
+        "helmet padding",
+        "replacement visor",
+        "replacement visors",
+        "replacement liner",
+        "replacement liners",
+        "cheek pad",
+        "cheek pads",
+        "cheekpad",
+        "cheekpads",
+        "helmet peak",
+        "helmet peaks",
+        "helmet cover",
+        "helmet covers",
+        "helmet screw",
+        "helmet screws",
+        "helmet fit kit"
+      ],
+      "canonical": ["Gear", "Helmet parts"]
     },
     { "raw": ["helmet", "helmets"], "canonical": ["Gear", "Helmets"] },
     {
@@ -246,7 +425,10 @@
         "bib shorts",
         "cycling shorts",
         "mtb shorts",
-        "liner shorts"
+        "liner shorts",
+        "liner short",
+        "men's liners",
+        "women's liners"
       ],
       "canonical": ["Gear", "Clothing", "Shorts"]
     },
@@ -257,6 +439,27 @@
     {
       "raw": ["socks", "cycling socks"],
       "canonical": ["Gear", "Clothing", "Socks"]
+    },
+    {
+      "raw": [
+        "skirt",
+        "skirts",
+        "skort",
+        "skorts",
+        "skinsuit",
+        "skinsuits",
+        "cycling tops",
+        "casual cycling",
+        "tri tops",
+        "tri top",
+        "cycling hat",
+        "cycling hats",
+        "bike hat",
+        "bike hats",
+        "cycling cap",
+        "cycling caps"
+      ],
+      "canonical": ["Gear", "Clothing"]
     },
     {
       "raw": ["clothing"],
@@ -308,7 +511,22 @@
       "canonical": ["Accessories", "Bags"]
     },
     {
-      "raw": ["light", "lights", "lamp"],
+      "raw": [
+        "lights",
+        "lighting",
+        "bike light",
+        "bike lights",
+        "headlight",
+        "headlights",
+        "taillight",
+        "taillights",
+        "tail light",
+        "front light",
+        "rear light",
+        "helmet light",
+        "lamp",
+        "lamps"
+      ],
       "canonical": ["Accessories", "Lights"]
     },
     {

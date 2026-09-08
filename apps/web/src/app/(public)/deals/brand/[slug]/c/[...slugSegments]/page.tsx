@@ -10,7 +10,7 @@ import {
   DEFAULT_PAGE_SIZE,
   normalizeFacetsResponse,
 } from "@/api";
-import { parseFilterParamsFromSearch } from "@/lib/filterParams";
+import { parseFilterParamsFromSearch, parsePriceParam } from "@/lib/filterParams";
 import { searchParamsRecordToDealsCategoryListPath } from "@/lib/dealsBackHref";
 import { JsonLd } from "@/components/JsonLd";
 import {
@@ -124,9 +124,8 @@ export default async function BrandCategoryDealsPage({
     min_discount: filterParams.minDiscount
       ? parseFloat(filterParams.minDiscount) || undefined
       : undefined,
-    min_price: filterParams.minPrice
-      ? parseFloat(filterParams.minPrice) || undefined
-      : undefined,
+    min_price: parsePriceParam(filterParams.minPrice),
+    max_price: parsePriceParam(filterParams.maxPrice),
     exclude_category_slug: filterParams.excludeCategorySlug || undefined,
     specFilters:
       Object.keys(filterParams.specFilters).length > 0
@@ -144,6 +143,8 @@ export default async function BrandCategoryDealsPage({
     min_discount: filterParams.minDiscount
       ? parseFloat(filterParams.minDiscount) || undefined
       : undefined,
+    min_price: parsePriceParam(filterParams.minPrice),
+    max_price: parsePriceParam(filterParams.maxPrice),
     specFilters:
       Object.keys(filterParams.specFilters).length > 0
         ? filterParams.specFilters
@@ -152,7 +153,7 @@ export default async function BrandCategoryDealsPage({
   };
 
   const [dealsResponse, facetsResponse, stores] = await Promise.all([
-    fetchDeals(dealsParams),
+    fetchDeals({ ...dealsParams, stableTotalCount: true }),
     fetchFacets(facetsParams),
     fetchStores(),
   ]);
@@ -220,6 +221,7 @@ export default async function BrandCategoryDealsPage({
           stores={stores}
           categoryTree={categoryTree}
           dealsListPath={dealsListPath}
+          routeCategorySlug={categorySlug}
           categoryIntro={seo.intro}
         />
       </Suspense>

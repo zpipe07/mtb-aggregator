@@ -24,7 +24,7 @@ func (db *DB) hydrateExtractionSchema(ctx context.Context, profileID int) (json.
 func (db *DB) hydrateExtractionSchemaFrom(ctx context.Context, q profileFieldJoinQuerier, profileID int) (json.RawMessage, error) {
 	rows, err := q.Query(ctx, `
 		SELECT pf.sort_order, pf.overrides, pf.inline_field,
-		       fd.field_key, fd.field_type, fd.description, fd.label, fd.values, fd.filterable
+		       fd.field_key, fd.field_type, fd.description, fd.label, fd.values, fd.filterable, fd.extractable
 		FROM llm_prompt_profile_fields pf
 		LEFT JOIN llm_extraction_field_defs fd ON fd.id = pf.field_def_id
 		WHERE pf.profile_id = $1
@@ -46,8 +46,9 @@ func (db *DB) hydrateExtractionSchemaFrom(ctx context.Context, q profileFieldJoi
 		var label *string
 		var valuesJSON []byte
 		var filterable *bool
+		var extractable *bool
 
-		if err := rows.Scan(&sortOrder, &overrides, &inlineField, &fk, &ftype, &desc, &label, &valuesJSON, &filterable); err != nil {
+		if err := rows.Scan(&sortOrder, &overrides, &inlineField, &fk, &ftype, &desc, &label, &valuesJSON, &filterable, &extractable); err != nil {
 			return nil, err
 		}
 
@@ -69,6 +70,7 @@ func (db *DB) hydrateExtractionSchemaFrom(ctx context.Context, q profileFieldJoi
 				Label:       label,
 				ValuesJSON:  valuesJSON,
 				Filterable:  filterable,
+				Extractable: extractable,
 			}
 			sf, err := mergeDefOverridesToSchemaField(def, overrides, sortOrder)
 			if err != nil {
@@ -84,23 +86,9 @@ func (db *DB) hydrateExtractionSchemaFrom(ctx context.Context, q profileFieldJoi
 		return nil, err
 	}
 
-	hasConfidence := false
-	for _, f := range fields {
-		if f.Key == "confidence" {
-			hasConfidence = true
-			break
-		}
-	}
-	if !hasConfidence {
-		conf, err := db.loadExtractionFieldDefByKey(ctx, "confidence")
-		if err != nil {
-			return nil, err
-		}
-		if conf == nil {
-			return nil, fmt.Errorf("missing llm_extraction_field_defs row for field_key=confidence")
-		}
-		sf := conf.toSchemaField(maxSort + 1)
-		fields = append(fields, sf)
+	fields, err = db.appendMetaExtractionFields(ctx, fields, maxSort)
+	if err != nil {
+		return nil, err
 	}
 
 	out, err := json.Marshal(llm.ExtractionSchema{Fields: fields})
@@ -117,6 +105,7 @@ type extractionFieldDefRow struct {
 	Label       *string
 	ValuesJSON  []byte
 	Filterable  *bool
+	Extractable *bool
 }
 
 func (d *extractionFieldDefRow) toSchemaField(sortOrder int) llm.SchemaField {
@@ -133,6 +122,10 @@ func (d *extractionFieldDefRow) toSchemaField(sortOrder int) llm.SchemaField {
 		_ = json.Unmarshal(d.ValuesJSON, &sf.Values)
 	}
 	sf.Filterable = d.Filterable
+	if d.Extractable != nil && !*d.Extractable {
+		v := false
+		sf.Extractable = &v
+	}
 	return sf
 }
 
@@ -176,18 +169,22 @@ func applySchemaFieldOverrides(sf *llm.SchemaField, overrides []byte) error {
 			if err := json.Unmarshal(v, &sf.Filterable); err != nil {
 				return err
 			}
+		case "extractable":
+			if err := json.Unmarshal(v, &sf.Extractable); err != nil {
+				return err
+			}
 		}
 	}
 	return nil
 }
 
-// appendConfidenceToSchemaFields strips any existing confidence field and appends the library
-// confidence definition once (same source as hydrateExtractionSchemaFrom).
-func (db *DB) appendConfidenceToSchemaFields(ctx context.Context, fields []llm.SchemaField) ([]llm.SchemaField, error) {
+// appendMetaExtractionFields strips confidence/reasoning and appends library defs once
+// (same source as hydrateExtractionSchemaFrom).
+func (db *DB) appendMetaExtractionFields(ctx context.Context, fields []llm.SchemaField, baseSort int) ([]llm.SchemaField, error) {
 	filtered := fields[:0]
-	maxSort := 0
+	maxSort := baseSort
 	for _, f := range fields {
-		if f.Key == "confidence" {
+		if f.Key == "confidence" || f.Key == "reasoning" {
 			continue
 		}
 		if f.SortOrder > maxSort {
@@ -195,15 +192,29 @@ func (db *DB) appendConfidenceToSchemaFields(ctx context.Context, fields []llm.S
 		}
 		filtered = append(filtered, f)
 	}
-	conf, err := db.loadExtractionFieldDefByKey(ctx, "confidence")
-	if err != nil {
-		return nil, err
+	for _, key := range []string{"confidence", "reasoning"} {
+		def, err := db.loadExtractionFieldDefByKey(ctx, key)
+		if err != nil {
+			return nil, err
+		}
+		if def == nil {
+			return nil, fmt.Errorf("missing llm_extraction_field_defs row for field_key=%s", key)
+		}
+		maxSort++
+		filtered = append(filtered, def.toSchemaField(maxSort))
 	}
-	if conf == nil {
-		return nil, fmt.Errorf("missing llm_extraction_field_defs row for field_key=confidence")
-	}
-	filtered = append(filtered, conf.toSchemaField(maxSort+1))
 	return filtered, nil
+}
+
+// appendConfidenceToSchemaFields appends confidence and reasoning meta fields for merged profiles.
+func (db *DB) appendConfidenceToSchemaFields(ctx context.Context, fields []llm.SchemaField) ([]llm.SchemaField, error) {
+	maxSort := 0
+	for _, f := range fields {
+		if f.SortOrder > maxSort {
+			maxSort = f.SortOrder
+		}
+	}
+	return db.appendMetaExtractionFields(ctx, fields, maxSort)
 }
 
 func (db *DB) loadExtractionFieldDefByKey(ctx context.Context, fieldKey string) (*extractionFieldDefRow, error) {
@@ -211,10 +222,11 @@ func (db *DB) loadExtractionFieldDefByKey(ctx context.Context, fieldKey string) 
 	var label *string
 	var valuesJSON []byte
 	var filterable *bool
+	var extractable *bool
 	err := db.pool.QueryRow(ctx, `
-		SELECT field_key, field_type, description, label, values, filterable
+		SELECT field_key, field_type, description, label, values, filterable, extractable
 		FROM llm_extraction_field_defs WHERE field_key = $1
-	`, fieldKey).Scan(&d.FieldKey, &d.FieldType, &d.Description, &label, &valuesJSON, &filterable)
+	`, fieldKey).Scan(&d.FieldKey, &d.FieldType, &d.Description, &label, &valuesJSON, &filterable, &extractable)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil
@@ -224,6 +236,7 @@ func (db *DB) loadExtractionFieldDefByKey(ctx context.Context, fieldKey string) 
 	d.Label = label
 	d.ValuesJSON = valuesJSON
 	d.Filterable = filterable
+	d.Extractable = extractable
 	return &d, nil
 }
 

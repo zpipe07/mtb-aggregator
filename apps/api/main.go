@@ -25,6 +25,7 @@ import (
 	"github.com/mtb-aggregator/api/internal/normalization"
 	"github.com/mtb-aggregator/api/internal/scheduler"
 	"github.com/mtb-aggregator/api/internal/scraper"
+	"github.com/mtb-aggregator/api/internal/sentryutil"
 	"github.com/mtb-aggregator/api/internal/taxonomy"
 )
 
@@ -156,7 +157,7 @@ func validateCronOrAdmin(r *http.Request) bool {
 
 var taxonomySeedStruct = struct {
 	Mappings []struct {
-		Raw      []string `json:"raw"`
+		Raw       []string `json:"raw"`
 		Canonical []string `json:"canonical"`
 	} `json:"mappings"`
 }{}
@@ -174,7 +175,10 @@ func seedCategoryMappingsFromFile(ctx context.Context, database *db.DB) (bool, e
 	if err := json.Unmarshal(data, &taxonomySeedStruct); err != nil {
 		return false, err
 	}
-	seedSlice := make([]struct{ Raw []string; Canonical []string }, len(taxonomySeedStruct.Mappings))
+	seedSlice := make([]struct {
+		Raw       []string
+		Canonical []string
+	}, len(taxonomySeedStruct.Mappings))
 	for i := range taxonomySeedStruct.Mappings {
 		seedSlice[i].Raw = taxonomySeedStruct.Mappings[i].Raw
 		seedSlice[i].Canonical = taxonomySeedStruct.Mappings[i].Canonical
@@ -290,7 +294,10 @@ func main() {
 	sentryEnabled := initSentry(logutil.Logger("sentry"))
 
 	if err := brand.Load(""); err != nil {
-		logutil.Logger("brand").Warn("could not load aliases; brand normalization disabled", logutil.ErrAttr(err))
+		logutil.Logger("brand").Error("could not load aliases; brand normalization disabled", logutil.ErrAttr(err))
+		sentryutil.CaptureError(err, map[string]string{"component": "api", "phase": "brand_aliases_load"})
+	} else {
+		logutil.Logger("brand").Info("loaded brand aliases")
 	}
 	// Taxonomy is loaded from DB (loadTaxonomyFromDB); taxonomy.Load() from JSON is no longer used.
 
@@ -370,24 +377,37 @@ func main() {
 		startupLog.Info("scrape cron disabled (use external cron for /scrape-now)")
 	}
 
-	// Enrichment cron: nightly at 2am (ENRICH_CRON_SPEC, "disabled" = use external cron)
+	// Enrichment cron: PDP drainer replaces nightly batch (ENRICH_CRON_SPEC; default disabled).
 	enrichCronSpec := os.Getenv("ENRICH_CRON_SPEC")
 	if enrichCronSpec == "" {
-		enrichCronSpec = "0 2 * * *"
+		enrichCronSpec = "disabled"
 	}
 	if !strings.EqualFold(enrichCronSpec, "disabled") {
 		sched.StartEnrichment(enrichCronSpec)
-		startupLog.Info("enrich cron started", "spec", enrichCronSpec)
+		startupLog.Info("enrich cron started (burst PDP; drainer also runs)", "spec", enrichCronSpec)
 	} else {
-		startupLog.Info("enrichment cron disabled (use external cron for /enrich-now)")
+		startupLog.Info("enrichment cron disabled (PDP drainer + POST /enrich-now)")
 	}
 
-	// Catch-up: if the process missed scheduled jobs (was down during cron time,
-	// deploy, restart), run overdue scrape/enrich once on startup.
+	sched.StartPDPDrainer(context.Background())
+
+	// LLM cron: hourly classify+extract safety net (LLM_CRON_SPEC, "disabled" = skip)
+	llmCronSpec := os.Getenv("LLM_CRON_SPEC")
+	if llmCronSpec == "" {
+		llmCronSpec = "0 * * * *"
+	}
+	if !strings.EqualFold(llmCronSpec, "disabled") {
+		sched.StartLLM(llmCronSpec)
+		startupLog.Info("LLM cron started", "spec", llmCronSpec)
+	} else {
+		startupLog.Info("LLM cron disabled")
+	}
+
+	// Catch-up: scrape + LLM only (PDP is continuous via drainer).
 	catchUpScrapeInterval := 24 * time.Hour
-	catchUpEnrichInterval := 24 * time.Hour
-	if cronSpec != "disabled" || enrichCronSpec != "disabled" {
-		go sched.RunCatchUp(catchUpScrapeInterval, catchUpEnrichInterval)
+	catchUpLLMInterval := time.Hour
+	if !strings.EqualFold(cronSpec, "disabled") || !strings.EqualFold(llmCronSpec, "disabled") {
+		go sched.RunCatchUp(catchUpScrapeInterval, catchUpLLMInterval)
 	}
 
 	// Manual trigger: POST /scrape-now (optional ?store=). Auth: valid CRON_SECRET, or admin Bearer, or (non-production only) open cron.
@@ -494,6 +514,7 @@ func main() {
 	http.HandleFunc("/spec-values", handlers.GetSpecValues)
 	http.HandleFunc("/facets", handlers.GetFacets)
 	http.HandleFunc("/status", handlers.GetStatus)
+	http.HandleFunc("/giveaways", handlers.GetGiveaways)
 
 	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -512,6 +533,8 @@ func main() {
 	http.HandleFunc("/admin/store-types", api.AdminRequired(api.GetStoreTypes))
 	// Admin: GET /admin/store-types-with-enrichers — store types that support enrichment (for Enrich button)
 	http.HandleFunc("/admin/store-types-with-enrichers", api.AdminRequired(handlers.GetStoreTypesWithEnrichers))
+	http.HandleFunc("/admin/giveaways", api.AdminRequired(handlers.AdminGiveawaysCollection))
+	http.HandleFunc("/admin/giveaways/", api.AdminRequired(handlers.AdminGiveawayItem))
 	// Admin: GET/POST /admin/stores — list or create stores
 	http.HandleFunc("/admin/stores", api.AdminRequired(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/admin/stores" {
@@ -786,6 +809,14 @@ func main() {
 			return
 		}
 		handlers.PostAdminRenormalizeSpecs(w, r)
+	}))
+	// Admin: POST /admin/renormalize-brands — re-apply brand_aliases.json to store_listings.brand
+	http.HandleFunc("/admin/renormalize-brands", api.AdminRequired(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/admin/renormalize-brands" {
+			http.NotFound(w, r)
+			return
+		}
+		handlers.PostAdminRenormalizeBrands(w, r)
 	}))
 	// Admin: GET /admin/db/migrations — list migration status; POST /admin/db/migrate, /admin/db/seed
 	http.HandleFunc("/admin/db/migrations", api.AdminRequired(func(w http.ResponseWriter, r *http.Request) {

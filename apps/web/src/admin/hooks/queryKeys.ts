@@ -3,6 +3,11 @@ export const adminStoreKeys = {
   detail: (id: number) => [...adminStoreKeys.all, id] as const,
 };
 
+export const adminGiveawayKeys = {
+  all: ["admin", "giveaways"] as const,
+  detail: (id: number) => [...adminGiveawayKeys.all, id] as const,
+};
+
 export const adminStoreTypeKeys = {
   all: ["admin", "storeTypes"] as const,
 };

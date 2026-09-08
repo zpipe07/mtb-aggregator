@@ -14,6 +14,7 @@ import {
 import { cn, focusRing, focusRingInset } from "@/lib/utils";
 import { mainNavLinkTypography } from "@/lib/mainNavStyles";
 import { TheDropperLogo } from "@/components/TheDropperLogo";
+import { Button } from "@/components/ui/button";
 
 type NavHeaderProps = {
   categoryTree?: CategoryTreeNode[];
@@ -31,7 +32,10 @@ export function NavHeader({ categoryTree = [] }: NavHeaderProps) {
     setDesktopDealsMenuOpen,
   );
 
-  const navLinks = [{ href: "/", label: "Home", exact: true }];
+  const navLinks = [
+    { href: "/", label: "Home", exact: true },
+    { href: "/giveaways", label: "Giveaways", exact: false },
+  ];
 
   const isDealsActive = pathname.startsWith("/deals");
 
@@ -133,20 +137,17 @@ export function NavHeader({ categoryTree = [] }: NavHeaderProps) {
           />
         </nav>
 
-        {/* Mobile menu button */}
-        <button
+        <Button
           type="button"
-          className={cn(
-            "-mr-2 rounded-sm p-2 text-muted-foreground hover:bg-muted hover:text-foreground lg:hidden",
-            focusRing,
-          )}
+          variant="outline"
+          className="lg:hidden aria-expanded:border-foreground aria-expanded:bg-foreground aria-expanded:text-background aria-expanded:hover:bg-foreground aria-expanded:hover:text-background"
           onClick={() => setMobileMenuOpen((open) => !open)}
           aria-expanded={mobileMenuOpen}
           aria-controls="mobile-nav"
         >
-          <span className="sr-only">Toggle menu</span>
+          {mobileMenuOpen ? "Close" : "Menu"}
           <svg
-            className="h-6 w-6"
+            className="size-4"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -168,7 +169,7 @@ export function NavHeader({ categoryTree = [] }: NavHeaderProps) {
               />
             )}
           </svg>
-        </button>
+        </Button>
       </div>
 
       <DealsMegaMenuDesktopPanel
@@ -177,6 +178,7 @@ export function NavHeader({ categoryTree = [] }: NavHeaderProps) {
         categoryTree={categoryTree}
         activeCategorySlug={activeCategorySlug}
         onClose={closeDesktopMenu}
+        onHoverIntent={onHoverIntent}
       />
 
       {/* Mobile nav */}

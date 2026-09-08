@@ -3,6 +3,7 @@ import posthog from "posthog-js";
 export type CategoryNavSource =
   | "breadcrumb"
   | "chip"
+  | "browse_chips"
   | "all_clear"
   | "mega_menu";
 

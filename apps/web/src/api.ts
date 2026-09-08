@@ -1,6 +1,14 @@
 import { getApiBase } from "@/lib/api";
 import { normalizeCategoryTree } from "@/lib/categoryTree";
-import { PUBLIC_DATA_CACHE_TAG, PUBLIC_ISR_REVALIDATE_SECONDS } from "@/lib/revalidate";
+import {
+  GIVEAWAYS_CACHE_TAG,
+  GIVEAWAYS_REVALIDATE_SECONDS,
+  PUBLIC_DATA_CACHE_TAG,
+  PUBLIC_ISR_REVALIDATE_SECONDS,
+} from "@/lib/revalidate";
+import type { GiveawayKind, GiveawayStatus } from "@/lib/giveawayStatus";
+
+export type { GiveawayKind, GiveawayStatus };
 
 /** One SKU variant when deals are grouped (Shopify). */
 export interface DealVariantRow {
@@ -35,6 +43,7 @@ export interface Deal {
   canonical_category?: string[];
   metadata?: {
     specs?: Record<string, string>;
+    llm_specs?: Record<string, unknown>;
   };
   is_in_stock: boolean;
   discount_pct?: number;
@@ -120,8 +129,7 @@ export async function fetchWithRetry(
     : new Error("Fetch failed after retries");
 }
 
-export async function fetchDeals(
-  params?: {
+export type FetchDealsParams = {
   store?: string;
   /** Repeated `brand` query params (OR). */
   brands?: string[];
@@ -148,7 +156,37 @@ export async function fetchDeals(
   specFilters?: Record<string, string[]>;
   /** Default true: collapse Shopify variants into one card */
   group_variants?: boolean;
-} & FetchCacheOptions,
+  /**
+   * When true, `total_count` comes from a second fetch with offset=0&limit=1 so
+   * every page of the same filter set shares one Next.js cache key (ZAC-236).
+   */
+  stableTotalCount?: boolean;
+} & FetchCacheOptions;
+
+/** Canonical count-query params so page 1 and page N share one fetch-cache URL. */
+export function dealsStableCountParams(
+  params: FetchDealsParams,
+): FetchDealsParams {
+  const rest = { ...params, offset: 0, limit: 1 };
+  delete rest.stableTotalCount;
+  return rest;
+}
+
+export async function fetchDeals(
+  params?: FetchDealsParams,
+): Promise<DealListResponse> {
+  if (!params?.stableTotalCount) {
+    return fetchDealsPage(params);
+  }
+  const [page, count] = await Promise.all([
+    fetchDealsPage(params),
+    fetchDealsPage(dealsStableCountParams(params)),
+  ]);
+  return { deals: page.deals, total_count: count.total_count };
+}
+
+async function fetchDealsPage(
+  params?: FetchDealsParams,
 ): Promise<DealListResponse> {
   const search = new URLSearchParams();
   if (params?.store) search.set("store", params.store);
@@ -261,13 +299,16 @@ export interface CategoryTreeNode {
   parent_id: number | null;
   sort_order: number;
   depth: number;
-  /** In-stock, visible listings in this category or any descendant (subtree rollup). */
+  /** In-stock, visible listing rows in this category or any descendant (subtree rollup). */
   deal_count: number;
   /**
    * Distinct product groups in this subtree (matches `GET /deals?group_variants=true` totals).
-   * When missing (older API), fall back to `deal_count` for display.
+   * Shopper-facing counts (homepage, mega-menu, chips, categories hub) use this via
+   * `categoryNavDealCount`. When missing (older API), fall back to `deal_count`.
    */
   product_count?: number;
+  /** When true, omit from the header mega-menu. Still shown on /categories. */
+  hide_from_nav?: boolean;
   children: CategoryTreeNode[];
 }
 
@@ -402,4 +443,62 @@ export async function fetchStatus(): Promise<Status> {
   const res = await fetch(`${getApiBase()}/status`, PUBLIC_FETCH_CACHE);
   if (!res.ok) throw new Error("Failed to fetch status");
   return res.json();
+}
+
+export type Giveaway = {
+  id: number;
+  slug: string;
+  kind: GiveawayKind;
+  title: string;
+  summary: string;
+  prize_name: string;
+  prize_description?: string | null;
+  image_url?: string | null;
+  host_name: string;
+  entry_url: string;
+  official_rules_url: string;
+  starts_at?: string | null;
+  ends_at: string;
+  eligibility?: string | null;
+  entry_requirements?: string | null;
+  ticket_price?: number | null;
+  ticket_currency?: string;
+  beneficiary?: string | null;
+  status: GiveawayStatus;
+};
+
+export type GiveawaysResponse = {
+  giveaways: Giveaway[];
+  open_count: number;
+  upcoming_count: number;
+  ended_count: number;
+};
+
+const GIVEAWAYS_FETCH_CACHE: RequestInit = {
+  next: {
+    revalidate: GIVEAWAYS_REVALIDATE_SECONDS,
+    tags: [PUBLIC_DATA_CACHE_TAG, GIVEAWAYS_CACHE_TAG],
+  },
+};
+
+export async function fetchGiveaways(options?: {
+  kind?: GiveawayKind;
+  noStore?: boolean;
+}): Promise<GiveawaysResponse> {
+  const search = new URLSearchParams();
+  if (options?.kind) search.set("kind", options.kind);
+  const qs = search.toString();
+  const init = options?.noStore ? { cache: "no-store" as const } : GIVEAWAYS_FETCH_CACHE;
+  const res = await fetchWithRetry(
+    `${getApiBase()}/giveaways${qs ? `?${qs}` : ""}`,
+    init,
+  );
+  if (!res.ok) throw new Error("Failed to fetch giveaways");
+  const data = (await res.json()) as GiveawaysResponse;
+  return {
+    giveaways: Array.isArray(data.giveaways) ? data.giveaways : [],
+    open_count: data.open_count ?? 0,
+    upcoming_count: data.upcoming_count ?? 0,
+    ended_count: data.ended_count ?? 0,
+  };
 }

@@ -38,6 +38,7 @@ func (h *Handlers) PostLLMExtractionFieldDef(w http.ResponseWriter, r *http.Requ
 		Label       *string         `json:"label"`
 		Values      json.RawMessage `json:"values"`
 		Filterable  *bool           `json:"filterable"`
+		Extractable *bool           `json:"extractable"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		http.Error(w, "invalid json", http.StatusBadRequest)
@@ -47,7 +48,7 @@ func (h *Handlers) PostLLMExtractionFieldDef(w http.ResponseWriter, r *http.Requ
 		http.Error(w, "field_key, field_type, and description required", http.StatusBadRequest)
 		return
 	}
-	id, err := h.DB.CreateLLMExtractionFieldDef(r.Context(), body.FieldKey, body.FieldType, body.Description, body.Label, body.Values, body.Filterable)
+	id, err := h.DB.CreateLLMExtractionFieldDef(r.Context(), body.FieldKey, body.FieldType, body.Description, body.Label, body.Values, body.Filterable, body.Extractable)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -89,6 +90,7 @@ func (h *Handlers) PutLLMExtractionFieldDef(w http.ResponseWriter, r *http.Reque
 		Label       *string         `json:"label"`
 		Values      json.RawMessage `json:"values"`
 		Filterable  *bool           `json:"filterable"`
+		Extractable *bool           `json:"extractable"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		http.Error(w, "invalid json", http.StatusBadRequest)
@@ -98,7 +100,7 @@ func (h *Handlers) PutLLMExtractionFieldDef(w http.ResponseWriter, r *http.Reque
 		http.Error(w, "field_key, field_type, and description required", http.StatusBadRequest)
 		return
 	}
-	err := h.DB.UpdateLLMExtractionFieldDef(r.Context(), id, body.FieldKey, body.FieldType, body.Description, body.Label, body.Values, body.Filterable)
+	err := h.DB.UpdateLLMExtractionFieldDef(r.Context(), id, body.FieldKey, body.FieldType, body.Description, body.Label, body.Values, body.Filterable, body.Extractable)
 	if err != nil {
 		if strings.Contains(err.Error(), "immutable") {
 			http.Error(w, err.Error(), http.StatusBadRequest)

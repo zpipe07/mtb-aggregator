@@ -45,9 +45,19 @@ export function buildCategoryTreeFromFlat(flat: CategoryFlatRow[]): CategoryTree
   return build(null);
 }
 
-/** True when the API reported at least one deal in this category’s subtree. */
+/**
+ * Shopper-facing deal count for a nav node: grouped products as shown on
+ * `/deals?group_variants=true`. Homepage tiles, mega-menu, search chips, and
+ * the categories hub must use this so the numbers agree (ZAC-236).
+ * Older APIs omit `product_count`; fall back to the listing rollup.
+ */
+export function categoryNavDealCount(node: CategoryTreeNode): number {
+  return node.product_count ?? node.deal_count ?? 0;
+}
+
+/** True when this subtree has at least one deal shoppers would see. */
 export function categoryHasDeals(node: CategoryTreeNode): boolean {
-  return (node.deal_count ?? 0) > 0;
+  return categoryNavDealCount(node) > 0;
 }
 
 /**
@@ -65,9 +75,10 @@ export function normalizeCategoryTree(
 }
 
 /**
- * Keep only categories with `deal_count > 0`, recursively. Used for sitemap and
- * other “only show categories that have inventory” cases. Navigation still uses the
- * full tree when resolving the current slug (including empty category pages).
+ * Keep only categories with shopper-facing deals (`product_count`, falling back
+ * to `deal_count`), recursively. Used for sitemap and other “only show categories
+ * that have inventory” cases. Navigation still uses the full tree when resolving
+ * the current slug (including empty category pages).
  */
 export function filterCategoryTreeWithDeals(
   tree: CategoryTreeNode[],
@@ -77,6 +88,25 @@ export function filterCategoryTreeWithDeals(
     if (!categoryHasDeals(n)) continue;
     const children = n.children?.length
       ? filterCategoryTreeWithDeals(n.children)
+      : [];
+    out.push({ ...n, children });
+  }
+  return out;
+}
+
+/**
+ * Drop categories flagged `hide_from_nav` (and their descendants) for the
+ * header mega-menu. `/categories`, deals browse chips, and classification
+ * still use the full tree (ZAC-251).
+ */
+export function filterCategoryTreeForNav(
+  tree: CategoryTreeNode[],
+): CategoryTreeNode[] {
+  const out: CategoryTreeNode[] = [];
+  for (const n of tree) {
+    if (n.hide_from_nav) continue;
+    const children = n.children?.length
+      ? filterCategoryTreeForNav(n.children)
       : [];
     out.push({ ...n, children });
   }

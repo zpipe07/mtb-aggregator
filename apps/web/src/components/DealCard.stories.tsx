@@ -95,3 +95,88 @@ export const MobileViewport: Story = {
     ),
   ],
 };
+
+const mockDealWithSizes: Deal = {
+  ...mockDeal,
+  id: 4,
+  product_name: "Santa Cruz Bronson CC",
+  current_price: 7319.4,
+  original_price: 9359.95,
+  discount_pct: 22,
+  variant_count: 5,
+  price_range: [7319.4, 7999],
+  variants: [
+    {
+      id: 41,
+      store_sku: "xs",
+      variant_options: { Size: "XS", Color: "Green" },
+      current_price: 7319.4,
+      is_in_stock: false,
+    },
+    {
+      id: 42,
+      store_sku: "s",
+      variant_options: { Size: "S", Color: "Green" },
+      current_price: 7319.4,
+      is_in_stock: true,
+    },
+    {
+      id: 43,
+      store_sku: "m",
+      variant_options: { Size: "M", Color: "Green" },
+      current_price: 7319.4,
+      is_in_stock: true,
+    },
+    {
+      id: 44,
+      store_sku: "l",
+      variant_options: { Size: "L", Color: "Green" },
+      current_price: 7319.4,
+      is_in_stock: true,
+    },
+    {
+      id: 45,
+      store_sku: "xl",
+      variant_options: { Size: "XL", Color: "Green" },
+      current_price: 7999,
+      is_in_stock: true,
+    },
+  ],
+};
+
+export const InStockSizes: Story = {
+  args: {
+    deal: mockDealWithSizes,
+    href: "/deals/4",
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Grouped card with in-stock size chips. Sold-out XS is omitted; price range shows when sizes differ.",
+      },
+    },
+  },
+};
+
+export const ExtractedBikeSize: Story = {
+  args: {
+    deal: {
+      ...mockDeal,
+      id: 5,
+      product_name: "Juliana Roubion CC Medium",
+      brand: "Juliana",
+      category_path: ["Bikes", "Mountain"],
+      metadata: { llm_specs: { bike_size: "M" } },
+    },
+    href: "/deals/5",
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Single-SKU bike without variant options still shows Size from LLM/spec extraction.",
+      },
+    },
+  },
+};

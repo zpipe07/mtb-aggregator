@@ -53,7 +53,7 @@ export function Pagination({
 
   return (
     <nav
-      className="flex flex-col gap-3 border-t border-foreground/15 py-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-4"
+      className="flex flex-col gap-3 py-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-4"
       aria-label="Deals pagination"
     >
       <p className="shrink-0 font-mono text-[10px] font-semibold tracking-[0.12em] text-muted-foreground uppercase sm:text-[11px]">

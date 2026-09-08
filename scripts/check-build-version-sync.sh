@@ -63,14 +63,22 @@ check_go_toolchain_docker() {
 check_go_toolchain_ci() {
   local gomod="$ROOT/apps/api/go.mod"
   local ci="$ROOT/.github/workflows/ci.yml"
-  local toolchain ci_version
+  local toolchain ci_versions ci_version ci_count
 
   toolchain="$(grep -E '^toolchain ' "$gomod" | awk '{print $2}' | sed 's/^go//')"
-  ci_version="$(grep -E 'go-version:' "$ci" | head -1 | sed -E 's/.*"([^"]+)".*/\1/')"
+  ci_versions="$(grep -E 'go-version:' "$ci" | sed -E 's/.*"([^"]+)".*/\1/' | sort -u)"
+  ci_count="$(printf '%s\n' "$ci_versions" | grep -c . || true)"
+  ci_version="$(printf '%s\n' "$ci_versions" | head -1)"
 
   if [[ -z "$toolchain" || -z "$ci_version" ]]; then
     report_mismatch "Go toolchain (go.mod vs CI)" \
       "Could not parse toolchain from $gomod or go-version from $ci"
+    return
+  fi
+
+  if [[ "$ci_count" -gt 1 ]]; then
+    report_mismatch "Go toolchain (CI go-version pins)" \
+      "Multiple distinct go-version values in $ci:\n${ci_versions}\nFix: keep a single go-version matching go.mod toolchain"
     return
   fi
 

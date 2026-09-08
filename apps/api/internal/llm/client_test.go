@@ -9,11 +9,13 @@ import (
 
 func TestBuildOpenAISchema(t *testing.T) {
 	client := New("", "")
+	falseVal := false
 	profile := Profile{
 		ExtractionSchema: ExtractionSchema{
 			Fields: []SchemaField{
 				{Key: "front_travel_mm", Type: "integer", Description: "Front fork travel in mm"},
 				{Key: "wheel_size", Type: "enum", Description: "Wheel size", Values: []string{"29", "27.5", "26", "mullet"}},
+				{Key: "clothing_size", Type: "string", Description: "Size from variant", Extractable: &falseVal},
 				{Key: "confidence", Type: "number", Description: "Overall confidence 0-1"},
 			},
 		},
@@ -34,7 +36,10 @@ func TestBuildOpenAISchema(t *testing.T) {
 		t.Fatalf("properties not a map")
 	}
 	if len(props) != 3 {
-		t.Errorf("expected 3 properties, got %d", len(props))
+		t.Errorf("expected 3 properties (clothing_size omitted), got %d", len(props))
+	}
+	if _, ok := props["clothing_size"]; ok {
+		t.Error("clothing_size should be omitted when extractable=false")
 	}
 	// Enum should include null
 	wheelProp, ok := props["wheel_size"].(map[string]interface{})

@@ -7,10 +7,13 @@ import posthog from "posthog-js";
 import { track } from "@vercel/analytics";
 import type { Deal } from "../api";
 import { Button } from "./ui/button";
+import { VariantChips } from "./VariantChips";
 import { cn, focusRingWithin } from "@/lib/utils";
 import { formatMoney } from "@/lib/formatMoney";
 import { computeDealScore } from "@/lib/dealScore";
 import { dealsListSurfaceFromPathname } from "@/lib/dealsListSurface";
+import { RemoteImg } from "./RemoteImg";
+import { summarizeDealSizeChips, displayPriceRange } from "@/lib/inStockVariantChips";
 
 const monoMicro =
   "font-mono text-[10px] font-semibold uppercase tracking-[0.14em]";
@@ -64,11 +67,15 @@ export function DealCard({
   const listSurface = dealsListSurfaceFromPathname(pathname);
   const viewUrl = deal.affiliate_url || deal.product_url;
 
+  const variantChips = summarizeDealSizeChips(deal);
+  const priceRange = displayPriceRange(deal);
   const analyticsBase = {
     deal_id: deal.id,
     store: deal.store_name,
     brand: deal.brand || "",
     list_surface: listSurface,
+    in_stock_size_count: variantChips?.sizes.length ?? 0,
+    in_stock_color_count: variantChips?.colors.length ?? 0,
     ...(homeSection ? { home_section: homeSection } : {}),
   };
 
@@ -91,10 +98,7 @@ export function DealCard({
   const savings =
     deal.original_price != null &&
     deal.original_price > deal.current_price &&
-    !(
-      deal.price_range?.length === 2 &&
-      deal.price_range[0] !== deal.price_range[1]
-    )
+    !(priceRange != null && priceRange[0] !== priceRange[1])
       ? deal.original_price - deal.current_price
       : null;
 
@@ -118,7 +122,7 @@ export function DealCard({
       <div className="space-y-0.5 text-right">
         {deal.original_price != null &&
           deal.original_price > deal.current_price &&
-          !(deal.price_range && deal.price_range.length === 2) && (
+          !priceRange && (
             <span
               className={cn(
                 monoMicro,
@@ -128,12 +132,10 @@ export function DealCard({
               was ${formatMoney(deal.original_price)}
             </span>
           )}
-        {deal.price_range != null &&
-        deal.price_range.length === 2 &&
-        deal.price_range[0] !== deal.price_range[1] ? (
+        {priceRange != null && priceRange[0] !== priceRange[1] ? (
           <span className="font-mono text-xl font-semibold leading-none tabular-nums text-foreground sm:text-2xl">
-            ${formatMoney(deal.price_range[0])} – $
-            {formatMoney(deal.price_range[1])}
+            ${formatMoney(priceRange[0])} – $
+            {formatMoney(priceRange[1])}
           </span>
         ) : (
           <span className="font-mono text-xl font-semibold leading-none tabular-nums text-foreground sm:text-2xl">
@@ -157,6 +159,9 @@ export function DealCard({
           {deal.product_name}
         </h2>
       </div>
+      {variantChips ? (
+        <VariantChips deal={deal} density="compact" className="w-full" />
+      ) : null}
       {priceRow}
     </div>
   );
@@ -231,7 +236,7 @@ export function DealCard({
   const imageBlock = (
     <div className="group/image relative aspect-[16/9] overflow-hidden border-b border-foreground bg-muted sm:aspect-square">
       {deal.image_url ? (
-        <img
+        <RemoteImg
           src={deal.image_url}
           alt={deal.product_name}
           className="h-full w-full object-cover transition-transform duration-300 group-hover/card:scale-[1.03]"
@@ -255,7 +260,9 @@ export function DealCard({
         </div>
       )}
       {(showScore ||
-        (deal.variant_count != null && deal.variant_count > 1)) && (
+        (!variantChips &&
+          deal.variant_count != null &&
+          deal.variant_count > 1)) && (
         <div className="absolute bottom-3 right-3 flex flex-col items-end gap-1">
           {showScore ? (
             <span
@@ -268,7 +275,9 @@ export function DealCard({
               {dealScore.displayLabel}
             </span>
           ) : null}
-          {deal.variant_count != null && deal.variant_count > 1 ? (
+          {!variantChips &&
+          deal.variant_count != null &&
+          deal.variant_count > 1 ? (
             <span
               className={cn(
                 "inline-flex items-center gap-1.5 rounded-sm border border-foreground/40 bg-card/90 px-2 py-0.5 backdrop-blur-sm",

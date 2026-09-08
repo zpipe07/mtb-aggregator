@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+
+	"github.com/mtb-aggregator/api/internal/metadata"
 )
 
 // GroupSibling is a listing row in the same product_group_key family.
@@ -41,9 +43,12 @@ func (db *DB) ListingsInGroup(ctx context.Context, storeID int, productGroupKey 
 }
 
 // UpdateListingVariantInfo sets variant_options (optional), is_in_stock, and sets product_group_key when provided.
+// Also syncs metadata.llm_specs.clothing_size and bike_size from the Size variant when present.
 func (db *DB) UpdateListingVariantInfo(ctx context.Context, listingID int, variantOpts *json.RawMessage, isInStock bool, productGroupKey string) error {
 	var opts interface{}
+	var optsBytes []byte
 	if variantOpts != nil && len(*variantOpts) > 0 {
+		optsBytes = *variantOpts
 		opts = string(*variantOpts)
 	}
 	pgk := strings.TrimSpace(productGroupKey)
@@ -51,13 +56,25 @@ func (db *DB) UpdateListingVariantInfo(ctx context.Context, listingID int, varia
 	if pgk != "" {
 		pgkArg = pgk
 	}
+
+	var existingMeta []byte
+	if err := db.pool.QueryRow(ctx, `SELECT COALESCE(metadata, '{}'::jsonb) FROM store_listings WHERE id = $1`, listingID).Scan(&existingMeta); err != nil {
+		return err
+	}
+	meta := existingMeta
+	if len(optsBytes) > 0 {
+		meta = metadata.ApplyClothingSizeFromVariant(existingMeta, optsBytes)
+		meta = metadata.ApplyBikeSizeFromVariant(meta, optsBytes)
+	}
+
 	_, err := db.pool.Exec(ctx, `
 		UPDATE store_listings SET
 			variant_options = CASE WHEN $2::text IS NULL OR BTRIM($2::text) = '' THEN variant_options ELSE $2::jsonb END,
 			is_in_stock = $3,
-			product_group_key = COALESCE($4::text, product_group_key)
+			product_group_key = COALESCE($4::text, product_group_key),
+			metadata = $5::jsonb
 		WHERE id = $1
-	`, listingID, opts, isInStock, pgkArg)
+	`, listingID, opts, isInStock, pgkArg, meta)
 	return err
 }
 
@@ -171,4 +188,34 @@ func (db *DB) ListJensonVariantBackfillLeaders(ctx context.Context) ([]JensonVar
 		out = append(out, r)
 	}
 	return out, rows.Err()
+}
+
+// hideJensonSupersededParentsSQL matches migration 025: hide parent dto.code rows
+// when a strictly longer variant SKU exists on the same store + product_url.
+const hideJensonSupersededParentsSQL = `
+		UPDATE store_listings sl
+		SET hidden = true
+		FROM stores s
+		WHERE sl.store_id = s.id
+		  AND s.store_type = 'jensonusa'
+		  AND sl.hidden = false
+		  AND EXISTS (
+		    SELECT 1
+		    FROM store_listings sl2
+		    WHERE sl2.store_id = sl.store_id
+		      AND sl2.product_url = sl.product_url
+		      AND sl2.hidden = false
+		      AND sl2.store_sku <> sl.store_sku
+		      AND starts_with(sl2.store_sku, sl.store_sku)
+		      AND char_length(sl2.store_sku) > char_length(sl.store_sku)
+		  )
+	`
+
+// HideJensonSupersededParents hides legacy parent-SKU rows after scrape upsert unhides them.
+func (db *DB) HideJensonSupersededParents(ctx context.Context) (int64, error) {
+	tag, err := db.pool.Exec(ctx, hideJensonSupersededParentsSQL)
+	if err != nil {
+		return 0, err
+	}
+	return tag.RowsAffected(), nil
 }

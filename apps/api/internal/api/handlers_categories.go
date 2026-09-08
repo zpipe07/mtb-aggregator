@@ -34,7 +34,7 @@ func (h *Handlers) GetAdminCategories(w http.ResponseWriter, r *http.Request) {
 	h.GetCategoryTree(w, r)
 }
 
-// PostAdminCategory creates a category (admin). Body: { "slug", "name", "parent_id"?, "sort_order" }.
+// PostAdminCategory creates a category (admin). Body: { "slug", "name", "parent_id"?, "sort_order", "hide_from_nav"? }.
 func (h *Handlers) PostAdminCategory(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
@@ -46,6 +46,7 @@ func (h *Handlers) PostAdminCategory(w http.ResponseWriter, r *http.Request) {
 		ParentID    *int   `json:"parent_id,omitempty"`
 		SortOrder   int    `json:"sort_order"`
 		Description string `json:"description"`
+		HideFromNav bool   `json:"hide_from_nav"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		http.Error(w, "invalid json", http.StatusBadRequest)
@@ -57,7 +58,7 @@ func (h *Handlers) PostAdminCategory(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "slug and name required", http.StatusBadRequest)
 		return
 	}
-	id, err := h.DB.CreateCategory(r.Context(), body.Slug, body.Name, body.ParentID, body.SortOrder, body.Description)
+	id, err := h.DB.CreateCategory(r.Context(), body.Slug, body.Name, body.ParentID, body.SortOrder, body.Description, body.HideFromNav)
 	if err != nil {
 		log.Printf("[api] PostAdminCategory error: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -87,7 +88,7 @@ func (h *Handlers) GetAdminCategoryByID(w http.ResponseWriter, r *http.Request, 
 	json.NewEncoder(w).Encode(c)
 }
 
-// PutAdminCategory updates a category by id (admin). Body: { "slug", "name", "sort_order" }.
+// PutAdminCategory updates a category by id (admin). Body: { "slug", "name", "sort_order", "hide_from_nav"? }.
 func (h *Handlers) PutAdminCategory(w http.ResponseWriter, r *http.Request, id int) {
 	if r.Method != http.MethodPut {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
@@ -98,6 +99,7 @@ func (h *Handlers) PutAdminCategory(w http.ResponseWriter, r *http.Request, id i
 		Name        string `json:"name"`
 		SortOrder   int    `json:"sort_order"`
 		Description string `json:"description"`
+		HideFromNav bool   `json:"hide_from_nav"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		http.Error(w, "invalid json", http.StatusBadRequest)
@@ -109,7 +111,7 @@ func (h *Handlers) PutAdminCategory(w http.ResponseWriter, r *http.Request, id i
 		http.Error(w, "slug and name required", http.StatusBadRequest)
 		return
 	}
-	if err := h.DB.UpdateCategory(r.Context(), id, body.Slug, body.Name, body.SortOrder, body.Description); err != nil {
+	if err := h.DB.UpdateCategory(r.Context(), id, body.Slug, body.Name, body.SortOrder, body.Description, body.HideFromNav); err != nil {
 		log.Printf("[api] PutAdminCategory error: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

@@ -81,6 +81,7 @@ Runs up to 50 listings per batch. Enrichment also runs nightly at 2am (configura
 | `GET /deals/:id`   | Single deal by ID                                                           |
 | `GET /stores`      | List stores with deal counts                                                |
 | `GET /status`      | Health: last scrape per store, scraper reachable                            |
+| `GET /giveaways`   | Published giveaways/raffles (optional `?kind=`; 30-day recently-ended window) |
 | `GET /brands`      | List distinct brands                                                        |
 | `POST /scrape-now` | Trigger scrape job (optional `?store=worldwidecyclery` to scrape one store) |
 | `POST /enrich-now` | Trigger enrichment job (PDP category extraction)                            |
@@ -150,6 +151,8 @@ Develop and document UI components in isolation. See [docs/ARCHITECTURE.md](docs
 ## Documentation
 
 - **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** — System overview, data flow, component library, Sentry / Cursor cloud env
+- **[docs/MARKETING.md](docs/MARKETING.md)** — Go-to-market plan (SEO, community, content, social, email; success = traffic)
+- **[docs/SOCIAL.md](docs/SOCIAL.md)** — Instagram + Reddit posting plan and `/links` link-in-bio (ZAC-228)
 - **[docs/SCRAPING.md](docs/SCRAPING.md)** — Scraper deep dive, parser structure, adding stores
 - **[docs/TAXONOMY.md](docs/TAXONOMY.md)** — Category taxonomy and mappings
 - **[docs/DESIGN.md](docs/DESIGN.md)** — Visual identity, copy, design tokens (current production)

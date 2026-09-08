@@ -18,6 +18,7 @@ type Category struct {
 	SortOrder   int    `json:"sort_order"`
 	Depth       int    `json:"depth"`
 	Description string `json:"description"`
+	HideFromNav bool   `json:"hide_from_nav"`
 	CreatedAt   string `json:"created_at,omitempty"`
 	UpdatedAt   string `json:"updated_at,omitempty"`
 }
@@ -42,7 +43,7 @@ type CategoryTreeNode struct {
 // ListCategories returns all categories flat, ordered by depth, then sort_order, then id.
 func (db *DB) ListCategories(ctx context.Context) ([]Category, error) {
 	rows, err := db.pool.Query(ctx, `
-		SELECT id, slug, name, parent_id, sort_order, depth, COALESCE(description, ''), created_at::text, updated_at::text
+		SELECT id, slug, name, parent_id, sort_order, depth, COALESCE(description, ''), hide_from_nav, created_at::text, updated_at::text
 		FROM categories
 		ORDER BY depth, sort_order, id
 	`)
@@ -54,7 +55,7 @@ func (db *DB) ListCategories(ctx context.Context) ([]Category, error) {
 	for rows.Next() {
 		var c Category
 		var parentID *int
-		if err := rows.Scan(&c.ID, &c.Slug, &c.Name, &parentID, &c.SortOrder, &c.Depth, &c.Description, &c.CreatedAt, &c.UpdatedAt); err != nil {
+		if err := rows.Scan(&c.ID, &c.Slug, &c.Name, &parentID, &c.SortOrder, &c.Depth, &c.Description, &c.HideFromNav, &c.CreatedAt, &c.UpdatedAt); err != nil {
 			return nil, err
 		}
 		c.ParentID = parentID
@@ -200,9 +201,9 @@ func (db *DB) GetCategoryByID(ctx context.Context, id int) (*Category, error) {
 	var c Category
 	var parentID *int
 	err := db.pool.QueryRow(ctx, `
-		SELECT id, slug, name, parent_id, sort_order, depth, COALESCE(description, ''), created_at::text, updated_at::text
+		SELECT id, slug, name, parent_id, sort_order, depth, COALESCE(description, ''), hide_from_nav, created_at::text, updated_at::text
 		FROM categories WHERE id = $1
-	`, id).Scan(&c.ID, &c.Slug, &c.Name, &parentID, &c.SortOrder, &c.Depth, &c.Description, &c.CreatedAt, &c.UpdatedAt)
+	`, id).Scan(&c.ID, &c.Slug, &c.Name, &parentID, &c.SortOrder, &c.Depth, &c.Description, &c.HideFromNav, &c.CreatedAt, &c.UpdatedAt)
 	if err != nil {
 		if err.Error() == "no rows in result set" {
 			return nil, nil
@@ -218,9 +219,9 @@ func (db *DB) GetCategoryBySlug(ctx context.Context, slug string) (*Category, er
 	var c Category
 	var parentID *int
 	err := db.pool.QueryRow(ctx, `
-		SELECT id, slug, name, parent_id, sort_order, depth, COALESCE(description, ''), created_at::text, updated_at::text
+		SELECT id, slug, name, parent_id, sort_order, depth, COALESCE(description, ''), hide_from_nav, created_at::text, updated_at::text
 		FROM categories WHERE slug = $1
-	`, slug).Scan(&c.ID, &c.Slug, &c.Name, &parentID, &c.SortOrder, &c.Depth, &c.Description, &c.CreatedAt, &c.UpdatedAt)
+	`, slug).Scan(&c.ID, &c.Slug, &c.Name, &parentID, &c.SortOrder, &c.Depth, &c.Description, &c.HideFromNav, &c.CreatedAt, &c.UpdatedAt)
 	if err != nil {
 		if err.Error() == "no rows in result set" {
 			return nil, nil
@@ -232,7 +233,7 @@ func (db *DB) GetCategoryBySlug(ctx context.Context, slug string) (*Category, er
 }
 
 // CreateCategory inserts a category and returns its id.
-func (db *DB) CreateCategory(ctx context.Context, slug, name string, parentID *int, sortOrder int, description string) (int, error) {
+func (db *DB) CreateCategory(ctx context.Context, slug, name string, parentID *int, sortOrder int, description string, hideFromNav bool) (int, error) {
 	depth := 0
 	if parentID != nil {
 		parent, err := db.GetCategoryByID(ctx, *parentID)
@@ -246,16 +247,16 @@ func (db *DB) CreateCategory(ctx context.Context, slug, name string, parentID *i
 	}
 	var id int
 	err := db.pool.QueryRow(ctx, `
-		INSERT INTO categories (slug, name, parent_id, sort_order, depth, description) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id
-	`, slug, name, parentID, sortOrder, depth, description).Scan(&id)
+		INSERT INTO categories (slug, name, parent_id, sort_order, depth, description, hide_from_nav) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id
+	`, slug, name, parentID, sortOrder, depth, description, hideFromNav).Scan(&id)
 	return id, err
 }
 
 // UpdateCategory updates a category by id.
-func (db *DB) UpdateCategory(ctx context.Context, id int, slug, name string, sortOrder int, description string) error {
+func (db *DB) UpdateCategory(ctx context.Context, id int, slug, name string, sortOrder int, description string, hideFromNav bool) error {
 	_, err := db.pool.Exec(ctx, `
-		UPDATE categories SET slug = $1, name = $2, sort_order = $3, description = $4, updated_at = NOW() WHERE id = $5
-	`, slug, name, sortOrder, description, id)
+		UPDATE categories SET slug = $1, name = $2, sort_order = $3, description = $4, hide_from_nav = $5, updated_at = NOW() WHERE id = $6
+	`, slug, name, sortOrder, description, hideFromNav, id)
 	return err
 }
 

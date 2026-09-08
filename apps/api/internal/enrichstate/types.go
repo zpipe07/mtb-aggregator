@@ -134,9 +134,12 @@ type Config struct {
 	BackoffBase         time.Duration
 	BackoffMax          time.Duration
 	PDPStaleAfter       time.Duration
+	PDPMinInterval      time.Duration
+	PDPCooldown         time.Duration
+	ClaimLease          time.Duration
 }
 
-// DefaultConfig returns production defaults matching existing 7-day staleness.
+// DefaultConfig returns production defaults (30-day PDP staleness, polite drainer pacing).
 func DefaultConfig() Config {
 	return Config{
 		MaxPDPAttempts:      5,
@@ -144,18 +147,34 @@ func DefaultConfig() Config {
 		MaxExtractAttempts:  5,
 		BackoffBase:         5 * time.Minute,
 		BackoffMax:          6 * time.Hour,
-		PDPStaleAfter:       7 * 24 * time.Hour,
+		PDPStaleAfter:       30 * 24 * time.Hour,
+		PDPMinInterval:      15 * time.Second,
+		PDPCooldown:         30 * time.Minute,
+		ClaimLease:          10 * time.Minute,
 	}
+}
+
+// StorePDPPacer enforces per-store cooldown and min-interval pacing for PDP fetches.
+type StorePDPPacer interface {
+	ShouldSkipPDP(ctx context.Context, storeType string, bypassMinInterval, force bool, now time.Time, minInterval time.Duration) (bool, error)
+	CanDrainerFetch(ctx context.Context, storeType string, now time.Time, minInterval time.Duration) (bool, error)
+	RecordPDPFetch(ctx context.Context, storeType string, now time.Time) error
+	RecordPDPSuccess(ctx context.Context, storeType string) error
+	RecordPDPFailure(ctx context.Context, storeType string, threshold int, cooldown time.Duration, now time.Time) (tripped bool, err error)
 }
 
 // StateStore persists per-listing step state and claims work items.
 type StateStore interface {
-	ClaimForStep(ctx context.Context, step Step, filter ClaimFilter, limit int, force bool, now time.Time) ([]WorkItem, error)
+	ClaimForStep(ctx context.Context, step Step, filter ClaimFilter, limit int, force bool, now, leaseUntil time.Time, pdpStaleAfter time.Duration) ([]WorkItem, error)
 	GetState(ctx context.Context, listingID int) (*ListingState, error)
 	RecordStepSuccess(ctx context.Context, listingID int, step Step, meta StepSuccessMeta, completedAt time.Time) error
 	RecordStepFailure(ctx context.Context, listingID int, step Step, errMsg string, nextAttempt time.Time, dead bool) error
 	ResetStep(ctx context.Context, listingID int, step Step) error
+	ReleaseLease(ctx context.Context, listingID int, step Step) error
 	EnsureRow(ctx context.Context, listingID int) error
+	// StampLLMSkipInputs persists snapshot hash / profile version after an LLM skip so
+	// NULL pdp_hash rows do not remain claimable forever (claim uses IS DISTINCT FROM).
+	StampLLMSkipInputs(ctx context.Context, listingID int, pdpHash string, promptProfileVersion *time.Time) error
 }
 
 // SnapshotStore persists latest PDP snapshots.

@@ -12,6 +12,7 @@ import type {
   BrandFacet,
 } from "../api";
 import { useFilterParams } from "../hooks/useFilterParams";
+import { resolveUiCategorySlug } from "../lib/filterParams";
 import { usePendingTimeout } from "../hooks/usePendingTimeout";
 import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -27,7 +28,6 @@ import {
   Pagination,
   EmptyState,
   DealsCategoryNav,
-  DealsBrowseFooter,
 } from "../components";
 
 type Props = {
@@ -38,11 +38,17 @@ type Props = {
   categoryTree: CategoryTreeNode[];
   /** Current `/deals` URL (path + query) so deal cards preserve filters on detail → back. */
   dealsListPath: string;
-  /** Optional GEO intro (e.g. `/deals/c/...` routes from `getCategorySeo().intro`). */
+  /**
+   * Category slug locked by the route (SEO hubs, brand+category pages).
+   * Hub paths are `/deals/hub/...`, so URL parsing cannot recover the category
+   * that already scoped deals and facets.
+   */
+  routeCategorySlug?: string;
+  /** Optional GEO intro (e.g. `/deals/c/...` routes from `getCategorySeo().intro`). Renders below the deal grid so listings stay above the fold. */
   categoryIntro?: string;
-  /** Server-rendered content immediately below intro (e.g. Popular searches on category pages). */
+  /** Server-rendered content with the intro below the grid (e.g. Popular searches on category pages). */
   belowIntro?: ReactNode;
-  /** Server-rendered slots at page bottom (e.g. curated SEO hub links after grid + browse footer). */
+  /** Server-rendered slots at page bottom (e.g. curated SEO hub links after the grid). */
   children?: ReactNode;
 };
 
@@ -53,6 +59,7 @@ export function DealsPageContent({
   stores,
   categoryTree,
   dealsListPath,
+  routeCategorySlug,
   categoryIntro,
   belowIntro,
   children,
@@ -69,8 +76,10 @@ export function DealsPageContent({
     searchQuery,
     storeFilter,
     brandFilters,
-    categoryFilter,
+    categoryFilter: urlCategoryFilter,
     minDiscount,
+    minPrice,
+    maxPrice,
     specFilters,
     sort,
     offset,
@@ -78,12 +87,19 @@ export function DealsPageContent({
     setStoreFilter,
     toggleBrandFilter,
     setMinDiscount,
+    setMinPrice,
+    setMaxPrice,
     toggleSpecFilter,
     clearSpecFilter,
     setSort,
     setOffset,
     clearAllFilters,
   } = filterParams;
+
+  const categoryFilter = resolveUiCategorySlug(
+    urlCategoryFilter,
+    routeCategorySlug,
+  );
 
   const { isPending: resultsPending, timedOut, clearTimeoutState } =
     usePendingTimeout(isFilterPending, 15_000, {
@@ -99,7 +115,7 @@ export function DealsPageContent({
   };
 
   const activeFilterCount =
-    [storeFilter, minDiscount].filter(Boolean).length +
+    [storeFilter, minDiscount, minPrice, maxPrice].filter(Boolean).length +
     brandFilters.length +
     Object.values(specFilters).reduce((n, a) => n + a.length, 0);
 
@@ -126,6 +142,20 @@ export function DealsPageContent({
         onRemove: () => setMinDiscount(""),
       });
     }
+    if (minPrice) {
+      chips.push({
+        key: "min_price",
+        label: `Min price: $${minPrice}`,
+        onRemove: () => setMinPrice(""),
+      });
+    }
+    if (maxPrice) {
+      chips.push({
+        key: "max_price",
+        label: `Max price: $${maxPrice}`,
+        onRemove: () => setMaxPrice(""),
+      });
+    }
     Object.entries(specFilters).forEach(([key, values]) => {
       const facet = facets?.spec_facets?.find((f) => f.key === key);
       const label = facet?.label ?? key;
@@ -142,11 +172,15 @@ export function DealsPageContent({
     storeFilter,
     brandFilters,
     minDiscount,
+    minPrice,
+    maxPrice,
     specFilters,
     facets?.spec_facets,
     setStoreFilter,
     toggleBrandFilter,
     setMinDiscount,
+    setMinPrice,
+    setMaxPrice,
     toggleSpecFilter,
   ]);
 
@@ -174,6 +208,16 @@ export function DealsPageContent({
     if (value)
       posthog.capture("filter_applied", { filter_type: "min_discount", value });
     setMinDiscount(value);
+  };
+  const handleMinPriceChange = (value: string) => {
+    if (value)
+      posthog.capture("filter_applied", { filter_type: "min_price", value });
+    setMinPrice(value);
+  };
+  const handleMaxPriceChange = (value: string) => {
+    if (value)
+      posthog.capture("filter_applied", { filter_type: "max_price", value });
+    setMaxPrice(value);
   };
   const handleToggleSpecFilter = (key: string, value: string) => {
     const v = value.trim();
@@ -216,26 +260,30 @@ export function DealsPageContent({
     brandFacets,
     storeFilter,
     brandFilters,
-    categoryFilter,
     minDiscount,
+    minPrice,
+    maxPrice,
+    priceRange: facets.price_range,
     specFilters,
     specFacets: facets?.spec_facets ?? [],
     onStoreChange: handleStoreChange,
     onToggleBrand: handleToggleBrand,
     onMinDiscountChange: handleMinDiscountChange,
+    onMinPriceChange: handleMinPriceChange,
+    onMaxPriceChange: handleMaxPriceChange,
     onToggleSpecFilter: handleToggleSpecFilter,
     onClearSpecFilter: clearSpecFilter,
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 lg:py-8">
+    <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:py-8">
       <div className="flex gap-8">
-        <aside className="hidden lg:block w-60 flex-shrink-0">
-          <div className="sticky top-6 max-h-[calc(100vh-3rem)] flex flex-col min-h-[500px]">
+        <aside className="hidden w-60 flex-shrink-0 lg:block">
+          <div className="sticky top-6 flex max-h-[calc(100vh-2rem)] min-h-[500px] flex-col rounded-[var(--radius)] border border-border bg-card p-4">
             <h2 className="mb-4 flex-shrink-0 font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
               {"// Filters"}
             </h2>
-            <div className="overflow-y-auto pr-1 -mr-1 grow">
+            <div className="-mr-1 min-h-0 grow overflow-y-auto pr-1">
               <FilterSidebar {...filterSidebarProps} />
             </div>
           </div>
@@ -256,14 +304,6 @@ export function DealsPageContent({
             categoryTree={categoryTree}
             categoryFilter={categoryFilter}
           />
-
-          {categoryIntro ? (
-            <p className="text-sm text-muted-foreground mb-4 max-w-3xl leading-relaxed">
-              {categoryIntro}
-            </p>
-          ) : null}
-
-          {belowIntro ? <div className="mb-6">{belowIntro}</div> : null}
 
           <FilterChips
             filters={activeFilters}
@@ -310,7 +350,7 @@ export function DealsPageContent({
               )}
             >
               {totalCount > 0 && (
-                <div className="mb-4 border-b border-foreground/15">
+                <div className="mb-4">
                   <Pagination
                     totalCount={totalCount}
                     limit={DEFAULT_PAGE_SIZE}
@@ -323,7 +363,7 @@ export function DealsPageContent({
               {deals.length > 0 ? (
                 <DealGrid
                   deals={deals}
-                  getHref={(d) => buildDealDetailHref(d.id, dealsListPath)}
+                  getHref={(d) => buildDealDetailHref(d.id)}
                   onDealNavigate={() => storeDealDetailBackHref(dealsListPath)}
                 />
               ) : (
@@ -342,6 +382,17 @@ export function DealsPageContent({
               )}
             </div>
           </div>
+
+          {categoryIntro || belowIntro ? (
+            <div className="mt-10 space-y-6">
+              {categoryIntro ? (
+                <p className="text-sm text-muted-foreground max-w-3xl leading-relaxed">
+                  {categoryIntro}
+                </p>
+              ) : null}
+              {belowIntro}
+            </div>
+          ) : null}
         </div>
       </div>
 
@@ -349,11 +400,6 @@ export function DealsPageContent({
         {...filterSidebarProps}
         isOpen={filterDrawerOpen}
         onClose={() => setFilterDrawerOpen(false)}
-      />
-
-      <DealsBrowseFooter
-        rootCategories={categoryTree}
-        categoryTree={categoryTree}
       />
 
       {children ? (

@@ -57,6 +57,11 @@ func New(apiKey, model string) *Client {
 	}
 }
 
+// Configured reports whether the client can call OpenAI (non-empty API key).
+func (c *Client) Configured() bool {
+	return c != nil && c.apiKey != ""
+}
+
 func getOpenAIMaxRetries() int {
 	if s := os.Getenv("OPENAI_MAX_RETRIES"); s != "" {
 		if n, err := strconv.Atoi(s); err == nil && n > 0 {
@@ -214,9 +219,10 @@ type SchemaField struct {
 	Description string   `json:"description"`
 	Values      []string `json:"values,omitempty"` // for type "enum"
 	// Display metadata for filter UI (optional)
-	Label      string `json:"label,omitempty"`       // display label; fallback to key title-case
-	SortOrder  int    `json:"sort_order,omitempty"` // higher = shown first
-	Filterable *bool  `json:"filterable,omitempty"` // default true; false for confidence/metadata fields
+	Label       string `json:"label,omitempty"`        // display label; fallback to key title-case
+	SortOrder   int    `json:"sort_order,omitempty"`  // higher = shown first
+	Filterable  *bool  `json:"filterable,omitempty"`  // default true; false for confidence/metadata fields
+	Extractable *bool  `json:"extractable,omitempty"` // default true; false to omit from LLM schema (facets unchanged)
 }
 
 // ExtractInput is the product context passed to the LLM.
@@ -474,6 +480,9 @@ func (c *Client) buildOpenAISchema(es ExtractionSchema) (map[string]interface{},
 	properties := make(map[string]interface{})
 	required := make([]string, 0, len(es.Fields))
 	for _, f := range es.Fields {
+		if f.Extractable != nil && !*f.Extractable {
+			continue
+		}
 		prop := make(map[string]interface{})
 		prop["description"] = f.Description
 		switch f.Type {

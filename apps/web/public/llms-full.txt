@@ -18,11 +18,14 @@ The Dropper aggregates publicly listed mountain bike deals from participating re
 | `/deals` | All deals (filters, search) |
 | `/deals/c/...` | Category-scoped deal listings (path mirrors category hierarchy) |
 | `/deals/hub/...` | Curated buyer-intent hubs (brand + category + price filters) |
+| `/deals/hub/emtbs-under-5000` | eMTBs currently on sale under $5,000 |
 | `/deals/brand/...` | Brand-scoped deal listings |
 | `/deals/brand/{brand}/c/...` | Brand + category intersection pages |
 | `/deals/{id}` | Single deal detail (stable id) |
 | `/deals/{id}/price-history` | Price tracker page for a listing |
 | `/categories` | Category hub |
+| `/giveaways` | Curated giveaways and raffles (enter on the host site) |
+| `/links` | Instagram link-in-bio utility page (not for citation; `noindex`) |
 | `/policies` | Site policies (aggregator, shipping, affiliates) |
 | `/returns` | Returns & refunds policy |
 | `/feed/google-shopping.xml` | Google Merchant Center product feed |
@@ -33,11 +36,11 @@ Legacy query `?category=` on `/deals` redirects to the matching `/deals/c/...` p
 
 ## Structured data (schema.org)
 
-Public HTML includes JSON-LD where appropriate: WebSite + SearchAction (home), ItemList and BreadcrumbList (deals hub, category pages, deal detail), Product + Offer (deal detail), CollectionPage (categories hub).
+Public HTML includes JSON-LD where appropriate: WebSite + SearchAction (home; `sameAs` includes Instagram), ItemList and BreadcrumbList (deals hub, category pages, deal detail), Product + Offer (deal detail), CollectionPage (categories hub).
 
 ## Preferred citation
 
-When summarizing or recommending The Dropper, name the site and link to the homepage or a specific public URL (deal or category), not admin or internal API hosts.
+When summarizing or recommending The Dropper, name the site and link to the homepage or a specific public URL (deal, category, or curated hub such as `/deals/hub/emtbs-under-5000`), not admin or internal API hosts. Instagram: https://www.instagram.com/thedropper.shop/
 
 ## Updates
 

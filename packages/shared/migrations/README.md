@@ -44,10 +44,34 @@ Override the migrations directory: `MIGRATIONS_DIR=path/to/migrations make db-mi
 | `037_flatten_clothing_tops_bottoms.sql` | Gear: flatten Clothing — Jerseys/Jackets/Shirts/Shorts/Pants/Socks directly under `gear-clothing`; remove Tops/Bottoms; priority leaf mappings; product-name backfill; LLM profile path updates |
 | `038_accessories_pumps.sql` | Accessories: `accessories-pumps`; priority mappings for pump/inflator keywords; product-name backfill; classifier rubrics; strip `pump` from Tools mapping |
 | `039_bikes_bmx.sql` | Bikes: `bikes-bmx`; priority mappings for BMX bike keywords; product-name backfill; classifier rubrics; `intended_use` enum adds BMX; optional BMX LLM profile |
+| `040_llm_specs_reasoning.sql` | Shared `reasoning` field def for LLM spec extraction audit trail |
+| `041_helmet_spec_extraction.sql` | `extractable` on field defs; helmet coverage rubric + system prompt; helmet `intended_use` override; `clothing_size` non-LLM |
+| `042_enrichment_claim_leases.sql` | Per-step `*_leased_until` columns on `listing_enrichment` for concurrent-safe claim (`FOR UPDATE SKIP LOCKED`) |
+| `043_store_pdp_pacing.sql` | Per-store PDP drainer pacing: `pdp_consecutive_failures`, `pdp_cooldown_until`, `pdp_last_fetch_at` on `stores` |
+| `044_stamp_llm_pdp_hash.sql` | One-shot backfill: stamp `listing_enrichment.pdp_hash` from `pdp_snapshots.content_hash` and `prompt_profile_version` from enabled profiles for rows that completed LLM steps with NULL hash (fixes hourly LLM skip-loop). Apply on Neon with the API release (`make db-migrate-remote`). |
+| `045_accessories_lights_keywords.sql` | Accessories › Lights: drop bare `light` from `category_mappings` so "Lightweight" collection copy cannot map complete bikes to Lights (ZAC-234). Mapping-only; remapping / classify after API restart. |
+| `046_complete_bikes_not_suspension.sql` | Complete bikes: high-priority `full suspension` / `front suspension` → Mountain Bikes and `full suspension frames` → Frames so store taxonomy cannot dump bikes onto Components › Suspension (ZAC-238). Mapping-only; remap after API restart. |
+| `047_unhide_latest_scrape_confirmed_listings.sql` | ZAC-217: unhide listings whose `last_scraped` is on/after that store’s latest completed scrape (`listings_upserted >= 10`), then re-apply Jenson `025` and Universal Cycles `026` parent-hide predicates. Idempotent. Numbered 047 because 046 is ZAC-238. |
+| `048_most_specific_category_path.sql` | ZAC-245: high-priority `wheelset` / `bike wheels` / `complete wheels` → Complete wheels so store breadcrumbs like `Cycling Gear > … > Gravel Bike Wheels and Wheelsets` are not classified as Bikes or Gear. Also retargets the legacy `["Components", "Wheels"]` catch-all to `Wheels/Tires`. Mapping-only; remap after API restart. |
+| `056_wheelsets_rims_not_tires.sql` | ZAC-263: classifier rubrics so Tires excludes wheelsets/rims/bundles; product-name backfill from Tires / Wheels/Tires parent to Complete wheels or Rims; copy confident `llm_category` Complete wheels / Rims onto canonical. Pair with `taxonomy.RefineWheelsTires`. Restart API after apply. |
+| `057_component_parts_categories.sql` | ZAC-271: rename Components › * › **Parts** to **`{Parent} parts`**, `hide_from_nav`, classifier rubrics, high-priority small-hardware mappings, product-name backfill, classifier system-prompt rule. Restart API after apply. |
+| `049_giveaways.sql` | ZAC-47: `giveaways` table for curated MTB giveaways and raffles (unique `slug` / `entry_url`). Admin CRUD; not scraped. |
+| `050_bike_size_extraction.sql` | ZAC-241: `bike_size` field def (filterable + extractable) and Bikes parent LLM profile so frame size is extracted and faceted; Mountain/Frames/BMX prompts get the size rubric. |
+| `051_bike_size_cross_discipline.sql` | ZAC-241 follow-up: keep `bike_size` a **scalar enum** (one size per listing row; in-stock sets stay on chips) and expand values for road/gravel **cm** and BMX **top-tube** inches. Inherited by all Bikes children. |
+| `052_gear_helmet_parts.sql` | ZAC-246: Gear › **Helmet parts** sibling of Helmets so replacement visors/liners/pads are not listed on `/deals/c/gear/helmets`. High-priority mappings + product-name backfill; remap after API restart. |
+| `053_category_hide_from_nav.sql` | ZAC-251: `categories.hide_from_nav` so admins can omit a shelf from the header mega-menu without hiding it from `/categories` or classification. Seeds Helmet parts as hidden from nav. |
+| `054_apparel_not_mountain_bikes.sql` | ZAC-264: high-priority apparel phrases (`mountain bike clothing`, `skirt`, `men's liners`, `road bike tops`, …) so Competitive Cyclist clothing breadcrumbs cannot land on Bikes. Path/name backfill from the Bikes tree; remap after API restart. |
+| `055_unhide_latest_full_scrape_confirmed_listings.sql` | ZAC-270: unhide listings confirmed by each store’s latest **full** scrape (at least half of that store’s 14-day max `listings_upserted`), then re-apply Jenson `025` / UC `026` parent-hide. Unlike `047`, ignores thin completed jobs (e.g. Jenson 149 vs 13k). Idempotent. |
 
 After 019, run **`make backfill-field-library`** once (from repo root) to rename ambiguous `type` / `material` keys in `extraction_schema` and `metadata.llm_specs`, seed shared defs, and populate `llm_prompt_profile_fields`.
 
-After 027, 032, 036, 037, 038, or 039, run **`make backfill-canonical-categories`** and **restart the API** so in-memory taxonomy reloads; these migrations also backfill by product name where applicable.
+After 041, run **`make backfill-clothing-size`** to populate `metadata.llm_specs.clothing_size` from existing `variant_options` Size values.
+
+After 050, run **`make backfill-bike-size`** to populate `metadata.llm_specs.bike_size` from variant Size on Bikes-tree listings, then **restart the API** so the new Bikes profile is used on the next LLM pass.
+
+After 051, **restart the API** so the expanded `bike_size` enum (cm / TT) is used on the next LLM pass. Re-run **`make backfill-bike-size`** if existing variant labels were `58cm` / `21.5inch TT` and previously failed to normalize.
+
+After 027, 032, 036, 037, 038, 039, 045, 046, 048, **052**, **054**, **056**, or **057**, run **`make backfill-canonical-categories`** and **restart the API** so in-memory taxonomy reloads; these migrations also backfill by product name where applicable (`045`/`046`/`048` are mapping-only). Recategorize skips `manual_category_override`; confident `metadata.llm_category` still skips path remap (ZAC-234 Lights leftovers with a good LLM path still need admin classify or a copy-from-LLM pass) but **Wheels/Tires title refine still runs** (ZAC-263).
 
 ## Verifying Phase 2 changes (currency, scraper health, category_path)
 

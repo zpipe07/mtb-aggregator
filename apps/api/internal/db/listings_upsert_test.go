@@ -19,6 +19,10 @@ func TestUpsertListingsBatch_onConflictMatchesSingleRow(t *testing.T) {
 		"metadata = CASE",
 		"product_group_key = COALESCE",
 		"variant_options = COALESCE",
+		"hidden = false",
+		"llm_specs",
+		"clothing_size",
+		"bike_size",
 	} {
 		if !strings.Contains(conflict, frag) {
 			t.Errorf("ON CONFLICT SQL missing fragment %q", frag)
@@ -77,8 +81,8 @@ func TestUpsertListingsBatch_mergeAndPriceHistory(t *testing.T) {
 	})
 	var existingID int
 	err = d.pool.QueryRow(ctx, `
-		INSERT INTO store_listings (store_id, store_sku, product_name, current_price, product_url, metadata, is_in_stock)
-		VALUES ($1, 'existing-sku', 'Existing Product', 99, 'http://test.invalid/p/existing', $2::jsonb, true)
+		INSERT INTO store_listings (store_id, store_sku, product_name, current_price, product_url, metadata, is_in_stock, hidden)
+		VALUES ($1, 'existing-sku', 'Existing Product', 99, 'http://test.invalid/p/existing', $2::jsonb, true, true)
 		RETURNING id
 	`, storeID, existingMeta).Scan(&existingID)
 	if err != nil {
@@ -140,12 +144,16 @@ func TestUpsertListingsBatch_mergeAndPriceHistory(t *testing.T) {
 	var meta []byte
 	var name string
 	var price float64
+	var hidden bool
 	err = d.pool.QueryRow(ctx, `
-		SELECT product_name, current_price, metadata FROM store_listings
+		SELECT product_name, current_price, metadata, hidden FROM store_listings
 		WHERE store_id = $1 AND store_sku = 'existing-sku'
-	`, storeID).Scan(&name, &price, &meta)
+	`, storeID).Scan(&name, &price, &meta, &hidden)
 	if err != nil {
 		t.Fatalf("select existing: %v", err)
+	}
+	if hidden {
+		t.Error("hidden = true after scrape upsert, want false (ZAC-217)")
 	}
 	if name != "Updated Name" {
 		t.Errorf("product_name = %q, want Updated Name", name)

@@ -1,4 +1,4 @@
-.PHONY: dev db-up db-down db-migrate db-migrate-docker db-seed db-up-local db-migrate-local db-migrate-remote db-seed-remote backfill-brands backfill-canonical-categories backfill-llm-specs backfill-field-library backfill-variant-options backfill-jenson-variants backfill-cc-variants scrape scrape-now scrape-now-wwc scrape-now-revel scrape-now-competitivecyclist scrape-now-ridebicycles scrape-now-thundermountainbikes scrape-now-canyon scrape-now-specialized scrape-now-mackcycle scrape-now-trek scrape-now-universalcycles scrape-now-n1bikes scrape-now-foxracing scrape-now-rideconcepts scrape-now-leatt scrape-now-chromag scrape-now-gravitycartel scrape-now-bell scrape-now-giro scrape-now-bikesonline scrape-now-evo scrape-now-cambriabikes scrape-now-365cycles scrape-now-thelostco scrape-now-hayes scrape-now-raceface scrape-now-ion scrape-now-coloradocyclist scrape-now-canfield enrich-now enrich-now-revel enrich-now-competitivecyclist enrich-now-thundermountainbikes enrich-now-canyon enrich-now-specialized enrich-now-mackcycle enrich-now-trek enrich-now-universalcycles enrich-now-n1bikes enrich-now-foxracing enrich-now-rideconcepts enrich-now-leatt enrich-now-chromag enrich-now-gravitycartel enrich-now-bell enrich-now-giro enrich-now-bikesonline enrich-now-evo enrich-now-cambriabikes enrich-now-365cycles enrich-now-thelostco enrich-now-hayes enrich-now-raceface enrich-now-ion enrich-now-coloradocyclist enrich-now-canfield scrape-now-cased enrich-now-cased build-all install impact-catalog-probe
+.PHONY: dev db-up db-down db-migrate db-migrate-docker db-seed db-up-local db-migrate-local db-migrate-remote db-seed-remote backfill-brands backfill-canonical-categories backfill-bikesonline-clothing-protective backfill-llm-specs backfill-field-library backfill-variant-options backfill-jenson-variants backfill-cc-variants scrape scrape-now scrape-now-wwc scrape-now-revel scrape-now-competitivecyclist scrape-now-ridebicycles scrape-now-thundermountainbikes scrape-now-canyon scrape-now-specialized scrape-now-mackcycle scrape-now-trek scrape-now-universalcycles scrape-now-n1bikes scrape-now-foxracing scrape-now-rideconcepts scrape-now-leatt scrape-now-chromag scrape-now-gravitycartel scrape-now-bell scrape-now-giro scrape-now-bikesonline scrape-now-evo scrape-now-cambriabikes scrape-now-365cycles scrape-now-thelostco scrape-now-hayes scrape-now-raceface scrape-now-ion scrape-now-coloradocyclist scrape-now-canfield enrich-now enrich-now-revel enrich-now-competitivecyclist enrich-now-thundermountainbikes enrich-now-canyon enrich-now-specialized enrich-now-mackcycle enrich-now-trek enrich-now-universalcycles enrich-now-n1bikes enrich-now-foxracing enrich-now-rideconcepts enrich-now-leatt enrich-now-chromag enrich-now-gravitycartel enrich-now-bell enrich-now-giro enrich-now-bikesonline enrich-now-evo enrich-now-cambriabikes enrich-now-365cycles enrich-now-thelostco enrich-now-hayes enrich-now-raceface enrich-now-ion enrich-now-coloradocyclist enrich-now-canfield scrape-now-cased enrich-now-cased build-all install impact-catalog-probe
 
 # Ensure Make can find docker (Docker Desktop CLI locations)
 export PATH := /Applications/Docker.app/Contents/Resources/bin:/usr/local/bin:/opt/homebrew/bin:$(PATH)
@@ -77,9 +77,21 @@ backfill-brands:
 backfill-canonical-categories:
 	cd apps/api && go run ./cmd/backfill-canonical-categories
 
+# Bikes Online: apply LLM Protection/Helmets/Gloves for Clothing & Protective Gear product_type (DRY_RUN=1 to preview)
+backfill-bikesonline-clothing-protective:
+	cd apps/api && go run ./cmd/backfill-bikesonline-clothing-protective
+
 # Populate metadata.llm_specs from metadata.specs for listings enriched before the llm_specs split (run once after migration 016)
 backfill-llm-specs:
 	cd apps/api && go run ./cmd/backfill-llm-specs
+
+# Copy normalized variant Size into metadata.llm_specs.clothing_size (run after migration 041)
+backfill-clothing-size:
+	cd apps/api && go run ./cmd/backfill-clothing-size
+
+# Copy normalized variant Size into metadata.llm_specs.bike_size for Bikes listings (run after migration 050)
+backfill-bike-size:
+	cd apps/api && go run ./cmd/backfill-bike-size
 
 # Clear last_enriched_at on listings whose metadata was wiped by scrape-after-enrich; then run enrich-now FORCE=1
 requeue-wiped-enrichment:

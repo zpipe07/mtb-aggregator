@@ -1,4 +1,6 @@
+import type { Giveaway, GiveawayKind } from "@/api";
 import { getApiBase } from "@/lib/api";
+import { GIVEAWAYS_CACHE_TAG } from "@/lib/revalidate";
 
 const ADMIN_TOKEN_KEY = "adminPassword";
 
@@ -69,23 +71,34 @@ export async function fetchDashboard(): Promise<DashboardResponse> {
   return res.json();
 }
 
-export interface PipelineStoreBacklog {
+export interface PipelineLatency {
+  p50_seconds: number | null;
+  p95_seconds: number | null;
+  sample_count: number;
+}
+
+export interface PipelineEventThroughputDay {
+  date: string;
+  pdp: number;
+  classify: number;
+  extract: number;
+}
+
+export interface PipelineStorePDP {
   store_id: number;
   name: string;
   store_type: string;
-  count: number;
-}
-
-export interface PipelineBacklog {
-  total: number;
-  stale_since_scrape: number;
-  never_enriched: number;
-  by_store: PipelineStoreBacklog[];
+  pdp_due: number;
+  pdp_in_flight: number;
+  pdp_dead: number;
+  pdp_last_fetch_at: string | null;
+  pdp_cooldown_until: string | null;
+  pdp_consecutive_failures: number;
 }
 
 export interface PipelineFreshness {
   in_stock_total: number;
-  never_enriched: number;
+  never_fetched: number;
   lt_24h: number;
   d1_7: number;
   d7_30: number;
@@ -93,10 +106,11 @@ export interface PipelineFreshness {
 }
 
 export interface PipelineMetricsResponse {
-  backlog: PipelineBacklog;
+  latency: PipelineLatency;
+  event_throughput: PipelineEventThroughputDay[];
   freshness: PipelineFreshness;
+  stores: PipelineStorePDP[];
   recent_scrape_jobs: ScrapeJob[];
-  recent_enrich_jobs: EnrichJob[];
   days: number;
 }
 
@@ -117,8 +131,10 @@ export async function fetchPipelineMetrics(
 
 export interface EnrichmentStepStat {
   step: string;
-  backlog: number;
+  due: number;
+  in_flight: number;
   dead: number;
+  oldest_due_age_seconds: number | null;
   success_count: number;
   failure_count: number;
   skipped_count: number;
@@ -327,6 +343,101 @@ export async function deleteStore(id: number): Promise<void> {
   if (!res.ok) throw new Error("Delete failed");
 }
 
+// --- Giveaways & raffles ---
+
+export type AdminGiveaway = Giveaway & {
+  published: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type GiveawayWriteBody = {
+  slug?: string | null;
+  kind: GiveawayKind;
+  title: string;
+  summary: string;
+  prize_name: string;
+  prize_description?: string | null;
+  image_url?: string | null;
+  host_name: string;
+  entry_url: string;
+  official_rules_url: string;
+  starts_at?: string | null;
+  ends_at: string;
+  eligibility?: string | null;
+  entry_requirements?: string | null;
+  ticket_price?: number | null;
+  ticket_currency?: string | null;
+  beneficiary?: string | null;
+  published: boolean;
+};
+
+export async function fetchAdminGiveaways(): Promise<AdminGiveaway[]> {
+  const res = await fetch(`${getApiBase()}/admin/giveaways`, {
+    headers: adminHeaders(),
+  });
+  if (!res.ok)
+    throw new Error(
+      res.status === 401 ? "Unauthorized" : "Failed to fetch giveaways",
+    );
+  const data = await res.json();
+  return Array.isArray(data) ? data : [];
+}
+
+export async function createGiveaway(
+  body: GiveawayWriteBody,
+): Promise<{ id: number }> {
+  const res = await fetch(`${getApiBase()}/admin/giveaways`, {
+    method: "POST",
+    headers: adminHeaders(),
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || "Create failed");
+  }
+  return res.json();
+}
+
+export async function updateGiveaway(
+  id: number,
+  body: GiveawayWriteBody,
+): Promise<AdminGiveaway> {
+  const res = await fetch(`${getApiBase()}/admin/giveaways/${id}`, {
+    method: "PUT",
+    headers: adminHeaders(),
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || "Update failed");
+  }
+  return res.json();
+}
+
+export async function deleteGiveaway(id: number): Promise<void> {
+  const res = await fetch(`${getApiBase()}/admin/giveaways/${id}`, {
+    method: "DELETE",
+    headers: adminHeaders(),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || "Delete failed");
+  }
+}
+
+/** Best-effort ISR/fetch purge after admin giveaway writes. Failure is non-fatal. */
+export async function revalidateGiveawaysPages(): Promise<void> {
+  try {
+    await revalidateCache({
+      paths: ["/giveaways", "/"],
+      tags: [GIVEAWAYS_CACHE_TAG],
+    });
+  } catch (err) {
+    console.error("giveaways cache revalidate failed", err);
+  }
+}
+
 // --- Categories (structured category tree) ---
 
 export interface AdminCategoryTreeNode {
@@ -342,6 +453,8 @@ export interface AdminCategoryTreeNode {
   deal_count?: number;
   /** Distinct product groups per subtree (matches grouped deals list). */
   product_count?: number;
+  /** Omit from the header mega-menu; still listed on /categories. */
+  hide_from_nav?: boolean;
   children: AdminCategoryTreeNode[];
 }
 
@@ -366,6 +479,8 @@ export interface CreateCategoryBody {
   sort_order?: number;
   /** Optional rubric for LLM category classification. */
   description?: string;
+  /** Omit from the header mega-menu. */
+  hide_from_nav?: boolean;
 }
 
 export async function createAdminCategory(
@@ -380,6 +495,7 @@ export async function createAdminCategory(
       parent_id: body.parent_id ?? null,
       sort_order: body.sort_order ?? 0,
       description: body.description ?? "",
+      hide_from_nav: body.hide_from_nav ?? false,
     }),
   });
   if (!res.ok) {
@@ -394,6 +510,7 @@ export interface UpdateCategoryBody {
   name: string;
   sort_order?: number;
   description?: string;
+  hide_from_nav?: boolean;
 }
 
 export async function updateAdminCategory(
@@ -408,6 +525,7 @@ export async function updateAdminCategory(
       name: body.name,
       sort_order: body.sort_order ?? 0,
       description: body.description ?? "",
+      hide_from_nav: body.hide_from_nav ?? false,
     }),
   });
   if (!res.ok) {
@@ -1101,6 +1219,15 @@ export async function triggerRenormalizeSpecs(): Promise<{ updated: number }> {
     headers: adminHeaders(),
   });
   if (!res.ok) throw new Error("Renormalize specs failed");
+  return res.json();
+}
+
+export async function triggerRenormalizeBrands(): Promise<{ updated: number }> {
+  const res = await fetch(`${getApiBase()}/admin/renormalize-brands`, {
+    method: "POST",
+    headers: adminHeaders(),
+  });
+  if (!res.ok) throw new Error("Renormalize brands failed");
   return res.json();
 }
 

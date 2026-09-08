@@ -13,7 +13,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { usePipelineMetrics, useEnrichmentStepMetrics, useStoreTypesWithEnrichers } from "./hooks/queries";
+import { usePipelineMetrics, useEnrichmentStepMetrics } from "./hooks/queries";
 
 const DAY_OPTIONS = [14, 30, 90] as const;
 
@@ -28,15 +28,42 @@ function formatDateLabel(isoDate: string): string {
   }
 }
 
+function formatDuration(seconds: number | null | undefined): string {
+  if (seconds == null || seconds < 0) return "—";
+  if (seconds < 60) return `${Math.round(seconds)}s`;
+  if (seconds < 3600) return `${Math.round(seconds / 60)}m`;
+  if (seconds < 86400) return `${(seconds / 3600).toFixed(1)}h`;
+  return `${(seconds / 86400).toFixed(1)}d`;
+}
+
+function formatTimestamp(iso: string | null | undefined): string {
+  if (!iso) return "—";
+  try {
+    return new Date(iso).toLocaleString(undefined, {
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    });
+  } catch {
+    return iso;
+  }
+}
+
+function isInCooldown(until: string | null | undefined): boolean {
+  if (!until) return false;
+  return new Date(until).getTime() > Date.now();
+}
+
 function freshnessChartData(freshness: {
-  never_enriched: number;
+  never_fetched: number;
   lt_24h: number;
   d1_7: number;
   d7_30: number;
   gt_30d: number;
 }) {
   return [
-    { label: "Never enriched", count: freshness.never_enriched },
+    { label: "Never fetched", count: freshness.never_fetched },
     { label: "< 24 hours", count: freshness.lt_24h },
     { label: "1–7 days", count: freshness.d1_7 },
     { label: "7–30 days", count: freshness.d7_30 },
@@ -44,30 +71,13 @@ function freshnessChartData(freshness: {
   ];
 }
 
-function aggregateEnrichJobsByDay(
-  jobs: {
-    started_at: string;
-    job_type?: string;
-    listings_processed?: number | null;
-    listings_enriched?: number | null;
-  }[],
+function eventThroughputChartData(
+  rows: { date: string; pdp: number; classify: number; extract: number }[],
 ) {
-  const map = new Map<string, { processed: number; enriched: number }>();
-  for (const job of jobs) {
-    if (job.job_type && job.job_type !== "enrich") continue;
-    const day = job.started_at.slice(0, 10);
-    const cur = map.get(day) ?? { processed: 0, enriched: 0 };
-    cur.processed += job.listings_processed ?? 0;
-    cur.enriched += job.listings_enriched ?? 0;
-    map.set(day, cur);
-  }
-  return [...map.entries()]
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([date, values]) => ({
-      date,
-      dateLabel: formatDateLabel(date),
-      ...values,
-    }));
+  return rows.map((row) => ({
+    ...row,
+    dateLabel: formatDateLabel(row.date),
+  }));
 }
 
 function aggregateScrapeJobsByDay(
@@ -94,18 +104,13 @@ export function Insights() {
   const [days, setDays] = useState<number>(30);
   const { data, isPending, isError, error, refetch } = usePipelineMetrics(days);
   const { data: stepMetrics } = useEnrichmentStepMetrics(Math.min(days, 30));
-  const { data: enricherTypes = [] } = useStoreTypesWithEnrichers();
-  const enricherSet = useMemo(
-    () => new Set(enricherTypes.map((t) => t.toLowerCase())),
-    [enricherTypes],
-  );
 
   const freshnessData = useMemo(
     () => (data ? freshnessChartData(data.freshness) : []),
     [data],
   );
-  const enrichChartData = useMemo(
-    () => (data ? aggregateEnrichJobsByDay(data.recent_enrich_jobs) : []),
+  const throughputChartData = useMemo(
+    () => (data ? eventThroughputChartData(data.event_throughput) : []),
     [data],
   );
   const scrapeChartData = useMemo(
@@ -138,7 +143,7 @@ export function Insights() {
     );
   }
 
-  const { backlog, freshness } = data!;
+  const { latency, freshness, stores } = data!;
 
   return (
     <div className="space-y-6">
@@ -146,11 +151,11 @@ export function Insights() {
         <div>
           <h2 className="text-xl font-semibold text-stone-800">Insights</h2>
           <p className="text-sm text-stone-500 mt-1">
-            Scrape and enrichment pipeline health — use backlog growth to tune enrich frequency.
+            Enrichment pipeline flow — scrape to fully enriched latency, step gauges, and PDP drainer health.
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-sm text-stone-500">Job history window</span>
+          <span className="text-sm text-stone-500">Metrics window</span>
           <select
             value={days}
             onChange={(e) => setDays(Number(e.target.value))}
@@ -167,40 +172,46 @@ export function Insights() {
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-lg border border-stone-200 bg-white p-4 shadow-sm">
-          <p className="text-sm text-stone-500">Enrichment backlog</p>
-          <p className="text-2xl font-semibold text-stone-800">{backlog.total.toLocaleString()}</p>
-          <p className="text-xs text-stone-400">In-stock listings needing enrich</p>
-        </div>
-        <div className="rounded-lg border border-stone-200 bg-white p-4 shadow-sm">
-          <p className="text-sm text-stone-500">Stale since scrape</p>
-          <p className="text-2xl font-semibold text-amber-700">
-            {backlog.stale_since_scrape.toLocaleString()}
-          </p>
-          <p className="text-xs text-stone-400">Scraped after last enrich</p>
-        </div>
-        <div className="rounded-lg border border-stone-200 bg-white p-4 shadow-sm">
-          <p className="text-sm text-stone-500">Never enriched</p>
+          <p className="text-sm text-stone-500">Scrape → extract p50</p>
           <p className="text-2xl font-semibold text-stone-800">
-            {backlog.never_enriched.toLocaleString()}
+            {formatDuration(latency.p50_seconds)}
           </p>
-          <p className="text-xs text-stone-400">No PDP enrich yet</p>
+          <p className="text-xs text-stone-400">
+            {latency.sample_count.toLocaleString()} successful extracts in window
+          </p>
         </div>
         <div className="rounded-lg border border-stone-200 bg-white p-4 shadow-sm">
-          <p className="text-sm text-stone-500">In-stock listings</p>
+          <p className="text-sm text-stone-500">Scrape → extract p95</p>
+          <p className="text-2xl font-semibold text-stone-800">
+            {formatDuration(latency.p95_seconds)}
+          </p>
+          <p className="text-xs text-stone-400">
+            Listings without a profile are not in this sample
+          </p>
+        </div>
+        <div className="rounded-lg border border-stone-200 bg-white p-4 shadow-sm">
+          <p className="text-sm text-stone-500">PDP never fetched</p>
+          <p className="text-2xl font-semibold text-amber-700">
+            {freshness.never_fetched.toLocaleString()}
+          </p>
+          <p className="text-xs text-stone-400">Enricher-store in-stock listings</p>
+        </div>
+        <div className="rounded-lg border border-stone-200 bg-white p-4 shadow-sm">
+          <p className="text-sm text-stone-500">Enricher listings</p>
           <p className="text-2xl font-semibold text-stone-800">
             {freshness.in_stock_total.toLocaleString()}
           </p>
-          <p className="text-xs text-stone-400">Visible deals in catalog</p>
+          <p className="text-xs text-stone-400">In-stock, visible deals</p>
         </div>
       </div>
 
       {stepMetrics && stepMetrics.steps.length > 0 ? (
         <section className="rounded-lg border border-stone-200 bg-white p-4 shadow-sm">
           <h3 className="text-sm font-medium text-stone-800 mb-1">
-            Enrichment steps (durable pipeline)
+            Enrichment step flow
           </h3>
           <p className="text-xs text-stone-500 mb-4">
-            Per-step backlog and success rates over the last {stepMetrics.days} days. Low-confidence
+            Due / in-flight / dead and success rates over the last {stepMetrics.days} days. Low-confidence
             classifications: {stepMetrics.low_confidence_count.toLocaleString()}.
           </p>
           <div className="overflow-x-auto">
@@ -208,8 +219,10 @@ export function Insights() {
               <thead>
                 <tr className="text-left text-stone-500 border-b border-stone-200">
                   <th className="py-2 pr-4 font-medium">Step</th>
-                  <th className="py-2 pr-4 font-medium">Backlog</th>
+                  <th className="py-2 pr-4 font-medium">Due</th>
+                  <th className="py-2 pr-4 font-medium">In flight</th>
                   <th className="py-2 pr-4 font-medium">Dead</th>
+                  <th className="py-2 pr-4 font-medium">Oldest due</th>
                   <th className="py-2 pr-4 font-medium">Success rate</th>
                   <th className="py-2 pr-4 font-medium">Failures</th>
                   <th className="py-2 font-medium">Skipped</th>
@@ -219,8 +232,12 @@ export function Insights() {
                 {stepMetrics.steps.map((s) => (
                   <tr key={s.step} className="border-b border-stone-100">
                     <td className="py-2 pr-4 capitalize">{s.step}</td>
-                    <td className="py-2 pr-4">{s.backlog.toLocaleString()}</td>
+                    <td className="py-2 pr-4">{s.due.toLocaleString()}</td>
+                    <td className="py-2 pr-4">{s.in_flight.toLocaleString()}</td>
                     <td className="py-2 pr-4">{s.dead.toLocaleString()}</td>
+                    <td className="py-2 pr-4">
+                      {formatDuration(s.oldest_due_age_seconds)}
+                    </td>
                     <td className="py-2 pr-4">
                       {s.success_count + s.failure_count > 0
                         ? `${s.success_rate_pct.toFixed(1)}%`
@@ -247,9 +264,9 @@ export function Insights() {
 
       <div className="grid gap-6 lg:grid-cols-2">
         <section className="rounded-lg border border-stone-200 bg-white p-4 shadow-sm">
-          <h3 className="text-sm font-medium text-stone-800 mb-1">Enrichment freshness</h3>
+          <h3 className="text-sm font-medium text-stone-800 mb-1">PDP freshness</h3>
           <p className="text-xs text-stone-500 mb-4">
-            Age of <code className="text-stone-600">last_enriched_at</code> for in-stock listings
+            Age of last PDP fetch (<code className="text-stone-600">pdp_fetched_at</code>) for enricher listings
           </p>
           {freshnessData.some((d) => d.count > 0) ? (
             <div className="h-56">
@@ -264,31 +281,32 @@ export function Insights() {
               </ResponsiveContainer>
             </div>
           ) : (
-            <p className="text-sm text-stone-500 py-8 text-center">No in-stock listings yet.</p>
+            <p className="text-sm text-stone-500 py-8 text-center">No enricher listings yet.</p>
           )}
         </section>
 
         <section className="rounded-lg border border-stone-200 bg-white p-4 shadow-sm">
-          <h3 className="text-sm font-medium text-stone-800 mb-1">Enrich job throughput</h3>
+          <h3 className="text-sm font-medium text-stone-800 mb-1">Enrichment throughput</h3>
           <p className="text-xs text-stone-500 mb-4">
-            Daily totals from PDP enrich jobs (last {days} days)
+            Daily successful steps from enrichment events (last {days} days)
           </p>
-          {enrichChartData.length > 0 ? (
+          {throughputChartData.length > 0 ? (
             <div className="h-56">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={enrichChartData} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
+                <LineChart data={throughputChartData} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                   <XAxis dataKey="dateLabel" tick={{ fontSize: 10 }} />
                   <YAxis tick={{ fontSize: 10 }} allowDecimals={false} />
                   <Tooltip />
                   <Legend wrapperStyle={{ fontSize: 12 }} />
-                  <Line type="monotone" dataKey="processed" name="Processed" stroke="#78716c" strokeWidth={2} dot={false} />
-                  <Line type="monotone" dataKey="enriched" name="Enriched" stroke="#16a34a" strokeWidth={2} dot={false} />
+                  <Line type="monotone" dataKey="pdp" name="PDP" stroke="#78716c" strokeWidth={2} dot={false} />
+                  <Line type="monotone" dataKey="classify" name="Classify" stroke="#2563eb" strokeWidth={2} dot={false} />
+                  <Line type="monotone" dataKey="extract" name="Extract" stroke="#16a34a" strokeWidth={2} dot={false} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
           ) : (
-            <p className="text-sm text-stone-500 py-8 text-center">No enrich jobs in this window.</p>
+            <p className="text-sm text-stone-500 py-8 text-center">No enrichment events in this window.</p>
           )}
         </section>
       </div>
@@ -317,9 +335,9 @@ export function Insights() {
 
       <section className="rounded-lg border border-stone-200 bg-white shadow-sm overflow-hidden">
         <div className="px-4 py-3 border-b border-stone-200">
-          <h3 className="text-sm font-medium text-stone-800">Backlog by store</h3>
+          <h3 className="text-sm font-medium text-stone-800">PDP drainer by store</h3>
           <p className="text-xs text-stone-500 mt-0.5">
-            In-stock listings where enrich is missing or older than last scrape
+            Due listings, in-flight claims, and persistent cooldown state per enricher store
           </p>
         </div>
         <div className="overflow-x-auto">
@@ -328,28 +346,42 @@ export function Insights() {
               <tr className="border-b border-stone-200 bg-stone-50 text-left text-stone-600">
                 <th className="px-4 py-2 font-medium">Store</th>
                 <th className="px-4 py-2 font-medium">Type</th>
-                <th className="px-4 py-2 font-medium">Enricher</th>
-                <th className="px-4 py-2 font-medium text-right">Backlog</th>
+                <th className="px-4 py-2 font-medium text-right">PDP due</th>
+                <th className="px-4 py-2 font-medium text-right">In flight</th>
+                <th className="px-4 py-2 font-medium">Last fetch</th>
+                <th className="px-4 py-2 font-medium">Cooldown</th>
+                <th className="px-4 py-2 font-medium text-right">Failures</th>
               </tr>
             </thead>
             <tbody>
-              {backlog.by_store.map((store) => {
-                const hasEnricher = enricherSet.has(store.store_type.toLowerCase());
+              {stores.map((store) => {
+                const cooled = isInCooldown(store.pdp_cooldown_until);
                 return (
                   <tr key={store.store_id} className="border-b border-stone-100">
                     <td className="px-4 py-2 text-stone-800">{store.name}</td>
                     <td className="px-4 py-2 text-stone-600 font-mono text-xs">{store.store_type}</td>
-                    <td className="px-4 py-2">
-                      {hasEnricher ? (
-                        <span className="text-green-700">Yes</span>
-                      ) : (
-                        <span className="text-stone-400" title="No PDP enricher — backlog may not decrease via enrich">
-                          No
+                    <td className={`px-4 py-2 text-right font-medium ${store.pdp_due > 0 ? "text-amber-700" : "text-stone-500"}`}>
+                      {store.pdp_due.toLocaleString()}
+                    </td>
+                    <td className="px-4 py-2 text-right text-stone-600">
+                      {store.pdp_in_flight.toLocaleString()}
+                    </td>
+                    <td className="px-4 py-2 text-stone-600 text-xs">
+                      {formatTimestamp(store.pdp_last_fetch_at)}
+                    </td>
+                    <td className="px-4 py-2 text-xs">
+                      {cooled ? (
+                        <span className="text-red-700 font-medium">
+                          Until {formatTimestamp(store.pdp_cooldown_until)}
                         </span>
+                      ) : (
+                        <span className="text-stone-400">—</span>
                       )}
                     </td>
-                    <td className={`px-4 py-2 text-right font-medium ${store.count > 0 ? "text-amber-700" : "text-stone-500"}`}>
-                      {store.count.toLocaleString()}
+                    <td className="px-4 py-2 text-right text-stone-600">
+                      {store.pdp_consecutive_failures > 0
+                        ? store.pdp_consecutive_failures.toLocaleString()
+                        : "—"}
                     </td>
                   </tr>
                 );
@@ -360,11 +392,12 @@ export function Insights() {
       </section>
 
       <div className="rounded border border-stone-200 bg-stone-50 px-4 py-3 text-xs text-stone-600">
-        <p className="font-medium text-stone-700 mb-1">When to increase enrich frequency</p>
+        <p className="font-medium text-stone-700 mb-1">When the pipeline needs attention</p>
         <ul className="list-disc pl-4 space-y-0.5">
-          <li>Backlog grows after each scrape cycle and enrich jobs process fewer listings than backlog size</li>
-          <li>Freshness skews toward &quot;1–7 days&quot; or older while scrapes run every few hours</li>
-          <li>One store dominates backlog — check enricher support or store-specific issues</li>
+          <li>Scrape→extract p95 climbing while scrapes run on schedule</li>
+          <li>Oldest-due age growing on PDP or classify steps</li>
+          <li>Stores in cooldown (circuit breaker tripped) — check Sentry and WAF/rate limits</li>
+          <li>In-flight counts stuck above zero — may indicate crashed workers or long PDP timeouts</li>
         </ul>
       </div>
     </div>

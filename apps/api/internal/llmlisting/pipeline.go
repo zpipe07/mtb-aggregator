@@ -13,6 +13,7 @@ import (
 	"github.com/mtb-aggregator/api/internal/llm"
 	"github.com/mtb-aggregator/api/internal/metadata"
 	"github.com/mtb-aggregator/api/internal/sentryutil"
+	"github.com/mtb-aggregator/api/internal/taxonomy"
 )
 
 const maxLLMErrorSentryPerJob = 5
@@ -117,6 +118,7 @@ func ClassificationStep(ctx context.Context, pool *db.DB, client *llm.Client, li
 	if result == nil {
 		return nil
 	}
+	result.CanonicalCategory = taxonomy.RefineWheelsTires(result.CanonicalCategory, listing.ProductName)
 	llmCategory := map[string]interface{}{
 		"canonical_category": result.CanonicalCategory,
 		"confidence":         result.Confidence,
@@ -191,6 +193,12 @@ func SpecExtractionStep(ctx context.Context, pool *db.DB, client *llm.Client, li
 	if err := pool.UpdateListingLLMSpecs(ctx, listingID, result); err != nil {
 		log.Printf("[llmlisting] listing %d: failed to save LLM specs: %v", listingID, err)
 		return nil
+	}
+	if err := pool.SyncClothingSizeFromVariant(ctx, listingID); err != nil {
+		log.Printf("[llmlisting] listing %d: sync clothing_size: %v", listingID, err)
+	}
+	if err := pool.SyncBikeSizeFromVariant(ctx, listingID); err != nil {
+		log.Printf("[llmlisting] listing %d: sync bike_size: %v", listingID, err)
 	}
 	log.Printf("[llmlisting] listing %d: LLM extracted specs", listingID)
 	return nil

@@ -9,6 +9,8 @@ export type SeoHubFilter = {
   brands?: string[];
   max_price?: number;
   min_price?: number;
+  /** Default full-text search when the hub URL has no `q` param (merged server-side). */
+  q?: string;
 };
 
 export type SeoHubFaqItem = {
@@ -23,7 +25,7 @@ export type SeoHubDefinition = {
   intro: string;
   filters: SeoHubFilter;
   /**
-   * Show this hub in “Popular searches” on `/deals/c/…` when the page category slug matches.
+   * Show this hub in “Popular searches” below the deal grid on `/deals/c/…` when the page category slug matches.
    */
   relatedCategorySlugs: string[];
   /** Optional FAQ for hub uniqueness (indexed money pages). */
@@ -151,6 +153,45 @@ const HUBS: SeoHubDefinition[] = [
     ],
   },
   {
+    slug: "emtbs-under-5000",
+    title: "eMTBs on sale under $5,000",
+    description:
+      "Compare electric mountain bikes on sale under $5,000 across MTB retailers. Live full-power and lightweight eMTB deals updated throughout the day.",
+    intro:
+      "This list tracks electric mountain bikes currently on sale under $5,000 from shops we monitor—full-power and lightweight eMTBs when retailers mark them down. $5,000 is a competitive eMTB price point: prior-year models, closeouts, and direct-to-consumer builds often land here. Prices and inventory change as new scrapes run; use each listing to jump to the shop for current availability.",
+    filters: { category_slug: "bikes-emtb", max_price: 5000 },
+    relatedCategorySlugs: [
+      "bikes-emtb",
+      "bikes-emtb-full-power",
+      "bikes-emtb-lightweight",
+      "bikes",
+    ],
+    parentCategoryPath: "/deals/c/bikes/emtb",
+    parentCategoryLabel: "All eMTB deals",
+    faq: [
+      {
+        question: "What eMTBs show up in this list?",
+        answer:
+          "Complete electric mountain bikes—full-power and lightweight trail, enduro, and XC eMTBs—listed at $5,000 or less at the time we last checked each retailer. We aggregate sale and closeout pricing from multiple bike shops, not a single store catalog.",
+      },
+      {
+        question: "Are these prices guaranteed?",
+        answer:
+          "No. Sale prices and stock change quickly. Each card links to the retailer’s product page where you can confirm the current price, size, and availability before you buy.",
+      },
+      {
+        question: "Full-power or lightweight under $5,000?",
+        answer:
+          "Both appear when shops discount them into this price band. Lightweight eMTBs (smaller motors and batteries) often sit lower in the range; full-power deals near $5,000 tend to be prior-year models, last-season colors, or limited closeouts.",
+      },
+      {
+        question: "How often is this list updated?",
+        answer:
+          "We re-scrape retailer sale pages on a regular cadence (roughly every few hours). When a bike sells out or the price moves above $5,000, it may drop off the list on the next refresh.",
+      },
+    ],
+  },
+  {
     slug: "complete-wheels-under-1000",
     title: "Complete wheelsets under $1,000",
     description:
@@ -227,6 +268,42 @@ const HUBS: SeoHubDefinition[] = [
     },
     relatedCategorySlugs: ["components-drivetrain", "components"],
   },
+  {
+    slug: "radial-tires",
+    title: "Radial MTB tire deals",
+    description:
+      "Mountain bike tires with radial casing on sale. Compare radial tire discounts across MTB retailers on The Dropper.",
+    intro:
+      "Radial mountain bike tires when shops mark them down—lightweight casing builds common on trail and XC rubber.",
+    filters: {
+      category_slug: "components-wheels-tires-tires",
+      q: "radial",
+    },
+    relatedCategorySlugs: [
+      "components-wheels-tires-tires",
+      "components-wheels-tires",
+      "components",
+    ],
+    parentCategoryPath: "/deals/c/components/wheels-tires/tires",
+    parentCategoryLabel: "All MTB tire deals",
+    faq: [
+      {
+        question: "What is a radial mountain bike tire?",
+        answer:
+          "Radial tires use casing plies that run at roughly 90° to the tread direction. That layout can reduce weight and rolling resistance compared with traditional bias-ply casings. Many modern trail and XC tires advertise radial construction in the product name or specs.",
+      },
+      {
+        question: "How is this list filtered?",
+        answer:
+          "We scope to the Tires category and match listings whose indexed product text includes “radial”—typically the casing type in the title or retailer description. Use the search box on this page to narrow further; prices and stock update as retailers change sales.",
+      },
+      {
+        question: "Are radial tires only for XC?",
+        answer:
+          "No. Radial casings show up on trail and enduro tires too when brands want a lighter or more supple casing. Compare sizes, compounds, and prices on each card; the retailer page has the full spec sheet.",
+      },
+    ],
+  },
 ];
 
 export function listSeoHubs(): SeoHubDefinition[] {
@@ -254,6 +331,17 @@ export async function hubEligible(hub: SeoHubDefinition): Promise<boolean> {
     offset: 0,
   });
   return hubMeetsIndexThreshold(res.total_count ?? 0);
+}
+
+/** Hub default `q` applies when the URL has no search; URL `q` overrides the hub default. */
+export function resolveHubSearchQuery(
+  hubFilter: SeoHubFilter,
+  fp: ParsedFilterParams,
+): string | undefined {
+  const fromUrl = fp.searchQuery.trim();
+  if (fromUrl) return fromUrl;
+  const fromHub = hubFilter.q?.trim() ?? "";
+  return fromHub || undefined;
 }
 
 function dedupeBrands(brands: string[]): string[] {
@@ -292,7 +380,7 @@ export function buildFetchDealsParamsFromHubAndFilters(
         ? minDiscountNum
         : undefined,
     exclude_category_slug: fp.excludeCategorySlug || undefined,
-    q: fp.searchQuery.trim() || undefined,
+    q: resolveHubSearchQuery(f, fp),
     sort: fp.sort,
     limit: DEFAULT_PAGE_SIZE,
     offset: fp.offset,
@@ -329,9 +417,10 @@ export function emptyParsedFilterParams(): ParsedFilterParams {
     categoryFilter: "",
     minDiscount: "",
     minPrice: "",
+    maxPrice: "",
     excludeCategorySlug: "",
     specFilters: {},
-    sort: "discount",
+    sort: "value",
     offset: 0,
   };
 }

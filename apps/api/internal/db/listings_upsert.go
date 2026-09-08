@@ -17,6 +17,8 @@ func ListingsUpsertBatchSize() int {
 }
 
 // upsertListingOnConflictSQL is the shared ON CONFLICT clause for single-row and batch upserts.
+// hidden = false unhides listings that return on /sale (ZAC-217); use home_demoted to keep
+// an on-sale deal off home without hiding it from /deals.
 const upsertListingOnConflictSQL = `
 		ON CONFLICT (store_id, store_sku) DO UPDATE SET
 			product_name = EXCLUDED.product_name,
@@ -52,11 +54,63 @@ const upsertListingOnConflictSQL = `
 						)
 						ELSE '{}'::jsonb
 					END
+					|| CASE
+						WHEN EXCLUDED.metadata ? 'llm_specs'
+							AND jsonb_typeof(EXCLUDED.metadata->'llm_specs') = 'object'
+							AND (
+								(
+									EXCLUDED.metadata->'llm_specs' ? 'clothing_size'
+									AND NULLIF(BTRIM(EXCLUDED.metadata->'llm_specs'->>'clothing_size'), '') IS NOT NULL
+									AND (
+										store_listings.metadata->'llm_overrides' IS NULL
+										OR jsonb_typeof(store_listings.metadata->'llm_overrides') <> 'object'
+										OR NOT (store_listings.metadata->'llm_overrides' ? 'clothing_size')
+									)
+								)
+								OR (
+									EXCLUDED.metadata->'llm_specs' ? 'bike_size'
+									AND NULLIF(BTRIM(EXCLUDED.metadata->'llm_specs'->>'bike_size'), '') IS NOT NULL
+									AND (
+										store_listings.metadata->'llm_overrides' IS NULL
+										OR jsonb_typeof(store_listings.metadata->'llm_overrides') <> 'object'
+										OR NOT (store_listings.metadata->'llm_overrides' ? 'bike_size')
+									)
+								)
+							)
+						THEN jsonb_build_object(
+							'llm_specs',
+							COALESCE(store_listings.metadata->'llm_specs', '{}'::jsonb)
+								|| CASE
+									WHEN EXCLUDED.metadata->'llm_specs' ? 'clothing_size'
+										AND NULLIF(BTRIM(EXCLUDED.metadata->'llm_specs'->>'clothing_size'), '') IS NOT NULL
+										AND (
+											store_listings.metadata->'llm_overrides' IS NULL
+											OR jsonb_typeof(store_listings.metadata->'llm_overrides') <> 'object'
+											OR NOT (store_listings.metadata->'llm_overrides' ? 'clothing_size')
+										)
+									THEN jsonb_build_object('clothing_size', EXCLUDED.metadata->'llm_specs'->'clothing_size')
+									ELSE '{}'::jsonb
+								END
+								|| CASE
+									WHEN EXCLUDED.metadata->'llm_specs' ? 'bike_size'
+										AND NULLIF(BTRIM(EXCLUDED.metadata->'llm_specs'->>'bike_size'), '') IS NOT NULL
+										AND (
+											store_listings.metadata->'llm_overrides' IS NULL
+											OR jsonb_typeof(store_listings.metadata->'llm_overrides') <> 'object'
+											OR NOT (store_listings.metadata->'llm_overrides' ? 'bike_size')
+										)
+									THEN jsonb_build_object('bike_size', EXCLUDED.metadata->'llm_specs'->'bike_size')
+									ELSE '{}'::jsonb
+								END
+						)
+						ELSE '{}'::jsonb
+					END
 				)
 			END,
 			is_in_stock = EXCLUDED.is_in_stock,
 			product_group_key = COALESCE(EXCLUDED.product_group_key, store_listings.product_group_key),
 			variant_options = COALESCE(EXCLUDED.variant_options, store_listings.variant_options),
+			hidden = false,
 			last_scraped = NOW()`
 
 // UpsertedListing is one row returned from UpsertListingsBatch.

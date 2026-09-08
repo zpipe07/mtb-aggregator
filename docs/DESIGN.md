@@ -45,7 +45,9 @@ Speak the language of the trailhead. Avoid generic "Save money!" fluff.
 | :--- | :--- |
 | Buy Now | Snag the Deal |
 | View Product | View Specs |
-| Email Newsletter | The Friday Drop |
+| Email Newsletter | The Friday Drop ([plan](MARKETING.md#5-email--the-friday-drop-owned-compounding); no list backend yet) |
+
+Social captions and the Instagram bio use the same one-liner and affiliate honesty. Operating copy: [SOCIAL.md](SOCIAL.md).
 
 ### Transparency
 
