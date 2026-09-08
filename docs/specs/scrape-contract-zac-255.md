@@ -327,7 +327,7 @@ This ticket ships the spec. Suggested children when implementing the contract (d
 - [x] Spec lists concrete gaps vs current parsers (not “scrapers vary”).
 - [x] `stock_from_plp` is cited, not re-litigated (ZAC-256 owns the field).
 - [x] Existing docs (`SCRAPING.md`, scraper README, ARCHITECTURE, CLAUDE.md, API/shared READMEs) point here.
-- [ ] Linear ZAC-255 links this file after the PR exists.
+- [x] Linear ZAC-255 links this file (draft PR #281).
 
 ## Open questions
 
