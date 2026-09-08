@@ -571,7 +571,7 @@ func (s *Scheduler) ingestScrapeResults(ctx context.Context, store db.Store, res
 				normalizedBrand = &s
 			}
 		}
-		canonicalCat := taxonomy.Map(r.CategoryPath)
+		canonicalCat := taxonomy.MapListing(r.CategoryPath, r.ProductName)
 		var listingMeta []byte
 		if extracted := metadata.Extract(r.ProductName); len(extracted) > 0 {
 			var m map[string]interface{}
