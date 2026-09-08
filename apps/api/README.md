@@ -91,6 +91,7 @@ Go HTTP server that orchestrates scraping, enrichment, and serves the REST API. 
 - **`ENRICH_PDP_MAX_ATTEMPTS`** / **`ENRICH_CLASSIFY_MAX_ATTEMPTS`** / **`ENRICH_EXTRACT_MAX_ATTEMPTS`** — Per-step retry caps before a listing step is marked dead (default **5** each).
 - **`ENRICH_BACKOFF_BASE`** / **`ENRICH_BACKOFF_MAX`** — Exponential backoff for failed steps (defaults **`5m`** / **`6h`**).
 - **`ENRICH_PDP_STALE_AFTER`** — PDP refetch interval for claim eligibility (default **`720h`** / 30 days).
+- **`ENRICH_OOS_STOCK_CHECK_AFTER`** — **Planned (ZAC-256).** Interval for stock-only PDP on **OOS, still-on-sale** listings at no-signal stores (default **`24h`**). Not implemented yet; see [docs/ideas/oos-policy-zac-256.md](../../docs/ideas/oos-policy-zac-256.md).
 - **`ENRICH_PDP_MIN_INTERVAL`** — Minimum time between PDP fetches for the same store in the resident drainer (default **`15s`**). Burst **`POST /enrich-now`** bypasses this interval but still honors cooldown unless `force=1`. The drainer records `stores.pdp_last_fetch_at` inside the fetch (`RunWorkItem`), not when claiming/ensuring a `listing_enrichment` row — otherwise the min-interval check skips the scraper and Insights PDP Due never drains (ZAC-247).
 - **`ENRICH_PDP_COOLDOWN`** — Persistent per-store cooldown after circuit-breaker trips (default **`30m`**). Stored on `stores.pdp_cooldown_until` (migration `043`).
 - **`ENRICH_PDP_DRAINER`** — Set **`0`** to disable the resident PDP drainer (tests / local without scraper). Enabled by default on API start.
