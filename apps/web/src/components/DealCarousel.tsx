@@ -80,7 +80,7 @@ export function DealCarousel({
   return (
     <div
       className={cn(
-        "relative min-w-0",
+        "relative isolate min-w-0",
         // Persistent gutters: fade + arrows sit on this padding, not on cards.
         // Padding is on the wrapper (not the overflow scroller) so it stays
         // visible mid-scroll.
@@ -129,30 +129,32 @@ export function DealCarousel({
 
       {showControls ? (
         <>
-          <Button
-            type="button"
-            variant="outline"
-            size="icon"
-            aria-controls={listId}
-            aria-label={`Scroll ${ariaLabel} backward`}
-            disabled={!canScrollLeft}
-            onClick={() => scrollByPage("prev")}
-            className="absolute top-1/2 left-1 z-10 -translate-y-1/2"
-          >
-            <ChevronLeft />
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            size="icon"
-            aria-controls={listId}
-            aria-label={`Scroll ${ariaLabel} forward`}
-            disabled={!canScrollRight}
-            onClick={() => scrollByPage("next")}
-            className="absolute top-1/2 right-1 z-10 -translate-y-1/2"
-          >
-            <ChevronRight />
-          </Button>
+          <div className="absolute top-1/2 left-1 z-10 -translate-y-1/2">
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              aria-controls={listId}
+              aria-label={`Scroll ${ariaLabel} backward`}
+              disabled={!canScrollLeft}
+              onClick={() => scrollByPage("prev")}
+            >
+              <ChevronLeft />
+            </Button>
+          </div>
+          <div className="absolute top-1/2 right-1 z-10 -translate-y-1/2">
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              aria-controls={listId}
+              aria-label={`Scroll ${ariaLabel} forward`}
+              disabled={!canScrollRight}
+              onClick={() => scrollByPage("next")}
+            >
+              <ChevronRight />
+            </Button>
+          </div>
         </>
       ) : null}
     </div>
