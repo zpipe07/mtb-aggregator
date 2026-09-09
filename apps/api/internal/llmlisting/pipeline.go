@@ -118,7 +118,7 @@ func ClassificationStep(ctx context.Context, pool *db.DB, client *llm.Client, li
 	if result == nil {
 		return nil
 	}
-	result.CanonicalCategory = taxonomy.RefineWheelsTires(result.CanonicalCategory, listing.ProductName)
+	result.CanonicalCategory = taxonomy.RefineListing(result.CanonicalCategory, listing.ProductName)
 	llmCategory := map[string]interface{}{
 		"canonical_category": result.CanonicalCategory,
 		"confidence":         result.Confidence,

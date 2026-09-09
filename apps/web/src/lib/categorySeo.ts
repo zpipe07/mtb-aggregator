@@ -227,7 +227,7 @@ const HAND_TUNED: Partial<Record<string, Partial<CategorySeoMeta>>> = {
   },
   "components-brakes-parts": {
     description:
-      "Find deals on brake olives, inserts, pistons, and hoses sold without a complete brakeset.",
+      "Find deals on brake cables, olives, adapters, pistons, and hoses sold without a complete brakeset.",
     intro:
       "Shop small brake hardware. Complete brakesets, pads, and rotors have their own shelves.",
   },
