@@ -76,12 +76,12 @@ export function DealCarousel({
   if (deals.length === 0) return null;
 
   return (
-    <div className={cn("relative", className)}>
+    <div className={cn("relative isolate", className)}>
       <div
         id={listId}
         ref={scrollerRef}
         className={cn(
-          "flex w-full min-w-0 items-stretch gap-4 overflow-x-auto overscroll-x-contain pb-2 snap-x snap-mandatory",
+          "relative z-0 flex w-full min-w-0 items-stretch gap-4 overflow-x-auto overscroll-x-contain pb-2 snap-x snap-mandatory",
           "[-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
         )}
         role="list"
@@ -122,11 +122,11 @@ export function DealCarousel({
         <Button
           type="button"
           variant="outline"
-          size="icon-sm"
+          size="icon"
           aria-controls={listId}
           aria-label={`Scroll ${ariaLabel} backward`}
           onClick={() => scrollByPage("prev")}
-          className="absolute left-1 top-1/2 z-20 -translate-y-1/2 border-foreground bg-card/95 shadow-sm backdrop-blur-sm sm:left-2"
+          className="pointer-events-auto absolute top-1/2 left-1 z-30 -translate-y-1/2 border-foreground bg-card shadow-sm sm:left-2"
         >
           <ChevronLeft />
         </Button>
@@ -135,11 +135,11 @@ export function DealCarousel({
         <Button
           type="button"
           variant="outline"
-          size="icon-sm"
+          size="icon"
           aria-controls={listId}
           aria-label={`Scroll ${ariaLabel} forward`}
           onClick={() => scrollByPage("next")}
-          className="absolute right-1 top-1/2 z-20 -translate-y-1/2 border-foreground bg-card/95 shadow-sm backdrop-blur-sm sm:right-2"
+          className="pointer-events-auto absolute top-1/2 right-1 z-30 -translate-y-1/2 border-foreground bg-card shadow-sm sm:right-2"
         >
           <ChevronRight />
         </Button>
