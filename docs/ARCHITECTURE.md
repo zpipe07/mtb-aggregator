@@ -151,7 +151,7 @@ Add new primitives via `pnpm dlx shadcn@latest add <component>` in `apps/web`.
 
 ### Composed Components
 
-High-level components (DealCard, DealCarousel, VariantChips, CategoryCard, Pagination, SearchBar, FilterSelect) use the primitives. Deal cards stretch in grids and homepage rails so price + CTAs stay aligned; rails keep a peek of the next card and put prev/next arrows below the row when it overflows. When adding or changing UI, prefer primitives over raw HTML and add Storybook stories.
+High-level components (DealCard, DealCarousel, VariantChips, CategoryCard, Pagination, SearchBar, FilterSelect) use the primitives. Deal cards stretch in grids and homepage rails so price + CTAs stay aligned; overflowing rails keep a peek of the next card and reserve left/right gutters so the edge fade and prev/next arrows sit on that padding, not over in-view cards. When adding or changing UI, prefer primitives over raw HTML and add Storybook stories.
 
 ### SEO (metadata)
 

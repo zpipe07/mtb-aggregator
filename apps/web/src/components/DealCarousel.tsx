@@ -78,7 +78,16 @@ export function DealCarousel({
   const showControls = canScrollLeft || canScrollRight;
 
   return (
-    <div className={cn("flex flex-col gap-3", className)}>
+    <div
+      className={cn(
+        "relative min-w-0",
+        // Persistent gutters: fade + arrows sit on this padding, not on cards.
+        // Padding is on the wrapper (not the overflow scroller) so it stays
+        // visible mid-scroll.
+        showControls && "px-11",
+        className,
+      )}
+    >
       <div
         id={listId}
         ref={scrollerRef}
@@ -94,7 +103,7 @@ export function DealCarousel({
             key={deal.id}
             role="listitem"
             data-rail-item
-            className="flex w-[min(78vw,20rem)] shrink-0 snap-start self-stretch sm:w-[20rem]"
+            className="flex w-[min(20rem,calc(100%-1.75rem))] shrink-0 snap-start self-stretch"
           >
             <DealCard
               deal={deal}
@@ -105,12 +114,21 @@ export function DealCarousel({
         ))}
       </div>
 
-      {showControls ? (
+      {canScrollLeft ? (
         <div
-          role="group"
-          aria-label={`Scroll ${ariaLabel}`}
-          className="flex justify-end gap-2"
-        >
+          aria-hidden
+          className="pointer-events-none absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-background from-[2.75rem] to-transparent"
+        />
+      ) : null}
+      {canScrollRight ? (
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-background from-[2.75rem] to-transparent"
+        />
+      ) : null}
+
+      {showControls ? (
+        <>
           <Button
             type="button"
             variant="outline"
@@ -119,6 +137,7 @@ export function DealCarousel({
             aria-label={`Scroll ${ariaLabel} backward`}
             disabled={!canScrollLeft}
             onClick={() => scrollByPage("prev")}
+            className="absolute top-1/2 left-1 z-10 -translate-y-1/2"
           >
             <ChevronLeft />
           </Button>
@@ -130,10 +149,11 @@ export function DealCarousel({
             aria-label={`Scroll ${ariaLabel} forward`}
             disabled={!canScrollRight}
             onClick={() => scrollByPage("next")}
+            className="absolute top-1/2 right-1 z-10 -translate-y-1/2"
           >
             <ChevronRight />
           </Button>
-        </div>
+        </>
       ) : null}
     </div>
   );

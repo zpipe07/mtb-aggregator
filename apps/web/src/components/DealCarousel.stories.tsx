@@ -132,7 +132,7 @@ export const Overflow: Story = {
     docs: {
       description: {
         story:
-          "Prev/next arrows sit below the rail when the row overflows, so in-view cards stay fully tappable. Cards stretch so CTAs stay aligned."
+          "When the row overflows, left/right gutters hold the fade and arrows so they sit beside the cards, not over them. Cards stretch so CTAs stay aligned."
       },
     },
   },
@@ -158,7 +158,7 @@ export const NarrowViewport: Story = {
     docs: {
       description: {
         story:
-          "One peeking card plus controls below the row. Arrows never cover the visible card.",
+          "One peeking card plus side gutters. Fade and arrows sit on the padding, not over the in-view card.",
       },
     },
   },
