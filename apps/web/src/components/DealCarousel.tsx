@@ -75,13 +75,15 @@ export function DealCarousel({
 
   if (deals.length === 0) return null;
 
+  const showControls = canScrollLeft || canScrollRight;
+
   return (
-    <div className={cn("relative isolate", className)}>
+    <div className={cn("flex flex-col gap-3", className)}>
       <div
         id={listId}
         ref={scrollerRef}
         className={cn(
-          "relative z-0 flex w-full min-w-0 items-stretch gap-4 overflow-x-auto overscroll-x-contain pb-2 snap-x snap-mandatory",
+          "flex w-full min-w-0 items-stretch gap-4 overflow-x-auto overscroll-x-contain snap-x snap-mandatory",
           "[-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
         )}
         role="list"
@@ -103,46 +105,35 @@ export function DealCarousel({
         ))}
       </div>
 
-      <div
-        aria-hidden
-        className={cn(
-          "pointer-events-none absolute inset-y-0 left-0 z-10 w-12 bg-gradient-to-r from-background to-transparent transition-opacity duration-200 sm:w-16",
-          canScrollLeft ? "opacity-100" : "opacity-0",
-        )}
-      />
-      <div
-        aria-hidden
-        className={cn(
-          "pointer-events-none absolute inset-y-0 right-0 z-10 w-12 bg-gradient-to-l from-background to-transparent transition-opacity duration-200 sm:w-16",
-          canScrollRight ? "opacity-100" : "opacity-0",
-        )}
-      />
-
-      {canScrollLeft ? (
-        <Button
-          type="button"
-          variant="outline"
-          size="icon"
-          aria-controls={listId}
-          aria-label={`Scroll ${ariaLabel} backward`}
-          onClick={() => scrollByPage("prev")}
-          className="pointer-events-auto absolute top-1/2 left-1 z-30 -translate-y-1/2 border-foreground bg-card shadow-sm sm:left-2"
+      {showControls ? (
+        <div
+          role="group"
+          aria-label={`Scroll ${ariaLabel}`}
+          className="flex justify-end gap-2"
         >
-          <ChevronLeft />
-        </Button>
-      ) : null}
-      {canScrollRight ? (
-        <Button
-          type="button"
-          variant="outline"
-          size="icon"
-          aria-controls={listId}
-          aria-label={`Scroll ${ariaLabel} forward`}
-          onClick={() => scrollByPage("next")}
-          className="pointer-events-auto absolute top-1/2 right-1 z-30 -translate-y-1/2 border-foreground bg-card shadow-sm sm:right-2"
-        >
-          <ChevronRight />
-        </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            aria-controls={listId}
+            aria-label={`Scroll ${ariaLabel} backward`}
+            disabled={!canScrollLeft}
+            onClick={() => scrollByPage("prev")}
+          >
+            <ChevronLeft />
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            aria-controls={listId}
+            aria-label={`Scroll ${ariaLabel} forward`}
+            disabled={!canScrollRight}
+            onClick={() => scrollByPage("next")}
+          >
+            <ChevronRight />
+          </Button>
+        </div>
       ) : null}
     </div>
   );

@@ -132,13 +132,39 @@ export const Overflow: Story = {
     docs: {
       description: {
         story:
-          "Edge fade plus prev/next arrows when the row overflows. Cards stretch so CTAs stay aligned.",
+          "Prev/next arrows sit below the rail when the row overflows, so in-view cards stay fully tappable. Cards stretch so CTAs stay aligned."
       },
     },
   },
   decorators: [
     (Story) => (
       <div className="max-w-3xl">
+        <Story />
+      </div>
+    ),
+  ],
+};
+
+export const NarrowViewport: Story = {
+  args: {
+    deals: overflowDeals,
+    getHref: (deal) => `/deals/${deal.id}`,
+    homeSection: "gear",
+    ariaLabel: "Top gear deals",
+  },
+  parameters: {
+    layout: "padded",
+    viewport: { defaultViewport: "mobile1" },
+    docs: {
+      description: {
+        story:
+          "One peeking card plus controls below the row. Arrows never cover the visible card.",
+      },
+    },
+  },
+  decorators: [
+    (Story) => (
+      <div className="w-full max-w-sm">
         <Story />
       </div>
     ),
@@ -155,7 +181,7 @@ export const FitsWithoutScroll: Story = {
   parameters: {
     docs: {
       description: {
-        story: "Arrows and fade stay hidden when every card already fits.",
+        story: "Scroll controls stay hidden when every card already fits."
       },
     },
   },
