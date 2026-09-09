@@ -6,10 +6,14 @@ alwaysApply: false
 
 # Scraper Parser Standards
 
-- One file per store: `{storename}.ts` (e.g. `jensonusa.ts`, `worldwidecyclery.ts`)
+Canonical contract: [docs/specs/scrape-contract-zac-255.md](../../docs/specs/scrape-contract-zac-255.md) (fields, pagination / `X-Scrape-Truncated`, variant grain, errors, new-store “done” checklist). OOS: [docs/ideas/oos-policy-zac-256.md](../../docs/ideas/oos-policy-zac-256.md).
+
+- One file per store: `{storename}.ts` (e.g. `jensonusa.ts`, `worldwidecyclery.ts`); split `-plp.ts` / `-pdp.ts` when the grid is large
 - Export: `scrape{StoreName}(url: string): Promise<ScrapeResult[]>` for sale pages
 - Export: `enrich{StoreName}(url: string): Promise<EnrichResult>` for PDP (if store supports enrichment)
-- Use Playwright; launch browser via `getBrowser()` from scraper; avoid creating new browser per request
-- Match `ScrapeResult` schema: `store_sku`, `product_name`, `current_price`, `original_price`, `product_url`, `image_url`, `brand`, `category_path`, `is_in_stock`
-- Add store to `STORE_TYPES` in `types.ts` and register in `parsers/index.ts` (`PARSERS`, `ENRICHERS`)
+- Prefer **fetch + JSON/HTML** (Shopify `products.json`, Demandware ajax, OCC). Use Playwright only when the PLP is JS-hydrated or WAF-gated; launch via `getBrowser()` / `runWithBrowser`, do not create a new browser per request
+- Match `ScrapeResult` schema: `store_sku`, `product_name`, `current_price`, `original_price`, `product_url`, `image_url`, `brand`, `category_path`, `is_in_stock`, plus `product_group_key` / `variant_options` when a family exists
+- Throw on transport / WAF collapse; do not return `[]`. Stamp truncated when a page cap or empty-after-full stop happens
+- Add store to `STORE_TYPES` in `types.ts` and register in `parsers/index.ts` (`PARSERS`, `ENRICHERS`); PDP stores also go on API `StoreTypesWithEnrichers`
 - Insert store record in DB with matching `store_type` before scraping
+- Registration-only is not done — complete the contract checklist

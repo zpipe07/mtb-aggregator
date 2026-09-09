@@ -102,7 +102,7 @@ So the bug is **correctness** (false in-stock on `/deals`) as well as **waste** 
 
 ### Phase 3 — Docs / contract
 
-- ZAC-255 scrape contract cites `stock_from_plp`.
+- ZAC-255 scrape contract ([docs/specs/scrape-contract-zac-255.md](../specs/scrape-contract-zac-255.md)) cites `stock_from_plp`.
 - ZAC-253 enrichment notes: OOS stock-check is stock-only; classify/extract stay skipped.
 
 ## Not Doing (and Why)

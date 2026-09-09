@@ -1,6 +1,8 @@
 # Scraper Service Deep Dive
 
-The scraper is a Node.js Express server that uses Playwright to scrape MTB retailer sale pages and product detail pages.
+The scraper is a Node.js Express server that uses Playwright **or fetch** to scrape MTB retailer sale pages and product detail pages.
+
+**Shared scrape contract** (required fields, pagination completeness, variant grain, errors, “done” for a new store, and gaps vs current parsers): [docs/specs/scrape-contract-zac-255.md](specs/scrape-contract-zac-255.md). OOS / `stock_from_plp`: [docs/ideas/oos-policy-zac-256.md](ideas/oos-policy-zac-256.md).
 
 ## Endpoints
 
@@ -20,12 +22,17 @@ When `SCRAPER_SERVICE_SECRET` is set (recommended in production), `POST /scrape`
 
 ### Adding a New Store
 
-1. Create `parsers/{storename}.ts` with:
+Follow the **“done” checklist** in [the scrape contract](specs/scrape-contract-zac-255.md#what-done-means-for-a-new-store). Registration-only is not done.
+
+1. Pick a **store family** (Shopify JSON, Demandware grid, catalog API, …) and reuse its helpers.
+2. Create `parsers/{storename}.ts` with:
    - `scrape{StoreName}(url: string): Promise<ScrapeResult[]>` — sale page parser
-   - `enrich{StoreName}(url: string): Promise<EnrichResult>` — PDP parser (if store has detail pages)
-2. Add store to `STORE_TYPES` in `types.ts`
-3. Register in `parsers/index.ts`: `PARSERS` and optionally `ENRICHERS`
-4. Insert store record in DB (`stores` table) with `store_type` matching the key
+   - `enrich{StoreName}(url: string): Promise<EnrichResult>` — PDP parser (if the store has detail pages)
+3. Add store to `STORE_TYPES` in `types.ts`
+4. Register in `parsers/index.ts`: `PARSERS` and optionally `ENRICHERS`; if PDP exists, add `store_type` to API `StoreTypesWithEnrichers`
+5. Insert store record in DB (`stores` table) with `store_type` matching the key; add `make scrape-now-{store}`
+6. Exhaust pagination or set `X-Scrape-Truncated`; emit one row per purchasable SKU when the source lists SKUs; stamp `stock_from_plp` per [ZAC-256](ideas/oos-policy-zac-256.md) once that field exists
+7. Vitest fixtures (gitleaks-safe) + a manual `scrape-now` that does not HideStale the catalog on a thin run
 
 ### Test fixtures and CI (gitleaks)
 
@@ -68,7 +75,7 @@ This failure has recurred on each new Demandware store (Fox Racing #138, Bell #1
 }
 ```
 
-**Stock / OOS (ZAC-256, planned):** If the PLP has a real stock flag (Shopify `available`, Canyon limited-stock, Impact catalog, …), set `stock_from_plp: true` and emit OOS variants as rows with `is_in_stock: false` — do not skip them (Gravity Cartel / Ride Bicycles should match other Shopify stores). If the PLP always reports in-stock (Jenson, Trek, Specialized, Bell, Giro, Fox, UC), set `stock_from_plp: false` (or omit); the API will preserve existing `is_in_stock` on update. Restock for those stores is a stock-check PDP, not “scrape writes true.” Policy: [docs/ideas/oos-policy-zac-256.md](../ideas/oos-policy-zac-256.md).
+**Stock / OOS (ZAC-256, planned):** If the PLP has a real stock flag (Shopify `available`, Canyon limited-stock, Impact catalog, …), set `stock_from_plp: true` and emit OOS variants as rows with `is_in_stock: false` — do not skip them (Gravity Cartel / Ride Bicycles should match other Shopify stores). If the PLP always reports in-stock (Jenson, Trek, Specialized, Bell, Giro, Fox, UC), set `stock_from_plp: false` (or omit); the API will preserve existing `is_in_stock` on update. Restock for those stores is a stock-check PDP, not “scrape writes true.” Policy: [docs/ideas/oos-policy-zac-256.md](ideas/oos-policy-zac-256.md).
 
 **JensonUSA:** Each clearance product card’s `data-product-result-dto` includes a `variants` array (in addition to `selectedVariant`). The parser emits one result per variant so each sale price and SKU is stored; `product_group_key` is the parent `code`, and listing-side `variant_options` reflect whatever facets exist on the card (often **Color** only). **Full variant labels (e.g. Size) and per-variant stock** come from the PDP: the scraper’s `POST /enrich` for JensonUSA returns `variants[]` parsed from `serverSideViewModel.variants`, and the API updates all sibling rows for that `product_group_key`. After the first deploy with per-variant scrape rows, apply migration `025_jenson_hide_superseded_parent_listings.sql` so legacy parent-`store_sku` rows are hidden when longer variant SKUs exist on the same `product_url`.
 

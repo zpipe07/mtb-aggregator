@@ -154,6 +154,7 @@ Develop and document UI components in isolation. See [docs/ARCHITECTURE.md](docs
 - **[docs/MARKETING.md](docs/MARKETING.md)** — Go-to-market plan (SEO, community, content, social, email; success = traffic)
 - **[docs/SOCIAL.md](docs/SOCIAL.md)** — Instagram + Reddit posting plan and `/links` link-in-bio (ZAC-228)
 - **[docs/SCRAPING.md](docs/SCRAPING.md)** — Scraper deep dive, parser structure, adding stores
+- **[docs/specs/scrape-contract-zac-255.md](docs/specs/scrape-contract-zac-255.md)** — Shared scrape contract (fields, pagination, variants, new-store “done”)
 - **[docs/TAXONOMY.md](docs/TAXONOMY.md)** — Category taxonomy and mappings
 - **[docs/DESIGN.md](docs/DESIGN.md)** — Visual identity, copy, design tokens (current production)
 - **[docs/DESIGN_REDESIGN.md](docs/DESIGN_REDESIGN.md)** — In-progress redesign proposal: Trail Atlas vs Workshop Modern
