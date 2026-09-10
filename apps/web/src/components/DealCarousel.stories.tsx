@@ -132,7 +132,7 @@ export const Overflow: Story = {
     docs: {
       description: {
         story:
-          "When the row overflows, compact gutters hold arrows; the edge fade covers the peek of the next card. Disabled arrows use a muted fill. Cards stretch so CTAs stay aligned."
+          "When the row overflows, compact gutters hold arrows beside a peek of the next card. Disabled arrows keep the outline style at low opacity. Cards stretch so CTAs stay aligned."
       },
     },
   },
@@ -158,7 +158,7 @@ export const NarrowViewport: Story = {
     docs: {
       description: {
         story:
-          "Tighter gutters and smaller arrows on small screens. Fade covers the peek, not the in-view card CTAs.",
+          "Tighter gutters and smaller arrows on small screens. No edge fade — the peek and arrows are the scroll cue.",
       },
     },
   },

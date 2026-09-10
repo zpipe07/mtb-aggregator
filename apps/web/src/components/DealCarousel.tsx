@@ -20,8 +20,7 @@ type DealCarouselProps = {
   className?: string;
 };
 
-const railArrowClassName =
-  "disabled:border-muted-foreground/25 disabled:bg-muted disabled:text-muted-foreground/35 disabled:opacity-100";
+const railArrowClassName = "disabled:opacity-25";
 
 export function DealCarousel({
   deals,
@@ -84,8 +83,7 @@ export function DealCarousel({
     <div
       className={cn(
         "relative isolate min-w-0",
-        // Persistent gutters: arrows sit here. Fade spans gutter + peek so it
-        // actually overlays the clipped card (a gutter-only gradient is invisible).
+        // Persistent gutters: arrows sit beside the cards, not over them.
         showControls && "px-7 sm:px-11",
         className,
       )}
@@ -105,7 +103,7 @@ export function DealCarousel({
             key={deal.id}
             role="listitem"
             data-rail-item
-            className="flex w-[min(20rem,calc(100%-2.25rem))] shrink-0 snap-start self-stretch"
+            className="flex w-[min(20rem,calc(100%-1.75rem))] shrink-0 snap-start self-stretch"
           >
             <DealCard
               deal={deal}
@@ -115,21 +113,6 @@ export function DealCarousel({
           </div>
         ))}
       </div>
-
-      {canScrollLeft ? (
-        <div
-          aria-hidden
-          data-rail-fade="left"
-          className="pointer-events-none absolute inset-y-0 left-0 z-[1] w-16 bg-gradient-to-r from-background from-[10%] via-background/75 to-transparent sm:w-20"
-        />
-      ) : null}
-      {canScrollRight ? (
-        <div
-          aria-hidden
-          data-rail-fade="right"
-          className="pointer-events-none absolute inset-y-0 right-0 z-[1] w-16 bg-gradient-to-l from-background from-[10%] via-background/75 to-transparent sm:w-20"
-        />
-      ) : null}
 
       {showControls ? (
         <>
