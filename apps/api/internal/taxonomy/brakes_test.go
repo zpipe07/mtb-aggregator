@@ -194,4 +194,8 @@ func TestRefineListing_chainsWheelsAndBrakes(t *testing.T) {
 	if !slices.Equal(gotWheel, wantWheels) {
 		t.Fatalf("RefineListing(wheels) = %v, want Complete wheels", gotWheel)
 	}
+	gotApparel := RefineListing([]string{"Bikes", "Mountain Bikes"}, "Club Ride Apparel Drift Short - Women's Plum Perfect, S")
+	if !slices.Equal(gotApparel, []string{"Gear", "Clothing", "Shorts"}) {
+		t.Fatalf("RefineListing(apparel) = %v, want Shorts", gotApparel)
+	}
 }
