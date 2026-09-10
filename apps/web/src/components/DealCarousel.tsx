@@ -5,9 +5,18 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import posthog from "posthog-js";
 import type { Deal } from "../api";
 import { DealCard } from "./DealCard";
+import { ViewAllDealsCard } from "./ViewAllDealsCard";
 import { Button } from "./ui/button";
 import { cn } from "@/lib/utils";
 import { railOverflowState, railScrollStep } from "@/lib/railScroll";
+
+const railItemClassName =
+  "flex w-[min(20rem,calc(100%-1.75rem))] shrink-0 snap-start self-stretch";
+
+export type DealCarouselViewAll = {
+  href: string;
+  label: string;
+};
 
 type DealCarouselProps = {
   deals: Deal[];
@@ -15,6 +24,8 @@ type DealCarouselProps = {
   getHref: (deal: Deal) => string;
   /** PostHog `home_section` when rendered on the home page. */
   homeSection?: string;
+  /** Trailing card that continues the row onto the matching deals list. */
+  viewAll?: DealCarouselViewAll;
   /** Accessible label for the scroll region. */
   ariaLabel: string;
   className?: string;
@@ -26,13 +37,15 @@ export function DealCarousel({
   deals,
   getHref,
   homeSection,
+  viewAll,
   ariaLabel,
   className,
 }: DealCarouselProps) {
   const listId = useId();
   const scrollerRef = useRef<HTMLDivElement>(null);
+  const itemCount = deals.length + (viewAll ? 1 : 0);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [canScrollRight, setCanScrollRight] = useState(deals.length > 1);
+  const [canScrollRight, setCanScrollRight] = useState(itemCount > 1);
 
   const updateOverflow = useCallback(() => {
     const el = scrollerRef.current;
@@ -54,7 +67,7 @@ export function DealCarousel({
       el.removeEventListener("scroll", updateOverflow);
       ro.disconnect();
     };
-  }, [deals.length, updateOverflow]);
+  }, [itemCount, updateOverflow]);
 
   const scrollByPage = (direction: "prev" | "next") => {
     const el = scrollerRef.current;
@@ -103,7 +116,7 @@ export function DealCarousel({
             key={deal.id}
             role="listitem"
             data-rail-item
-            className="flex w-[min(20rem,calc(100%-1.75rem))] shrink-0 snap-start self-stretch"
+            className={railItemClassName}
           >
             <DealCard
               deal={deal}
@@ -112,6 +125,15 @@ export function DealCarousel({
             />
           </div>
         ))}
+        {viewAll ? (
+          <div role="listitem" data-rail-item className={railItemClassName}>
+            <ViewAllDealsCard
+              href={viewAll.href}
+              label={viewAll.label}
+              homeSection={homeSection}
+            />
+          </div>
+        ) : null}
       </div>
 
       {showControls ? (

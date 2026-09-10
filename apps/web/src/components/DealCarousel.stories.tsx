@@ -67,6 +67,10 @@ export const Default: Story = {
     deals: mockDeals,
     getHref: (deal) => `/deals/${deal.id}`,
     homeSection: "mtb",
+    viewAll: {
+      href: "/deals/c/bikes/mountain",
+      label: "View all mountain bikes",
+    },
     ariaLabel: "Top mountain bike deals",
   },
 };
@@ -126,13 +130,17 @@ export const Overflow: Story = {
     deals: overflowDeals,
     getHref: (deal) => `/deals/${deal.id}`,
     homeSection: "gear",
+    viewAll: {
+      href: "/deals/c/gear",
+      label: "View all gear",
+    },
     ariaLabel: "Top gear deals",
   },
   parameters: {
     docs: {
       description: {
         story:
-          "When the row overflows, compact gutters hold arrows beside a peek of the next card. Disabled arrows keep the outline style at low opacity. Cards stretch so CTAs stay aligned."
+          "When the row overflows, compact gutters hold arrows beside a peek of the next card. Disabled arrows keep the outline style at low opacity. Cards stretch so CTAs stay aligned. A View all card sits at the end of the rail.",
       },
     },
   },
@@ -150,6 +158,10 @@ export const NarrowViewport: Story = {
     deals: overflowDeals,
     getHref: (deal) => `/deals/${deal.id}`,
     homeSection: "gear",
+    viewAll: {
+      href: "/deals/c/gear",
+      label: "View all gear",
+    },
     ariaLabel: "Top gear deals",
   },
   parameters: {
@@ -185,4 +197,32 @@ export const FitsWithoutScroll: Story = {
       },
     },
   },
+};
+
+export const WithViewAllCard: Story = {
+  args: {
+    deals: mockDeals.slice(0, 2),
+    getHref: (deal) => `/deals/${deal.id}`,
+    homeSection: "mtb",
+    viewAll: {
+      href: "/deals/c/bikes/mountain",
+      label: "View all mountain bikes",
+    },
+    ariaLabel: "Top mountain bike deals",
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Each homepage rail ends with a View all card that links to the matching deals list.",
+      },
+    },
+  },
+  decorators: [
+    (Story) => (
+      <div className="max-w-5xl">
+        <Story />
+      </div>
+    ),
+  ],
 };

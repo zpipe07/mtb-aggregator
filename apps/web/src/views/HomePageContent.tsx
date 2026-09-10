@@ -14,14 +14,44 @@ import { CATEGORY_IMAGES } from "../lib/categoryImages";
 import { buildDealsCategoryPath } from "../lib/dealsCategoryPath";
 import type { Deal } from "../api";
 import type { HomeDealSection } from "../lib/homeDealSections";
-import { HOME_PRICE_DROPS_SECTION_ID } from "../lib/homeDealSections";
+import {
+  HOME_PRICE_DROPS_SECTION_ID,
+  HOME_PRICE_DROPS_VIEW_ALL_HREF,
+  HOME_PRICE_DROPS_VIEW_ALL_LABEL,
+} from "../lib/homeDealSections";
+import { captureHomeViewAllClicked } from "../lib/homeViewAllAnalytics";
 import { Button } from "../components/ui/button";
 import { cn, focusRing } from "@/lib/utils";
 import type { Giveaway } from "@/api";
 import { HomeGiveawaysStrip } from "@/components/HomeGiveawaysStrip";
 import { deriveGiveawayStatus } from "@/lib/giveawayStatus";
 
-/** Curated category labels for home page CTAs when API has few/empty categories */
+function HomeSectionViewAllLink({
+  href,
+  homeSection,
+}: {
+  href: string;
+  homeSection: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className={cn(
+        "rounded-sm font-mono text-xs font-semibold tracking-wide text-muted-foreground hover:text-foreground",
+        focusRing,
+      )}
+      onClick={() =>
+        captureHomeViewAllClicked({
+          navSource: "section_header",
+          homeSection,
+          href,
+        })
+      }
+    >
+      View all →
+    </Link>
+  );
+}
 const FALLBACK_CATEGORIES: { path: string; label: string }[] = [
   { path: "bikes-electric", label: "E-Bikes" },
   { path: "bikes-mountain", label: "Mountain Bikes" },
@@ -190,20 +220,19 @@ export function HomePageContent({
               </h2>
               <span className="mb-0.5 hidden h-px min-w-8 max-w-xs flex-1 bg-border sm:block" />
             </div>
-            <Link
-              href="/deals?sort=price_drop"
-              className={cn(
-                "rounded-sm font-mono text-xs font-semibold tracking-wide text-muted-foreground hover:text-foreground",
-                focusRing,
-              )}
-            >
-              View all →
-            </Link>
+            <HomeSectionViewAllLink
+              href={HOME_PRICE_DROPS_VIEW_ALL_HREF}
+              homeSection={HOME_PRICE_DROPS_SECTION_ID}
+            />
           </div>
           <DealCarousel
             deals={priceDropDeals}
             getHref={(deal) => dealDetailHref(deal.id)}
             homeSection={HOME_PRICE_DROPS_SECTION_ID}
+            viewAll={{
+              href: HOME_PRICE_DROPS_VIEW_ALL_HREF,
+              label: HOME_PRICE_DROPS_VIEW_ALL_LABEL,
+            }}
             ariaLabel="Recent price drops"
           />
         </section>
@@ -236,39 +265,41 @@ export function HomePageContent({
       {/* Top deals by category */}
       {visibleDealSections.length > 0 ? (
         <div className="space-y-10 lg:space-y-12">
-          {visibleDealSections.map((section, index) => (
-            <section key={section.id}>
-              <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
-                <div className="flex flex-wrap items-end gap-4">
-                  <span className="pb-0.5 font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                    {`// ${String(index + dealsStartNumber).padStart(2, "0")}`}
-                  </span>
-                  <h2 className="text-2xl font-semibold tracking-[-0.02em] text-foreground">
-                    {section.title}
-                  </h2>
-                  <span className="mb-0.5 hidden h-px min-w-8 max-w-xs flex-1 bg-border sm:block" />
+          {visibleDealSections.map((section, index) => {
+            const viewAllHref = buildDealsCategoryPath(
+              section.categorySlug,
+              categoryTree,
+            );
+            return (
+              <section key={section.id}>
+                <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+                  <div className="flex flex-wrap items-end gap-4">
+                    <span className="pb-0.5 font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                      {`// ${String(index + dealsStartNumber).padStart(2, "0")}`}
+                    </span>
+                    <h2 className="text-2xl font-semibold tracking-[-0.02em] text-foreground">
+                      {section.title}
+                    </h2>
+                    <span className="mb-0.5 hidden h-px min-w-8 max-w-xs flex-1 bg-border sm:block" />
+                  </div>
+                  <HomeSectionViewAllLink
+                    href={viewAllHref}
+                    homeSection={section.id}
+                  />
                 </div>
-                <Link
-                  href={buildDealsCategoryPath(
-                    section.categorySlug,
-                    categoryTree,
-                  )}
-                  className={cn(
-                    "rounded-sm font-mono text-xs font-semibold tracking-wide text-muted-foreground hover:text-foreground",
-                    focusRing,
-                  )}
-                >
-                  View all →
-                </Link>
-              </div>
-              <DealCarousel
-                deals={section.deals}
-                getHref={(deal) => dealDetailHref(deal.id)}
-                homeSection={section.id}
-                ariaLabel={section.title}
-              />
-            </section>
-          ))}
+                <DealCarousel
+                  deals={section.deals}
+                  getHref={(deal) => dealDetailHref(deal.id)}
+                  homeSection={section.id}
+                  viewAll={{
+                    href: viewAllHref,
+                    label: section.viewAllLabel,
+                  }}
+                  ariaLabel={section.title}
+                />
+              </section>
+            );
+          })}
         </div>
       ) : (
         <section>
