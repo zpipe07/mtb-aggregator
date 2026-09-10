@@ -105,7 +105,7 @@ export function DealCarousel({
             key={deal.id}
             role="listitem"
             data-rail-item
-            className="flex w-[min(20rem,calc(100%-1.75rem))] shrink-0 snap-start self-stretch"
+            className="flex w-[min(20rem,calc(100%-2.25rem))] shrink-0 snap-start self-stretch"
           >
             <DealCard
               deal={deal}
@@ -120,14 +120,14 @@ export function DealCarousel({
         <div
           aria-hidden
           data-rail-fade="left"
-          className="pointer-events-none absolute inset-y-0 left-0 z-[1] w-[3.5rem] bg-gradient-to-r from-background from-[1.75rem] to-transparent sm:w-[4.5rem] sm:from-[2.75rem]"
+          className="pointer-events-none absolute inset-y-0 left-0 z-[1] w-16 bg-gradient-to-r from-background from-[10%] via-background/75 to-transparent sm:w-20"
         />
       ) : null}
       {canScrollRight ? (
         <div
           aria-hidden
           data-rail-fade="right"
-          className="pointer-events-none absolute inset-y-0 right-0 z-[1] w-[3.5rem] bg-gradient-to-l from-background from-[1.75rem] to-transparent sm:w-[4.5rem] sm:from-[2.75rem]"
+          className="pointer-events-none absolute inset-y-0 right-0 z-[1] w-16 bg-gradient-to-l from-background from-[10%] via-background/75 to-transparent sm:w-20"
         />
       ) : null}
 
