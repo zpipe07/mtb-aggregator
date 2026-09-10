@@ -132,7 +132,7 @@ export const Overflow: Story = {
     docs: {
       description: {
         story:
-          "When the row overflows, left/right gutters hold the fade and arrows so they sit beside the cards, not over them. Cards stretch so CTAs stay aligned."
+          "When the row overflows, compact gutters hold arrows; the edge fade covers the peek of the next card. Disabled arrows use a muted fill. Cards stretch so CTAs stay aligned."
       },
     },
   },
@@ -158,7 +158,7 @@ export const NarrowViewport: Story = {
     docs: {
       description: {
         story:
-          "One peeking card plus side gutters. Fade and arrows sit on the padding, not over the in-view card.",
+          "Tighter gutters and smaller arrows on small screens. Fade covers the peek, not the in-view card CTAs.",
       },
     },
   },

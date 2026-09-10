@@ -20,6 +20,9 @@ type DealCarouselProps = {
   className?: string;
 };
 
+const railArrowClassName =
+  "disabled:border-muted-foreground/25 disabled:bg-muted disabled:text-muted-foreground/35 disabled:opacity-100";
+
 export function DealCarousel({
   deals,
   getHref,
@@ -81,10 +84,9 @@ export function DealCarousel({
     <div
       className={cn(
         "relative isolate min-w-0",
-        // Persistent gutters: fade + arrows sit on this padding, not on cards.
-        // Padding is on the wrapper (not the overflow scroller) so it stays
-        // visible mid-scroll.
-        showControls && "px-11",
+        // Persistent gutters: arrows sit here. Fade spans gutter + peek so it
+        // actually overlays the clipped card (a gutter-only gradient is invisible).
+        showControls && "px-7 sm:px-11",
         className,
       )}
     >
@@ -117,46 +119,76 @@ export function DealCarousel({
       {canScrollLeft ? (
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-y-0 left-0 w-11 bg-gradient-to-r from-background to-transparent"
+          data-rail-fade="left"
+          className="pointer-events-none absolute inset-y-0 left-0 z-[1] w-[3.5rem] bg-gradient-to-r from-background from-[1.75rem] to-transparent sm:w-[4.5rem] sm:from-[2.75rem]"
         />
       ) : null}
       {canScrollRight ? (
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-y-0 right-0 w-11 bg-gradient-to-l from-background to-transparent"
+          data-rail-fade="right"
+          className="pointer-events-none absolute inset-y-0 right-0 z-[1] w-[3.5rem] bg-gradient-to-l from-background from-[1.75rem] to-transparent sm:w-[4.5rem] sm:from-[2.75rem]"
         />
       ) : null}
 
       {showControls ? (
         <>
-          <div className="absolute top-1/2 left-1 z-10 -translate-y-1/2">
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              aria-controls={listId}
-              aria-label={`Scroll ${ariaLabel} backward`}
-              disabled={!canScrollLeft}
-              onClick={() => scrollByPage("prev")}
-            >
-              <ChevronLeft />
-            </Button>
-          </div>
-          <div className="absolute top-1/2 right-1 z-10 -translate-y-1/2">
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              aria-controls={listId}
-              aria-label={`Scroll ${ariaLabel} forward`}
-              disabled={!canScrollRight}
-              onClick={() => scrollByPage("next")}
-            >
-              <ChevronRight />
-            </Button>
-          </div>
+          <RailArrow
+            direction="prev"
+            listId={listId}
+            ariaLabel={ariaLabel}
+            disabled={!canScrollLeft}
+            onClick={() => scrollByPage("prev")}
+          />
+          <RailArrow
+            direction="next"
+            listId={listId}
+            ariaLabel={ariaLabel}
+            disabled={!canScrollRight}
+            onClick={() => scrollByPage("next")}
+          />
         </>
       ) : null}
+    </div>
+  );
+}
+
+function RailArrow({
+  direction,
+  listId,
+  ariaLabel,
+  disabled,
+  onClick,
+}: {
+  direction: "prev" | "next";
+  listId: string;
+  ariaLabel: string;
+  disabled: boolean;
+  onClick: () => void;
+}) {
+  const Icon = direction === "prev" ? ChevronLeft : ChevronRight;
+  return (
+    <div
+      className={cn(
+        "absolute top-1/2 z-10 -translate-y-1/2",
+        direction === "prev" ? "left-0 sm:left-1" : "right-0 sm:right-1",
+      )}
+    >
+      <Button
+        type="button"
+        variant="outline"
+        size="icon-xs"
+        aria-controls={listId}
+        aria-label={`Scroll ${ariaLabel} ${direction === "prev" ? "backward" : "forward"}`}
+        disabled={disabled}
+        onClick={onClick}
+        className={cn(
+          "sm:min-h-9 sm:min-w-9 sm:[&_svg:not([class*='size-'])]:size-4",
+          railArrowClassName,
+        )}
+      >
+        <Icon />
+      </Button>
     </div>
   );
 }
