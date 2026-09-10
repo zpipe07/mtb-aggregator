@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   extractBreadcrumbsFromHtml,
   isPlausibleCategoryLabel,
+  isTrustedShopifyProductType,
   resolveShopifyCategoryPath,
 } from "../shopify-helpers.js";
 
@@ -51,6 +52,38 @@ describe("resolveShopifyCategoryPath", () => {
     expect(resolveShopifyCategoryPath(null, null)).toBeNull();
     expect(resolveShopifyCategoryPath(undefined, "")).toBeNull();
   });
+
+  it("falls back to HTML breadcrumbs when product_type is the Ride Bicycles electric catch-all (ZAC-273)", () => {
+    expect(
+      resolveShopifyCategoryPath(
+        "Electric Commuter & Urban Bikes",
+        BREADCRUMB_HTML,
+      ),
+    ).toEqual(["Components"]);
+  });
+
+  it("returns null for the electric catch-all when there are no breadcrumbs", () => {
+    expect(
+      resolveShopifyCategoryPath("Electric Commuter & Urban Bikes", null),
+    ).toBeNull();
+  });
+});
+
+describe("isTrustedShopifyProductType", () => {
+  it("accepts real Shopify types", () => {
+    expect(isTrustedShopifyProductType("Shifters")).toBe(true);
+    expect(isTrustedShopifyProductType("Mountain Bike")).toBe(true);
+  });
+
+  it("rejects the Ride Bicycles electric catch-all", () => {
+    expect(isTrustedShopifyProductType("Electric Commuter & Urban Bikes")).toBe(
+      false,
+    );
+    expect(isTrustedShopifyProductType("  electric commuter & urban bikes  ")).toBe(
+      false,
+    );
+    expect(isTrustedShopifyProductType("")).toBe(false);
+  });
 });
 
 const BIKES_ONLINE_HEADLINE =
@@ -65,6 +98,12 @@ describe("isPlausibleCategoryLabel", () => {
 
   it("rejects Bikes Online collection marketing copy", () => {
     expect(isPlausibleCategoryLabel(BIKES_ONLINE_HEADLINE)).toBe(false);
+  });
+
+  it("rejects the Ride Bicycles electric catch-all collection label (ZAC-273)", () => {
+    expect(isPlausibleCategoryLabel("Electric Commuter & Urban Bikes")).toBe(
+      false,
+    );
   });
 });
 

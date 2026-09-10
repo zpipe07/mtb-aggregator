@@ -6,6 +6,7 @@ import {
   buildVariantOptions,
   type ShopifyProductWithOptions,
   type ShopifyVariantWithOptions,
+  isTrustedShopifyProductType,
   resolveShopifyCategoryPath,
 } from "./shopify-helpers.js";
 
@@ -167,8 +168,8 @@ export async function scrapeRideBicycles(
         const imageUrl =
           variant.featured_image?.src ?? product.images?.[0]?.src ?? null;
         const storeSku = variant.sku?.trim() || `v${variant.id}`;
-        const categoryPath = product.product_type
-          ? [product.product_type]
+        const categoryPath = isTrustedShopifyProductType(product.product_type)
+          ? [product.product_type.trim()]
           : null;
         const variantOpts = buildVariantOptions(product, variant);
 
