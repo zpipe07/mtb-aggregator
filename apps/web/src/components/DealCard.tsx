@@ -105,7 +105,7 @@ export function DealCard({
   const priceRow = (
     <div
       className={cn(
-        "flex items-end gap-3 border-t border-border pt-3",
+        "mt-auto flex items-end gap-3 border-t border-border pt-3",
         savings != null && savings > 0 ? "justify-between" : "justify-end",
       )}
     >
@@ -147,8 +147,8 @@ export function DealCard({
   );
 
   const body = (
-    <div className="space-y-3 p-4 pb-0">
-      <div className="space-y-1.5">
+    <div className="flex flex-1 flex-col gap-3 p-4 pb-0">
+      <div className="flex flex-col gap-1.5">
         {deal.brand && (
           <div className={cn(monoMicro, "text-muted-foreground")}>
             {"// "}
@@ -167,7 +167,7 @@ export function DealCard({
   );
 
   const footer = (
-    <div className="px-4 pb-4 pt-3">
+    <div className="mt-auto px-4 pb-4 pt-3">
       {href ? (
         <>
           <div className="flex flex-col gap-2">
@@ -294,7 +294,12 @@ export function DealCard({
   );
 
   return (
-    <div className={cn("relative pt-3 rounded-sm", focusRingWithin)}>
+    <div
+      className={cn(
+        "relative flex h-full min-h-full w-full flex-col self-stretch pt-3 rounded-sm",
+        focusRingWithin,
+      )}
+    >
       <span
         className={cn(
           "absolute right-4 top-0 z-10 max-w-[14rem] truncate rounded-t-sm border border-foreground border-b-0 bg-primary px-2 py-0.5",
@@ -309,7 +314,7 @@ export function DealCard({
 
       <article
         className={cn(
-          "group/card relative overflow-hidden rounded-sm border border-foreground bg-card transition-transform duration-200",
+          "group/card relative flex min-h-0 w-full flex-1 flex-col overflow-hidden rounded-sm border border-foreground bg-card transition-transform duration-200",
           "hover:-translate-y-0.5",
           href ? "" : "cursor-default",
         )}
@@ -319,7 +324,7 @@ export function DealCard({
           <>
             <Link
               href={href}
-              className="block rounded-sm text-left outline-none"
+              className="flex min-h-0 flex-1 flex-col rounded-sm text-left outline-none"
               onClick={handleInternalNavigate}
             >
               {imageBlock}
@@ -330,7 +335,7 @@ export function DealCard({
         ) : (
           <>
             {imageBlock}
-            <div className="space-y-0">
+            <div className="flex min-h-0 flex-1 flex-col">
               {body}
               {footer}
             </div>

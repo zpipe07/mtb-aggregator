@@ -8,26 +8,31 @@ type DealCardSkeletonProps = {
 /** Mirrors {@link DealCard} — store tab, 16:9 media on mobile, body, price row, stacked CTAs. */
 export function DealCardSkeleton({ className }: DealCardSkeletonProps) {
   return (
-    <div className={cn("relative pt-3 rounded-sm", className)}>
+    <div
+      className={cn(
+        "relative flex h-full min-h-full w-full flex-col self-stretch pt-3 rounded-sm",
+        className,
+      )}
+    >
       <Skeleton
         className={cn(
           "absolute right-4 top-0 z-10 h-6 w-36 max-w-[14rem] rounded-t-sm rounded-b-none",
           "border border-b-0 border-foreground bg-primary/35",
         )}
       />
-      <div className="relative overflow-hidden rounded-sm border border-foreground bg-card">
+      <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-sm border border-foreground bg-card">
         <Skeleton
           className={cn(
             "aspect-[16/9] w-full rounded-none border-b border-foreground sm:aspect-square",
           )}
         />
-        <div className="space-y-3 p-4 pb-0">
-          <div className="space-y-1.5">
+        <div className="flex flex-1 flex-col gap-3 p-4 pb-0">
+          <div className="flex flex-col gap-1.5">
             <Skeleton className="h-2.5 w-24" />
             <Skeleton className="h-4 w-full" />
             <Skeleton className="h-4 w-[92%]" />
           </div>
-          <div className="flex items-end justify-between gap-3 border-t border-border pt-3">
+          <div className="mt-auto flex items-end justify-between gap-3 border-t border-border pt-3">
             <div className="space-y-1">
               <Skeleton className="h-2 w-9" />
               <Skeleton className="h-3.5 w-14" />
