@@ -38,7 +38,11 @@ export function ViewAllDealsCard({
   homeSection,
 }: ViewAllDealsCardProps) {
   return (
-    <div className="relative flex h-full min-h-full w-full flex-col self-stretch pt-3">
+    <div
+      className={cn(
+        "relative flex h-full min-h-full w-full flex-col self-stretch pt-3 rounded-sm",
+      )}
+    >
       <span
         className={cn(
           "absolute right-4 top-0 z-10 rounded-t-sm border border-foreground border-b-0 bg-primary px-2 py-0.5",
@@ -66,32 +70,31 @@ export function ViewAllDealsCard({
         }
       >
         <CardCropMarks />
-        <span
-          aria-hidden
-          className="absolute inset-y-0 left-0 w-1 bg-primary"
-        />
 
-        <div className="flex min-h-0 flex-1 flex-col justify-center gap-4 p-4 pl-5">
-          <span
-            aria-hidden
-            className="flex size-12 items-center justify-center border border-foreground bg-primary text-foreground"
-          >
-            <ArrowRight className="size-6" strokeWidth={2.25} />
-          </span>
-          <div className="flex flex-col gap-2">
+        <div className="relative aspect-[16/9] overflow-hidden border-b border-foreground bg-muted sm:aspect-square">
+          <div className="flex h-full w-full flex-col items-center justify-center gap-3">
+            <span
+              aria-hidden
+              className="flex size-14 items-center justify-center border border-foreground bg-primary text-foreground shadow-[2px_2px_0_var(--foreground)]"
+            >
+              <ArrowRight className="size-7" strokeWidth={2.25} />
+            </span>
             <span className={cn(monoMicro, "text-muted-foreground")}>
               {"// keep going"}
             </span>
-            <h2 className="text-xl font-semibold leading-snug tracking-tight text-foreground">
-              {label}
-            </h2>
-            <p className="text-sm leading-relaxed text-muted-foreground">
-              See the rest of today&apos;s sales on the deals page.
-            </p>
           </div>
         </div>
 
-        <div className="mt-auto px-4 pb-4 pt-3 pl-5">
+        <div className="flex flex-1 flex-col gap-3 p-4 pb-0">
+          <h2 className="line-clamp-2 text-base font-medium leading-snug tracking-tight text-foreground sm:text-xl sm:font-semibold">
+            {label}
+          </h2>
+          <p className="text-sm leading-relaxed text-muted-foreground">
+            See the rest of today&apos;s sales on the deals page.
+          </p>
+        </div>
+
+        <div className="mt-auto px-4 pb-4 pt-3">
           <span
             aria-hidden
             className={cn(
