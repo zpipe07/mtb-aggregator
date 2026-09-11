@@ -120,7 +120,7 @@ Hot paths (`GetLLMPromptProfileForCategory*`, `GetLLMPromptProfileByID`) hydrate
 | `apps/api/internal/metadata/`   | Spec extraction from enriched data                                             |
 | `apps/scraper/src/parsers/`     | One parser per store                                                           |
 | `apps/web/src/components/ui/`   | shadcn primitives (Button, Input, Card, Drawer/Vaul, etc.)                     |
-| `apps/web/src/components/`      | Composed components (DealCard, DealCarousel, VariantChips, CategoryCard, Pagination, etc.)   |
+| `apps/web/src/components/`      | Composed components (DealCard, DealCarousel, ViewAllDealsCard, VariantChips, CategoryCard, Pagination, etc.)   |
 | `apps/web/.storybook/`          | Storybook config, preview decorators                                           |
 
 ## Component Library
@@ -151,7 +151,7 @@ Add new primitives via `pnpm dlx shadcn@latest add <component>` in `apps/web`.
 
 ### Composed Components
 
-High-level components (DealCard, DealCarousel, VariantChips, CategoryCard, Pagination, SearchBar, FilterSelect) use the primitives. Deal cards stretch in grids and homepage rails so price + CTAs stay aligned; overflowing rails keep a peek of the next card and reserve left/right gutters (tighter on small screens) for prev/next arrows. When adding or changing UI, prefer primitives over raw HTML and add Storybook stories.
+High-level components (DealCard, DealCarousel, ViewAllDealsCard, VariantChips, CategoryCard, Pagination, SearchBar, FilterSelect) use the primitives. Deal cards stretch in grids and homepage rails so price + CTAs stay aligned; overflowing rails keep a peek of the next card and reserve left/right gutters (tighter on small screens) for prev/next arrows. Each homepage rail ends with a View all card linking to the matching deals list. When adding or changing UI, prefer primitives over raw HTML and add Storybook stories.
 
 ### SEO (metadata)
 
@@ -177,6 +177,7 @@ Weekly unique visitors, outbound clicks, and referring domains: pinned **[Weekly
 
 - `deal_card_click` — user opens deal detail (`deal_id`, `store`, `brand`, `list_surface`, `in_stock_size_count`, `in_stock_color_count`)
 - `home_rail_scrolled` — homepage carousel arrow (`direction`: `prev` | `next`, `nav_source: "arrow"`, optional `home_section`)
+- `home_view_all_clicked` — homepage “View all” CTA (`nav_source`: `section_header` | `rail_end_card`, `href`, optional `home_section`)
 - `deal_detail_viewed` — deal PDP mount (same identity fields plus `in_stock_variant_count`)
 - `deal_outbound_click` — user clicks through to retailer (`cta`, `deal_id`, `store`, `brand`, `list_surface`). Prefer this over retired `view_deal` / `view_at_store`.
 - `filter_applied` — store, brand, category, sort, min_discount, spec, or **giveaway kind chips** (`filter_type: "giveaway_kind"`, `value`: `all` | `giveaway` | `raffle`)
