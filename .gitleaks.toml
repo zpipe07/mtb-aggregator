@@ -3,18 +3,22 @@ title = "mtb-aggregator gitleaks"
 [extend]
 useDefault = true
 
-# Scraper vitest fixtures are captured retailer HTML/JSON. Sanitize live widget keys
-# before commit (see docs/SCRAPING.md#test-fixtures-and-ci-gitleaks); this allowlist
-# avoids false positives on placeholder values and multi-commit PR fixups.
-[[allowlists]]
-description = "Scraper parser test fixtures"
+# Global [allowlist] is what gitleaks 8.24.x (CI: gitleaks-action@v3) parses.
+# [[allowlists]] is rule-scoped syntax and is ignored at file scope.
+#
+# Paths skip those files entirely. Regexes skip a finding when the captured
+# secret matches (default regexTarget is the secret, not the whole line).
+[allowlist]
+description = "Known false positives"
 paths = [
+  # Scraper vitest fixtures are captured retailer HTML/JSON. Sanitize live
+  # widget keys before commit (see docs/SCRAPING.md#test-fixtures-and-ci-gitleaks).
   '''(?:^|/)apps/scraper/src/parsers/__fixtures__/''',
+  # IndexNow ownership key is public by protocol (hosted at /{key}.txt).
+  # https://www.indexnow.org/documentation
+  '''(?:^|/)apps/web/public/5130963c54f0f6fab8dede8ea6f6e38c\.txt$''',
 ]
-
-# IndexNow ownership key is public by protocol (hosted at /{key}.txt).
-[[allowlists]]
-description = "IndexNow public key"
 regexes = [
+  # Same IndexNow key in source (`generic-api-key` matches INDEXNOW_KEY = "...").
   '''5130963c54f0f6fab8dede8ea6f6e38c''',
 ]
