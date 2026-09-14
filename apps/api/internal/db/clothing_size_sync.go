@@ -7,7 +7,8 @@ import (
 	"github.com/mtb-aggregator/api/internal/metadata"
 )
 
-// SyncClothingSizeFromVariant copies normalized variant Size into metadata.llm_specs.clothing_size.
+// SyncClothingSizeFromVariant copies normalized variant Size into metadata.llm_specs.clothing_size
+// and splits stored size charts into individual values.
 func (db *DB) SyncClothingSizeFromVariant(ctx context.Context, listingID int) error {
 	var meta []byte
 	var variantOpts []byte
@@ -34,15 +35,20 @@ func ApplyClothingSizeToListingMetadata(meta []byte, variantOptions []byte) []by
 	return metadata.ApplyClothingSizeFromVariant(meta, variantOptions)
 }
 
-// BackfillClothingSizeFromVariants sets llm_specs.clothing_size from variant_options for all listings with Size.
+// BackfillClothingSizeFromVariants sets llm_specs.clothing_size from variant_options
+// and re-normalizes stored clothing_size (splits comma size charts into arrays).
 func (db *DB) BackfillClothingSizeFromVariants(ctx context.Context) (int, error) {
 	rows, err := db.pool.Query(ctx, `
 		SELECT id, COALESCE(metadata, '{}'::jsonb), COALESCE(variant_options, '{}'::jsonb)
 		FROM store_listings
-		WHERE variant_options IS NOT NULL
-		  AND variant_options <> '{}'::jsonb
-		  AND variant_options <> 'null'::jsonb
-		  AND (variant_options ? 'Size' OR variant_options ? 'size')
+		WHERE (
+			variant_options IS NOT NULL
+			AND variant_options <> '{}'::jsonb
+			AND variant_options <> 'null'::jsonb
+			AND (variant_options ? 'Size' OR variant_options ? 'size')
+		) OR (
+			metadata->'llm_specs' ? 'clothing_size'
+		)
 	`)
 	if err != nil {
 		return 0, err
