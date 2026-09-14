@@ -4,10 +4,16 @@ import {
   unstable_expirePath,
   unstable_expireTag,
 } from "next/cache";
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
+import * as Sentry from "@sentry/nextjs";
 import { validateAdminBearer } from "@/lib/adminAuth";
 import { parseRevalidateTarget } from "@/lib/parseRevalidateTarget";
 import { PUBLIC_DATA_CACHE_TAG } from "@/lib/revalidate";
+import {
+  coreIndexNowUrls,
+  indexNowUrlForPath,
+  submitIndexNow,
+} from "@/lib/indexNow";
 
 export const dynamic = "force-dynamic";
 
@@ -111,6 +117,20 @@ export async function POST(request: Request) {
   if (body.purge_all) {
     expirePath("/", "layout");
   }
+
+  const indexNowUrls = body.purge_all
+    ? coreIndexNowUrls()
+    : targets.map((t) => indexNowUrlForPath(t.pathname));
+  after(() => {
+    void submitIndexNow(indexNowUrls).then((result) => {
+      if (result.status === "error") {
+        Sentry.captureException(new Error(result.message), {
+          tags: { integration: "indexnow", trigger: "revalidate" },
+          extra: { httpStatus: result.httpStatus },
+        });
+      }
+    });
+  });
 
   return NextResponse.json({
     ok: true,

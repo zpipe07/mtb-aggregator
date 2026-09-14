@@ -11,3 +11,10 @@ description = "Scraper parser test fixtures"
 paths = [
   '''(?:^|/)apps/scraper/src/parsers/__fixtures__/''',
 ]
+
+# IndexNow ownership key is public by protocol (hosted at /{key}.txt).
+[[allowlists]]
+description = "IndexNow public key"
+regexes = [
+  '''5130963c54f0f6fab8dede8ea6f6e38c''',
+]

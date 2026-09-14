@@ -38,7 +38,8 @@ Operator work plus one small copy/data change. Not a feature sprint.
   2. Add `https://thedropper.shop` or domain `thedropper.shop`.
   3. Verify — prefer **import from Google Search Console** if offered (`sc-domain:thedropper.shop` already exists). Otherwise a DNS TXT at Porkbun.
   4. Submit sitemap `https://thedropper.shop/sitemap.xml`.
-  5. Check crawl/index later. Do not expect citations the same day.
+  5. **IndexNow:** after the key file is live at `https://thedropper.shop/5130963c54f0f6fab8dede8ea6f6e38c.txt`, connect/verify that key in Webmaster (the Dropper submits production URLs via `/cron/indexnow` and admin revalidate).
+  6. Check crawl/index later. Do not expect citations the same day.
 - **Answer-shaped eMTB intro** on the existing `bikes-emtb` copy in [`apps/web/src/lib/categorySeo.ts`](../../apps/web/src/lib/categorySeo.ts) — dated count, price range, 2–3 example deals. Pick this _or_ a live markdown snapshot linked from `llms.txt`, not both in v1.
 - **Weekly log** (spreadsheet or appendix): date, agent, prompt, cited Y/N, URL if any, other sources named.
 
