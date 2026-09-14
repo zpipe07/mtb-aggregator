@@ -8,6 +8,8 @@ import {
   inStockDealVariants,
   inStockPriceRange,
   limitChips,
+  orderedVariantOptionEntries,
+  sizeFromStoreSku,
   summarizeDealSizeChips,
   summarizeInStockVariantChips,
 } from "./inStockVariantChips";
@@ -268,6 +270,87 @@ describe("summarizeInStockVariantChips", () => {
     );
   });
 
+  it("infers Size from Jenson SKU suffixes when options are color-only (ZAC-276)", () => {
+    const deal: Deal = {
+      ...baseDeal,
+      store_name: "JensonUSA",
+      store_sku: "BI005147 RED/BLACK XL",
+      product_name: "Marin Alpine Trail E1 Bosch E-Bike",
+      variant_options: { Color: "Red/Black" },
+      variants: [
+        row({
+          id: 1,
+          store_sku: "BI005147 RED/BLACK M",
+          variant_options: { Color: "Red/Black" },
+        }),
+        row({
+          id: 2,
+          store_sku: "BI005147 RED/BLACK XL",
+          variant_options: { Color: "Red/Black" },
+        }),
+      ],
+    };
+    const summary = summarizeInStockVariantChips(deal)!;
+    expect(summary.sizes.map((c) => c.label)).toEqual(["M", "XL"]);
+    expect(compactChipGroup(summary)?.kind).toBe("size");
+    expect(orderedVariantOptionEntries(deal.variants![1]!.variant_options, deal.variants![1]!.store_sku)).toEqual([
+      ["Size", "XL"],
+      ["Color", "Red/Black"],
+    ]);
+  });
+
+  it("prefers SKU size over llm_specs.bike_size pulled from a size chart", () => {
+    const deal: Deal = {
+      ...baseDeal,
+      store_sku: "BI004260 BLUE SZ4",
+      variant_options: { Color: "Blue" },
+      metadata: { llm_specs: { bike_size: "S1" } },
+      variants: [
+        row({
+          id: 1,
+          store_sku: "BI004260 BLUE SZ4",
+          variant_options: { Color: "Blue" },
+        }),
+      ],
+    };
+    const summary = summarizeDealSizeChips(deal)!;
+    expect(summary.sizes.map((c) => c.label)).toEqual(["S4"]);
+    expect(compactChipGroup(summary)?.kind).toBe("size");
+  });
+
+  it("does not invent a size from a color-only SKU with no size token", () => {
+    const deal: Deal = {
+      ...baseDeal,
+      variants: [
+        row({
+          id: 1,
+          store_sku: "ST192A02 RED",
+          variant_options: { Color: "Red" },
+        }),
+      ],
+    };
+    const summary = summarizeInStockVariantChips(deal)!;
+    expect(summary.sizes).toEqual([]);
+    expect(summary.colors.map((c) => c.label)).toEqual(["Red"]);
+    expect(compactChipGroup(summary)?.kind).toBe("color");
+  });
+
+  it("does not override an existing Size option with the SKU suffix", () => {
+    const deal: Deal = {
+      ...baseDeal,
+      variants: [
+        row({
+          id: 1,
+          store_sku: "BI005147 RED/BLACK XL",
+          variant_options: { Color: "Red/Black", Size: "Extra Large" },
+        }),
+      ],
+    };
+    expect(summarizeInStockVariantChips(deal)!.sizes.map((c) => c.label)).toEqual(
+      ["Extra Large"],
+    );
+  });
+
   it("prefers size over color for compact cards and caps overflow", () => {
     const deal: Deal = {
       ...baseDeal,
@@ -332,6 +415,15 @@ describe("extracted bike_size", () => {
     expect(summarizeDealSizeChips(deal)?.sizes.map((c) => c.label)).toEqual([
       "XL",
     ]);
+  });
+
+  it("parses Jenson SKU size suffixes", () => {
+    expect(sizeFromStoreSku("BI005147 RED/BLACK XL")).toBe("XL");
+    expect(sizeFromStoreSku("BI004260 BLUE SZ4")).toBe("S4");
+    expect(sizeFromStoreSku("JE002563 CREAM S")).toBe("S");
+    expect(sizeFromStoreSku("SP002690 RED BLACK WHITE 22")).toBe("22");
+    expect(sizeFromStoreSku("ST192A02 RED")).toBeNull();
+    expect(sizeFromStoreSku("210000062051")).toBeNull();
   });
 
   it("hides extracted size when the listing is sold out", () => {

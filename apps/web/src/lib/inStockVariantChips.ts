@@ -78,6 +78,78 @@ function optionKind(key: string): "size" | "color" | "other" {
   return "other";
 }
 
+const SPECIALIZED_SIZE = /^S[1-6]$/;
+const NORCO_SZ = /^SZ[1-6]$/;
+const NUMERIC_SIZE = /^\d{1,2}(?:\.\d{1,2})?(?:cm|mm|in)?$/i;
+
+function looksLikeSizeToken(raw: string): boolean {
+  const t = raw.trim();
+  if (!t || /[/:,|]/.test(t)) return false;
+  if (t.toLowerCase() in WORD_SIZE_RANK) return true;
+  const compact = t.toUpperCase().replace(/[\s-]/g, "");
+  if (compact in LETTER_SIZE_RANK) return true;
+  if (SPECIALIZED_SIZE.test(compact) || NORCO_SZ.test(compact)) return true;
+  return NUMERIC_SIZE.test(t);
+}
+
+function normalizeInferredSize(raw: string): string {
+  const compact = raw.trim().toUpperCase().replace(/[\s-]/g, "");
+  const sz = compact.match(/^SZ([1-6])$/);
+  if (sz) return `S${sz[1]}`;
+  const s = compact.match(/^S([1-6])$/);
+  if (s) return `S${s[1]}`;
+  return raw.trim();
+}
+
+/** Last whitespace token of a Jenson-style SKU (`BI005147 RED/BLACK XL` → XL). */
+export function sizeFromStoreSku(
+  storeSku: string | null | undefined,
+): string | null {
+  if (!storeSku) return null;
+  const parts = storeSku.trim().split(/\s+/).filter(Boolean);
+  if (parts.length < 2) return null;
+  const last = parts[parts.length - 1]!;
+  if (!looksLikeSizeToken(last)) return null;
+  return normalizeInferredSize(last);
+}
+
+export function effectiveVariantOptions(
+  options: Record<string, string> | null | undefined,
+  storeSku?: string | null,
+): Record<string, string> {
+  const out: Record<string, string> = {};
+  if (isRecord(options)) {
+    for (const [rawKey, rawVal] of Object.entries(options)) {
+      const key = rawKey.trim();
+      const val = String(rawVal ?? "").trim();
+      if (key && val) out[key] = val;
+    }
+  }
+  const hasSize = Object.keys(out).some((k) => optionKind(k) === "size");
+  if (!hasSize) {
+    const inferred = sizeFromStoreSku(storeSku);
+    if (inferred) out.Size = inferred;
+  }
+  return out;
+}
+
+/** Size first, then color, then remaining keys — for the deal PDP table. */
+export function orderedVariantOptionEntries(
+  options: Record<string, string> | null | undefined,
+  storeSku?: string | null,
+): [string, string][] {
+  const effective = effectiveVariantOptions(options, storeSku);
+  return Object.entries(effective).toSorted(([a], [b]) => {
+    const rank = (k: string) => {
+      const kind = optionKind(k);
+      if (kind === "size") return 0;
+      if (kind === "color") return 1;
+      return 2;
+    };
+    return rank(a) - rank(b) || a.localeCompare(b);
+  });
+}
+
 /** Specialized and similar stores store swatch hex in Color; skip those as chips. */
 function isMachineColorLabel(label: string): boolean {
   const parts = label.split(/[\s:/|,]+/).filter(Boolean);
@@ -207,8 +279,8 @@ export function summarizeInStockVariantChips(
   const otherByKey = new Map<string, Map<string, VariantChip>>();
 
   for (const row of inStock) {
-    const options = isRecord(row.variant_options) ? row.variant_options : null;
-    if (!options) continue;
+    const options = effectiveVariantOptions(row.variant_options, row.store_sku);
+    if (Object.keys(options).length === 0) continue;
     for (const [rawKey, rawVal] of Object.entries(options)) {
       const key = rawKey.trim();
       const val = String(rawVal ?? "").trim();

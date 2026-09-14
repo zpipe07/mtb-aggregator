@@ -72,6 +72,46 @@ export const InStockVariantTable: Story = {
   },
 };
 
+/** Jenson color-only options: table still lists Size inferred from the SKU (ZAC-276). */
+export const JensonColorOnlySkuSizes: Story = {
+  args: {
+    deal: {
+      id: 1888806,
+      store_id: 1,
+      store_name: "JensonUSA",
+      store_sku: "BI005147 RED/BLACK XL",
+      product_name: "Marin Alpine Trail E1 Bosch E-Bike",
+      current_price: 3644.27,
+      original_price: 5699,
+      product_url: "https://example.com/alpine",
+      image_url: "https://placehold.co/400x400/1a1a1a/fff?text=Alpine",
+      brand: "Marin Bikes",
+      is_in_stock: true,
+      discount_pct: 36,
+      last_scraped: "2026-09-01T12:00:00Z",
+      variant_count: 2,
+      variant_options: { Color: "Red/Black" },
+      variants: [
+        row({
+          id: 1888805,
+          store_sku: "BI005147 RED/BLACK M",
+          variant_options: { Color: "Red/Black" },
+          current_price: 3644.27,
+          original_price: 5699,
+        }),
+        row({
+          id: 1888806,
+          store_sku: "BI005147 RED/BLACK XL",
+          variant_options: { Color: "Red/Black" },
+          current_price: 3644.27,
+          original_price: 5699,
+        }),
+      ],
+    },
+    categoryTree: [],
+  },
+};
+
 /** One in-stock size (sold-out siblings hidden) — still show the table. */
 export const SingleInStockVariant: Story = {
   args: {

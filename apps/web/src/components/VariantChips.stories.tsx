@@ -119,6 +119,48 @@ export const CompactOverflow: Story = {
   ],
 };
 
+export const JensonSkuInferredSizes: Story = {
+  args: {
+    density: "compact",
+    deal: {
+      ...baseDeal,
+      store_name: "JensonUSA",
+      store_sku: "BI005147 RED/BLACK XL",
+      product_name: "Marin Alpine Trail E1 Bosch E-Bike",
+      brand: "Marin Bikes",
+      variant_count: 2,
+      variant_options: { Color: "Red/Black" },
+      variants: [
+        row({
+          id: 1,
+          store_sku: "BI005147 RED/BLACK M",
+          variant_options: { Color: "Red/Black" },
+        }),
+        row({
+          id: 2,
+          store_sku: "BI005147 RED/BLACK XL",
+          variant_options: { Color: "Red/Black" },
+        }),
+      ],
+    },
+  },
+  decorators: [
+    (Story) => (
+      <div className="w-80">
+        <Story />
+      </div>
+    ),
+  ],
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Jenson clearance cards often store Color only; compact chips infer Size from the SKU suffix (ZAC-276).",
+      },
+    },
+  },
+};
+
 export const ColorsOnly: Story = {
   args: {
     density: "detail",
