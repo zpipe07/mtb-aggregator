@@ -14,6 +14,7 @@ import { formatMoney } from "@/lib/formatMoney";
 import {
   displayPriceRange,
   inStockDealVariants,
+  orderedVariantOptionEntries,
   summarizeDealSizeChips,
 } from "@/lib/inStockVariantChips";
 import { Button } from "@/components/ui/button";
@@ -82,6 +83,35 @@ type Props = {
   categoryBrowseHref?: string;
   categoryBrowseLabel?: string;
 };
+
+function VariantOptionBadges({
+  options,
+  storeSku,
+}: {
+  options: Record<string, string> | null | undefined;
+  storeSku: string;
+}) {
+  const optionEntries = orderedVariantOptionEntries(options, storeSku);
+  if (optionEntries.length === 0) {
+    return <span className="text-muted-foreground">—</span>;
+  }
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {optionEntries.map(([k, val]) => (
+        <span
+          key={k}
+          className={cn(
+            "inline-flex items-baseline gap-1 rounded-sm border border-foreground/40 bg-card px-2 py-0.5",
+            monoMicro,
+          )}
+        >
+          <span className="text-muted-foreground">{k}</span>
+          <span className="font-medium text-foreground">{val}</span>
+        </span>
+      ))}
+    </div>
+  );
+}
 
 function DealDetailContentInner({
   deal,
@@ -403,31 +433,10 @@ function DealDetailContentInner({
                           className="transition-colors hover:bg-muted/40"
                         >
                           <td className="px-3 py-3 align-top">
-                            {v.variant_options &&
-                            Object.keys(v.variant_options).length > 0 ? (
-                              <div className="flex flex-wrap gap-1.5">
-                                {Object.entries(v.variant_options).map(
-                                  ([k, val]) => (
-                                    <span
-                                      key={k}
-                                      className={cn(
-                                        "inline-flex items-baseline gap-1 rounded-sm border border-foreground/40 bg-card px-2 py-0.5",
-                                        monoMicro,
-                                      )}
-                                    >
-                                      <span className="text-muted-foreground">
-                                        {k}
-                                      </span>
-                                      <span className="font-medium text-foreground">
-                                        {val}
-                                      </span>
-                                    </span>
-                                  ),
-                                )}
-                              </div>
-                            ) : (
-                              <span className="text-muted-foreground">—</span>
-                            )}
+                            <VariantOptionBadges
+                              options={v.variant_options}
+                              storeSku={v.store_sku}
+                            />
                           </td>
                           <td className="px-3 py-3 align-top text-right tabular-nums">
                             <span className="font-mono font-semibold text-foreground">

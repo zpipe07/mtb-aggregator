@@ -167,7 +167,7 @@ Scrape-time job: emit rows the deals UI can group (`GET /deals?group_variants=tr
 | Pattern | When to use | `store_sku` | `product_group_key` | `variant_options` | Follow-up |
 | --- | --- | --- | --- | --- | --- |
 | **PLP-complete** | Catalog lists every buyable SKU | Variant SKU | Product handle / parent id | All option axes from the same payload | PDP only for specs / breadcrumbs |
-| **PLP-partial** | Card has variants but incomplete axes (Jenson Color-only) | Variant code | Parent code | Whatever the card has | PDP `variants[]` + API fan-out (stock + missing Size) |
+| **PLP-partial** | Card has variants but incomplete axes (Jenson Color-only) | Variant code | Parent code | Card facets, plus Size inferred from the code suffix when missing | PDP `variants[]` + API fan-out (stock + missing Size). Scrape upsert merges option maps so Color-only PLP cannot wipe Size |
 | **Tile-then-fan-out** | Grid is color (or parent) only | Tile pid / `{master}-{color}` / parent id | Master / style / product id | Color if known | PDP `variants[]` + `Apply*VariantFanout`; hide superseded parent if children appear |
 | **Catalog-flat** | Impact SKUs, no family | Catalog item id | Unset until PDP `hasVariant` | Unset until PDP | Admin / `backfill-cc-variants` (WAF) |
 

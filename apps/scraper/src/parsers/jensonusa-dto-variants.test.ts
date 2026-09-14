@@ -97,21 +97,93 @@ describe("parseProductDtoVariants", () => {
     expect(rows).toHaveLength(3);
     expect(rows[0]!.sku).toBe("ST192A02BLK  50");
     expect(rows[0]!.currentPrice).toBe(69.99);
-    expect(rows[0]!.variantOptions).toEqual({ Color: "Black" });
+    expect(rows[0]!.variantOptions).toEqual({ Color: "Black", Size: "50" });
     expect(rows[0]!.productGroupKey).toBe("ST192A02");
 
     expect(rows[1]!.sku).toBe("ST192A02 RED 50");
     expect(rows[1]!.currentPrice).toBe(49.99);
-    expect(rows[1]!.variantOptions).toEqual({ Color: "Red" });
+    expect(rows[1]!.variantOptions).toEqual({ Color: "Red", Size: "50" });
 
     expect(rows[2]!.sku).toBe("ST192A02 GREEN 32");
     expect(rows[2]!.currentPrice).toBe(49.99);
-    expect(rows[2]!.variantOptions).toEqual({ Color: "Green" });
+    expect(rows[2]!.variantOptions).toEqual({ Color: "Green", Size: "32" });
   });
 
   it("preserves internal spacing in variant code (outer trim only)", () => {
     const rows = parseProductDtoVariants(MULTI_VARIANT_DTO);
     expect(rows[0]!.sku).toContain("  ");
+  });
+
+  it("infers Size from the variant code when the DTO only has Color", () => {
+    const dto: JensonProductDto = {
+      name: "Marin Alpine Trail E1 Bosch E-Bike",
+      url: "/marin-alpine-trail-e1-bosch-e-bike-2024",
+      code: "BI005147",
+      variants: [
+        {
+          code: "BI005147 RED/BLACK XL",
+          color: "Red/Black",
+          listPrice: { amount: 3644.27 },
+          msrpPrice: { amount: 5699 },
+        },
+        {
+          code: "BI004260 BLUE SZ4",
+          color: "Blue",
+          listPrice: { amount: 2999.94 },
+          msrpPrice: { amount: 5999 },
+        },
+      ],
+    };
+    const rows = parseProductDtoVariants(dto);
+    expect(rows).toHaveLength(2);
+    expect(rows[0]!.variantOptions).toEqual({
+      Color: "Red/Black",
+      Size: "XL",
+    });
+    expect(rows[1]!.variantOptions).toEqual({
+      Color: "Blue",
+      Size: "S4",
+    });
+  });
+
+  it("does not invent Size when the code has no size token", () => {
+    const dto: JensonProductDto = {
+      name: "Race Face Stem",
+      url: "/stem",
+      code: "ST192A02",
+      variants: [
+        {
+          code: "ST192A02 RED",
+          color: "Red",
+          listPrice: { amount: 49.99 },
+          msrpPrice: { amount: 115.99 },
+        },
+      ],
+    };
+    expect(parseProductDtoVariants(dto)[0]!.variantOptions).toEqual({
+      Color: "Red",
+    });
+  });
+
+  it("does not override a DTO size with the SKU suffix", () => {
+    const dto: JensonProductDto = {
+      name: "Marin Alpine Trail E1 Bosch E-Bike",
+      url: "/marin-alpine-trail",
+      code: "BI005147",
+      variants: [
+        {
+          code: "BI005147 RED/BLACK XL",
+          color: "Red/Black",
+          size: { value: "Extra Large", sortOrder: 1 },
+          listPrice: { amount: 3644.27 },
+          msrpPrice: { amount: 5699 },
+        },
+      ],
+    };
+    expect(parseProductDtoVariants(dto)[0]!.variantOptions).toEqual({
+      Color: "Red/Black",
+      Size: "Extra Large",
+    });
   });
 
   it("includes color and structured size when both present", () => {

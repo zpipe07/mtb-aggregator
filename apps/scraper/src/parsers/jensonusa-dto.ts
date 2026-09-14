@@ -118,6 +118,92 @@ export function extractVariantDimensions(
   return Object.keys(out).length > 0 ? out : null;
 }
 
+const LETTER_SIZE_TOKENS = new Set([
+  "XXS",
+  "XS",
+  "S",
+  "SM",
+  "M",
+  "MD",
+  "L",
+  "LG",
+  "XL",
+  "XXL",
+  "XXXL",
+  "3XL",
+  "4XL",
+  "5XL",
+]);
+
+const WORD_SIZE_TOKENS = new Set([
+  "xx-small",
+  "xxs",
+  "extra extra small",
+  "x-small",
+  "xsmall",
+  "extra small",
+  "small",
+  "medium",
+  "large",
+  "x-large",
+  "xlarge",
+  "extra large",
+  "xx-large",
+  "xxlarge",
+  "2x-large",
+  "2xlarge",
+  "extra extra large",
+  "xxx-large",
+  "xxxlarge",
+  "3x-large",
+  "3xlarge",
+]);
+
+function looksLikeSizeToken(raw: string): boolean {
+  const t = raw.trim();
+  if (!t || /[/:,|]/.test(t)) return false;
+  if (WORD_SIZE_TOKENS.has(t.toLowerCase())) return true;
+  const compact = t.toUpperCase().replace(/[\s-]/g, "");
+  if (LETTER_SIZE_TOKENS.has(compact)) return true;
+  if (/^S[1-6]$/.test(compact) || /^SZ[1-6]$/.test(compact)) return true;
+  return /^\d{1,2}(?:\.\d{1,2})?(?:cm|mm|in)?$/i.test(t);
+}
+
+function normalizeInferredSize(raw: string): string {
+  const compact = raw.trim().toUpperCase().replace(/[\s-]/g, "");
+  const sz = compact.match(/^SZ([1-6])$/);
+  if (sz) return `S${sz[1]}`;
+  const s = compact.match(/^S([1-6])$/);
+  if (s) return `S${s[1]}`;
+  return raw.trim();
+}
+
+/** Last whitespace token of a Jenson variant code (`BI005147 RED/BLACK XL` → XL). */
+export function sizeFromVariantCode(code: string | null | undefined): string | null {
+  if (!code) return null;
+  const parts = code.trim().split(/\s+/).filter(Boolean);
+  if (parts.length < 2) return null;
+  const last = parts[parts.length - 1]!;
+  if (!looksLikeSizeToken(last)) return null;
+  return normalizeInferredSize(last);
+}
+
+function variantHasSize(dims: Record<string, string>): boolean {
+  return Object.keys(dims).some((k) => /\bsize\b/i.test(k));
+}
+
+function withInferredSize(
+  dims: Record<string, string> | null,
+  code: string,
+): Record<string, string> | null {
+  const out = { ...(dims ?? {}) };
+  if (!variantHasSize(out)) {
+    const inferred = sizeFromVariantCode(code);
+    if (inferred) out.Size = inferred;
+  }
+  return Object.keys(out).length > 0 ? out : null;
+}
+
 /**
  * Extract original_price (MSRP) from DTO. Uses msrpPrice - the actual JensonUSA field.
  * Fallback: parse "MSRP $X" from container text.
@@ -320,8 +406,9 @@ export function parseProductDtoVariants(
       imageUrlFromDom,
     );
 
-    const variantOptions = extractVariantDimensions(
-      variant as Record<string, unknown>,
+    const variantOptions = withInferredSize(
+      extractVariantDimensions(variant as Record<string, unknown>),
+      sku,
     );
 
     out.push({
