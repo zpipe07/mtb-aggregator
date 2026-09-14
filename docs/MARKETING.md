@@ -111,7 +111,7 @@ The technical baseline is already built. Do not open a second SEO workstream. Ex
   - `/deals/hub/mountain-bikes-under-3000`
   - `/deals/hub/emtbs-under-5000`
 - After deploys: GSC URL Inspection → Request indexing on those URLs only.
-- One-time: Bing Webmaster Tools + sitemap (Copilot / Perplexity often retrieve via Bing). See [AI citation](ideas/ai-agent-citation.md).
+- One-time: Bing Webmaster Tools + sitemap (Copilot / Perplexity often retrieve via Bing). IndexNow key is hosted at `https://thedropper.shop/5130963c54f0f6fab8dede8ea6f6e38c.txt`; connect it in Webmaster after deploy. See [AI citation](ideas/ai-agent-citation.md).
 - On-page: dated, answer-shaped intros (count, price range, 2–3 example deals) on eMTB first, then mountain bikes. That copy is for Google **and** agents.
 
 **Do not:** explode filter combinations into URLs, publish thin “best of” guides to chase SERPs we cannot win, or add more Product/Offer schema sitewide.

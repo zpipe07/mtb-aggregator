@@ -58,7 +58,7 @@ GitHub Actions runs **Lighthouse CI** in the parallel `web` job against `http://
 - **Google Search Console MCP** — Stop anything on port 3000, then run `npx --yes --package=google-searchconsole-mcp gsc-mcp-auth` once (tokens in `~/.gsc-mcp/tokens/`).
 - **PageSpeed Insights MCP** — The `pagespeed-insights-mcp` package requires **`GOOGLE_API_KEY`** at startup (`Environment validation failed` if unset). In [Google Cloud Console](https://console.cloud.google.com/apis/credentials), enable **PageSpeed Insights API**, create an **API key**, then in **Cursor → Settings → MCP** edit the `pagespeed-insights` server and set env **`GOOGLE_API_KEY`**. **Do not put the key in [`.cursor/mcp.json`](../../.cursor/mcp.json)** (committed config); use Cursor’s MCP env UI or a local-only override so the key never lands in git. Restrict the key to that API in Google Cloud when possible. The repo sets **`NODE_ENV=production`** for this server so it does not load the `pino-pretty` transport (which is missing under `npx` and causes `unable to determine transport target for "pino-pretty"`). If you override env in Cursor, keep **`NODE_ENV=production`** (or install `pino-pretty` globally—prefer `NODE_ENV`).
 
-**Bing:** Submit the same sitemap URL in [Bing Webmaster Tools](https://www.bing.com/webmasters) for Bing/Copilot coverage (manual one-time setup).
+**Bing / IndexNow:** After deploy, Bing can fetch the public ownership key at [`https://thedropper.shop/5130963c54f0f6fab8dede8ea6f6e38c.txt`](https://thedropper.shop/5130963c54f0f6fab8dede8ea6f6e38c.txt) (file in [`public/5130963c54f0f6fab8dede8ea6f6e38c.txt`](public/5130963c54f0f6fab8dede8ea6f6e38c.txt); the key is public by design). Connect IndexNow in [Bing Webmaster Tools](https://www.bing.com/webmasters) against that key. Production-only URL submit lives in [`src/lib/indexNow.ts`](src/lib/indexNow.ts): Vercel Cron `GET /cron/indexnow` daily at 07:15 UTC (set `CRON_SECRET` on the Vercel project so the platform sends `Authorization: Bearer …`), or `POST /cron/indexnow` with admin Bearer / `X-Cron-Secret`. Preview/staging never submit. Admin cache purge also pings IndexNow for those paths. Submit the same sitemap URL in Bing Webmaster for crawl coverage.
 
 - **`security/detect-object-injection`** is **off**. Typed `Record` / object-key lookups in filter and admin code are not prototype-pollution vectors; the rule produced dozens of Vercel build warnings without catching real issues. Other `eslint-plugin-security` recommended rules stay on.
 
@@ -108,7 +108,11 @@ Do these in order after changing DNS/domains or fixing indexing issues:
    curl -sI https://thedropper.shop/deals | head -n 5
    curl -s https://thedropper.shop/ | grep -E 'rel="canonical"|property="og:url"'
    curl -s https://thedropper.shop/robots.txt
+   curl -s https://thedropper.shop/5130963c54f0f6fab8dede8ea6f6e38c.txt
    ```
+
+6. **Bing Webmaster — IndexNow**  
+   Confirm the key file body is exactly `5130963c54f0f6fab8dede8ea6f6e38c` (optional trailing newline). In Bing Webmaster → IndexNow, connect/verify that key. Set `CRON_SECRET` on the Vercel **web** project (may reuse the API value) so daily `/cron/indexnow` is authenticated. Optional kill switch: `INDEXNOW_SUBMIT=0`.
 
 ## Custom domain (Vercel + DNS at Porkbun or any registrar)
 
