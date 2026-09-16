@@ -1,4 +1,5 @@
-// backfill-clothing-size copies normalized variant_options Size into metadata.llm_specs.clothing_size.
+// backfill-clothing-size copies normalized variant_options Size into metadata.llm_specs.clothing_size
+// and splits leftover LLM size charts ("S, M, L, XL") into individual values (ZAC-248).
 //
 // From repo root: make backfill-clothing-size
 package main

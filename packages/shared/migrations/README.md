@@ -57,6 +57,7 @@ Override the migrations directory: `MIGRATIONS_DIR=path/to/migrations make db-mi
 | `057_component_parts_categories.sql` | ZAC-271: rename Components › * › **Parts** to **`{Parent} parts`**, `hide_from_nav`, classifier rubrics, high-priority small-hardware mappings, product-name backfill, classifier system-prompt rule. Restart API after apply. |
 | `058_brakesets_not_small_parts.sql` | ZAC-272: expand Brake parts keywords (cables, adapters, lever parts) so they beat bare `brake` → Brakesets; product-name + path backfill; copy confident `llm_category` Brake parts onto canonical. Pair with `taxonomy.RefineBrakes`. Restart API after apply. |
 | `059_electric_not_parts_or_analog_mtb.sql` | ZAC-273: Ride Bicycles `Electric Commuter & Urban Bikes` product_type dumped parts and analog MTBs onto Electric Bikes. Classifier rubrics; copy confident `llm_category` off the Electric tree (including hidden rows); title backfill analog bikes / framesets; null leftover parts. Pair with `taxonomy.RefineElectric` and scraper untrusted product_type. Restart API after apply. |
+| `060_clothing_size_multi_enum.sql` | ZAC-248: `clothing_size` is `multi_enum` so comma-separated size charts split into array elements and the Size filter lists S, M, 32, … not `"S, M, L, XL"`. Re-run **`make backfill-clothing-size`**. |
 | `049_giveaways.sql` | ZAC-47: `giveaways` table for curated MTB giveaways and raffles (unique `slug` / `entry_url`). Admin CRUD; not scraped. |
 | `050_bike_size_extraction.sql` | ZAC-241: `bike_size` field def (filterable + extractable) and Bikes parent LLM profile so frame size is extracted and faceted; Mountain/Frames/BMX prompts get the size rubric. |
 | `051_bike_size_cross_discipline.sql` | ZAC-241 follow-up: keep `bike_size` a **scalar enum** (one size per listing row; in-stock sets stay on chips) and expand values for road/gravel **cm** and BMX **top-tube** inches. Inherited by all Bikes children. |
@@ -68,6 +69,8 @@ Override the migrations directory: `MIGRATIONS_DIR=path/to/migrations make db-mi
 After 019, run **`make backfill-field-library`** once (from repo root) to rename ambiguous `type` / `material` keys in `extraction_schema` and `metadata.llm_specs`, seed shared defs, and populate `llm_prompt_profile_fields`.
 
 After 041, run **`make backfill-clothing-size`** to populate `metadata.llm_specs.clothing_size` from existing `variant_options` Size values.
+
+After **060**, re-run **`make backfill-clothing-size`** so leftover LLM size charts (`S, M, L, XL`) become JSON arrays of individual sizes, then **restart the API** so the `multi_enum` field def is used.
 
 After 050, run **`make backfill-bike-size`** to populate `metadata.llm_specs.bike_size` from variant Size on Bikes-tree listings, then **restart the API** so the new Bikes profile is used on the next LLM pass.
 
