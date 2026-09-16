@@ -146,7 +146,7 @@ make backfill-brands                 # Re-apply brand_aliases.json to store_list
 make backfill-canonical-categories   # Recategorize after taxonomy changes (skips manual override; confident llm_category skips path remap). After 052 (helmet parts), 054 (CC apparel vs bikes), 056 (wheelsets/rims vs Tires), 057 (component parts), or 058 (brakesets vs small parts), restart the API first so mappings/rubrics reload. Title refine still runs (ZAC-263 Wheels/Tires, ZAC-272 Brakesets).
 make backfill-bikesonline-clothing-protective   # Bikes Online Clothing & Protective Gear → LLM Protection/Helmets/Gloves (DRY_RUN=1 preview)
 make backfill-llm-specs              # Populate llm_specs from specs
-make backfill-clothing-size          # After 041/059: copy normalized variant Size into llm_specs.clothing_size; split comma size charts (ZAC-248)
+make backfill-clothing-size          # After 041/060: copy normalized variant Size into llm_specs.clothing_size; split comma size charts (ZAC-248)
 make backfill-bike-size              # After migration 050/051: copy normalized variant Size into llm_specs.bike_size (Bikes tree; cm + TT)
 make backfill-field-library          # After migration 019: rename ambiguous keys, seed field defs, fill profile_fields
 make backfill-variant-options        # After migration 021: fetch Shopify JSON to fill variant_options for existing rows

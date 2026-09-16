@@ -71,15 +71,34 @@ export function buildVariantOptions(
 }
 
 /**
+ * Ride Bicycles (and similar) use this Shopify product_type as a junk default
+ * for pads, tools, locks, and analog MTBs (ZAC-273). It is also a collection
+ * nav label, not a shoppable product category.
+ */
+const UNTRUSTED_SHOPIFY_PRODUCT_TYPES = new Set([
+  "electric commuter & urban bikes",
+]);
+
+/** True when Shopify product_type is non-empty and not a known catch-all. */
+export function isTrustedShopifyProductType(
+  productType: string | undefined | null,
+): boolean {
+  const t = productType?.replace(/\s+/g, " ").trim();
+  if (!t) return false;
+  return !UNTRUSTED_SHOPIFY_PRODUCT_TYPES.has(t.toLowerCase());
+}
+
+/**
  * Prefer Shopify `product_type` from `/products/{handle}.json` for category_path.
- * HTML breadcrumbs are a fallback when product_type is missing (JSON-LD, DOM, collection links).
+ * HTML breadcrumbs are a fallback when product_type is missing or untrusted
+ * (JSON-LD, DOM, collection links).
  */
 export function resolveShopifyCategoryPath(
   productType: string | undefined | null,
   html: string | null,
 ): string[] | null {
-  if (productType && productType.trim()) {
-    return [productType.trim()];
+  if (isTrustedShopifyProductType(productType)) {
+    return [productType!.trim()];
   }
   return html ? extractBreadcrumbsFromHtml(html) : null;
 }
@@ -96,6 +115,8 @@ export function isPlausibleCategoryLabel(text: string): boolean {
   if (words.length > 8) return false;
   if (/conquer every|with a lightweight|dream ride|sale ends/i.test(t))
     return false;
+  // Ride Bicycles catch-all collection / product_type (ZAC-273).
+  if (/^electric commuter\s*(&|and)\s*urban bikes$/i.test(t)) return false;
   return true;
 }
 
