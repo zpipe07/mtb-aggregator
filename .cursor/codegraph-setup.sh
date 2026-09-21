@@ -7,13 +7,31 @@ export PATH="${HOME}/.local/bin:/usr/local/bin:${PATH}"
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
-if ! command -v codegraph >/dev/null 2>&1; then
-  echo "Installing CodeGraph CLI..."
-  # /usr/local/bin is already on the cloud image PATH (unlike ~/.local/bin).
-  CODEGRAPH_BIN_DIR="${CODEGRAPH_BIN_DIR:-/usr/local/bin}" \
-  CODEGRAPH_INSTALL_DIR="${CODEGRAPH_INSTALL_DIR:-/usr/local/lib/codegraph}" \
+install_codegraph_cli() {
+  local bin_dir install_dir
+  if [[ -n "${CODEGRAPH_BIN_DIR:-}" && -n "${CODEGRAPH_INSTALL_DIR:-}" ]]; then
+    bin_dir="${CODEGRAPH_BIN_DIR}"
+    install_dir="${CODEGRAPH_INSTALL_DIR}"
+  elif mkdir -p /usr/local/lib/codegraph /usr/local/bin 2>/dev/null \
+    && [[ -w /usr/local/bin && -w /usr/local/lib/codegraph ]]; then
+    # Dockerfile / root install: /usr/local/bin is already on the cloud image PATH.
+    bin_dir=/usr/local/bin
+    install_dir=/usr/local/lib/codegraph
+  else
+    # Build/install often runs as ubuntu; /usr/local is root-only.
+    bin_dir="${HOME}/.local/bin"
+    install_dir="${HOME}/.local/lib/codegraph"
+  fi
+
+  echo "Installing CodeGraph CLI to ${bin_dir}..."
+  mkdir -p "${bin_dir}" "${install_dir}"
+  CODEGRAPH_BIN_DIR="${bin_dir}" CODEGRAPH_INSTALL_DIR="${install_dir}" \
     sh -c 'curl -fsSL https://raw.githubusercontent.com/colbymchenry/codegraph/main/install.sh | sh'
-  export PATH="/usr/local/bin:${HOME}/.local/bin:${PATH}"
+  export PATH="${bin_dir}:${HOME}/.local/bin:/usr/local/bin:${PATH}"
+}
+
+if ! command -v codegraph >/dev/null 2>&1; then
+  install_codegraph_cli
 fi
 
 if ! command -v codegraph >/dev/null 2>&1; then
