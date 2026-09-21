@@ -62,7 +62,29 @@ const FIXED_VARIANT_FIELDS = new Set([
   "gtin",
   "savingPercent",
   "order",
+  "schemaStockStatus",
 ]);
+
+const SCHEMA_ORG_URL = /^https?:\/\/schema\.org\//i;
+
+/** Schema.org / Shopify dummy dimensions that must not become variant chips. */
+export function isJunkVariantDimensionKey(raw: string): boolean {
+  const k = raw.trim().toLowerCase().replace(/[\s_-]+/g, " ");
+  const compact = raw.trim().toLowerCase().replace(/[\s_-]+/g, "");
+  return (
+    k === "title" ||
+    k === "schema stock status" ||
+    k.startsWith("schema ") ||
+    compact.startsWith("schema")
+  );
+}
+
+export function isJunkVariantDimensionValue(raw: string): boolean {
+  const v = raw.trim();
+  if (!v) return true;
+  if (v.toLowerCase() === "default title") return true;
+  return SCHEMA_ORG_URL.test(v);
+}
 
 function parsePriceFromText(text: string): number | null {
   const m = (text || "").replace(/,/g, "").match(/\$?([\d.]+)/);
@@ -109,11 +131,11 @@ export function extractVariantDimensions(
 ): Record<string, string> | null {
   const out: Record<string, string> = {};
   for (const [k, val] of Object.entries(variant)) {
-    if (FIXED_VARIANT_FIELDS.has(k)) continue;
+    if (FIXED_VARIANT_FIELDS.has(k) || isJunkVariantDimensionKey(k)) continue;
     const s = extractDimensionString(val);
-    if (s == null) continue;
+    if (s == null || isJunkVariantDimensionValue(s)) continue;
     const label = dimensionKeyToLabel(k);
-    if (label) out[label] = s;
+    if (label && !isJunkVariantDimensionKey(label)) out[label] = s;
   }
   return Object.keys(out).length > 0 ? out : null;
 }

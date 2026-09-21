@@ -527,6 +527,22 @@ func matchVariantOptions(data *shopifyProductJSON, storeSKU string) (map[string]
 	return nil, false
 }
 
+func isPlaceholderVariantOption(name, value string) bool {
+	n := strings.Join(strings.Fields(strings.ToLower(strings.ReplaceAll(strings.ReplaceAll(name, "_", " "), "-", " "))), " ")
+	compact := strings.ToLower(strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(name, " ", ""), "_", ""), "-", ""))
+	v := strings.Join(strings.Fields(strings.ToLower(value)), " ")
+	if n == "" || v == "" {
+		return true
+	}
+	if n == "title" || v == "default title" {
+		return true
+	}
+	if n == "schema stock status" || strings.HasPrefix(n, "schema ") || strings.HasPrefix(compact, "schema") {
+		return true
+	}
+	return strings.HasPrefix(v, "http://schema.org/") || strings.HasPrefix(v, "https://schema.org/")
+}
+
 func buildVariantOptionMap(data *shopifyProductJSON, v *shopifyVariantJSON) map[string]string {
 	names := data.Product.Options
 	vals := []*string{v.Option1, v.Option2, v.Option3}
@@ -539,19 +555,27 @@ func buildVariantOptionMap(data *shopifyProductJSON, v *shopifyVariantJSON) map[
 		if vals[i] == nil || strings.TrimSpace(*vals[i]) == "" {
 			continue
 		}
-		out[n] = strings.TrimSpace(*vals[i])
+		val := strings.TrimSpace(*vals[i])
+		if isPlaceholderVariantOption(n, val) {
+			continue
+		}
+		out[n] = val
 	}
 	if len(out) == 0 {
 		fallbackNames := []string{"Option 1", "Option 2", "Option 3"}
 		for i := 0; i < 3; i++ {
 			if vals[i] != nil && strings.TrimSpace(*vals[i]) != "" {
-				out[fallbackNames[i]] = strings.TrimSpace(*vals[i])
+				val := strings.TrimSpace(*vals[i])
+				if isPlaceholderVariantOption(fallbackNames[i], val) {
+					continue
+				}
+				out[fallbackNames[i]] = val
 			}
 		}
 	}
 	if len(out) == 0 && v.Title != nil {
 		t := strings.TrimSpace(*v.Title)
-		if t != "" && strings.ToLower(t) != "default title" {
+		if t != "" && !isPlaceholderVariantOption("Variant", t) {
 			out["Variant"] = t
 		}
 	}

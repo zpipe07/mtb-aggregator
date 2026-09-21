@@ -66,6 +66,28 @@ const WORD_SIZE_RANK: Record<string, number> = {
 
 const COMPACT_CHIP_LIMIT = 6;
 
+const SCHEMA_ORG_URL = /^https?:\/\/schema\.org\//i;
+
+function normalizeOptionToken(raw: string): string {
+  return raw.trim().toLowerCase().replace(/[\s_-]+/g, " ");
+}
+
+/** Shopify "Title" / "Default Title" and schema.org feed leftovers (ZAC-278, ZAC-281). */
+export function isPlaceholderVariantOption(
+  key: string,
+  value: string,
+): boolean {
+  const k = normalizeOptionToken(key);
+  const compact = key.trim().toLowerCase().replace(/[\s_-]+/g, "");
+  const v = value.trim().toLowerCase().replace(/\s+/g, " ");
+  if (!k || !v) return true;
+  if (k === "title" || v === "default title") return true;
+  if (k === "schema stock status" || k.startsWith("schema ") || compact.startsWith("schema")) {
+    return true;
+  }
+  return SCHEMA_ORG_URL.test(value.trim());
+}
+
 function isRecord(value: unknown): value is Record<string, string> {
   return value != null && typeof value === "object" && !Array.isArray(value);
 }
@@ -122,7 +144,8 @@ export function effectiveVariantOptions(
     for (const [rawKey, rawVal] of Object.entries(options)) {
       const key = rawKey.trim();
       const val = String(rawVal ?? "").trim();
-      if (key && val) out[key] = val;
+      if (!key || !val || isPlaceholderVariantOption(key, val)) continue;
+      out[key] = val;
     }
   }
   const hasSize = Object.keys(out).some((k) => optionKind(k) === "size");
