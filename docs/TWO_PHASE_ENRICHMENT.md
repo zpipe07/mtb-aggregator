@@ -1,5 +1,7 @@
 # Two-Phase Enrichment Architecture
 
+**Historical.** Current cadence, skip rules, and store capability matrix: [docs/specs/enrichment-normalization-zac-253.md](specs/enrichment-normalization-zac-253.md). Operational split (drainer + scrape-triggered LLM): [docs/ideas/enrichment-split-zac-171.md](ideas/enrichment-split-zac-171.md). This note predates `listing_enrichment` and the 30-day resident PDP drainer.
+
 For data that requires visiting product detail pages (PDPs)—e.g. full category breadcrumb, specs, description—use a two-phase approach instead of enriching during the main scrape.
 
 ## Phase 1: Listing Scrape (Current)

@@ -61,6 +61,8 @@ Under **Bikes**, **BMX Bikes** is a dedicated leaf (migration `039`) for complet
 
 ## Data Flow
 
+Enrichment step order, skip, and store capability matrix: [docs/specs/enrichment-normalization-zac-253.md](specs/enrichment-normalization-zac-253.md).
+
 1. **Enrichment**: Scraper returns `category_path` (breadcrumb array) from PDP.
 2. **Path-based taxonomy**: `taxonomy.Map` derives a candidate `canonical_category` and `category_id` from mappings by matching the **most specific** `category_path` segment first — **unless** `metadata.llm_category` already records a confident prior classification (`confidence` ≥ threshold from `LLM_CATEGORY_PRESERVE_THRESHOLD` or the classifier row, default `0.5`), in which case only `category_path` is refreshed and LLM-owned `canonical_category` / `category_id` are preserved until the classifier runs again successfully. Scrape ingest, PDP map, and recategorize then run **`taxonomy.RefineListing`** (`RefineWheelsTires` then `RefineBrakes` then `RefineApparel` then `RefineElectric`) on that candidate (or, when LLM is preserved, on the existing path) so wheelset/rim titles cannot stay on Tires (ZAC-263), brake cables/olives/adapters cannot stay on Brakesets (ZAC-272), apparel titles cannot stay on Bikes (ZAC-264), and analog MTBs / parts cannot stay on Electric (ZAC-273). Admin **Recategorize** / `make backfill-canonical-categories` skips `manual_category_override`; confident `llm_category` still skips **path** remap but title refine still runs.
 3. **LLM classifier** (if enabled): Overwrites `canonical_category` / `category_id` when output confidence ≥ threshold; otherwise stores audit metadata only.

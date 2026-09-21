@@ -2,7 +2,7 @@
 
 The scraper is a Node.js Express server that uses Playwright **or fetch** to scrape MTB retailer sale pages and product detail pages.
 
-**Shared scrape contract** (required fields, pagination completeness, variant grain, errors, “done” for a new store, and gaps vs current parsers): [docs/specs/scrape-contract-zac-255.md](specs/scrape-contract-zac-255.md). Variant identity (SKU / group key / Size-Color / parent–child): [docs/specs/variant-identity-zac-254.md](specs/variant-identity-zac-254.md). OOS / `stock_from_plp`: [docs/ideas/oos-policy-zac-256.md](ideas/oos-policy-zac-256.md).
+**Shared scrape contract** (required fields, pagination completeness, variant grain, errors, “done” for a new store, and gaps vs current parsers): [docs/specs/scrape-contract-zac-255.md](specs/scrape-contract-zac-255.md). Variant identity (SKU / group key / Size-Color / parent–child): [docs/specs/variant-identity-zac-254.md](specs/variant-identity-zac-254.md). PDP / LLM enrich (inputs, skip, idempotency): [docs/specs/enrichment-normalization-zac-253.md](specs/enrichment-normalization-zac-253.md). OOS / `stock_from_plp`: [docs/ideas/oos-policy-zac-256.md](ideas/oos-policy-zac-256.md).
 
 ## Endpoints
 
@@ -22,7 +22,7 @@ When `SCRAPER_SERVICE_SECRET` is set (recommended in production), `POST /scrape`
 
 ### Adding a New Store
 
-Follow the **“done” checklist** in [the scrape contract](specs/scrape-contract-zac-255.md#what-done-means-for-a-new-store). Registration-only is not done.
+Follow the **“done” checklist** in [the scrape contract](specs/scrape-contract-zac-255.md#what-done-means-for-a-new-store) and, if the store has a PDP, [the enrichment contract](specs/enrichment-normalization-zac-253.md#what-done-means-for-a-new-store-enrich). Registration-only is not done.
 
 1. Pick a **store family** (Shopify JSON, Demandware grid, catalog API, …) and reuse its helpers.
 2. Create `parsers/{storename}.ts` with:

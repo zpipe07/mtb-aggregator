@@ -6,7 +6,7 @@ alwaysApply: false
 
 # Scraper Parser Standards
 
-Canonical contract: [docs/specs/scrape-contract-zac-255.md](../../docs/specs/scrape-contract-zac-255.md) (fields, pagination / `X-Scrape-Truncated`, variant grain, errors, new-store “done” checklist). Identity: [docs/specs/variant-identity-zac-254.md](../../docs/specs/variant-identity-zac-254.md). OOS: [docs/ideas/oos-policy-zac-256.md](../../docs/ideas/oos-policy-zac-256.md).
+Canonical contract: [docs/specs/scrape-contract-zac-255.md](../../docs/specs/scrape-contract-zac-255.md) (fields, pagination / `X-Scrape-Truncated`, variant grain, errors, new-store “done” checklist). Identity: [docs/specs/variant-identity-zac-254.md](../../docs/specs/variant-identity-zac-254.md). Enrich: [docs/specs/enrichment-normalization-zac-253.md](../../docs/specs/enrichment-normalization-zac-253.md). OOS: [docs/ideas/oos-policy-zac-256.md](../../docs/ideas/oos-policy-zac-256.md).
 
 - One file per store: `{storename}.ts` (e.g. `jensonusa.ts`, `worldwidecyclery.ts`); split `-plp.ts` / `-pdp.ts` when the grid is large
 - Export: `scrape{StoreName}(url: string): Promise<ScrapeResult[]>` for sale pages
