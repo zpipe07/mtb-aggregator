@@ -216,6 +216,17 @@ Incremental: `packages/shared/migrations/` — numbered `001` onward, applied in
 For local Docker: `make db-migrate-docker`
 For remote (Neon, etc.): `make db-migrate-remote` (uses `go run ./cmd/migrate`)
 
+<!-- CODEGRAPH_START -->
+## CodeGraph
+
+In repositories indexed by CodeGraph (a `.codegraph/` directory exists at the repo root), reach for it BEFORE grep/find or reading files when you need to understand or locate code:
+
+- **MCP tool** (when available): `codegraph_explore` answers most code questions in one call — the relevant symbols' verbatim source plus the call paths between them, including dynamic-dispatch hops grep can't follow. Name a file or symbol in the query to read its current line-numbered source. If it's listed but deferred, load it by name via tool search.
+- **Shell** (always works): `codegraph explore "<symbol names or question>"` prints the same output.
+
+If there is no `.codegraph/` directory, skip CodeGraph entirely — indexing is the user's decision. Spike notes: [docs/ideas/codegraph-zac-290.md](docs/ideas/codegraph-zac-290.md).
+<!-- CODEGRAPH_END -->
+
 ### Further Reading
 
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — Data flow, services, component library, **error monitoring (Sentry) policy**, **logging**, Cursor cloud env / Sentry→PR automation
@@ -225,4 +236,5 @@ For remote (Neon, etc.): `make db-migrate-remote` (uses `go run ./cmd/migrate`)
 - [docs/SCRAPING.md](docs/SCRAPING.md) — Parser structure, adding stores
 - [docs/TAXONOMY.md](docs/TAXONOMY.md) — Category mappings, LLM classifier
 - [docs/ideas/mtbbot-feedback.md](docs/ideas/mtbbot-feedback.md) — Reddit feedback on MTBbot applied to The Dropper (ZAC-93)
+- [docs/ideas/codegraph-zac-290.md](docs/ideas/codegraph-zac-290.md) — Local CodeGraph index for Cursor agents (token usage)
 - Domain READMEs: [apps/api/README.md](apps/api/README.md), [apps/scraper/README.md](apps/scraper/README.md), [apps/web/README.md](apps/web/README.md), [packages/shared/README.md](packages/shared/README.md)
