@@ -336,3 +336,11 @@ build-all:
 install:
 	pnpm install
 	cd apps/api && go mod download
+
+# Local CodeGraph index for Cursor/agent navigation (ZAC-290). CLI: https://github.com/colbymchenry/codegraph
+.PHONY: codegraph-init
+codegraph-init:
+	@command -v codegraph >/dev/null || { echo "Install CodeGraph first: curl -fsSL https://raw.githubusercontent.com/colbymchenry/codegraph/main/install.sh | sh"; exit 1; }
+	codegraph init --yes
+	@codegraph status
+	@echo "Index is local (.codegraph/codegraph.db, gitignored). Restart Cursor so the MCP server picks it up."

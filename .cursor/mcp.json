@@ -18,6 +18,11 @@
         "PATH": "/Users/zackpiper/.nvm/versions/node/v20.11.1/bin:/usr/local/bin:/usr/bin:/bin",
         "npm_config_prefix": "/Users/zackpiper/.nvm/versions/node/v20.11.1"
       }
+    },
+    "codegraph": {
+      "type": "stdio",
+      "command": "codegraph",
+      "args": ["serve", "--mcp", "--path", "${workspaceFolder}"]
     }
   }
 }
