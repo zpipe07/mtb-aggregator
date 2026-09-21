@@ -397,7 +397,7 @@ This ticket ships the spec. Suggested children under ZAC-161 (do not duplicate Z
 - [x] ZAC-211 (LLM without refetch), ZAC-256 (OOS stock-check), and ZAC-254 (fan-out identity) are cited, not re-opened.
 - [x] Spec lists concrete pipeline gaps and follow-up tasks A–F.
 - [x] Sibling scrape/identity/OOS docs and architecture/READMEs point here.
-- [ ] Linear ZAC-253 links this file (this PR).
+- [x] Linear ZAC-253 links this file (draft PR #305).
 
 ## Open questions
 
