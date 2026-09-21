@@ -5,7 +5,7 @@ Parent: [ZAC-161](https://linear.app/zacks-personal-projects/issue/ZAC-161/norma
 Sibling specs:
 
 - [ZAC-256 OOS policy](../ideas/oos-policy-zac-256.md) — when scrape may write `is_in_stock`; keep OOS rows; restock SLA.
-- [ZAC-254](https://linear.app/zacks-personal-projects/issue/ZAC-254/spec-variant-identity-across-stores) — SKU / option keys, parent–child linking (identity rules; this spec only defines scrape-time emission).
+- [ZAC-254 variant identity](variant-identity-zac-254.md) — SKU / option keys, parent–child linking (identity rules; this spec only defines scrape-time emission).
 - [ZAC-253](https://linear.app/zacks-personal-projects/issue/ZAC-253/spec-enrichment-normalization-across-stores) — PDP / LLM after scrape.
 - [ZAC-211](https://linear.app/zacks-personal-projects/issue/ZAC-211/are-we-scraping-and-saving-description-specs-etc) — whether scrape should persist description / specs (out of scope here except `feed_description`).
 
@@ -111,7 +111,7 @@ Shared TypeScript (`apps/scraper/src/types.ts`) and Go (`apps/api/internal/scrap
 | `is_in_stock` | **Yes** | Boolean | **Today** upsert always overwrites. **ZAC-256:** overwrite only when `stock_from_plp` |
 | `stock_from_plp` | Planned | `true` = PLP/catalog stock is authoritative | Not in Zod/Go yet — see [ZAC-256](../ideas/oos-policy-zac-256.md) |
 | `product_group_key` | Should set when a family exists | Store-local id (handle, parent code, master id) | Stored as `{store_id}:{key}`; `COALESCE` on conflict (new value wins if non-null) |
-| `variant_options` | Should set when dimensions exist | `Record<string, string>` e.g. `{ Color, Size }` | `COALESCE` on conflict; feeds `bike_size` / `clothing_size` |
+| `variant_options` | Should set when dimensions exist | `Record<string, string>` with **canonical** keys (`Size`, `Color`, …) per [ZAC-254](variant-identity-zac-254.md) | `COALESCE`/merge on conflict; feeds `bike_size` / `clothing_size` |
 | `feed_description` | Impact only | Catalog description | Merged into `metadata.description` for LLM without PDP |
 | `impact_catalog_outbound_url` | Impact only | Tracking hop when deep-link template unset | `affiliate_url` |
 
@@ -183,7 +183,7 @@ Scrape-time job: emit rows the deals UI can group (`GET /deals?group_variants=tr
 - Emit a second row with the parent SKU after children exist (Jenson / UC migrations `025` / `026`).
 - Put sentence-length collection H1s in `category_path` (ZAC-234).
 
-Identity collisions (same SKU, different option maps; handle vs numeric id) belong in **ZAC-254**. This spec only requires: one SKU → one row per scrape; family key stable across scrapes.
+Identity collisions (same SKU, different option maps; handle vs numeric id) belong in **[ZAC-254](variant-identity-zac-254.md)**. This spec only requires: one SKU → one row per scrape; family key stable across scrapes. Canonical `Size` / `Color` keys and parent-hide rules are locked there.
 
 ## Error handling
 
@@ -331,4 +331,4 @@ This ticket ships the spec. Suggested children when implementing the contract (d
 
 ## Open questions
 
-None blocking the spec. Implementation order: ZAC-256 field + Gravity/Ride emit, then Task A (truncation), then optional Shopify helper. ZAC-254 may tighten `store_sku` / group-key rules; update the variant table when that spec lands.
+None blocking the spec. Implementation order: ZAC-256 field + Gravity/Ride emit, then Task A (truncation), then optional Shopify helper. [ZAC-254](variant-identity-zac-254.md) locks `store_sku` / group-key / canonical option keys; identity follow-ups (Tasks A–E there) are separate from scrape truncation.

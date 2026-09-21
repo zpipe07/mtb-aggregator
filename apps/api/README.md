@@ -15,7 +15,7 @@ Go HTTP server that orchestrates scraping, enrichment, and serves the REST API. 
 | ---------------------- | ------------------------------------------------------------------------------------------------------------ |
 | `internal/api/`        | HTTP handlers, route registration                                                                            |
 | `internal/db/`         | Database queries (listings, stores, categories, etc.)                                                        |
-| `internal/scheduler/`  | Cron jobs: scrape (4h), enrich (nightly). Ingest must match [docs/specs/scrape-contract-zac-255.md](../../docs/specs/scrape-contract-zac-255.md). |
+| `internal/scheduler/`  | Cron jobs: scrape (4h), enrich (nightly). Ingest must match [docs/specs/scrape-contract-zac-255.md](../../docs/specs/scrape-contract-zac-255.md) and [docs/specs/variant-identity-zac-254.md](../../docs/specs/variant-identity-zac-254.md). |
 | `internal/brand/`      | Brand normalization via `brand_aliases.json`                                                                 |
 | `internal/taxonomy/`   | Category mapping, in-memory cache                                                                            |
 | `internal/metadata/`   | Spec extraction from enriched category paths                                                                 |

@@ -420,7 +420,7 @@ Parsers live in `src/parsers/` — one file per store:
 
 ## Adding a New Store
 
-Contract, pagination completeness, variant grain, and the full “done” checklist: [docs/specs/scrape-contract-zac-255.md](../../docs/specs/scrape-contract-zac-255.md).
+Contract, pagination completeness, variant grain, and the full “done” checklist: [docs/specs/scrape-contract-zac-255.md](../../docs/specs/scrape-contract-zac-255.md). SKU / group-key / Size-Color identity: [docs/specs/variant-identity-zac-254.md](../../docs/specs/variant-identity-zac-254.md).
 
 1. Create parser in `src/parsers/<store>.ts`
 2. Export `scrape<Store>` and optionally `enrich<Store>`
