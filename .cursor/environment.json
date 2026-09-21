@@ -2,5 +2,6 @@
   "build": {
     "dockerfile": "Dockerfile"
   },
-  "install": "pnpm install --frozen-lockfile && pnpm --filter @mtb-aggregator/logging run build && cd apps/api && go mod download"
+  "install": "pnpm install --frozen-lockfile && pnpm --filter @mtb-aggregator/logging run build && (cd apps/api && go mod download) && bash .cursor/codegraph-setup.sh",
+  "start": "bash .cursor/codegraph-setup.sh --refresh"
 }

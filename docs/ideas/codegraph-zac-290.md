@@ -51,14 +51,15 @@ Payload comparison is **before** counting round-trips. Vendor benches (Claude Co
 2. **Retrieval is not perfect.** Natural-language “add a store” missed `PARSERS`. Queries with exact symbol names work better. Keep Grep as fallback.
 3. **MCP schema cost** on every Cursor request while the server is enabled. Worth it if the agent actually calls `codegraph_explore`; waste if it never does. The short `CLAUDE.md` / `AGENTS.md` block exists so subagents load the tool.
 4. **CLI must be on PATH.** Cursor MCP is configured as `codegraph serve --mcp --path ${workspaceFolder}`. Install once per machine, then `make codegraph-init`.
-5. **Cloud VMs** do not bake the CLI into the Dockerfile (keeps env snapshots small). Cloud agents can still `codegraph explore` via Shell after installing, or fall back to Grep.
+5. **Cloud MCP is not guaranteed.** Desktop Cursor starts `codegraph serve --mcp` from [`.cursor/mcp.json`](../../.cursor/mcp.json). Cloud agents often only have Shell — they must call `codegraph explore` themselves. The AGENTS.md cloud block exists so they do that before Grep.
 
 ## Adopted wiring
 
 1. [`.cursor/mcp.json`](../../.cursor/mcp.json) — `codegraph` MCP server.
 2. Marker-fenced instructions in [`CLAUDE.md`](../../CLAUDE.md) and [`AGENTS.md`](../../AGENTS.md) (official installer block; subagents never see MCP `initialize` text).
 3. [`.codegraph/.gitignore`](../../.codegraph/.gitignore) — commit the dir, ignore `codegraph.db`.
-4. `make codegraph-init`.
+4. `make codegraph-init` (desktop) / `.cursor/codegraph-setup.sh` (cloud install + start).
+5. Cloud environment: [`.cursor/Dockerfile`](../../.cursor/Dockerfile) installs the CLI onto `/usr/local/bin`; [`.cursor/environment.json`](../../.cursor/environment.json) `install` builds the index and `start` refreshes it for the checked-out revision. New agents only pick this up after a **new environment Build** is active (merge the env.json change, then Save / rebuild — see [Cloud agents](#cloud-agents)).
 
 ## Local setup (once per machine)
 
@@ -75,6 +76,24 @@ make codegraph-init
 Restart Cursor so the MCP server starts. Confirm with `codegraph status` (files/nodes, “Index is up to date”).
 
 To walk it back: `codegraph uninstall --target=cursor --keep-cli` (or remove the `codegraph` key from `.cursor/mcp.json`) and `codegraph uninit`.
+
+## Cloud agents
+
+Merging the MCP + AGENTS.md wiring is **not** enough. Cloud agents boot from an **environment Build** (disk snapshot). The Build that existed when ZAC-290 merged did **not** install the CLI or the index — this follow-up bakes both in.
+
+| Layer | What it does |
+| --- | --- |
+| [`.cursor/Dockerfile`](../../.cursor/Dockerfile) | Installs the CodeGraph CLI to `/usr/local/bin` (already on PATH). |
+| `install` in [`.cursor/environment.json`](../../.cursor/environment.json) | Runs [`.cursor/codegraph-setup.sh`](../../.cursor/codegraph-setup.sh) after pnpm/Go deps so `.codegraph/codegraph.db` is in the snapshot. |
+| `start` | Refreshes the index for the checked-out revision (~0.6s). Cheap insurance when an agent forks a branch on top of the Build. |
+| [`AGENTS.md`](../../AGENTS.md) | Tells cloud agents to `codegraph explore` via Shell **before** Grep (MCP often is not injected). |
+
+**Activate for new agents** (do both; either alone can drift):
+
+1. Merge the `environment.json` / Dockerfile change to the default branch so repo-file resolution picks it up.
+2. Create a new environment Build and make it **active** (Cloud Agents dashboard → environment → Builds, or Save a tested proposal). Existing running agents keep their old snapshot; only new runs use the new Build.
+
+Confirm on a fresh agent: `codegraph --version`, `codegraph status` (files/nodes, index up to date), and one `codegraph explore "ingestScrapeResults"` that returns `listings_upsert.go` rather than opening `scheduler.go`.
 
 ## When not to use it
 
