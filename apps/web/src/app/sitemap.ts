@@ -1,12 +1,21 @@
 import type { MetadataRoute } from "next";
-import { fetchCategoryTree, fetchDeals, fetchFacets } from "@/api";
+import {
+  fetchCategoryTree,
+  fetchDeals,
+  fetchFacets,
+  fetchSitemapListings,
+} from "@/api";
 import { filterCategoryTreeWithDeals } from "@/lib/categoryTree";
 import { allDealsCategoryPathsFromTree } from "@/lib/dealsCategoryPath";
-import { absoluteUrl } from "@/lib/siteUrl";
+import {
+  canonicalSitemapUrl,
+  dealDetailSitemapEntries,
+  MAX_DEAL_URLS_IN_SITEMAP,
+} from "@/lib/sitemapEntries";
 import {
   brandMeetsIndexThreshold,
-  brandToSlug,
   buildBrandDealsPath,
+  uniqueBrandSitemapCandidates,
 } from "@/lib/brandPages";
 import {
   listSeoHubs,
@@ -24,17 +33,34 @@ export const revalidate = 14400;
  * thousands of deal URLs against the live API.
  */
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 /** Keep each deals page under Next.js's ~2MB data-cache limit (~3KB/deal). */
 const DEAL_PAGE_SIZE = 500;
 /** Parallel deal pages per batch during sitemap generation. */
 const DEAL_FETCH_BATCH = 4;
-/** Google’s per-sitemap URL limit; leave headroom for static + category URLs. */
-const MAX_DEAL_URLS_IN_SITEMAP = 48_000;
+
+function pushCanonical(
+  entries: MetadataRoute.Sitemap,
+  path: string,
+  extra: Omit<MetadataRoute.Sitemap[number], "url">,
+): void {
+  const url = canonicalSitemapUrl(path);
+  if (!url) return;
+  entries.push({ url, ...extra });
+}
 
 async function appendDealDetailUrls(
   entries: MetadataRoute.Sitemap,
 ): Promise<void> {
+  try {
+    const listings = await fetchSitemapListings(MAX_DEAL_URLS_IN_SITEMAP);
+    entries.push(...dealDetailSitemapEntries(listings));
+    return;
+  } catch {
+    // Older API without GET /sitemap-listings — paginate the public deals feed.
+  }
+
   const probe = await fetchDeals({
     limit: 1,
     offset: 0,
@@ -49,7 +75,7 @@ async function appendDealDetailUrls(
   if (cappedTotal === 0) return;
 
   const totalPages = Math.ceil(cappedTotal / DEAL_PAGE_SIZE);
-  let dealUrls = 0;
+  const deals: { id: number; last_scraped?: string }[] = [];
 
   for (let batchStart = 0; batchStart < totalPages; batchStart += DEAL_FETCH_BATCH) {
     const batchSize = Math.min(DEAL_FETCH_BATCH, totalPages - batchStart);
@@ -67,60 +93,44 @@ async function appendDealDetailUrls(
 
     for (const res of responses) {
       for (const d of res.deals ?? []) {
-        if (dealUrls >= MAX_DEAL_URLS_IN_SITEMAP) return;
-        entries.push({
-          url: absoluteUrl(`/deals/${d.id}`),
-          lastModified: d.last_scraped ? new Date(d.last_scraped) : undefined,
-          changeFrequency: "weekly",
-          priority: 0.5,
-        });
-        dealUrls += 1;
+        if (deals.length >= MAX_DEAL_URLS_IN_SITEMAP) {
+          entries.push(...dealDetailSitemapEntries(deals));
+          return;
+        }
+        deals.push({ id: d.id, last_scraped: d.last_scraped });
       }
     }
   }
+  entries.push(...dealDetailSitemapEntries(deals));
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const entries: MetadataRoute.Sitemap = [
-    {
-      url: absoluteUrl("/"),
-      changeFrequency: "daily",
-      priority: 1,
-    },
-    {
-      url: absoluteUrl("/deals"),
-      changeFrequency: "hourly",
-      priority: 0.9,
-    },
-    {
-      url: absoluteUrl("/categories"),
-      changeFrequency: "daily",
-      priority: 0.8,
-    },
-    {
-      url: absoluteUrl("/giveaways"),
-      changeFrequency: "daily",
-      priority: 0.7,
-    },
-    {
-      url: absoluteUrl("/policies"),
-      changeFrequency: "yearly",
-      priority: 0.3,
-    },
-    {
-      url: absoluteUrl("/returns"),
-      changeFrequency: "yearly",
-      priority: 0.3,
-    },
+  const entries: MetadataRoute.Sitemap = [];
+  const staticPaths: {
+    path: string;
+    changeFrequency: MetadataRoute.Sitemap[number]["changeFrequency"];
+    priority: number;
+  }[] = [
+    { path: "/", changeFrequency: "daily", priority: 1 },
+    { path: "/deals", changeFrequency: "hourly", priority: 0.9 },
+    { path: "/categories", changeFrequency: "daily", priority: 0.8 },
+    { path: "/giveaways", changeFrequency: "daily", priority: 0.7 },
+    { path: "/policies", changeFrequency: "yearly", priority: 0.3 },
+    { path: "/returns", changeFrequency: "yearly", priority: 0.3 },
   ];
+  for (const row of staticPaths) {
+    pushCanonical(entries, row.path, {
+      changeFrequency: row.changeFrequency,
+      priority: row.priority,
+    });
+  }
 
   try {
     const tree = await fetchCategoryTree();
     for (const path of allDealsCategoryPathsFromTree(
       filterCategoryTreeWithDeals(tree),
     )) {
-      entries.push({
-        url: absoluteUrl(path),
+      pushCanonical(entries, path, {
         changeFrequency: "daily",
         priority: 0.8,
       });
@@ -149,8 +159,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     );
     for (const path of hubChecks) {
       if (path == null) continue;
-      entries.push({
-        url: absoluteUrl(path),
+      pushCanonical(entries, path, {
         changeFrequency: "daily",
         priority: 0.75,
       });
@@ -167,10 +176,23 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   try {
     const facets = await fetchFacets({ noStore: true });
-    for (const b of facets.brand_facets ?? []) {
-      if (!brandMeetsIndexThreshold(b.count)) continue;
-      entries.push({
-        url: absoluteUrl(buildBrandDealsPath(brandToSlug(b.value))),
+    const candidates = uniqueBrandSitemapCandidates(facets.brand_facets ?? []);
+    const brandChecks = await Promise.all(
+      candidates.map(async (b) => {
+        const res = await fetchDeals({
+          brands: [b.value],
+          limit: 1,
+          offset: 0,
+          group_variants: true,
+          noStore: true,
+        });
+        if (!brandMeetsIndexThreshold(res.total_count ?? 0)) return null;
+        return buildBrandDealsPath(b.slug);
+      }),
+    );
+    for (const path of brandChecks) {
+      if (path == null) continue;
+      pushCanonical(entries, path, {
         changeFrequency: "daily",
         priority: 0.7,
       });
