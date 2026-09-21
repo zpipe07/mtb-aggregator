@@ -254,7 +254,7 @@ This ticket ships the spec. Suggested children under ZAC-161 (do not duplicate Z
 - [x] Canonical option keys and “one scalar per axis” are locked. ZAC-248 is cited as the facet backstop, not re-opened.
 - [x] Cross-retailer matching is explicitly out of scope.
 - [x] Sibling scrape/OOS specs point here; existing docs link this file.
-- [ ] Linear ZAC-254 links this file (this PR).
+- [x] Linear ZAC-254 links this file (draft PR #303).
 
 ## Open questions
 
