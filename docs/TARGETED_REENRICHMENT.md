@@ -1,5 +1,7 @@
 # Targeted re-enrichment and re-classify
 
+Shared enrich contract (when scheduled LLM may run vs operator ID-list): [docs/specs/enrichment-normalization-zac-253.md](specs/enrichment-normalization-zac-253.md).
+
 ## Re-classify without re-scraping (validated)
 
 `runLLMCategoryClassification` in `apps/api/internal/api/handlers.go` loads the listing with `GetListingForCategoryClassification`, which reads `product_name`, `metadata`, and `category_path` from `store_listings` only. It does **not** require a prior PDP call in the same request; it uses whatever description/specs are already in `metadata` and the retailer's `category_path` array.

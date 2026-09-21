@@ -6,7 +6,7 @@ Sibling specs:
 
 - [ZAC-256 OOS policy](../ideas/oos-policy-zac-256.md) — when scrape may write `is_in_stock`; keep OOS rows; restock SLA.
 - [ZAC-254 variant identity](variant-identity-zac-254.md) — SKU / option keys, parent–child linking (identity rules; this spec only defines scrape-time emission).
-- [ZAC-253](https://linear.app/zacks-personal-projects/issue/ZAC-253/spec-enrichment-normalization-across-stores) — PDP / LLM after scrape.
+- [ZAC-253 enrichment](enrichment-normalization-zac-253.md) — PDP / LLM after scrape.
 - [ZAC-211](https://linear.app/zacks-personal-projects/issue/ZAC-211/are-we-scraping-and-saving-description-specs-etc) — whether scrape should persist description / specs (out of scope here except `feed_description`).
 
 Operational store notes stay in [docs/SCRAPING.md](../SCRAPING.md) and [apps/scraper/README.md](../../apps/scraper/README.md). This file is the **shared contract**: what every ingest path must emit, how pagination completeness is signaled, how variants are discovered at scrape time, how errors propagate, and what “done” means for a new store.
@@ -273,7 +273,7 @@ A store is done when all of the following are true. Registration-only (parser fi
 
 ### 7. Out of scope for “scrape done”
 
-PDP breadcrumbs, LLM classify/extract, affiliate networks, and WAF cookie rotation are **enrich / ops**. A store can ship scrape-only (CC listings) if the family says so. A store in `StoreTypesWithEnrichers` is not “scrape done” until the enricher exists — but that bar is [ZAC-253](https://linear.app/zacks-personal-projects/issue/ZAC-253/spec-enrichment-normalization-across-stores), not this file.
+PDP breadcrumbs, LLM classify/extract, affiliate networks, and WAF cookie rotation are **enrich / ops**. A store can ship scrape-only (CC listings) if the family says so. A store in `StoreTypesWithEnrichers` is not “scrape done” until the enricher exists — but that bar is [ZAC-253](enrichment-normalization-zac-253.md), not this file.
 
 ## Code gaps vs current scrapers
 
@@ -292,7 +292,7 @@ Honest delta against the contract above. Implementation is **not** this ticket u
 | Shopify parsers copy-pasted (~20 files) | `parsers/*.ts` | Drift (UA, retry, OOS skip, sale %) | Follow-up / ZAC-161 normalize — optional shared `scrapeShopifyCollection` |
 | Cursor rule still says “Use Playwright” | `.cursor/rules/scraper-parsers.mdc` | Agents launch Chromium for JSON stores | This PR (doc) |
 | CC scrape: no `product_group_key` | `map_catalog_item.go` | Flat cards until manual PDP | ZAC-254 + existing CC backfill |
-| Description / specs not on Node scrape | All `PARSERS` | ZAC-211; scrape stays listing-only | ZAC-253 / ZAC-211 |
+| Description / specs not on Node scrape | All `PARSERS` | ZAC-211; scrape stays listing-only | [ZAC-253](enrichment-normalization-zac-253.md) / ZAC-211 |
 | Specialized / Trek / Fox / Bell / Giro / Canyon: color or product grain, not size | `*-plp.ts` | Size chips wait on PDP or never appear | ZAC-254 |
 | Worldwide Cyclery emits variants with **null** `original_price` | `worldwidecyclery.ts` | Fine if the deals collection is already sale-only; batch warning if not | Store-specific; no change required |
 | Invalid rows dropped twice (Zod then Go) with only logs | `server.ts`, `ingestScrapeResults` | Silent loss; job still `completed` | Acceptable; keep validation errors on the job |

@@ -6,7 +6,7 @@ Sibling specs:
 
 - [ZAC-255 scrape contract](scrape-contract-zac-255.md) — what every ingest path must emit; this spec owns **which SKU / family / option keys** those fields carry.
 - [ZAC-256 OOS policy](../ideas/oos-policy-zac-256.md) — when scrape may write `is_in_stock`; keep OOS rows. Identity still requires a stable SKU for an OOS sibling.
-- [ZAC-253](https://linear.app/zacks-personal-projects/issue/ZAC-253/spec-enrichment-normalization-across-stores) — PDP / LLM after scrape (fan-out *implementation* lives there; identity rules for children live here).
+- [ZAC-253 enrichment](enrichment-normalization-zac-253.md) — PDP / LLM after scrape (fan-out *implementation* lives there; identity rules for children live here).
 - [ZAC-248](https://linear.app/zacks-personal-projects/issue/ZAC-248/clothing-sizes-using-comma-separated-list) — shipped: leftover size **charts** in `llm_specs.clothing_size` split into facet values. This spec still forbids storing a chart as the row’s `variant_options.Size`.
 
 Operational store notes stay in [docs/SCRAPING.md](../SCRAPING.md) and [apps/scraper/README.md](../../apps/scraper/README.md). This file is the **identity contract**: how a listing row is keyed, how siblings group, how size/color axes are named, and how parent tiles relate to child SKUs so the same product does not fragment or collide **inside one store**.
