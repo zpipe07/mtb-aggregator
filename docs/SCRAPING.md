@@ -2,7 +2,7 @@
 
 The scraper is a Node.js Express server that uses Playwright **or fetch** to scrape MTB retailer sale pages and product detail pages.
 
-**Shared scrape contract** (required fields, pagination completeness, variant grain, errors, “done” for a new store, and gaps vs current parsers): [docs/specs/scrape-contract-zac-255.md](specs/scrape-contract-zac-255.md). OOS / `stock_from_plp`: [docs/ideas/oos-policy-zac-256.md](ideas/oos-policy-zac-256.md).
+**Shared scrape contract** (required fields, pagination completeness, variant grain, errors, “done” for a new store, and gaps vs current parsers): [docs/specs/scrape-contract-zac-255.md](specs/scrape-contract-zac-255.md). Variant identity (SKU / group key / Size-Color / parent–child): [docs/specs/variant-identity-zac-254.md](specs/variant-identity-zac-254.md). OOS / `stock_from_plp`: [docs/ideas/oos-policy-zac-256.md](ideas/oos-policy-zac-256.md).
 
 ## Endpoints
 
