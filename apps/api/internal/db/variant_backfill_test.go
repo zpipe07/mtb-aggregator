@@ -51,6 +51,42 @@ func TestCollectionPathForJSON(t *testing.T) {
 	}
 }
 
+func TestBuildVariantOptionMap_OmitsPlaceholders(t *testing.T) {
+	t.Parallel()
+	def := "Default Title"
+	inStock := "https://schema.org/InStock"
+	black := "Black"
+	medium := "Medium"
+
+	titleOnly := shopifyProductJSON{}
+	titleOnly.Product.Options = []struct {
+		Name string `json:"name"`
+	}{{Name: "Title"}}
+	titleOnly.Product.Variants = []shopifyVariantJSON{{
+		ID:      1,
+		Option1: &def,
+		Title:   &def,
+	}}
+	if got := buildVariantOptionMap(&titleOnly, &titleOnly.Product.Variants[0]); len(got) != 0 {
+		t.Fatalf("Title/Default Title: got %v, want empty", got)
+	}
+
+	mixed := shopifyProductJSON{}
+	mixed.Product.Options = []struct {
+		Name string `json:"name"`
+	}{{Name: "Schema Stock Status"}, {Name: "Color"}, {Name: "Size"}}
+	mixed.Product.Variants = []shopifyVariantJSON{{
+		ID:      2,
+		Option1: &inStock,
+		Option2: &black,
+		Option3: &medium,
+	}}
+	got := buildVariantOptionMap(&mixed, &mixed.Product.Variants[0])
+	if got["Color"] != "Black" || got["Size"] != "Medium" || len(got) != 2 {
+		t.Fatalf("mixed: got %v", got)
+	}
+}
+
 func TestWaitBeforeHTTPRetry_RetryAfterHeader(t *testing.T) {
 	t.Parallel()
 	h := make(http.Header)

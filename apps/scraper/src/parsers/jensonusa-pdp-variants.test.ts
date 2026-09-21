@@ -47,6 +47,25 @@ describe("parsePdpVariantsFromHtml", () => {
     );
   });
 
+  it("drops schemaStockStatus leftovers and keeps real facets (ZAC-281)", () => {
+    const html = `
+      <script>
+      window.serverSideViewModel = {
+        "variants": [
+          {
+            "code": "RS001370 00.4118.421.046",
+            "schemaStockStatus": "https://schema.org/InStock",
+            "color": { "value": "Black", "sortOrder": 1 },
+            "isOrderable": true
+          }
+        ]
+      };
+      </script>`;
+    const rows = parsePdpVariantsFromHtml(html);
+    expect(rows).toHaveLength(1);
+    expect(rows[0].dimensions).toEqual({ Color: "Black" });
+  });
+
   it("maps unknown camelCase dimension keys to Title Case labels", () => {
     const html = `
       <script>

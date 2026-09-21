@@ -351,6 +351,77 @@ describe("summarizeInStockVariantChips", () => {
     );
   });
 
+  it("hides Jenson schema.org stock leftovers (ZAC-281)", () => {
+    const deal: Deal = {
+      ...baseDeal,
+      id: 1120474,
+      store_name: "JensonUSA",
+      store_sku: "RS001370 00.4118.421.046",
+      product_name: "RockShox Vivid Ultimate C1 Rear Shock",
+      variant_options: {
+        "Schema Stock Status": "https://schema.org/InStock",
+      },
+      variants: [
+        row({
+          id: 1120474,
+          store_sku: "RS001370 00.4118.421.046",
+          variant_options: {
+            "Schema Stock Status": "https://schema.org/InStock",
+          },
+        }),
+        row({
+          id: 1120461,
+          store_sku: "RS001370 00.4118.421.047",
+          variant_options: {
+            "Schema Stock Status": "https://schema.org/InStock",
+          },
+        }),
+      ],
+    };
+    expect(summarizeInStockVariantChips(deal)).toBeNull();
+    expect(orderedVariantOptionEntries(deal.variant_options, deal.store_sku)).toEqual(
+      [],
+    );
+  });
+
+  it("hides Shopify Title / Default Title placeholders (ZAC-278)", () => {
+    const deal: Deal = {
+      ...baseDeal,
+      store_name: "365 Cycles",
+      store_sku: "EP1213",
+      product_name: "Bosch COBI.Bike iPhone Case",
+      variant_options: { Title: "Default Title" },
+    };
+    expect(summarizeInStockVariantChips(deal)).toBeNull();
+    expect(summarizeDealSizeChips(deal)).toBeNull();
+    expect(
+      orderedVariantOptionEntries(deal.variant_options, deal.store_sku),
+    ).toEqual([]);
+  });
+
+  it("keeps real Size/Color chips when mixed with feed placeholders", () => {
+    const deal: Deal = {
+      ...baseDeal,
+      variants: [
+        row({
+          id: 1,
+          store_sku: "BI005147 RED/BLACK XL",
+          variant_options: {
+            Color: "Red/Black",
+            Size: "XL",
+            "Schema Stock Status": "https://schema.org/InStock",
+            Title: "Default Title",
+          },
+        }),
+      ],
+    };
+    const summary = summarizeInStockVariantChips(deal)!;
+    expect(summary.sizes.map((c) => c.label)).toEqual(["XL"]);
+    expect(summary.colors.map((c) => c.label)).toEqual(["Red/Black"]);
+    expect(summary.groups.map((g) => g.key)).toEqual(["Size", "Color"]);
+    expect(compactChipGroup(summary)?.kind).toBe("size");
+  });
+
   it("prefers size over color for compact cards and caps overflow", () => {
     const deal: Deal = {
       ...baseDeal,
