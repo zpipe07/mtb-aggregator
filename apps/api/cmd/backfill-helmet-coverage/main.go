@@ -1,5 +1,6 @@
 // backfill-helmet-coverage rewrites Gear › Helmets metadata.llm_specs.coverage
-// from admin llm_overrides and model-family inference (ZAC-277).
+// from model-family inference and leftover admin overrides (ZAC-277).
+// Known 3/4 families (Dropframe / Tyrant / Trigger X) beat a Half shell override.
 //
 // From repo root: make backfill-helmet-coverage
 package main

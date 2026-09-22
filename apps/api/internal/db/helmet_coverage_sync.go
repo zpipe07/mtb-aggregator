@@ -7,8 +7,9 @@ import (
 	"github.com/mtb-aggregator/api/internal/metadata"
 )
 
-// SyncHelmetCoverage applies model-family Coverage inference (and copies admin
-// overrides onto llm_specs) for one listing.
+// SyncHelmetCoverage applies model-family Coverage inference (known 3/4 families
+// beat a conflicting Half shell override; unmatched titles copy admin overrides
+// onto llm_specs) for one listing.
 func (db *DB) SyncHelmetCoverage(ctx context.Context, listingID int) error {
 	var meta []byte
 	var productName string
@@ -31,8 +32,9 @@ func (db *DB) SyncHelmetCoverage(ctx context.Context, listingID int) error {
 	return err
 }
 
-// BackfillHelmetCoverage rewrites Gear › Helmets llm_specs.coverage from admin
-// overrides and InferHelmetCoverage (ZAC-277). Returns the number of rows updated.
+// BackfillHelmetCoverage rewrites Gear › Helmets llm_specs.coverage from
+// InferHelmetCoverage and leftover admin overrides (ZAC-277). Returns the
+// number of rows updated.
 func (db *DB) BackfillHelmetCoverage(ctx context.Context) (int, error) {
 	rows, err := db.pool.Query(ctx, `
 		SELECT sl.id, COALESCE(sl.metadata, '{}'::jsonb), COALESCE(sl.product_name, ''), COALESCE(sl.canonical_category, '{}'::text[])

@@ -12,8 +12,8 @@ func TestInferHelmetCoverage_issueSamples(t *testing.T) {
 		want string
 	}{
 		{"Limar Air Pro MIPS Road Helmet - Red", CoverageHalfShell},
-		{"Super Air R Spherical", CoverageThreeQuarter},
-		{"Bell Super Air R Spherical", CoverageThreeQuarter},
+		{"Super Air R Spherical", CoverageConvertible},
+		{"Bell Super Air R Spherical", CoverageConvertible},
 		{"Bexley Mips Helmet", CoverageHalfShell},
 		{"Giro Manifest MIPS Bike Helmet", CoverageHalfShell},
 		{"POC Kortal Race MIPS Bike Helmet", CoverageHalfShell},
@@ -26,10 +26,13 @@ func TestInferHelmetCoverage_issueSamples(t *testing.T) {
 		{"Ambush 2", CoverageHalfShell},
 		{"Giro Merit Spherical MTB Helmet - Matt White-Black", CoverageHalfShell},
 		{"Helmet MTB AllMtn 3.0", CoverageHalfShell},
-		{"Dropframe Pro Digi Image Helmet", CoverageHalfShell},
+		{"Dropframe Pro Digi Image Helmet", CoverageThreeQuarter},
+		{"Fox Dropframe Helmet", CoverageThreeQuarter},
+		{"Fox Racing Dropframe Pro MIPS", CoverageThreeQuarter},
 		{"661 Evo AM Helmet - Black-Gray", CoverageHalfShell},
 		{"Giro Artex MIPS", CoverageHalfShell},
-		{"Giro Tyrant MIPS", CoverageHalfShell},
+		{"Giro Tyrant MIPS", CoverageThreeQuarter},
+		{"Giro Tyrant Spherical MIPS Helmet", CoverageThreeQuarter},
 		{"Bell 4Forty Air MIPS MTB Helmet - Matt Black Camo", CoverageHalfShell},
 		{"Bell Falcon XR MIPS MTB Helmet - Matt Tour Green", CoverageHalfShell},
 		{"Bell Nomad 2 JR", CoverageHalfShell},
@@ -94,6 +97,24 @@ func TestApplyHelmetCoverage_overrideWinsAndCopiesToSpecs(t *testing.T) {
 	specs, _ := m["llm_specs"].(map[string]interface{})
 	if specs["coverage"] != CoverageHalfShell {
 		t.Fatalf("coverage = %v, want Half shell", specs["coverage"])
+	}
+}
+
+func TestApplyHelmetCoverage_knownThreeQuarterBeatsBadHalfShellOverride(t *testing.T) {
+	t.Parallel()
+	existing := []byte(`{"llm_overrides":{"coverage":"Half shell"},"llm_specs":{"coverage":"Half shell"}}`)
+	got := ApplyHelmetCoverage(existing, "Fox Dropframe Pro Digi Image Helmet", []string{"Gear", "Helmets"})
+	var m map[string]interface{}
+	if err := json.Unmarshal(got, &m); err != nil {
+		t.Fatal(err)
+	}
+	specs, _ := m["llm_specs"].(map[string]interface{})
+	if specs["coverage"] != CoverageThreeQuarter {
+		t.Fatalf("specs coverage = %v, want 3/4 shell", specs["coverage"])
+	}
+	overrides, _ := m["llm_overrides"].(map[string]interface{})
+	if overrides["coverage"] != CoverageThreeQuarter {
+		t.Fatalf("override coverage = %v, want 3/4 shell so filters do not hide Dropframe", overrides["coverage"])
 	}
 }
 
