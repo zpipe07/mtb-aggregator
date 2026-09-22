@@ -84,10 +84,10 @@ func (db *DB) ListCategoriesTree(ctx context.Context) ([]CategoryTreeNode, error
 	return tree, nil
 }
 
-// categorySubtreeDealCounts returns, for each category id, the count of listings with
-// category_id in that category's subtree (including self), in stock and not hidden.
-func (db *DB) categorySubtreeDealCounts(ctx context.Context) (map[int]int, error) {
-	rows, err := db.pool.Query(ctx, `
+// categorySubtreeDealCountsQuery counts in-stock, visible listing rows per category
+// subtree — same visibility and stores join as ungrouped GET /deals.
+func categorySubtreeDealCountsQuery() string {
+	return `
 		WITH RECURSIVE descendants AS (
 			SELECT id AS root_id, id AS cat_id FROM categories
 			UNION ALL
@@ -96,16 +96,24 @@ func (db *DB) categorySubtreeDealCounts(ctx context.Context) (map[int]int, error
 			INNER JOIN descendants d ON c.parent_id = d.cat_id
 		),
 		listing_counts AS (
-			SELECT category_id, COUNT(*)::int AS cnt
-			FROM store_listings
-			WHERE is_in_stock = true AND hidden = false AND category_id IS NOT NULL
-			GROUP BY category_id
+			SELECT l.category_id, COUNT(*)::int AS cnt
+			FROM store_listings l
+			INNER JOIN stores s ON s.id = l.store_id
+			WHERE 1=1` + listingVisibilityGate + `
+			AND l.category_id IS NOT NULL
+			GROUP BY l.category_id
 		)
 		SELECT d.root_id, COALESCE(SUM(lc.cnt), 0)::int
 		FROM descendants d
 		LEFT JOIN listing_counts lc ON lc.category_id = d.cat_id
 		GROUP BY d.root_id
-	`)
+	`
+}
+
+// categorySubtreeDealCounts returns, for each category id, the count of listings with
+// category_id in that category's subtree (including self), in stock and not hidden.
+func (db *DB) categorySubtreeDealCounts(ctx context.Context) (map[int]int, error) {
+	rows, err := db.pool.Query(ctx, categorySubtreeDealCountsQuery())
 	if err != nil {
 		return nil, err
 	}
@@ -121,11 +129,11 @@ func (db *DB) categorySubtreeDealCounts(ctx context.Context) (map[int]int, error
 	return out, rows.Err()
 }
 
-// categorySubtreeProductCounts returns, for each category id, the count of distinct product groups
-// (COALESCE(product_group_key, 'single:'||id)) for in-stock, visible listings whose category_id
-// lies in that category's subtree — matching GET /deals with group_variants=true.
-func (db *DB) categorySubtreeProductCounts(ctx context.Context) (map[int]int, error) {
-	rows, err := db.pool.Query(ctx, `
+// categorySubtreeProductCountsQuery counts distinct product groups per category
+// subtree — same grouping key, visibility gate, and stores join as
+// GET /deals?group_variants=true (ZAC-268).
+func categorySubtreeProductCountsQuery() string {
+	return `
 		WITH RECURSIVE descendants AS (
 			SELECT id AS root_id, id AS cat_id FROM categories
 			UNION ALL
@@ -135,15 +143,23 @@ func (db *DB) categorySubtreeProductCounts(ctx context.Context) (map[int]int, er
 		),
 		grouped AS (
 			SELECT d.root_id,
-				COALESCE(l.product_group_key, 'single:' || l.id::text) AS gk
+				` + productGroupKeyExpr("l") + ` AS gk
 			FROM descendants d
 			INNER JOIN store_listings l ON l.category_id = d.cat_id
-			WHERE l.is_in_stock = true AND l.hidden = false
+			INNER JOIN stores s ON s.id = l.store_id
+			WHERE 1=1` + listingVisibilityGate + `
 		)
 		SELECT root_id, COUNT(DISTINCT gk)::int
 		FROM grouped
 		GROUP BY root_id
-	`)
+	`
+}
+
+// categorySubtreeProductCounts returns, for each category id, the count of distinct product groups
+// (COALESCE(product_group_key, 'single:'||id)) for in-stock, visible listings whose category_id
+// lies in that category's subtree — matching GET /deals with group_variants=true.
+func (db *DB) categorySubtreeProductCounts(ctx context.Context) (map[int]int, error) {
+	rows, err := db.pool.Query(ctx, categorySubtreeProductCountsQuery())
 	if err != nil {
 		return nil, err
 	}

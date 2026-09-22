@@ -11,6 +11,7 @@ const tree: CategoryTreeNode[] = [
     sort_order: 0,
     depth: 0,
     deal_count: 10,
+    product_count: 10,
     children: [
       {
         id: 2,
@@ -20,6 +21,7 @@ const tree: CategoryTreeNode[] = [
         sort_order: 0,
         depth: 1,
         deal_count: 5,
+        product_count: 5,
         children: [],
       },
     ],
@@ -32,6 +34,7 @@ const tree: CategoryTreeNode[] = [
     sort_order: 1,
     depth: 0,
     deal_count: 8,
+    product_count: 8,
     children: [
       {
         id: 4,
@@ -41,6 +44,7 @@ const tree: CategoryTreeNode[] = [
         sort_order: 0,
         depth: 1,
         deal_count: 3,
+        product_count: 3,
         children: [
           {
             id: 5,
@@ -50,6 +54,7 @@ const tree: CategoryTreeNode[] = [
             sort_order: 0,
             depth: 2,
             deal_count: 2,
+            product_count: 2,
             children: [],
           },
         ],
@@ -64,6 +69,7 @@ const tree: CategoryTreeNode[] = [
     sort_order: 2,
     depth: 0,
     deal_count: 4,
+    product_count: 4,
     children: [],
   },
 ];

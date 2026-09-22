@@ -218,6 +218,23 @@ export function resolveUiCategorySlug(
   return pathOrQueryCategory.trim();
 }
 
+/**
+ * True when the listing is scoped beyond the category path itself
+ * (search, store, brands, discount, price, excluded category, specs).
+ * Sort and pagination do not change the matching set (ZAC-268).
+ */
+export function listingHasExtraFilters(p: ParsedFilterParams): boolean {
+  if (p.searchQuery.trim()) return true;
+  if (p.storeFilter.trim()) return true;
+  if (p.brandFilters.some((b) => b.trim())) return true;
+  const minDisc = parseFloat(p.minDiscount);
+  if (Number.isFinite(minDisc) && minDisc > 0) return true;
+  if (parsePriceParam(p.minPrice) != null) return true;
+  if (parsePriceParam(p.maxPrice) != null) return true;
+  if (p.excludeCategorySlug.trim()) return true;
+  return Object.values(p.specFilters).some((vals) => vals.length > 0);
+}
+
 /** Parse a positive price from URL/filter state; invalid or empty → undefined. */
 export function parsePriceParam(value: string): number | undefined {
   const trimmed = value.trim();

@@ -5,6 +5,7 @@ import {
   categoryNavDealCount,
   filterCategoryTreeForNav,
   normalizeCategoryTree,
+  shopperListingTotalCount,
 } from "./categoryTree";
 
 function node(
@@ -76,6 +77,27 @@ describe("categoryNavDealCount", () => {
   });
 });
 
+describe("shopperListingTotalCount", () => {
+  const helmets = node({
+    slug: "gear-helmets",
+    name: "Helmets",
+    deal_count: 845,
+    product_count: 843,
+  });
+
+  it("uses the tree product_count on an unfiltered category listing (ZAC-268)", () => {
+    expect(shopperListingTotalCount(7532, helmets, false)).toBe(843);
+  });
+
+  it("keeps the live deals total when extra filters are applied", () => {
+    expect(shopperListingTotalCount(120, helmets, true)).toBe(120);
+  });
+
+  it("keeps the deals total when no category node is available", () => {
+    expect(shopperListingTotalCount(187, null, false)).toBe(187);
+  });
+});
+
 describe("filterCategoryTreeForNav", () => {
   it("drops hide_from_nav nodes and their descendants (ZAC-251)", () => {
     const tree = [
@@ -123,6 +145,9 @@ describe("filterCategoryTreeForNav", () => {
     const filtered = filterCategoryTreeForNav(tree);
     expect(filtered).toHaveLength(1);
     expect(filtered[0].children.map((c) => c.slug)).toEqual(["gear-helmets"]);
+    // Parent rollup is unchanged so mega-menu and search chips agree (ZAC-268).
+    expect(categoryNavDealCount(filtered[0])).toBe(8);
+    expect(categoryNavDealCount(tree[0])).toBe(8);
   });
 
   it("omits a hidden root and treats missing hide_from_nav as visible", () => {

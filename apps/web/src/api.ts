@@ -303,8 +303,9 @@ export interface CategoryTreeNode {
   deal_count: number;
   /**
    * Distinct product groups in this subtree (matches `GET /deals?group_variants=true` totals).
-   * Shopper-facing counts (homepage, mega-menu, chips, categories hub) use this via
-   * `categoryNavDealCount`. When missing (older API), fall back to `deal_count`.
+   * Shopper-facing counts (homepage, mega-menu, chips, categories hub, unfiltered
+   * listing headers) use this via `categoryNavDealCount`. When missing (older API),
+   * fall back to `deal_count`.
    */
   product_count?: number;
   /** When true, omit from the header mega-menu. Still shown on /categories. */
