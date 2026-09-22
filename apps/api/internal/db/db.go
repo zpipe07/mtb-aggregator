@@ -196,8 +196,8 @@ func (db *DB) UpsertListing(ctx context.Context, listing Listing) (int, error) {
 		}
 	}
 	var variantOpts interface{}
-	if len(listing.VariantOptions) > 0 {
-		variantOpts = listing.VariantOptions
+	if stripped := StripPlaceholderVariantOptionsJSON(listing.VariantOptions); len(stripped) > 0 {
+		variantOpts = stripped
 	}
 
 	var id int

@@ -18,8 +18,10 @@ func TestUpsertListingsBatch_onConflictMatchesSingleRow(t *testing.T) {
 		"category_id = COALESCE",
 		"metadata = CASE",
 		"product_group_key = COALESCE",
-		"variant_options = CASE",
+		"variant_options =",
 		"|| EXCLUDED.variant_options",
+		"default title",
+		"jsonb_object_agg",
 		"hidden = false",
 		"llm_specs",
 		"clothing_size",
@@ -192,5 +194,76 @@ func TestUpsertListingsBatch_mergeAndPriceHistory(t *testing.T) {
 	}
 	if len(catPath) != 1 || catPath[0] != "Helmets" {
 		t.Errorf("new-sku category_path = %#v, want [Helmets]", catPath)
+	}
+}
+
+func TestUpsertListingsBatch_stripsPlaceholderVariantOptions(t *testing.T) {
+	url := os.Getenv("TEST_DATABASE_URL")
+	if url == "" {
+		t.Skip("TEST_DATABASE_URL not set; skipping DB-backed test")
+	}
+	d, err := New(url)
+	if err != nil {
+		t.Fatalf("connect: %v", err)
+	}
+	t.Cleanup(d.Close)
+	ctx := context.Background()
+
+	var storeID int
+	err = d.pool.QueryRow(ctx, `
+		INSERT INTO stores (name, base_url, scrape_url, store_type)
+		VALUES ('__test_placeholder_opts__', 'http://test.invalid', 'http://test.invalid/sale', 'worldwidecyclery')
+		RETURNING id
+	`).Scan(&storeID)
+	if err != nil {
+		t.Fatalf("insert store: %v", err)
+	}
+	t.Cleanup(func() {
+		_, _ = d.pool.Exec(ctx, `DELETE FROM store_listings WHERE store_id = $1`, storeID)
+		_, _ = d.pool.Exec(ctx, `DELETE FROM stores WHERE id = $1`, storeID)
+	})
+
+	junk, _ := json.Marshal(map[string]string{"Title": "Default Title", "Color": "Black"})
+	_, err = d.pool.Exec(ctx, `
+		INSERT INTO store_listings (store_id, store_sku, product_name, current_price, product_url, variant_options, is_in_stock)
+		VALUES ($1, 'maven-caliper', 'SRAM Maven', 199, 'http://test.invalid/p/maven', $2::jsonb, true)
+	`, storeID, junk)
+	if err != nil {
+		t.Fatalf("insert listing: %v", err)
+	}
+
+	_, err = d.UpsertListingsBatch(ctx, []Listing{{
+		StoreID:        storeID,
+		StoreSKU:       "maven-caliper",
+		ProductName:    "SRAM Maven",
+		CurrentPrice:   189,
+		ProductURL:     "http://test.invalid/p/maven",
+		IsInStock:      true,
+		Metadata:       []byte("{}"),
+		VariantOptions: []byte(`{"Title":"Default Title"}`),
+	}})
+	if err != nil {
+		t.Fatalf("upsert empty incoming: %v", err)
+	}
+
+	var got []byte
+	err = d.pool.QueryRow(ctx, `
+		SELECT variant_options FROM store_listings
+		WHERE store_id = $1 AND store_sku = 'maven-caliper'
+	`, storeID).Scan(&got)
+	if err != nil {
+		t.Fatalf("select: %v", err)
+	}
+	var opts map[string]string
+	if len(got) > 0 && string(got) != "null" {
+		if err := json.Unmarshal(got, &opts); err != nil {
+			t.Fatalf("unmarshal %s: %v", got, err)
+		}
+	}
+	if opts["Title"] != "" || opts["title"] != "" {
+		t.Fatalf("Title placeholder survived merge: %v", opts)
+	}
+	if opts["Color"] != "Black" {
+		t.Fatalf("real Color not preserved: %v", opts)
 	}
 }
