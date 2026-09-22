@@ -93,6 +93,10 @@ backfill-clothing-size:
 backfill-bike-size:
 	cd apps/api && go run ./cmd/backfill-bike-size
 
+# Rewrite Gear › Helmets Coverage from admin overrides + model-family rules (ZAC-277; after migration 061)
+backfill-helmet-coverage:
+	cd apps/api && go run ./cmd/backfill-helmet-coverage
+
 # Clear last_enriched_at on listings whose metadata was wiped by scrape-after-enrich; then run enrich-now FORCE=1
 requeue-wiped-enrichment:
 	cd apps/api && go run ./cmd/requeue-wiped-enrichment
