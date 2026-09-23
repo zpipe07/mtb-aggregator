@@ -19,6 +19,7 @@ import {
   emptyParsedFilterParams,
   getSeoHubBySlug,
   hubMeetsIndexThreshold,
+  scopeBrandFacetsToHubTheme,
 } from "@/lib/seoHubs";
 import {
   buildBreadcrumbJsonLd,
@@ -119,7 +120,12 @@ export default async function SeoHubDealsPage({ params, searchParams }: Props) {
   const totalCount = dealsResponse.total_count ?? 0;
   const facets = normalizeFacetsResponse(
     facetsResponse,
-    facetsForBrandOptions?.brand_facets,
+    scopeBrandFacetsToHubTheme(
+      facetsForBrandOptions?.brand_facets ??
+        facetsResponse.brand_facets ??
+        [],
+      hub.filters.brands,
+    ),
   );
 
   const dealsListPath = searchParamsRecordToDealsCategoryListPath(

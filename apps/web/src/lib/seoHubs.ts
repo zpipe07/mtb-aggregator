@@ -356,22 +356,74 @@ function dedupeBrands(brands: string[]): string[] {
   return out;
 }
 
+/**
+ * Sentinel brand sent to GET /deals and GET /facets when a URL `brand` has no
+ * overlap with a hub theme. Those endpoints OR repeated `brand` params, so a
+ * union would widen the hub (ZAC-282). This value matches nothing via ILIKE.
+ */
+export const HUB_BRAND_NO_MATCH = "__no_matching_hub_brand__";
+
+/**
+ * Hub theme brands are a constraint, not an OR list. URL brands must sit inside
+ * that set. Hubs without theme brands pass URL brands through unchanged.
+ */
+export function resolveHubDealBrands(
+  hubBrands: string[] | undefined,
+  urlBrands: string[],
+): string[] | undefined {
+  const hub = dedupeBrands(hubBrands ?? []);
+  const url = dedupeBrands(urlBrands);
+  if (hub.length === 0) {
+    return url.length > 0 ? url : undefined;
+  }
+  if (url.length === 0) {
+    return hub;
+  }
+  const hubByLower = new Map(hub.map((b) => [b.toLowerCase(), b]));
+  const intersection: string[] = [];
+  const seen = new Set<string>();
+  for (const candidate of url) {
+    const canonical = hubByLower.get(candidate.toLowerCase());
+    if (!canonical) continue;
+    const key = canonical.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    intersection.push(canonical);
+  }
+  return intersection.length > 0 ? intersection : [HUB_BRAND_NO_MATCH];
+}
+
+/**
+ * GET /facets omits `brand` when computing `brand_facets` so shoppers can
+ * switch brands on category pages. On a brand-themed hub that would offer
+ * off-theme brands (Fox forks still listing RockShox). Keep options inside
+ * the hub result set.
+ */
+export function scopeBrandFacetsToHubTheme<T extends { value: string }>(
+  brandFacets: T[],
+  hubBrands?: string[],
+): T[] {
+  const hub = dedupeBrands(hubBrands ?? []);
+  if (hub.length === 0) return brandFacets;
+  const allowed = new Set(hub.map((b) => b.toLowerCase()));
+  return brandFacets.filter((facet) =>
+    allowed.has(facet.value.trim().toLowerCase()),
+  );
+}
+
 /** Server-side: merge hub defaults with URL filter state (same pattern as category + query). */
 export function buildFetchDealsParamsFromHubAndFilters(
   hub: SeoHubDefinition,
   fp: ParsedFilterParams,
 ) {
   const f = hub.filters;
-  const mergedBrands = dedupeBrands([
-    ...(f.brands ?? []),
-    ...fp.brandFilters,
-  ]);
+  const mergedBrands = resolveHubDealBrands(f.brands, fp.brandFilters);
   const minPriceNum = fp.minPrice ? parseFloat(fp.minPrice) : NaN;
   const minDiscountNum = fp.minDiscount ? parseFloat(fp.minDiscount) : NaN;
 
   return {
     category_slug: f.category_slug,
-    brands: mergedBrands.length > 0 ? mergedBrands : undefined,
+    brands: mergedBrands,
     max_price: f.max_price,
     min_price:
       !Number.isNaN(minPriceNum) && minPriceNum > 0 ? minPriceNum : undefined,
