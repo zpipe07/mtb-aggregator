@@ -33,8 +33,31 @@ describe("normalizeFacetsResponse", () => {
     expect(facets).toEqual({
       spec_facets: [],
       brand_facets: [],
+      store_facets: undefined,
       price_range: { min: 0, max: 0 },
       total_matching: 0,
     });
+  });
+
+  it("preserves an empty store_facets list from the current API", () => {
+    const facets = normalizeFacetsResponse({
+      spec_facets: [],
+      brand_facets: [],
+      store_facets: [],
+      price_range: { min: 0, max: 0 },
+      total_matching: 12,
+    });
+    expect(facets.store_facets).toEqual([]);
+  });
+
+  it("treats null store_facets as missing so the UI can fall back to global stores", () => {
+    const facets = normalizeFacetsResponse({
+      spec_facets: [],
+      brand_facets: [],
+      store_facets: null as unknown as [],
+      price_range: { min: 0, max: 0 },
+      total_matching: 1,
+    });
+    expect(facets.store_facets).toBeUndefined();
   });
 });

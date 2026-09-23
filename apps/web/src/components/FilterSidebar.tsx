@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import type { BrandFacet, SpecFacet, Store } from "../api";
+import type { BrandFacet, SpecFacet, StoreFacet } from "../api";
 import { buildMinDiscountSelectOptions } from "../lib/minDiscountFilterOptions";
 import { FilterSelect } from "./FilterSelect";
 import { PriceRangeFilter } from "./PriceRangeFilter";
@@ -24,7 +24,7 @@ function mergeSelectedFacetValues<T extends { value: string; count: number }>(
 }
 
 export type FilterSidebarProps = {
-  stores: Store[];
+  storeFacets: StoreFacet[];
   brandFacets: BrandFacet[];
   storeFilter: string;
   brandFilters: string[];
@@ -44,7 +44,7 @@ export type FilterSidebarProps = {
 };
 
 export function FilterSidebar({
-  stores,
+  storeFacets,
   brandFacets,
   storeFilter,
   brandFilters,
@@ -62,11 +62,15 @@ export function FilterSidebar({
   onToggleSpecFilter,
   onClearSpecFilter,
 }: FilterSidebarProps) {
+  const storeFacetOptions = mergeSelectedFacetValues(
+    storeFacets ?? [],
+    storeFilter ? [storeFilter] : undefined,
+  );
   const storeOptions = [
     { value: "", label: "All stores" },
-    ...(stores ?? []).map((s) => ({
-      value: s.name,
-      label: `${s.name} (${s.deal_count})`,
+    ...storeFacetOptions.map((s) => ({
+      value: s.value,
+      label: `${s.value} (${s.count})`,
     })),
   ];
 

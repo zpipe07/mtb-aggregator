@@ -70,6 +70,24 @@ describe("radial-tires hub", () => {
   });
 });
 
+describe("fox-forks hub", () => {
+  it("locks the hub brand and does not OR in other brands", () => {
+    const hub = getSeoHubBySlug("fox-forks");
+    expect(hub).toBeDefined();
+    const fp = {
+      ...emptyParsedFilterParams(),
+      brandFilters: ["RockShox"],
+    };
+    const deals = buildFetchDealsParamsFromHubAndFilters(hub!, fp);
+    const facets = buildFetchFacetsParamsFromHubAndFilters(hub!, fp);
+    expect(deals.brand_scope).toEqual(["Fox"]);
+    expect(deals.brands).toEqual(["Fox", "RockShox"]);
+    expect(facets.brand_scope).toEqual(["Fox"]);
+    expect(facets.brands).toEqual(["Fox", "RockShox"]);
+    expect(facets.category_slug).toBe("components-suspension-forks");
+  });
+});
+
 describe("emtbs-under-5000 hub", () => {
   it("is registered with eMTB category and $5,000 price cap", () => {
     const hub = getSeoHubBySlug("emtbs-under-5000");

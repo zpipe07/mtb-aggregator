@@ -254,9 +254,12 @@ export function DealsPageContent({
     setFilterDrawerOpen(true);
   };
   const brandFacets: BrandFacet[] = facets.brand_facets ?? [];
+  const storeFacets =
+    facets.store_facets ??
+    (stores ?? []).map((s) => ({ value: s.name, count: s.deal_count }));
 
   const filterSidebarProps = {
-    stores,
+    storeFacets,
     brandFacets,
     storeFilter,
     brandFilters,

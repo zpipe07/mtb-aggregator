@@ -14,19 +14,23 @@ import (
 
 // GetFacetsParams mirrors GetDealsParams for filter context. SpecFilters supports multiple spec filters.
 type GetFacetsParams struct {
-	StoreID           *int
-	StoreName         string
-	Brands            []string // OR within brands (ILIKE ANY)
-	Category          string
-	CanonicalCategory string // legacy: "Bikes > Mountain"
-	CategorySlug      string // preferred: slug for subtree filter
-	MinDiscount       *float64
-	MinPrice          *float64 // minimum current_price (inclusive)
-	MaxPrice          *float64 // maximum current_price (inclusive)
-	Search            string
-	SpecFilters       map[string][]string // key -> values; OR within key
+	StoreID             *int
+	StoreName           string
+	Brands              []string // OR within brands (ILIKE ANY); omitted when aggregating brand facets
+	BrandScope          []string // page-locked brands (AND); still applied when aggregating brand facets
+	Category            string
+	CanonicalCategory   string // legacy: "Bikes > Mountain"
+	CategorySlug        string // preferred: slug for subtree filter
+	ExcludeCategorySlug string
+	MinDiscount         *float64
+	MinPrice            *float64 // minimum current_price (inclusive)
+	MaxPrice            *float64 // maximum current_price (inclusive)
+	Search              string
+	SpecFilters         map[string][]string // key -> values; OR within key
 	// CategoryFilterIDs is populated by GetFacets from CategorySlug or CanonicalCategory for WHERE clause.
 	CategoryFilterIDs []int
+	// ExcludeCategoryIDs is populated by GetFacets from ExcludeCategorySlug.
+	ExcludeCategoryIDs []int
 }
 
 // SpecFacetValue is one value option for a spec facet with its count.
@@ -49,6 +53,12 @@ type BrandFacet struct {
 	Count int    `json:"count"`
 }
 
+// StoreFacet is a store option with a count scoped to the current listing filters.
+type StoreFacet struct {
+	Value string `json:"value"`
+	Count int    `json:"count"`
+}
+
 // PriceRange is min/max price in the filtered set.
 type PriceRange struct {
 	Min float64 `json:"min"`
@@ -59,6 +69,7 @@ type PriceRange struct {
 type GetFacetsResult struct {
 	SpecFacets    []SpecFacet  `json:"spec_facets"`
 	BrandFacets   []BrandFacet `json:"brand_facets"`
+	StoreFacets   []StoreFacet `json:"store_facets"`
 	PriceRange    PriceRange   `json:"price_range"`
 	TotalMatching int          `json:"total_matching"`
 }
@@ -97,6 +108,31 @@ func parseFilterableFields(extractionSchema json.RawMessage) []filterableField {
 
 // listingVisibilityGate limits queries to in-stock, non-hidden listings (same rules as GET /deals).
 const listingVisibilityGate = " AND l.is_in_stock = true AND l.hidden = false"
+
+// facetProductGroupKeySQL is the distinct-deal key used by GET /deals?group_variants=true.
+func facetProductGroupKeySQL(alias string) string {
+	return fmt.Sprintf("COALESCE(%s.product_group_key, 'single:' || %s.id::text)", alias, alias)
+}
+
+// facetDistinctGroupCountSQL counts shopper-facing deals, not variant rows.
+func facetDistinctGroupCountSQL(alias string) string {
+	return "COUNT(DISTINCT " + facetProductGroupKeySQL(alias) + ")::int"
+}
+
+// withoutUserBrands keeps page-locked BrandScope and drops the shopper's brand selection
+// so brand facets can list alternatives inside the current page.
+func withoutUserBrands(p GetFacetsParams) GetFacetsParams {
+	p.Brands = nil
+	return p
+}
+
+// withoutStore drops the store filter so store facets can list other retailers
+// that still match the rest of the page.
+func withoutStore(p GetFacetsParams) GetFacetsParams {
+	p.StoreName = ""
+	p.StoreID = nil
+	return p
+}
 
 // facetsListingGate prefixes facet WHERE clauses with the same visibility rules as public GET /deals
 // (in-stock, not hidden). whereFromBuild is the suffix from buildFacetsWhereClause (may be empty).
@@ -141,6 +177,14 @@ func (db *DB) GetFacets(ctx context.Context, params GetFacetsParams) (*GetFacets
 	}
 	params.CategoryFilterIDs = categoryFilterIDs
 
+	if slug := strings.TrimSpace(params.ExcludeCategorySlug); slug != "" {
+		if cat, err := db.GetCategoryBySlug(ctx, slug); err == nil && cat != nil {
+			if ids, err := db.GetCategorySubtreeIDs(ctx, cat.ID); err == nil && len(ids) > 0 {
+				params.ExcludeCategoryIDs = ids
+			}
+		}
+	}
+
 	var specFiltersForWhere map[string][]string
 	if profile != nil {
 		specFiltersForWhere = normalizeSpecFiltersMap(params.SpecFilters)
@@ -157,9 +201,9 @@ func (db *DB) GetFacets(ctx context.Context, params GetFacetsParams) (*GetFacets
 		JOIN stores s ON s.id = l.store_id
 		WHERE 1=1` + where
 
-	// Total matching count
+	// Total matching count — distinct product groups, same as GET /deals?group_variants=true.
 	var totalMatching int
-	err := db.pool.QueryRow(ctx, `SELECT COUNT(*) `+baseFrom, args...).Scan(&totalMatching)
+	err := db.pool.QueryRow(ctx, `SELECT `+facetDistinctGroupCountSQL("l")+` `+baseFrom, args...).Scan(&totalMatching)
 	if err != nil {
 		return nil, fmt.Errorf("facets total count: %w", err)
 	}
@@ -199,26 +243,38 @@ func (db *DB) GetFacets(ctx context.Context, params GetFacetsParams) (*GetFacets
 
 			specKeyValuesQuery := `
 				WITH filtered AS (
-					SELECT l.id, l.metadata
+					SELECT ` + facetProductGroupKeySQL("l") + ` AS gk, l.metadata
 					` + baseFromSpec + `
 					AND jsonb_typeof(` + effectiveLLMSpecsExpr("l.metadata") + `) = 'object'
 					AND ` + effectiveLLMSpecsExpr("l.metadata") + ` <> '{}'::jsonb
+				),
+				exploded AS (
+					SELECT f.gk, spec.value
+					FROM filtered f
+					CROSS JOIN LATERAL (
+						SELECT e.key, elem.v AS value
+						FROM jsonb_each(` + effectiveSpecs + `) AS e(key, value)
+						CROSS JOIN LATERAL jsonb_array_elements_text(
+							CASE WHEN jsonb_typeof(e.value) = 'array' THEN e.value
+							ELSE jsonb_build_array(e.value)
+							END
+						) AS elem(v)
+					) AS spec(key, value)
+					WHERE spec.value IS NOT NULL AND trim(spec.value) <> ''
+					  AND spec.key = $` + fmt.Sprint(len(specArgs)+1) + `
+				),
+				value_counts AS (
+					SELECT value, COUNT(DISTINCT gk)::int AS cnt
+					FROM exploded
+					GROUP BY value
+				),
+				product_total AS (
+					SELECT COUNT(DISTINCT gk)::int AS product_count FROM exploded
 				)
-				SELECT spec.value, COUNT(DISTINCT f.id) as cnt
-				FROM filtered f
-				CROSS JOIN LATERAL (
-					SELECT e.key, elem.v AS value
-					FROM jsonb_each(` + effectiveSpecs + `) AS e(key, value)
-					CROSS JOIN LATERAL jsonb_array_elements_text(
-						CASE WHEN jsonb_typeof(e.value) = 'array' THEN e.value
-						ELSE jsonb_build_array(e.value)
-						END
-					) AS elem(v)
-				) AS spec(key, value)
-				WHERE spec.value IS NOT NULL AND trim(spec.value) <> ''
-				  AND spec.key = $` + fmt.Sprint(len(specArgs)+1) + `
-				GROUP BY spec.value
-				ORDER BY cnt DESC
+				SELECT v.value, v.cnt, p.product_count
+				FROM value_counts v
+				CROSS JOIN product_total p
+				ORDER BY v.cnt DESC
 				LIMIT 50`
 			queryArgs := append(specArgs, f.key)
 			rows, err := db.pool.Query(ctx, specKeyValuesQuery, queryArgs...)
@@ -227,36 +283,37 @@ func (db *DB) GetFacets(ctx context.Context, params GetFacetsParams) (*GetFacets
 			}
 
 			var values []SpecFacetValue
-			total := 0
+			productCount := 0
 			for rows.Next() {
 				var v string
 				var c int
-				if err := rows.Scan(&v, &c); err != nil {
+				var pc int
+				if err := rows.Scan(&v, &c, &pc); err != nil {
 					rows.Close()
 					return nil, err
 				}
 				values = append(values, SpecFacetValue{Value: v, Count: c})
-				total += c
+				productCount = pc
 			}
 			rows.Close()
 			if err := rows.Err(); err != nil {
 				return nil, err
 			}
-			if total == 0 {
+			if productCount == 0 {
 				continue
 			}
 			specFacets = append(specFacets, SpecFacet{
 				Key:          f.key,
 				Label:        f.label,
-				ProductCount: total,
+				ProductCount: productCount,
 				Values:       values,
 			})
 		}
 	}
 
-	// Brand facets — exclude brand filter so users can see/switch alternatives (faceted search).
-	brandParams := params
-	brandParams.Brands = nil
+	// Brand facets — omit the shopper's brand selection so they can switch brands, but keep
+	// page-locked BrandScope (SEO hubs, /deals/brand/...) so off-page brands are not offered.
+	brandParams := withoutUserBrands(params)
 	brandWhere, brandArgs := buildFacetsWhereClause(brandParams, specFiltersForWhere, true)
 	brandWhere = facetsListingGate(brandWhere)
 	brandBaseFrom := `
@@ -265,7 +322,7 @@ func (db *DB) GetFacets(ctx context.Context, params GetFacetsParams) (*GetFacets
 		WHERE 1=1` + brandWhere
 
 	brandQuery := `
-		SELECT l.brand, COUNT(*) as cnt
+		SELECT l.brand, ` + facetDistinctGroupCountSQL("l") + ` as cnt
 		` + brandBaseFrom + `
 		AND l.brand IS NOT NULL AND trim(l.brand) <> ''
 		GROUP BY l.brand
@@ -290,9 +347,47 @@ func (db *DB) GetFacets(ctx context.Context, params GetFacetsParams) (*GetFacets
 		return nil, err
 	}
 
+	// Store facets — omit the store filter so the shopper can switch retailers, scoped to
+	// every other filter on the page. Stores with no matching deals are absent.
+	storeParams := withoutStore(params)
+	storeWhere, storeArgs := buildFacetsWhereClause(storeParams, specFiltersForWhere, true)
+	storeWhere = facetsListingGate(storeWhere)
+	storeBaseFrom := `
+		FROM store_listings l
+		JOIN stores s ON s.id = l.store_id
+		WHERE 1=1` + storeWhere
+	storeQuery := `
+		SELECT s.name, ` + facetDistinctGroupCountSQL("l") + ` as cnt
+		` + storeBaseFrom + `
+		AND s.name IS NOT NULL AND trim(s.name) <> ''
+		GROUP BY s.name
+		ORDER BY s.name`
+	storeRows, err := db.pool.Query(ctx, storeQuery, storeArgs...)
+	if err != nil {
+		return nil, fmt.Errorf("facets stores: %w", err)
+	}
+	defer storeRows.Close()
+
+	var storeFacets []StoreFacet
+	for storeRows.Next() {
+		var name string
+		var c int
+		if err := storeRows.Scan(&name, &c); err != nil {
+			return nil, err
+		}
+		if c <= 0 {
+			continue
+		}
+		storeFacets = append(storeFacets, StoreFacet{Value: name, Count: c})
+	}
+	if err := storeRows.Err(); err != nil {
+		return nil, err
+	}
+
 	return &GetFacetsResult{
 		SpecFacets:    specFacets,
 		BrandFacets:   brandFacets,
+		StoreFacets:   storeFacets,
 		PriceRange:    priceRange,
 		TotalMatching: totalMatching,
 	}, nil
@@ -382,17 +477,8 @@ func buildFacetsWhereClause(params GetFacetsParams, specFilters map[string][]str
 		args = append(args, params.StoreName)
 		argNum++
 	}
-	var brands []string
-	for _, b := range params.Brands {
-		if t := strings.TrimSpace(b); t != "" {
-			brands = append(brands, t)
-		}
-	}
-	if len(brands) > 0 {
-		sb.WriteString(fmt.Sprintf(" AND l.brand ILIKE ANY($%d::text[])", argNum))
-		args = append(args, pq.Array(brands))
-		argNum++
-	}
+	appendBrandILIKEAny(&sb, &args, &argNum, params.BrandScope)
+	appendBrandILIKEAny(&sb, &args, &argNum, params.Brands)
 	if params.Category != "" {
 		sb.WriteString(fmt.Sprintf(" AND EXISTS (SELECT 1 FROM unnest(COALESCE(l.category_path, '{}')) AS c WHERE c ILIKE $%d)", argNum))
 		args = append(args, params.Category)
@@ -415,6 +501,11 @@ func buildFacetsWhereClause(params GetFacetsParams, specFilters map[string][]str
 			args = append(args, pq.Array(trimmed))
 			argNum++
 		}
+	}
+	if len(params.ExcludeCategoryIDs) > 0 {
+		sb.WriteString(fmt.Sprintf(" AND (l.category_id IS NULL OR NOT (l.category_id = ANY($%d)))", argNum))
+		args = append(args, pq.Array(params.ExcludeCategoryIDs))
+		argNum++
 	}
 	appendMetadataSpecFilterConditions(&sb, &args, &argNum, specFilters, useLlmSpecs)
 	if params.MinDiscount != nil && *params.MinDiscount > 0 {

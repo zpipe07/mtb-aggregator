@@ -25,17 +25,8 @@ func (db *DB) dealsFilterSQL(ctx context.Context, params GetDealsParams, startAr
 		args = append(args, params.StoreName)
 		argNum++
 	}
-	var brands []string
-	for _, b := range params.Brands {
-		if t := strings.TrimSpace(b); t != "" {
-			brands = append(brands, t)
-		}
-	}
-	if len(brands) > 0 {
-		sb.WriteString(fmt.Sprintf(" AND l.brand ILIKE ANY($%d::text[])", argNum))
-		args = append(args, pq.Array(brands))
-		argNum++
-	}
+	appendBrandILIKEAny(&sb, &args, &argNum, params.BrandScope)
+	appendBrandILIKEAny(&sb, &args, &argNum, params.Brands)
 	if params.Category != "" {
 		sb.WriteString(fmt.Sprintf(" AND EXISTS (SELECT 1 FROM unnest(COALESCE(l.category_path, '{}')) AS c WHERE c ILIKE $%d)", argNum))
 		args = append(args, params.Category)
@@ -109,6 +100,23 @@ func (db *DB) dealsFilterSQL(ctx context.Context, params GetDealsParams, startAr
 		sb.WriteString(" AND l.home_demoted = false")
 	}
 	return sb.String(), args, argNum, nil
+}
+
+// appendBrandILIKEAny adds `AND l.brand ILIKE ANY($n)` when brands is non-empty.
+// Repeated calls AND together (page-locked scope, then the shopper's selection).
+func appendBrandILIKEAny(sb *strings.Builder, args *[]interface{}, argNum *int, brands []string) {
+	var cleaned []string
+	for _, b := range brands {
+		if t := strings.TrimSpace(b); t != "" {
+			cleaned = append(cleaned, t)
+		}
+	}
+	if len(cleaned) == 0 {
+		return
+	}
+	sb.WriteString(fmt.Sprintf(" AND l.brand ILIKE ANY($%d::text[])", *argNum))
+	*args = append(*args, pq.Array(cleaned))
+	*argNum++
 }
 
 func normalizeSpecFiltersMap(m map[string][]string) map[string][]string {

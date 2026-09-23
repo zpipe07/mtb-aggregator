@@ -362,16 +362,20 @@ export function buildFetchDealsParamsFromHubAndFilters(
   fp: ParsedFilterParams,
 ) {
   const f = hub.filters;
-  const mergedBrands = dedupeBrands([
-    ...(f.brands ?? []),
-    ...fp.brandFilters,
-  ]);
+  // Hub brands are a page lock (`brand_scope`, AND). `brands` still includes that
+  // lock so an API that does not know `brand_scope` keeps the hub filtered.
+  // On the current API the lock wins, so a URL brand outside the hub cannot
+  // OR in the rest of the category.
+  const brandScope = dedupeBrands(f.brands ?? []);
+  const userBrands = dedupeBrands(fp.brandFilters);
+  const queriedBrands = dedupeBrands([...brandScope, ...userBrands]);
   const minPriceNum = fp.minPrice ? parseFloat(fp.minPrice) : NaN;
   const minDiscountNum = fp.minDiscount ? parseFloat(fp.minDiscount) : NaN;
 
   return {
     category_slug: f.category_slug,
-    brands: mergedBrands.length > 0 ? mergedBrands : undefined,
+    brand_scope: brandScope.length > 0 ? brandScope : undefined,
+    brands: queriedBrands.length > 0 ? queriedBrands : undefined,
     max_price: f.max_price,
     min_price:
       !Number.isNaN(minPriceNum) && minPriceNum > 0 ? minPriceNum : undefined,
@@ -399,10 +403,12 @@ export function buildFetchFacetsParamsFromHubAndFilters(
   return {
     store: dealParams.store,
     brands: dealParams.brands,
+    brand_scope: dealParams.brand_scope,
     category_slug: dealParams.category_slug,
     min_discount: dealParams.min_discount,
     min_price: dealParams.min_price,
     max_price: dealParams.max_price,
+    exclude_category_slug: dealParams.exclude_category_slug,
     q: dealParams.q,
     specFilters: dealParams.specFilters,
   };
