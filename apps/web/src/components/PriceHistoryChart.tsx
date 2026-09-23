@@ -16,9 +16,9 @@ import {
 import { cn } from "@/lib/utils";
 import {
   PRICE_HISTORY_CHART_MARGIN,
-  PRICE_HISTORY_EDGE_PADDING,
   PRICE_HISTORY_Y_AXIS_WIDTH,
   priceHistoryPlotWidth,
+  priceHistoryTickAnchor,
   selectPriceHistoryTickIndexes,
 } from "./priceHistoryTicks";
 
@@ -57,7 +57,11 @@ function PriceHistoryDateTick({
   payload,
   index,
   visibleIndexes,
-}: XAxisTickContentProps & { visibleIndexes: ReadonlySet<number> }) {
+  pointCount,
+}: XAxisTickContentProps & {
+  visibleIndexes: ReadonlySet<number>;
+  pointCount: number;
+}) {
   if (!visibleIndexes.has(index)) return <g />;
   const label = payload?.value;
   if (label == null || label === "") return <g />;
@@ -65,7 +69,7 @@ function PriceHistoryDateTick({
     <Text
       x={x}
       y={y}
-      textAnchor="middle"
+      textAnchor={priceHistoryTickAnchor(index, pointCount)}
       verticalAnchor="start"
       fill="var(--color-muted-foreground)"
       fontSize={AXIS_TICK.fontSize}
@@ -127,15 +131,16 @@ export function PriceHistoryChart({ data, className }: PriceHistoryChartProps) {
               dataKey="dateLabel"
               allowDuplicatedCategory
               interval={0}
-              padding={{
-                left: PRICE_HISTORY_EDGE_PADDING,
-                right: PRICE_HISTORY_EDGE_PADDING,
-              }}
+              padding={{ left: 0, right: 0 }}
               tickMargin={8}
               height={32}
               tickLine={false}
               tick={(props: XAxisTickContentProps) => (
-                <PriceHistoryDateTick {...props} visibleIndexes={visibleIndexes} />
+                <PriceHistoryDateTick
+                  {...props}
+                  visibleIndexes={visibleIndexes}
+                  pointCount={data.length}
+                />
               )}
               stroke="var(--color-muted-foreground)"
             />

@@ -1,19 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
-  PRICE_HISTORY_EDGE_PADDING,
   PRICE_HISTORY_LABEL_GAP,
-  PRICE_HISTORY_LABEL_WIDTH,
+  priceHistoryLabelBounds,
   priceHistoryPlotWidth,
+  priceHistoryTickAnchor,
+  priceHistoryTickX,
   selectPriceHistoryTickIndexes,
 } from "./priceHistoryTicks";
-
-const SLOT = PRICE_HISTORY_LABEL_WIDTH + PRICE_HISTORY_LABEL_GAP;
-
-function centers(pointCount: number, plotWidth: number, indexes: readonly number[]) {
-  const last = pointCount - 1;
-  const span = plotWidth - PRICE_HISTORY_EDGE_PADDING * 2;
-  return indexes.map((index) => PRICE_HISTORY_EDGE_PADDING + (index / last) * span);
-}
 
 function expectLabelsClear(pointCount: number, plotWidth: number) {
   const indexes = selectPriceHistoryTickIndexes(pointCount, plotWidth);
@@ -25,22 +18,26 @@ function expectLabelsClear(pointCount: number, plotWidth: number) {
     expect(index).toBeLessThan(pointCount);
   }
 
-  if (indexes.length === 1) {
-    const [center] = centers(pointCount, plotWidth, indexes);
-    expect(center! - PRICE_HISTORY_LABEL_WIDTH / 2).toBeGreaterThanOrEqual(-0.5);
-    expect(center! + PRICE_HISTORY_LABEL_WIDTH / 2).toBeLessThanOrEqual(plotWidth + 0.5);
-    return;
+  const boxes = indexes.map((index) =>
+    priceHistoryLabelBounds(index, pointCount, plotWidth),
+  );
+  for (const box of boxes) {
+    expect(box.left).toBeGreaterThanOrEqual(-0.5);
+    expect(box.right).toBeLessThanOrEqual(plotWidth + 0.5);
+  }
+  for (let i = 1; i < boxes.length; i++) {
+    expect(boxes[i]!.left - boxes[i - 1]!.right).toBeGreaterThanOrEqual(
+      PRICE_HISTORY_LABEL_GAP - 0.5,
+    );
   }
 
-  expect(indexes[0]).toBe(0);
-  expect(indexes[indexes.length - 1]).toBe(pointCount - 1);
-  const xs = centers(pointCount, plotWidth, indexes);
-  expect(xs[0]! - PRICE_HISTORY_LABEL_WIDTH / 2).toBeGreaterThanOrEqual(-0.5);
-  expect(xs[xs.length - 1]! + PRICE_HISTORY_LABEL_WIDTH / 2).toBeLessThanOrEqual(
-    plotWidth + 0.5,
-  );
-  for (let i = 1; i < xs.length; i++) {
-    expect(xs[i]! - xs[i - 1]!).toBeGreaterThanOrEqual(SLOT - 0.5);
+  if (indexes.length >= 2) {
+    expect(indexes[0]).toBe(0);
+    expect(indexes[indexes.length - 1]).toBe(pointCount - 1);
+    expect(priceHistoryTickX(0, pointCount, plotWidth)).toBe(0);
+    expect(priceHistoryTickX(pointCount - 1, pointCount, plotWidth)).toBe(plotWidth);
+    expect(priceHistoryTickAnchor(0, pointCount)).toBe("start");
+    expect(priceHistoryTickAnchor(pointCount - 1, pointCount)).toBe("end");
   }
 }
 
@@ -50,8 +47,19 @@ describe("selectPriceHistoryTickIndexes", () => {
     expect(selectPriceHistoryTickIndexes(0, 400)).toEqual([]);
   });
 
-  it("keeps a single point", () => {
+  it("keeps a single point centered", () => {
     expect(selectPriceHistoryTickIndexes(1, 200)).toEqual([0]);
+    expect(priceHistoryTickAnchor(0, 1)).toBe("middle");
+    expect(priceHistoryTickX(0, 1, 200)).toBe(100);
+  });
+
+  it("puts the first and last prices on the plot edges", () => {
+    const plot = priceHistoryPlotWidth(652);
+    expect(priceHistoryTickX(0, 19, plot)).toBe(0);
+    expect(priceHistoryTickX(18, 19, plot)).toBe(plot);
+    const indexes = selectPriceHistoryTickIndexes(19, plot);
+    expect(indexes[0]).toBe(0);
+    expect(indexes[indexes.length - 1]).toBe(18);
   });
 
   it("spaces the live PDP series on a phone and on the deal column", () => {
