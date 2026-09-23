@@ -72,6 +72,25 @@ export const InStockVariantTable: Story = {
   },
 };
 
+/** Scrape order S, XL, M, L — the table still renders S / M / L / XL (ZAC-287). */
+export const ShopperSizeOrder: Story = {
+  args: {
+    deal: {
+      ...groupedDeal,
+      id: 1888755,
+      product_name: "Niner RIP 9 RDO GX AXS",
+      brand: "Niner",
+      variants: [
+        row({ id: 11, store_sku: "s", variant_options: { Size: "S", Color: "Silver" } }),
+        row({ id: 12, store_sku: "xl", variant_options: { Size: "XL", Color: "Silver" } }),
+        row({ id: 13, store_sku: "m", variant_options: { Size: "M", Color: "Silver" } }),
+        row({ id: 14, store_sku: "l", variant_options: { Size: "L", Color: "Silver" } }),
+      ],
+    },
+    categoryTree: [],
+  },
+};
+
 /** Jenson color-only options: table still lists Size inferred from the SKU (ZAC-276). */
 export const JensonColorOnlySkuSizes: Story = {
   args: {
