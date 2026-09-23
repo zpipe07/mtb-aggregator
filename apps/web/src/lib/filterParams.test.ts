@@ -5,6 +5,7 @@ import {
   parsePriceParam,
   normalizeFilterQueryString,
   resolveUiCategorySlug,
+  listingHasExtraFilters,
 } from "./filterParams";
 
 describe("parseFilterParamsFromURL", () => {
@@ -84,5 +85,30 @@ describe("normalizeFilterQueryString", () => {
     const a = "brand=Z&brand=A&q=test&spec_x=2&spec_x=1";
     const b = "q=test&spec_x=1&spec_x=2&brand=A&brand=Z";
     expect(normalizeFilterQueryString(a)).toEqual(normalizeFilterQueryString(b));
+  });
+});
+
+describe("listingHasExtraFilters", () => {
+  const base = parseFilterParamsFromSearch({});
+
+  it("is false for sort and pagination only", () => {
+    expect(
+      listingHasExtraFilters({
+        ...base,
+        sort: "discount",
+        offset: 48,
+      }),
+    ).toBe(false);
+  });
+
+  it("is true for search, brand, price, and spec filters", () => {
+    expect(listingHasExtraFilters({ ...base, searchQuery: "fox" })).toBe(true);
+    expect(listingHasExtraFilters({ ...base, brandFilters: ["SRAM"] })).toBe(
+      true,
+    );
+    expect(listingHasExtraFilters({ ...base, minPrice: "100" })).toBe(true);
+    expect(
+      listingHasExtraFilters({ ...base, specFilters: { travel: ["160"] } }),
+    ).toBe(true);
   });
 });

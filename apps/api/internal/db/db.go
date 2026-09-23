@@ -1117,6 +1117,15 @@ type DashboardStats struct {
 // (matches GET /deals?group_variants=true).
 const storeVisibleProductGroupKey = `COALESCE(product_group_key, 'single:' || id::text)`
 
+// productGroupKeyExpr is storeVisibleProductGroupKey qualified with a listings alias
+// (e.g. "l" → COALESCE(l.product_group_key, 'single:' || l.id::text)).
+func productGroupKeyExpr(alias string) string {
+	if alias == "" {
+		return storeVisibleProductGroupKey
+	}
+	return "COALESCE(" + alias + ".product_group_key, 'single:' || " + alias + ".id::text)"
+}
+
 func (db *DB) GetStoresWithCounts(ctx context.Context) ([]StoreWithCount, error) {
 	rows, err := db.pool.Query(ctx, `
 		SELECT s.id, s.name, s.base_url,

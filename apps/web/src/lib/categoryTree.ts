@@ -47,12 +47,30 @@ export function buildCategoryTreeFromFlat(flat: CategoryFlatRow[]): CategoryTree
 
 /**
  * Shopper-facing deal count for a nav node: grouped products as shown on
- * `/deals?group_variants=true`. Homepage tiles, mega-menu, search chips, and
- * the categories hub must use this so the numbers agree (ZAC-236).
+ * `/deals?group_variants=true`. Homepage tiles, mega-menu, search chips,
+ * the categories hub, and unfiltered listing headers must use this so the
+ * numbers agree (ZAC-236, ZAC-268).
  * Older APIs omit `product_count`; fall back to the listing rollup.
  */
 export function categoryNavDealCount(node: CategoryTreeNode): number {
   return node.product_count ?? node.deal_count ?? 0;
+}
+
+/**
+ * Listing header / pagination total for a category surface.
+ * Unfiltered category pages use the tree count so mega-menu, chips, and
+ * `/deals/c/...` agree. Extra filters (search, brand, price, specs, …)
+ * keep the live `GET /deals` total.
+ */
+export function shopperListingTotalCount(
+  dealsTotal: number,
+  categoryNode: CategoryTreeNode | null | undefined,
+  hasExtraFilters: boolean,
+): number {
+  if (!hasExtraFilters && categoryNode) {
+    return categoryNavDealCount(categoryNode);
+  }
+  return dealsTotal;
 }
 
 /** True when this subtree has at least one deal shoppers would see. */
