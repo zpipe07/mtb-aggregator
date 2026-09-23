@@ -73,7 +73,7 @@ Config and prompt. Not an app feature sprint.
 - Trigger: issue created, production, `mtb-aggregator-web` + `mtb-aggregator-api`.
 - Instructions: classify → abort list above → minimal fix → named CI test for the slice that changed → draft PR with `Fixes <SHORT-ID>` and the issue URL in the **body**, or a Sentry comment if skipped.
 - Branch: `fix/<sentry-short-id>-<slug>`.
-- **Cloud env:** [`.cursor/environment.json`](../../.cursor/environment.json) + [`.cursor/Dockerfile`](../../.cursor/Dockerfile) (Ubuntu 24.04, Node 20, pnpm 9.14.2, Go 1.26.6). Install: `pnpm install --frozen-lockfile`, build `@mtb-aggregator/logging`, `go mod download` in `apps/api`. No Postgres, Playwright, or Docker Compose. Prompt names exact verify commands from [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml).
+- **Cloud env:** [`.cursor/environment.json`](../../.cursor/environment.json) + [`.cursor/Dockerfile`](../../.cursor/Dockerfile) (Ubuntu 24.04, Node 20, pnpm 9.14.2, Go 1.26.6, CodeGraph CLI). Install: `pnpm install --frozen-lockfile`, build `@mtb-aggregator/logging`, `go mod download` in `apps/api`, then [`.cursor/codegraph-setup.sh`](../../.cursor/codegraph-setup.sh). No Postgres, Playwright, or Docker Compose. Prompt names exact verify commands from [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml).
 - **GitHub auto-resolve** (follow-up, with the automation):
   1. Sentry org `the-dropper` → Settings → Integrations → GitHub → grant `mtb-aggregator`.
   2. Code mappings on the in-projects (web already maps `BrandLinks.tsx`).

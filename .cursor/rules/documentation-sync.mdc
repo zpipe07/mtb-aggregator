@@ -10,7 +10,7 @@ When making code changes, update relevant docs so they stay accurate. Check if a
 | Change type | Docs to update |
 |-------------|----------------|
 | API endpoints, scheduler, backfills | [apps/api/README.md](apps/api/README.md), [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
-| Parsers, enrichers, store types | [apps/scraper/README.md](apps/scraper/README.md), [docs/SCRAPING.md](docs/SCRAPING.md) |
+| Parsers, enrichers, store types | [apps/scraper/README.md](apps/scraper/README.md), [docs/SCRAPING.md](docs/SCRAPING.md), [docs/specs/enrichment-normalization-zac-253.md](docs/specs/enrichment-normalization-zac-253.md) when skip/PDP/LLM contract changes |
 | Schema, migrations, brand/taxonomy config | [packages/shared/README.md](packages/shared/README.md), [packages/shared/migrations/README.md](packages/shared/migrations/README.md) |
 | Category tree, mappings, LLM classifier | [docs/TAXONOMY.md](docs/TAXONOMY.md), [CLAUDE.md](CLAUDE.md) Architecture section |
 | New features, data flow, deployment | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [CLAUDE.md](CLAUDE.md), [README.md](README.md) |

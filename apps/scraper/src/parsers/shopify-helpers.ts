@@ -33,11 +33,30 @@ export interface ShopifyProductWithOptions {
   options?: ShopifyProductOption[];
 }
 
+const SCHEMA_ORG_URL = /^https?:\/\/schema\.org\//i;
+
+/** Shopify dummy "Title" / "Default Title" and schema.org feed leftovers (ZAC-278, ZAC-281). */
+export function isPlaceholderVariantOption(
+  name: string,
+  value: string,
+): boolean {
+  const n = name.trim().toLowerCase().replace(/[\s_-]+/g, " ");
+  const compact = name.trim().toLowerCase().replace(/[\s_-]+/g, "");
+  const v = value.trim().toLowerCase().replace(/\s+/g, " ");
+  if (!n || !v) return true;
+  if (n === "title" || v === "default title") return true;
+  if (n === "schema stock status" || n.startsWith("schema ") || compact.startsWith("schema")) {
+    return true;
+  }
+  return SCHEMA_ORG_URL.test(value.trim());
+}
+
 /**
  * Map Shopify option1/2/3 to option names from product.options.
  * Falls back to generic "Option 1"… when `product.options` is missing but values exist,
  * then to `variant.title` (e.g. "Small / Black") when options are still empty — some
  * stores/API responses omit option names on the product but still send variant fields.
+ * Placeholder options (`Title`/`Default Title`, schema.org stock) are omitted.
  */
 export function buildVariantOptions(
   product: ShopifyProductWithOptions,
@@ -49,7 +68,9 @@ export function buildVariantOptions(
   for (let i = 0; i < names.length && i < 3; i++) {
     const v = vals[i];
     if (v != null && String(v).trim() !== "") {
-      out[names[i]] = String(v).trim();
+      const name = names[i];
+      const value = String(v).trim();
+      if (!isPlaceholderVariantOption(name, value)) out[name] = value;
     }
   }
   if (Object.keys(out).length === 0) {
@@ -57,13 +78,16 @@ export function buildVariantOptions(
     for (let i = 0; i < 3; i++) {
       const v = vals[i];
       if (v != null && String(v).trim() !== "") {
-        out[fallbackNames[i]] = String(v).trim();
+        const value = String(v).trim();
+        if (!isPlaceholderVariantOption(fallbackNames[i], value)) {
+          out[fallbackNames[i]] = value;
+        }
       }
     }
   }
   if (Object.keys(out).length === 0 && variant.title != null) {
     const t = String(variant.title).trim();
-    if (t !== "" && t.toLowerCase() !== "default title") {
+    if (t !== "" && !isPlaceholderVariantOption("Variant", t)) {
       out.Variant = t;
     }
   }

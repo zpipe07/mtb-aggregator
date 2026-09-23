@@ -86,6 +86,7 @@ type JensonPDPVariant struct {
 }
 
 func sortedVariantOptionsJSON(dims map[string]string) (json.RawMessage, error) {
+	dims = StripPlaceholderVariantOptions(dims)
 	if len(dims) == 0 {
 		return nil, nil
 	}

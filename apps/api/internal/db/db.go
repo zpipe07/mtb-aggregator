@@ -196,8 +196,8 @@ func (db *DB) UpsertListing(ctx context.Context, listing Listing) (int, error) {
 		}
 	}
 	var variantOpts interface{}
-	if len(listing.VariantOptions) > 0 {
-		variantOpts = listing.VariantOptions
+	if stripped := StripPlaceholderVariantOptionsJSON(listing.VariantOptions); len(stripped) > 0 {
+		variantOpts = stripped
 	}
 
 	var id int
@@ -1974,13 +1974,19 @@ func (db *DB) GetListingForLLM(ctx context.Context, id int) (*ListingForLLM, err
 // Only fills spec gaps; does not overwrite existing spec-table data.
 func (db *DB) UpdateListingLLMSpecs(ctx context.Context, id int, llmResult map[string]interface{}) error {
 	var existing []byte
-	if err := db.pool.QueryRow(ctx, `SELECT COALESCE(metadata, '{}') FROM store_listings WHERE id = $1`, id).Scan(&existing); err != nil {
+	var productName string
+	var canonical pgtype.FlatArray[string]
+	if err := db.pool.QueryRow(ctx, `
+		SELECT COALESCE(metadata, '{}'), COALESCE(product_name, ''), COALESCE(canonical_category, '{}'::text[])
+		FROM store_listings WHERE id = $1
+	`, id).Scan(&existing, &productName, &canonical); err != nil {
 		if err.Error() == "no rows in result set" {
 			return nil
 		}
 		return err
 	}
 	merged := metadata.MergeLLMSpecs(existing, llmResult)
+	merged = metadata.ApplyHelmetCoverage(merged, productName, []string(canonical))
 	_, err := db.pool.Exec(ctx, `UPDATE store_listings SET metadata = $1 WHERE id = $2`, merged, id)
 	return err
 }
@@ -1988,13 +1994,18 @@ func (db *DB) UpdateListingLLMSpecs(ctx context.Context, id int, llmResult map[s
 // UpdateListingLLMOverrides merges manual overrides into a listing's metadata.llm_overrides.
 func (db *DB) UpdateListingLLMOverrides(ctx context.Context, id int, overrides map[string]interface{}) error {
 	var existing []byte
-	if err := db.pool.QueryRow(ctx, `SELECT COALESCE(metadata, '{}') FROM store_listings WHERE id = $1`, id).Scan(&existing); err != nil {
+	var productName string
+	var canonical pgtype.FlatArray[string]
+	if err := db.pool.QueryRow(ctx, `
+		SELECT COALESCE(metadata, '{}'), COALESCE(product_name, ''), COALESCE(canonical_category, '{}'::text[])
+		FROM store_listings WHERE id = $1
+	`, id).Scan(&existing, &productName, &canonical); err != nil {
 		if err.Error() == "no rows in result set" {
 			return nil
 		}
 		return err
 	}
-	merged := metadata.MergeLLMOverrides(existing, overrides)
+	merged := metadata.ApplyHelmetCoverage(metadata.MergeLLMOverrides(existing, overrides), productName, []string(canonical))
 	_, err := db.pool.Exec(ctx, `UPDATE store_listings SET metadata = $1 WHERE id = $2`, merged, id)
 	return err
 }

@@ -6,6 +6,8 @@
 import {
   dimensionKeyToLabel,
   extractDimensionString,
+  isJunkVariantDimensionKey,
+  isJunkVariantDimensionValue,
 } from "./jensonusa-dto.js";
 
 /** Fields on PDP variant objects that are not facet dimensions. */
@@ -30,6 +32,7 @@ const FIXED_PDP_VARIANT_FIELDS = new Set([
   "id",
   "isOrderable",
   "price",
+  "schemaStockStatus",
 ]);
 
 export interface PdpEnrichVariant {
@@ -47,11 +50,11 @@ function extractPdpVariantDimensions(
 ): Record<string, string> | null {
   const out: Record<string, string> = {};
   for (const [k, val] of Object.entries(variant)) {
-    if (FIXED_PDP_VARIANT_FIELDS.has(k)) continue;
+    if (FIXED_PDP_VARIANT_FIELDS.has(k) || isJunkVariantDimensionKey(k)) continue;
     const s = extractDimensionString(val);
-    if (s == null) continue;
+    if (s == null || isJunkVariantDimensionValue(s)) continue;
     const label = dimensionKeyToLabel(k);
-    if (label) out[label] = s;
+    if (label && !isJunkVariantDimensionKey(label)) out[label] = s;
   }
   return Object.keys(out).length > 0 ? out : null;
 }

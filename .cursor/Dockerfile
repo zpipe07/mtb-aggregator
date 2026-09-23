@@ -23,4 +23,10 @@ RUN apt-get update \
 
 ENV PATH="/usr/local/go/bin:${PATH}" \
     GOPATH="/root/go" \
-    GOTOOLCHAIN=local
+    GOTOOLCHAIN=local \
+    CODEGRAPH_BIN_DIR=/usr/local/bin \
+    CODEGRAPH_INSTALL_DIR=/usr/local/lib/codegraph
+
+# CodeGraph CLI for cloud-agent navigation (ZAC-290). Index is built in `install`.
+RUN curl -fsSL https://raw.githubusercontent.com/colbymchenry/codegraph/main/install.sh | sh \
+  && codegraph --version

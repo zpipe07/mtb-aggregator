@@ -1,5 +1,7 @@
 # Enrichment Pipeline Split (ZAC-171)
 
+Cross-store enrich contract (inputs, skip, idempotency): [docs/specs/enrichment-normalization-zac-253.md](../specs/enrichment-normalization-zac-253.md).
+
 ## Problem Statement
 
 How might we let each enrichment step run on its own cadence — PDP fetching politely throttled per store, LLM steps running within minutes of a scrape — while making pipeline health obvious at a glance?

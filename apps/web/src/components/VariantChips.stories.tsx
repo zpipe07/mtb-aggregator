@@ -209,6 +209,30 @@ export const ExtractedBikeSize: Story = {
   },
 };
 
+export const PlaceholdersHidden: Story = {
+  args: {
+    density: "compact",
+    deal: {
+      ...baseDeal,
+      product_name: "Bosch COBI.Bike iPhone Case",
+      brand: "Bosch",
+      variant_count: 1,
+      variant_options: {
+        Title: "Default Title",
+        "Schema Stock Status": "https://schema.org/InStock",
+      },
+    },
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Shopify Title/Default Title and Jenson schema.org stock leftovers are not rendered as chips (ZAC-278, ZAC-281).",
+      },
+    },
+  },
+};
+
 export const NoOptions: Story = {
   args: {
     deal: baseDeal,

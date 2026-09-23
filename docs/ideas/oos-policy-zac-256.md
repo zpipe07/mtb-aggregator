@@ -12,7 +12,7 @@ These are the policy calls this spec proceeds with. Correct them before implemen
 2. **Restock SLA:** The ~4h scrape cadence is enough. No faster stock poll. No-signal stores accept a slower restock (stock-check PDP, default **24h**) because sale-page presence is not a stock signal.
 3. **Keep OOS rows.** Persist them. Public `GET /deals` stays `is_in_stock=true AND hidden=false`. Admin, grouped sibling JSON, and the deal PDP variant table may still see OOS siblings. Do not drop OOS SKUs from scrape (Gravity Cartel / Ride Bicycles should stop skipping `!variant.available`).
 4. **Scrape may overwrite `is_in_stock` only when the PLP (or catalog) has a real stock flag.** No-signal scrapes must not overwrite PDP/fan-out stock. That is the Jenson re-PDP loop — and it can also put a sold-out SKU back on `/deals` until the next PDP (up to 30d).
-5. **This ticket** ships the spec + plan. Implementation is the task list below (same ticket or a child). Sibling specs (ZAC-255 scrape contract, ZAC-253 enrichment, ZAC-254 variant identity) stay separate; they should adopt the contract field defined here.
+5. **This ticket** ships the spec + plan. Implementation is the task list below (same ticket or a child). Sibling specs ([ZAC-255 scrape contract](../specs/scrape-contract-zac-255.md), [ZAC-253 enrichment](../specs/enrichment-normalization-zac-253.md), [ZAC-254 variant identity](../specs/variant-identity-zac-254.md)) stay separate; they should adopt the contract field defined here.
 
 ## Recommended Direction
 
@@ -103,7 +103,7 @@ So the bug is **correctness** (false in-stock on `/deals`) as well as **waste** 
 ### Phase 3 — Docs / contract
 
 - ZAC-255 scrape contract ([docs/specs/scrape-contract-zac-255.md](../specs/scrape-contract-zac-255.md)) cites `stock_from_plp`.
-- ZAC-253 enrichment notes: OOS stock-check is stock-only; classify/extract stay skipped.
+- ZAC-253 enrichment ([docs/specs/enrichment-normalization-zac-253.md](../specs/enrichment-normalization-zac-253.md)) notes: OOS stock-check is stock-only; classify/extract stay skipped.
 
 ## Not Doing (and Why)
 

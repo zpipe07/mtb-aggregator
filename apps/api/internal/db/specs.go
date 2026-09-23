@@ -24,7 +24,7 @@ type GetFacetsParams struct {
 	MinPrice          *float64 // minimum current_price (inclusive)
 	MaxPrice          *float64 // maximum current_price (inclusive)
 	Search            string
-	SpecFilters map[string][]string // key -> values; OR within key
+	SpecFilters       map[string][]string // key -> values; OR within key
 	// CategoryFilterIDs is populated by GetFacets from CategorySlug or CanonicalCategory for WHERE clause.
 	CategoryFilterIDs []int
 }
@@ -178,13 +178,14 @@ func (db *DB) GetFacets(ctx context.Context, params GetFacetsParams) (*GetFacets
 		priceRange.Max = *priceMax
 	}
 
-	// Spec facets: LLM-driven from profile + metadata.llm_specs.
+	// Spec facets: LLM-driven from profile + effective specs (llm_overrides win over llm_specs).
 	// For each filterable key, aggregate values using a WHERE clause that omits that key's spec
 	// filter so the user can switch values (faceted search), matching brand_facets behavior.
 	var specFacets []SpecFacet
 	if profile != nil {
 		fields := parseFilterableFields(profile.ExtractionSchema)
 		const maxKeys = 20
+		effectiveSpecs := effectiveLLMSpecsExpr("f.metadata")
 		for i, f := range fields {
 			if i >= maxKeys {
 				break
@@ -200,14 +201,14 @@ func (db *DB) GetFacets(ctx context.Context, params GetFacetsParams) (*GetFacets
 				WITH filtered AS (
 					SELECT l.id, l.metadata
 					` + baseFromSpec + `
-					AND l.metadata->'llm_specs' IS NOT NULL
-					AND jsonb_typeof(l.metadata->'llm_specs') = 'object'
+					AND jsonb_typeof(` + effectiveLLMSpecsExpr("l.metadata") + `) = 'object'
+					AND ` + effectiveLLMSpecsExpr("l.metadata") + ` <> '{}'::jsonb
 				)
 				SELECT spec.value, COUNT(DISTINCT f.id) as cnt
 				FROM filtered f
 				CROSS JOIN LATERAL (
 					SELECT e.key, elem.v AS value
-					FROM jsonb_each(f.metadata->'llm_specs') AS e(key, value)
+					FROM jsonb_each(` + effectiveSpecs + `) AS e(key, value)
 					CROSS JOIN LATERAL jsonb_array_elements_text(
 						CASE WHEN jsonb_typeof(e.value) = 'array' THEN e.value
 						ELSE jsonb_build_array(e.value)
@@ -312,13 +313,23 @@ func specFiltersOmit(specFilters map[string][]string, omitKey string) map[string
 	return out
 }
 
+// effectiveLLMSpecsExpr is the JSON object shoppers and facets should read: llm_overrides
+// keys replace llm_specs (admin corrections must win on /deals and /facets).
+func effectiveLLMSpecsExpr(metadataExpr string) string {
+	return fmt.Sprintf(
+		`(COALESCE(%[1]s->'llm_specs', '{}'::jsonb) || COALESCE(CASE WHEN jsonb_typeof(%[1]s->'llm_overrides') = 'object' THEN %[1]s->'llm_overrides' ELSE '{}'::jsonb END, '{}'::jsonb))`,
+		metadataExpr,
+	)
+}
+
 // appendMetadataSpecFilterConditions appends AND clauses for spec filters on metadata.llm_specs
-// or metadata.specs. Stored values may be JSON scalars (string/number) or JSON arrays of strings;
-// each filter pattern is matched with ILIKE against scalars or any array element.
+// (with llm_overrides winning when useLlmSpecs) or metadata.specs. Stored values may be JSON
+// scalars (string/number) or JSON arrays of strings; each filter pattern is matched with ILIKE
+// against scalars or any array element.
 func appendMetadataSpecFilterConditions(sb *strings.Builder, args *[]interface{}, argNum *int, specFilters map[string][]string, useLlmSpecs bool) {
-	specPath := "'specs'"
+	specExpr := "l.metadata->'specs'"
 	if useLlmSpecs {
-		specPath = "'llm_specs'"
+		specExpr = effectiveLLMSpecsExpr("l.metadata")
 	}
 	for k, values := range specFilters {
 		if k == "" || len(values) == 0 {
@@ -327,26 +338,26 @@ func appendMetadataSpecFilterConditions(sb *strings.Builder, args *[]interface{}
 		n := *argNum
 		if len(values) == 1 {
 			sb.WriteString(fmt.Sprintf(` AND (
-  CASE WHEN jsonb_typeof(l.metadata->%s->$%d) = 'array'
+  CASE WHEN jsonb_typeof(%[1]s->$%[2]d) = 'array'
   THEN EXISTS (
-    SELECT 1 FROM jsonb_array_elements_text(l.metadata->%s->$%d) AS elem(v)
-    WHERE v ILIKE $%d
+    SELECT 1 FROM jsonb_array_elements_text(%[1]s->$%[2]d) AS elem(v)
+    WHERE v ILIKE $%[3]d
   )
-  ELSE l.metadata->%s->>$%d ILIKE $%d
+  ELSE %[1]s->>$%[2]d ILIKE $%[3]d
   END
-)`, specPath, n, specPath, n, n+1, specPath, n, n+1))
+)`, specExpr, n, n+1))
 			*args = append(*args, k, values[0])
 			*argNum = n + 2
 		} else {
 			sb.WriteString(fmt.Sprintf(` AND (
-  CASE WHEN jsonb_typeof(l.metadata->%s->$%d) = 'array'
+  CASE WHEN jsonb_typeof(%[1]s->$%[2]d) = 'array'
   THEN EXISTS (
-    SELECT 1 FROM jsonb_array_elements_text(l.metadata->%s->$%d) AS elem(v)
-    WHERE v ILIKE ANY($%d::text[])
+    SELECT 1 FROM jsonb_array_elements_text(%[1]s->$%[2]d) AS elem(v)
+    WHERE v ILIKE ANY($%[3]d::text[])
   )
-  ELSE (l.metadata->%s->>$%d)::text ILIKE ANY($%d::text[])
+  ELSE (%[1]s->>$%[2]d)::text ILIKE ANY($%[3]d::text[])
   END
-)`, specPath, n, specPath, n, n+1, specPath, n, n+1))
+)`, specExpr, n, n+1))
 			*args = append(*args, k, pq.Array(values))
 			*argNum = n + 2
 		}
@@ -355,7 +366,7 @@ func appendMetadataSpecFilterConditions(sb *strings.Builder, args *[]interface{}
 
 // buildFacetsWhereClause returns the WHERE fragment and args for the facets query.
 // specFilters maps spec key to values (for ILIKE matching). useLlmSpecs: when true, spec
-// filters query metadata->'llm_specs'; when false, metadata->'specs' (legacy).
+// filters query effective LLM specs (llm_overrides || llm_specs); when false, metadata->'specs' (legacy).
 func buildFacetsWhereClause(params GetFacetsParams, specFilters map[string][]string, useLlmSpecs bool) (string, []interface{}) {
 	var sb strings.Builder
 	args := []interface{}{}
@@ -430,7 +441,7 @@ func buildFacetsWhereClause(params GetFacetsParams, specFilters map[string][]str
 }
 
 // GetDistinctMetadataValues returns distinct non-empty values for a given metadata key.
-// Queries llm_specs (LLM-derived specs).
+// Queries effective LLM specs (llm_overrides win over llm_specs).
 func (db *DB) GetDistinctMetadataValues(ctx context.Context, key string, limit int) ([]string, error) {
 	if key == "" {
 		return []string{}, nil
@@ -439,26 +450,27 @@ func (db *DB) GetDistinctMetadataValues(ctx context.Context, key string, limit i
 		limit = 200
 	}
 
+	eff := effectiveLLMSpecsExpr("metadata")
 	query := fmt.Sprintf(`
 		SELECT DISTINCT v FROM (
-			SELECT metadata->'llm_specs'->>$1 AS v
+			SELECT %s->>$1 AS v
 			FROM store_listings
-			WHERE metadata->'llm_specs' IS NOT NULL AND jsonb_typeof(metadata->'llm_specs') = 'object'
-			  AND metadata->'llm_specs' ? $1
-			  AND jsonb_typeof(metadata->'llm_specs'->$1) <> 'array'
-			  AND metadata->'llm_specs'->>$1 IS NOT NULL AND trim(metadata->'llm_specs'->>$1::text) <> ''
+			WHERE jsonb_typeof(%s) = 'object'
+			  AND %s ? $1
+			  AND jsonb_typeof(%s->$1) <> 'array'
+			  AND %s->>$1 IS NOT NULL AND trim(%s->>$1) <> ''
 			UNION ALL
 			SELECT elem.v AS v
 			FROM store_listings,
-			LATERAL jsonb_array_elements_text(metadata->'llm_specs'->$1) AS elem(v)
-			WHERE metadata->'llm_specs' IS NOT NULL AND jsonb_typeof(metadata->'llm_specs') = 'object'
-			  AND metadata->'llm_specs' ? $1
-			  AND jsonb_typeof(metadata->'llm_specs'->$1) = 'array'
+			LATERAL jsonb_array_elements_text(%s->$1) AS elem(v)
+			WHERE jsonb_typeof(%s) = 'object'
+			  AND %s ? $1
+			  AND jsonb_typeof(%s->$1) = 'array'
 		) sub
 		WHERE v IS NOT NULL AND trim(v) <> ''
 		ORDER BY v
 		LIMIT %d
-	`, limit)
+	`, eff, eff, eff, eff, eff, eff, eff, eff, eff, eff, limit)
 
 	rows, err := db.pool.Query(ctx, query, key)
 	if err != nil {

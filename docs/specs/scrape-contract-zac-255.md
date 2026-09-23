@@ -5,8 +5,8 @@ Parent: [ZAC-161](https://linear.app/zacks-personal-projects/issue/ZAC-161/norma
 Sibling specs:
 
 - [ZAC-256 OOS policy](../ideas/oos-policy-zac-256.md) — when scrape may write `is_in_stock`; keep OOS rows; restock SLA.
-- [ZAC-254](https://linear.app/zacks-personal-projects/issue/ZAC-254/spec-variant-identity-across-stores) — SKU / option keys, parent–child linking (identity rules; this spec only defines scrape-time emission).
-- [ZAC-253](https://linear.app/zacks-personal-projects/issue/ZAC-253/spec-enrichment-normalization-across-stores) — PDP / LLM after scrape.
+- [ZAC-254 variant identity](variant-identity-zac-254.md) — SKU / option keys, parent–child linking (identity rules; this spec only defines scrape-time emission).
+- [ZAC-253 enrichment](enrichment-normalization-zac-253.md) — PDP / LLM after scrape.
 - [ZAC-211](https://linear.app/zacks-personal-projects/issue/ZAC-211/are-we-scraping-and-saving-description-specs-etc) — whether scrape should persist description / specs (out of scope here except `feed_description`).
 
 Operational store notes stay in [docs/SCRAPING.md](../SCRAPING.md) and [apps/scraper/README.md](../../apps/scraper/README.md). This file is the **shared contract**: what every ingest path must emit, how pagination completeness is signaled, how variants are discovered at scrape time, how errors propagate, and what “done” means for a new store.
@@ -111,7 +111,7 @@ Shared TypeScript (`apps/scraper/src/types.ts`) and Go (`apps/api/internal/scrap
 | `is_in_stock` | **Yes** | Boolean | **Today** upsert always overwrites. **ZAC-256:** overwrite only when `stock_from_plp` |
 | `stock_from_plp` | Planned | `true` = PLP/catalog stock is authoritative | Not in Zod/Go yet — see [ZAC-256](../ideas/oos-policy-zac-256.md) |
 | `product_group_key` | Should set when a family exists | Store-local id (handle, parent code, master id) | Stored as `{store_id}:{key}`; `COALESCE` on conflict (new value wins if non-null) |
-| `variant_options` | Should set when dimensions exist | `Record<string, string>` e.g. `{ Color, Size }` | `COALESCE` on conflict; feeds `bike_size` / `clothing_size` |
+| `variant_options` | Should set when dimensions exist | `Record<string, string>` with **canonical** keys (`Size`, `Color`, …) per [ZAC-254](variant-identity-zac-254.md) | `COALESCE`/merge on conflict; feeds `bike_size` / `clothing_size` |
 | `feed_description` | Impact only | Catalog description | Merged into `metadata.description` for LLM without PDP |
 | `impact_catalog_outbound_url` | Impact only | Tracking hop when deep-link template unset | `affiliate_url` |
 
@@ -183,7 +183,7 @@ Scrape-time job: emit rows the deals UI can group (`GET /deals?group_variants=tr
 - Emit a second row with the parent SKU after children exist (Jenson / UC migrations `025` / `026`).
 - Put sentence-length collection H1s in `category_path` (ZAC-234).
 
-Identity collisions (same SKU, different option maps; handle vs numeric id) belong in **ZAC-254**. This spec only requires: one SKU → one row per scrape; family key stable across scrapes.
+Identity collisions (same SKU, different option maps; handle vs numeric id) belong in **[ZAC-254](variant-identity-zac-254.md)**. This spec only requires: one SKU → one row per scrape; family key stable across scrapes. Canonical `Size` / `Color` keys and parent-hide rules are locked there.
 
 ## Error handling
 
@@ -273,7 +273,7 @@ A store is done when all of the following are true. Registration-only (parser fi
 
 ### 7. Out of scope for “scrape done”
 
-PDP breadcrumbs, LLM classify/extract, affiliate networks, and WAF cookie rotation are **enrich / ops**. A store can ship scrape-only (CC listings) if the family says so. A store in `StoreTypesWithEnrichers` is not “scrape done” until the enricher exists — but that bar is [ZAC-253](https://linear.app/zacks-personal-projects/issue/ZAC-253/spec-enrichment-normalization-across-stores), not this file.
+PDP breadcrumbs, LLM classify/extract, affiliate networks, and WAF cookie rotation are **enrich / ops**. A store can ship scrape-only (CC listings) if the family says so. A store in `StoreTypesWithEnrichers` is not “scrape done” until the enricher exists — but that bar is [ZAC-253](enrichment-normalization-zac-253.md), not this file.
 
 ## Code gaps vs current scrapers
 
@@ -292,7 +292,7 @@ Honest delta against the contract above. Implementation is **not** this ticket u
 | Shopify parsers copy-pasted (~20 files) | `parsers/*.ts` | Drift (UA, retry, OOS skip, sale %) | Follow-up / ZAC-161 normalize — optional shared `scrapeShopifyCollection` |
 | Cursor rule still says “Use Playwright” | `.cursor/rules/scraper-parsers.mdc` | Agents launch Chromium for JSON stores | This PR (doc) |
 | CC scrape: no `product_group_key` | `map_catalog_item.go` | Flat cards until manual PDP | ZAC-254 + existing CC backfill |
-| Description / specs not on Node scrape | All `PARSERS` | ZAC-211; scrape stays listing-only | ZAC-253 / ZAC-211 |
+| Description / specs not on Node scrape | All `PARSERS` | ZAC-211; scrape stays listing-only | [ZAC-253](enrichment-normalization-zac-253.md) / ZAC-211 |
 | Specialized / Trek / Fox / Bell / Giro / Canyon: color or product grain, not size | `*-plp.ts` | Size chips wait on PDP or never appear | ZAC-254 |
 | Worldwide Cyclery emits variants with **null** `original_price` | `worldwidecyclery.ts` | Fine if the deals collection is already sale-only; batch warning if not | Store-specific; no change required |
 | Invalid rows dropped twice (Zod then Go) with only logs | `server.ts`, `ingestScrapeResults` | Silent loss; job still `completed` | Acceptable; keep validation errors on the job |
@@ -331,4 +331,4 @@ This ticket ships the spec. Suggested children when implementing the contract (d
 
 ## Open questions
 
-None blocking the spec. Implementation order: ZAC-256 field + Gravity/Ride emit, then Task A (truncation), then optional Shopify helper. ZAC-254 may tighten `store_sku` / group-key rules; update the variant table when that spec lands.
+None blocking the spec. Implementation order: ZAC-256 field + Gravity/Ride emit, then Task A (truncation), then optional Shopify helper. [ZAC-254](variant-identity-zac-254.md) locks `store_sku` / group-key / canonical option keys; identity follow-ups (Tasks A–E there) are separate from scrape truncation.

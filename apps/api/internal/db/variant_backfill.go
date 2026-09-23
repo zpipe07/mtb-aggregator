@@ -539,19 +539,27 @@ func buildVariantOptionMap(data *shopifyProductJSON, v *shopifyVariantJSON) map[
 		if vals[i] == nil || strings.TrimSpace(*vals[i]) == "" {
 			continue
 		}
-		out[n] = strings.TrimSpace(*vals[i])
+		val := strings.TrimSpace(*vals[i])
+		if isPlaceholderVariantOption(n, val) {
+			continue
+		}
+		out[n] = val
 	}
 	if len(out) == 0 {
 		fallbackNames := []string{"Option 1", "Option 2", "Option 3"}
 		for i := 0; i < 3; i++ {
 			if vals[i] != nil && strings.TrimSpace(*vals[i]) != "" {
-				out[fallbackNames[i]] = strings.TrimSpace(*vals[i])
+				val := strings.TrimSpace(*vals[i])
+				if isPlaceholderVariantOption(fallbackNames[i], val) {
+					continue
+				}
+				out[fallbackNames[i]] = val
 			}
 		}
 	}
 	if len(out) == 0 && v.Title != nil {
 		t := strings.TrimSpace(*v.Title)
-		if t != "" && strings.ToLower(t) != "default title" {
+		if t != "" && !isPlaceholderVariantOption("Variant", t) {
 			out["Variant"] = t
 		}
 	}

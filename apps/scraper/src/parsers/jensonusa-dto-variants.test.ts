@@ -55,6 +55,21 @@ describe("extractVariantDimensions", () => {
     };
     expect(extractVariantDimensions(v)).toEqual({ Color: "Red" });
   });
+
+  it("drops schema.org stock leftovers (ZAC-281)", () => {
+    const v = {
+      code: "RS001370 00.4118.421.046",
+      schemaStockStatus: "https://schema.org/InStock",
+      color: "Black",
+    };
+    expect(extractVariantDimensions(v)).toEqual({ Color: "Black" });
+    expect(
+      extractVariantDimensions({
+        code: "RS001370 00.4118.421.046",
+        schemaStockStatus: "https://schema.org/InStock",
+      }),
+    ).toBeNull();
+  });
 });
 
 /** Race Face–style multi-variant clearance DTO (trimmed). */

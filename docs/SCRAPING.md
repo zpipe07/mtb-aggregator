@@ -2,7 +2,7 @@
 
 The scraper is a Node.js Express server that uses Playwright **or fetch** to scrape MTB retailer sale pages and product detail pages.
 
-**Shared scrape contract** (required fields, pagination completeness, variant grain, errors, “done” for a new store, and gaps vs current parsers): [docs/specs/scrape-contract-zac-255.md](specs/scrape-contract-zac-255.md). OOS / `stock_from_plp`: [docs/ideas/oos-policy-zac-256.md](ideas/oos-policy-zac-256.md).
+**Shared scrape contract** (required fields, pagination completeness, variant grain, errors, “done” for a new store, and gaps vs current parsers): [docs/specs/scrape-contract-zac-255.md](specs/scrape-contract-zac-255.md). Variant identity (SKU / group key / Size-Color / parent–child): [docs/specs/variant-identity-zac-254.md](specs/variant-identity-zac-254.md). PDP / LLM enrich (inputs, skip, idempotency): [docs/specs/enrichment-normalization-zac-253.md](specs/enrichment-normalization-zac-253.md). OOS / `stock_from_plp`: [docs/ideas/oos-policy-zac-256.md](ideas/oos-policy-zac-256.md).
 
 ## Endpoints
 
@@ -22,7 +22,7 @@ When `SCRAPER_SERVICE_SECRET` is set (recommended in production), `POST /scrape`
 
 ### Adding a New Store
 
-Follow the **“done” checklist** in [the scrape contract](specs/scrape-contract-zac-255.md#what-done-means-for-a-new-store). Registration-only is not done.
+Follow the **“done” checklist** in [the scrape contract](specs/scrape-contract-zac-255.md#what-done-means-for-a-new-store) and, if the store has a PDP, [the enrichment contract](specs/enrichment-normalization-zac-253.md#what-done-means-for-a-new-store-enrich). Registration-only is not done.
 
 1. Pick a **store family** (Shopify JSON, Demandware grid, catalog API, …) and reuse its helpers.
 2. Create `parsers/{storename}.ts` with:
@@ -77,7 +77,7 @@ This failure has recurred on each new Demandware store (Fox Racing #138, Bell #1
 
 **Stock / OOS (ZAC-256, planned):** If the PLP has a real stock flag (Shopify `available`, Canyon limited-stock, Impact catalog, …), set `stock_from_plp: true` and emit OOS variants as rows with `is_in_stock: false` — do not skip them (Gravity Cartel / Ride Bicycles should match other Shopify stores). If the PLP always reports in-stock (Jenson, Trek, Specialized, Bell, Giro, Fox, UC), set `stock_from_plp: false` (or omit); the API will preserve existing `is_in_stock` on update. Restock for those stores is a stock-check PDP, not “scrape writes true.” Policy: [docs/ideas/oos-policy-zac-256.md](ideas/oos-policy-zac-256.md).
 
-**JensonUSA:** Each clearance product card’s `data-product-result-dto` includes a `variants` array (in addition to `selectedVariant`). The parser emits one result per variant so each sale price and SKU is stored; `product_group_key` is the parent `code`, and listing-side `variant_options` reflect whatever facets exist on the card (often **Color** only). When Size is missing, the parser infers it from the variant code suffix (ZAC-276). **Full variant labels and per-variant stock** still come from the PDP: the scraper’s `POST /enrich` for JensonUSA returns `variants[]` parsed from `serverSideViewModel.variants`, and the API updates all sibling rows for that `product_group_key`. Scrape upsert merges `variant_options` so Color-only PLP payloads cannot wipe Size. After the first deploy with per-variant scrape rows, apply migration `025_jenson_hide_superseded_parent_listings.sql` so legacy parent-`store_sku` rows are hidden when longer variant SKUs exist on the same `product_url`.
+**JensonUSA:** Each clearance product card’s `data-product-result-dto` includes a `variants` array (in addition to `selectedVariant`). The parser emits one result per variant so each sale price and SKU is stored; `product_group_key` is the parent `code`, and listing-side `variant_options` reflect whatever facets exist on the card (often **Color** only). Schema.org DTO leftovers such as `schemaStockStatus` are not stored as facets (ZAC-281). When Size is missing, the parser infers it from the variant code suffix (ZAC-276). **Full variant labels and per-variant stock** still come from the PDP: the scraper’s `POST /enrich` for JensonUSA returns `variants[]` parsed from `serverSideViewModel.variants`, and the API updates all sibling rows for that `product_group_key`. Scrape upsert merges `variant_options` so Color-only PLP payloads cannot wipe Size. After the first deploy with per-variant scrape rows, apply migration `025_jenson_hide_superseded_parent_listings.sql` so legacy parent-`store_sku` rows are hidden when longer variant SKUs exist on the same `product_url`.
 
 ## Testing
 

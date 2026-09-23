@@ -110,17 +110,9 @@ const upsertListingOnConflictSQL = `
 			is_in_stock = EXCLUDED.is_in_stock,
 			product_group_key = COALESCE(EXCLUDED.product_group_key, store_listings.product_group_key),
 			-- Merge option maps (ZAC-276): a Color-only Jenson PLP scrape must not wipe Size from PDP enrich.
-			variant_options = CASE
-				WHEN EXCLUDED.variant_options IS NULL
-					OR EXCLUDED.variant_options = '{}'::jsonb
-					OR EXCLUDED.variant_options = 'null'::jsonb
-				THEN store_listings.variant_options
-				WHEN store_listings.variant_options IS NULL
-					OR store_listings.variant_options = '{}'::jsonb
-					OR store_listings.variant_options = 'null'::jsonb
-				THEN EXCLUDED.variant_options
-				ELSE COALESCE(store_listings.variant_options, '{}'::jsonb) || EXCLUDED.variant_options
-			END,
+			-- Then drop Shopify Title / Default Title and schema.org leftovers so an empty
+			-- incoming scrape cannot keep stored placeholders (ZAC-278, ZAC-281).
+			variant_options = ` + mergedVariantOptionsSQL + `,
 			hidden = false,
 			last_scraped = NOW()`
 
@@ -243,8 +235,8 @@ func (db *DB) upsertListingsChunk(ctx context.Context, listings []Listing) ([]Up
 				productGroupKeys[i] = pgtype.Text{String: fmt.Sprintf("%d:%s", l.StoreID, h), Valid: true}
 			}
 		}
-		if len(l.VariantOptions) > 0 {
-			variantOptions[i] = l.VariantOptions
+		if stripped := StripPlaceholderVariantOptionsJSON(l.VariantOptions); len(stripped) > 0 {
+			variantOptions[i] = stripped
 		}
 	}
 

@@ -587,8 +587,8 @@ func (s *Scheduler) ingestScrapeResults(ctx context.Context, store db.Store, res
 			listingMeta = metadata.MergeDescription(listingMeta, strings.TrimSpace(*r.FeedDescription))
 		}
 		var variantOpts []byte
-		if len(r.VariantOptions) > 0 {
-			variantOpts = r.VariantOptions
+		if stripped := db.StripPlaceholderVariantOptionsJSON(r.VariantOptions); len(stripped) > 0 {
+			variantOpts = stripped
 		}
 		listingMeta = db.ApplyClothingSizeToListingMetadata(listingMeta, variantOpts)
 		listingMeta = db.ApplyBikeSizeToListingMetadata(listingMeta, variantOpts)
