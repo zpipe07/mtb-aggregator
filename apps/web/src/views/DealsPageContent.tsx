@@ -101,12 +101,18 @@ export function DealsPageContent({
     routeCategorySlug,
   );
 
+  const specFilterCount = Object.values(specFilters).reduce(
+    (n, values) => n + values.length,
+    0,
+  );
+
   const { isPending: resultsPending, timedOut, clearTimeoutState } =
     usePendingTimeout(isFilterPending, 15_000, {
       pathname,
       searchParams: searchParamsString,
       sort,
       offset,
+      specFilterCount,
     });
 
   const handleRetryResults = () => {
@@ -117,7 +123,7 @@ export function DealsPageContent({
   const activeFilterCount =
     [storeFilter, minDiscount, minPrice, maxPrice].filter(Boolean).length +
     brandFilters.length +
-    Object.values(specFilters).reduce((n, a) => n + a.length, 0);
+    specFilterCount;
 
   const activeFilters = useMemo(() => {
     const chips: { key: string; label: string; onRemove: () => void }[] = [];

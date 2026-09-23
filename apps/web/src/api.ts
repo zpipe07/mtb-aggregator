@@ -92,6 +92,14 @@ function publicFetchInit(options?: FetchCacheOptions): RequestInit {
 const RETRYABLE_STATUS = new Set([408, 429, 500, 502, 503, 504]);
 const DEFAULT_RETRY_DELAYS_MS = [500, 1000];
 
+/**
+ * Deadline for one public catalog attempt (deals, facets, giveaways).
+ * Soft-nav on `/deals` warns at 15s (`usePendingTimeout`). A hung Render
+ * socket must fail into the route error boundary before that watchdog.
+ * Timeouts are not retried — two 10s attempts would blow the client budget.
+ */
+export const PUBLIC_API_TIMEOUT_MS = 10_000;
+
 async function sleep(ms: number): Promise<void> {
   await new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -100,23 +108,48 @@ function isRetryableResponse(res: Response): boolean {
   return RETRYABLE_STATUS.has(res.status);
 }
 
+export function isFetchTimeoutError(err: unknown): boolean {
+  return err instanceof Error && err.name === "TimeoutError";
+}
+
+function isAbortError(err: unknown): boolean {
+  return err instanceof Error && err.name === "AbortError";
+}
+
+function withAttemptTimeout(
+  init: RequestInit | undefined,
+  timeoutMs: number,
+): RequestInit {
+  const timeoutSignal = AbortSignal.timeout(timeoutMs);
+  const signal = init?.signal
+    ? AbortSignal.any([init.signal, timeoutSignal])
+    : timeoutSignal;
+  return { ...init, signal };
+}
+
 export async function fetchWithRetry(
   url: string,
   init?: RequestInit,
-  options?: { retries?: number; delaysMs?: number[] },
+  options?: { retries?: number; delaysMs?: number[]; timeoutMs?: number },
 ): Promise<Response> {
   const retries = options?.retries ?? 2;
   const delaysMs = options?.delaysMs ?? DEFAULT_RETRY_DELAYS_MS;
+  const timeoutMs = options?.timeoutMs ?? PUBLIC_API_TIMEOUT_MS;
   let lastError: unknown;
 
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
-      const res = await fetch(url, init);
+      const res = await fetch(url, withAttemptTimeout(init, timeoutMs));
       if (res.ok || attempt >= retries || !isRetryableResponse(res)) {
         return res;
       }
       lastError = new Error(`HTTP ${res.status} for ${url}`);
     } catch (err) {
+      if (isFetchTimeoutError(err)) {
+        throw new Error("Public API fetch timed out");
+      }
+      // Caller or a newer navigation aborted this attempt. Don't retry.
+      if (isAbortError(err)) throw err;
       lastError = err;
       if (attempt >= retries) throw err;
     }

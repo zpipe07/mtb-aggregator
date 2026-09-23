@@ -36,7 +36,7 @@ Short IDs look like `MTB-AGGREGATOR-WEB-C`.
 **Agent policy — classify first:**
 
 - **Draft PR** only when the stack maps to this repo, the root cause is a contained code bug (1–3 files), and a scoped CI test command can cover it.
-- **Comment on the Sentry issue and stop** for operational/transient/infra: WAF, Playwright/retailer HTML, Impact 5xx, `llm_error=quota_exhausted`, `phase=listing_errors_aggregate`, consecutive empty scrape, missing secrets, rate limits, third-party outages — and the live web noise already in prod: `Deals transition timed out` (`usePendingTimeout`), `fetch failed`, `Unexpected token '<'` (HTML instead of JSON).
+- **Comment on the Sentry issue and stop** for operational/transient/infra: WAF, Playwright/retailer HTML, Impact 5xx, `llm_error=quota_exhausted`, `phase=listing_errors_aggregate`, consecutive empty scrape, missing secrets, rate limits, third-party outages — and the live web noise already in prod: `Deals transition timed out` (`usePendingTimeout`; read `rsc_response_ended` / `url_committed` before treating a new spike as the old hang), `fetch failed`, `Unexpected token '<'` (HTML instead of JSON). `Public API fetch timed out` is the 10s catalog deadline on the deals error boundary.
 - **Never** “fix” by swallowing errors, adding WAF retries, deleting Sentry calls, or widening `try/catch`.
 - Use **Memories** so the same issue ID is not investigated twice.
 - If install or tests cannot run in the cloud VM, comment on Sentry and **do not open a PR**.
@@ -129,7 +129,7 @@ Open a draft PR only when all of these are true:
 Comment on the Sentry issue and STOP (no PR) for operational/transient/infra:
 - WAF, Playwright, retailer HTML, Impact 5xx, missing secrets, rate limits, third-party outages
 - llm_error=quota_exhausted, phase=listing_errors_aggregate, consecutive empty scrape
-- "Deals transition timed out" / usePendingTimeout
+- "Deals transition timed out" / usePendingTimeout — check tags first: `rsc_response_ended=false` is a still-open RSC stream (upstream); `rsc_response_ended=true` with `url_committed=false` is a client transition that did not commit after the body finished. `Public API fetch timed out` on the deals error boundary is the 10s catalog deadline, not this warning.
 - "fetch failed"
 - Unexpected token '<' (HTML instead of JSON)
 - You cannot run install or tests in this environment
