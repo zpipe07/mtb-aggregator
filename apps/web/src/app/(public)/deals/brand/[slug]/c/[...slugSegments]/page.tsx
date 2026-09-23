@@ -120,6 +120,7 @@ export default async function BrandCategoryDealsPage({
     offset: filterParams.offset,
     store: filterParams.storeFilter || undefined,
     brands: [brand],
+    brand_scope: [brand],
     category_slug: categorySlug,
     min_discount: filterParams.minDiscount
       ? parseFloat(filterParams.minDiscount) || undefined
@@ -139,12 +140,14 @@ export default async function BrandCategoryDealsPage({
   const facetsParams = {
     store: filterParams.storeFilter || undefined,
     brands: [brand],
+    brand_scope: [brand],
     category_slug: categorySlug,
     min_discount: filterParams.minDiscount
       ? parseFloat(filterParams.minDiscount) || undefined
       : undefined,
     min_price: parsePriceParam(filterParams.minPrice),
     max_price: parsePriceParam(filterParams.maxPrice),
+    exclude_category_slug: filterParams.excludeCategorySlug || undefined,
     specFilters:
       Object.keys(filterParams.specFilters).length > 0
         ? filterParams.specFilters

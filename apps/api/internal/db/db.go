@@ -785,7 +785,8 @@ func (db *DB) SetListingHidden(ctx context.Context, id int, hidden bool) error {
 type GetDealsParams struct {
 	StoreID           *int
 	StoreName         string
-	Brands            []string // OR within brands (ILIKE ANY)
+	Brands            []string // OR within brands (ILIKE ANY); user selection
+	BrandScope        []string // page-locked brands (AND with Brands); kept when brand facets omit Brands
 	Category          string
 	CanonicalCategory string // legacy: "Bikes > Mountain" (exact path match)
 	CategorySlug          string // preferred: slug for subtree filter (e.g. "bikes" includes all bike subcategories)

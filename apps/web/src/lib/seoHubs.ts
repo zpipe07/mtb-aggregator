@@ -417,12 +417,17 @@ export function buildFetchDealsParamsFromHubAndFilters(
   fp: ParsedFilterParams,
 ) {
   const f = hub.filters;
+  // URL brands intersect the hub theme (ZAC-282). The theme is also a page lock
+  // (`brand_scope`) so GET /facets brand aggregation stays inside the hub
+  // after it omits shopper `brand` params (ZAC-283).
+  const brandScope = dedupeBrands(f.brands ?? []);
   const mergedBrands = resolveHubDealBrands(f.brands, fp.brandFilters);
   const minPriceNum = fp.minPrice ? parseFloat(fp.minPrice) : NaN;
   const minDiscountNum = fp.minDiscount ? parseFloat(fp.minDiscount) : NaN;
 
   return {
     category_slug: f.category_slug,
+    brand_scope: brandScope.length > 0 ? brandScope : undefined,
     brands: mergedBrands,
     max_price: f.max_price,
     min_price:
@@ -451,10 +456,12 @@ export function buildFetchFacetsParamsFromHubAndFilters(
   return {
     store: dealParams.store,
     brands: dealParams.brands,
+    brand_scope: dealParams.brand_scope,
     category_slug: dealParams.category_slug,
     min_discount: dealParams.min_discount,
     min_price: dealParams.min_price,
     max_price: dealParams.max_price,
+    exclude_category_slug: dealParams.exclude_category_slug,
     q: dealParams.q,
     specFilters: dealParams.specFilters,
   };

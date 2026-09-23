@@ -133,6 +133,11 @@ export type FetchDealsParams = {
   store?: string;
   /** Repeated `brand` query params (OR). */
   brands?: string[];
+  /**
+   * Page-locked brands (AND with `brands`). SEO hubs and brand pages pass the
+   * route brand here so facet lists stay inside that page.
+   */
+  brand_scope?: string[];
   category?: string;
   category_slug?: string;
   canonical_category?: string;
@@ -194,6 +199,12 @@ async function fetchDealsPage(
     for (const b of params.brands) {
       const t = b.trim();
       if (t) search.append("brand", t);
+    }
+  }
+  if (params?.brand_scope?.length) {
+    for (const b of params.brand_scope) {
+      const t = b.trim();
+      if (t) search.append("brand_scope", t);
     }
   }
   if (params?.category) search.set("category", params.category);
@@ -337,9 +348,20 @@ export interface BrandFacet {
   count: number;
 }
 
+/** Store option scoped to the current deals filters. Same shape as {@link BrandFacet}. */
+export interface StoreFacet {
+  value: string;
+  count: number;
+}
+
 export interface FacetsResponse {
   spec_facets: SpecFacet[];
   brand_facets: BrandFacet[];
+  /**
+   * Present when the API scopes stores to the current filters.
+   * Missing on older responses — callers may fall back to global `GET /stores`.
+   */
+  store_facets?: StoreFacet[];
   price_range: { min: number; max: number };
   total_matching: number;
 }
@@ -360,6 +382,8 @@ export function normalizeFacetsResponse(
   return {
     spec_facets: base.spec_facets ?? [],
     brand_facets: brandFacetsOverride ?? base.brand_facets ?? [],
+    // null/omitted means an older API; [] means no store matches the current filters.
+    store_facets: base.store_facets ?? undefined,
     price_range: base.price_range ?? EMPTY_FACETS.price_range,
     total_matching: base.total_matching ?? 0,
   };
@@ -368,12 +392,15 @@ export function normalizeFacetsResponse(
 export interface FacetsParams {
   store?: string;
   brands?: string[];
+  /** Page-locked brands. Still applied when `brand_facets` omit `brands`. */
+  brand_scope?: string[];
   category?: string;
   category_slug?: string;
   canonical_category?: string;
   min_discount?: number;
   min_price?: number;
   max_price?: number;
+  exclude_category_slug?: string;
   q?: string;
   specFilters?: Record<string, string[]>;
 }
@@ -389,6 +416,12 @@ export async function fetchFacets(
       if (t) search.append("brand", t);
     }
   }
+  if (params?.brand_scope?.length) {
+    for (const b of params.brand_scope) {
+      const t = b.trim();
+      if (t) search.append("brand_scope", t);
+    }
+  }
   if (params?.category) search.set("category", params.category);
   if (params?.category_slug) search.set("category_slug", params.category_slug);
   if (params?.canonical_category)
@@ -399,6 +432,8 @@ export async function fetchFacets(
     search.set("min_price", String(params.min_price));
   if (params?.max_price != null)
     search.set("max_price", String(params.max_price));
+  if (params?.exclude_category_slug)
+    search.set("exclude_category_slug", params.exclude_category_slug);
   if (params?.q) search.set("q", params.q);
   if (params?.specFilters) {
     for (const [key, values] of Object.entries(params.specFilters)) {

@@ -125,9 +125,12 @@ describe("fox-forks hub brand filter (ZAC-282)", () => {
     const facets = buildFetchFacetsParamsFromHubAndFilters(hub!, fp);
 
     expect(deals.brands).toEqual([HUB_BRAND_NO_MATCH]);
+    expect(deals.brand_scope).toEqual(["Fox"]);
     expect(deals.brands).not.toContain("RockShox");
     expect(deals.brands).not.toEqual(["Fox", "RockShox"]);
     expect(facets.brands).toEqual([HUB_BRAND_NO_MATCH]);
+    expect(facets.brand_scope).toEqual(["Fox"]);
+    expect(facets.category_slug).toBe("components-suspension-forks");
   });
 
   it("keeps Fox when the URL brand is already on-theme", () => {
@@ -135,6 +138,22 @@ describe("fox-forks hub brand filter (ZAC-282)", () => {
     const fp = { ...emptyParsedFilterParams(), brandFilters: ["Fox"] };
     const deals = buildFetchDealsParamsFromHubAndFilters(hub, fp);
     expect(deals.brands).toEqual(["Fox"]);
+    expect(deals.brand_scope).toEqual(["Fox"]);
+  });
+
+  it("locks the hub brand when the URL has no brand filter", () => {
+    const hub = getSeoHubBySlug("fox-forks")!;
+    const deals = buildFetchDealsParamsFromHubAndFilters(
+      hub,
+      emptyParsedFilterParams(),
+    );
+    const facets = buildFetchFacetsParamsFromHubAndFilters(
+      hub,
+      emptyParsedFilterParams(),
+    );
+    expect(deals.brands).toEqual(["Fox"]);
+    expect(deals.brand_scope).toEqual(["Fox"]);
+    expect(facets.brand_scope).toEqual(["Fox"]);
   });
 });
 
