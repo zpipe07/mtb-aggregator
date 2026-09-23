@@ -65,6 +65,134 @@ describe("compareVariantChipLabels", () => {
   });
 });
 
+describe("inStockDealVariants", () => {
+  it("orders PDP rows S / M / L / XL even when the scrape lists them out of order (ZAC-287)", () => {
+    const deal: Deal = {
+      ...baseDeal,
+      product_name: "Niner RIP 9 RDO GX AXS",
+      variants: [
+        row({ id: 1, store_sku: "s", variant_options: { Size: "S", Color: "Silver" } }),
+        row({ id: 2, store_sku: "xl", variant_options: { Size: "XL", Color: "Silver" } }),
+        row({ id: 3, store_sku: "m", variant_options: { Size: "M", Color: "Silver" } }),
+        row({ id: 4, store_sku: "l", variant_options: { Size: "L", Color: "Silver" } }),
+        row({
+          id: 5,
+          store_sku: "xs",
+          variant_options: { Size: "XS", Color: "Silver" },
+          is_in_stock: false,
+        }),
+      ],
+    };
+    const original = deal.variants!.map((v) => v.store_sku);
+
+    expect(inStockDealVariants(deal).map((v) => v.variant_options?.Size)).toEqual([
+      "S",
+      "M",
+      "L",
+      "XL",
+    ]);
+    expect(deal.variants!.map((v) => v.store_sku)).toEqual(original);
+  });
+
+  it("groups the same size together and orders color within that size", () => {
+    const deal: Deal = {
+      ...baseDeal,
+      variants: [
+        row({ id: 1, store_sku: "xl-red", variant_options: { Size: "XL", Color: "Red" } }),
+        row({ id: 2, store_sku: "s-blue", variant_options: { Size: "S", Color: "Blue" } }),
+        row({ id: 3, store_sku: "s-red", variant_options: { Size: "S", Color: "Red" } }),
+        row({ id: 4, store_sku: "m-black", variant_options: { Size: "M", Color: "Black" } }),
+      ],
+    };
+
+    expect(
+      inStockDealVariants(deal).map((v) => `${v.variant_options?.Size} ${v.variant_options?.Color}`),
+    ).toEqual(["S Blue", "S Red", "M Black", "XL Red"]);
+  });
+
+  it("orders word sizes, numeric frames, Specialized S-sizes, and SKU-inferred sizes", () => {
+    const word: Deal = {
+      ...baseDeal,
+      variants: [
+        row({ id: 3, store_sku: "l", variant_options: { Size: "Large" } }),
+        row({ id: 1, store_sku: "s", variant_options: { Size: "Small" } }),
+        row({ id: 2, store_sku: "m", variant_options: { Size: "Medium" } }),
+        row({ id: 4, store_sku: "xl", variant_options: { Size: "X-Large" } }),
+      ],
+    };
+    expect(inStockDealVariants(word).map((v) => v.variant_options?.Size)).toEqual([
+      "Small",
+      "Medium",
+      "Large",
+      "X-Large",
+    ]);
+
+    const numeric: Deal = {
+      ...baseDeal,
+      variants: [
+        row({ id: 1, store_sku: "19", variant_options: { Size: "19" } }),
+        row({ id: 2, store_sku: "15", variant_options: { Size: "15" } }),
+        row({ id: 3, store_sku: "17.5", variant_options: { Size: "17.5" } }),
+      ],
+    };
+    expect(inStockDealVariants(numeric).map((v) => v.variant_options?.Size)).toEqual([
+      "15",
+      "17.5",
+      "19",
+    ]);
+
+    const specialized: Deal = {
+      ...baseDeal,
+      variants: [
+        row({ id: 1, store_sku: "s4", variant_options: { "Bike Size": "S4" } }),
+        row({ id: 2, store_sku: "s1", variant_options: { "Bike Size": "S1" } }),
+        row({ id: 3, store_sku: "s6", variant_options: { "Bike Size": "S6" } }),
+        row({ id: 4, store_sku: "s2", variant_options: { "Bike Size": "S2" } }),
+      ],
+    };
+    expect(inStockDealVariants(specialized).map((v) => v.variant_options?.["Bike Size"])).toEqual([
+      "S1",
+      "S2",
+      "S4",
+      "S6",
+    ]);
+
+    const jenson: Deal = {
+      ...baseDeal,
+      variants: [
+        row({
+          id: 2,
+          store_sku: "BI005147 RED/BLACK XL",
+          variant_options: { Color: "Red/Black" },
+        }),
+        row({
+          id: 1,
+          store_sku: "BI005147 RED/BLACK M",
+          variant_options: { Color: "Red/Black" },
+        }),
+      ],
+    };
+    expect(inStockDealVariants(jenson).map((v) => v.store_sku)).toEqual([
+      "BI005147 RED/BLACK M",
+      "BI005147 RED/BLACK XL",
+    ]);
+
+    const mixed: Deal = {
+      ...baseDeal,
+      variants: [
+        row({ id: 1, store_sku: "color-only", variant_options: { Color: "Red" } }),
+        row({ id: 2, store_sku: "19", variant_options: { Size: "19" } }),
+        row({ id: 3, store_sku: "15", variant_options: { Size: "15" } }),
+      ],
+    };
+    expect(inStockDealVariants(mixed).map((v) => v.store_sku)).toEqual([
+      "15",
+      "19",
+      "color-only",
+    ]);
+  });
+});
+
 describe("summarizeInStockVariantChips", () => {
   it("hides sold-out sizes and keeps in-stock size chips", () => {
     const deal: Deal = {

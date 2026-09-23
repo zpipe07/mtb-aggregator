@@ -213,6 +213,57 @@ function chipsHavePriceSpread(chips: VariantChip[]): boolean {
   return chips.some((c) => c.minPrice !== first || c.maxPrice !== first);
 }
 
+function variantRowSortParts(row: DealVariantRow): {
+  size: string;
+  color: string;
+  rest: string;
+} {
+  const options = effectiveVariantOptions(row.variant_options, row.store_sku);
+  let size = "";
+  let color = "";
+  const rest: string[] = [];
+  for (const [key, val] of Object.entries(options)) {
+    const kind = optionKind(key);
+    if (kind === "size") {
+      if (!size) size = val;
+      else rest.push(val);
+    } else if (kind === "color") {
+      if (!color) color = val;
+      else rest.push(val);
+    } else {
+      rest.push(val);
+    }
+  }
+  return { size, color, rest: rest.join("\0") };
+}
+
+/** Missing size sorts after any real size so numeric frames are not beaten by localeCompare(""). */
+function compareSizeLabels(a: string, b: string): number {
+  if (a === b) return 0;
+  if (!a) return 1;
+  if (!b) return -1;
+  return compareVariantChipLabels(a, b);
+}
+
+function compareDealVariantRows(a: DealVariantRow, b: DealVariantRow): number {
+  const ap = variantRowSortParts(a);
+  const bp = variantRowSortParts(b);
+  const bySize = compareSizeLabels(ap.size, bp.size);
+  if (bySize !== 0) return bySize;
+  const byColor = ap.color.localeCompare(bp.color, undefined, {
+    numeric: true,
+    sensitivity: "base",
+  });
+  if (byColor !== 0) return byColor;
+  const byRest = ap.rest.localeCompare(bp.rest, undefined, {
+    numeric: true,
+    sensitivity: "base",
+  });
+  if (byRest !== 0) return byRest;
+  if (a.current_price !== b.current_price) return a.current_price - b.current_price;
+  return a.id - b.id;
+}
+
 function collectRows(deal: Deal): DealVariantRow[] {
   if (deal.variants != null && deal.variants.length > 0) {
     return deal.variants;
@@ -232,8 +283,11 @@ function collectRows(deal: Deal): DealVariantRow[] {
   return [];
 }
 
+/** In-stock sibling rows for the deal PDP table, smallest size first. */
 export function inStockDealVariants(deal: Deal): DealVariantRow[] {
-  return collectRows(deal).filter((row) => row.is_in_stock);
+  return collectRows(deal)
+    .filter((row) => row.is_in_stock)
+    .toSorted(compareDealVariantRows);
 }
 
 /** Min/max current price among in-stock variants (ignores sold-out SKUs). */
