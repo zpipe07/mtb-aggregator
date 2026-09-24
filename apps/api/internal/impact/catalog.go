@@ -177,5 +177,6 @@ func FetchCompetitiveCyclistScrapeResults(ctx context.Context, cfg Config) ([]sc
 			results = append(results, r)
 		}
 	}
+	applyCCVariantGroups(results)
 	return results, nil
 }

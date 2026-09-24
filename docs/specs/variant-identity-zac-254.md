@@ -167,7 +167,7 @@ Honest delta vs the locked decisions. Implementation is **not** this ticket.
 | **Fox Racing** | Color tile | `data-pid` (`VG-#####-###`) | `VG-#####` | Scrape: `Color` = **code** (`001`). PDP: human name | Group OK. `parseFoxSelectableSizes` exists and is **not** fanned out — Size chips never appear |
 | **Bell** | Color tile | `BL-#####` pid | Master id from PDP URL | `Color` = numeric code until PDP | Group OK when master ≠ pid. Size not rows |
 | **Giro** | Color tile | `data-pid` | Master from PDP URL | `Color` = code until PDP | Fixture has **group key = store_sku** (`…101S`) → 1:1 group, color siblings **fragment** |
-| **Competitive Cyclist** | Catalog-flat | Impact `CatalogItemId` | **Unset** until PDP `hasVariant` | Unset until PDP | **Fragment** until WAF-gated backfill. Fan-out matches URL+SKU; unmatched catalog rows stay ungrouped |
+| **Competitive Cyclist** | Catalog-flat, grouped at ingest | Impact `CatalogItemId` | PDP slug from `product_url` (ZAC-294) | `Size` / `Color` from the catalog title (`Position` for Front/Rear) | Title parse can miss a color when siblings do not share a prefix. PDP `hasVariant` fan-out still overwrites axes when WAF cookies work |
 | **All** | — | `VARCHAR(100)` | — | JSON object, string values only | Truncation would **collide** two long SKUs. Watch Jenson codes with color+size suffixes |
 
 ## Ingest merge (identity-relevant)
@@ -226,9 +226,9 @@ This ticket ships the spec. Suggested children under ZAC-161 (do not duplicate Z
   If the PLP JSON has a style/product id, set `product_group_key` + options; otherwise document catalog-flat.  
   Verify: scraper test + grouped deals sample.
 
-- **Task D — CC group without PDP (optional)**  
-  Set `product_group_key` from canonical PDP slug at Impact map time so same-URL SKUs group before WAF cookies. Options still need `hasVariant` or catalog size/color fields.  
-  Verify: `go test ./internal/impact ./internal/db`.
+- **Task D — CC group without PDP** — shipped in ZAC-294 (`impact/cc_variants.go`).  
+  `product_group_key` is the canonical PDP slug at Impact map time. `Size` / `Color` come from the catalog title.  
+  Verify: `go test ./internal/impact`.
 
 - **Task E — Size fan-out for color-tile families**  
   Trek / Specialized / Canyon / Fox / Bell / Giro: only when the PDP exposes a **distinct orderable id per size**. Otherwise keep Color grain and do not invent `{pid}-{size}` children that the retailer cannot checkout. Fox already parses selectable sizes — do not fan-out until SKU identity is confirmed.  
