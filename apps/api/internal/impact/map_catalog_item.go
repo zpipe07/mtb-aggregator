@@ -55,18 +55,17 @@ func mapCatalogItemToScrapeResult(m map[string]interface{}, cfg Config) (scraper
 	outbound := trackingCatalogOutboundURL(normalizedRaw, canonicalPDP)
 
 	return scraper.ScrapeResult{
-		StoreSKU:                 sku,
-		ProductName:              name,
-		CurrentPrice:             current,
-		OriginalPrice:            original,
-		ProductURL:               canonicalPDP,
-		ImageURL:                 img,
-		Brand:                    brand,
-		CategoryPath:             catPath,
-		IsInStock:                inferInStock(m),
-		FeedDescription:          feedDesc,
-		ProductGroupKey:          nil,
-		VariantOptions:           nil,
+		StoreSKU:        sku,
+		ProductName:     name,
+		CurrentPrice:    current,
+		OriginalPrice:   original,
+		ProductURL:      canonicalPDP,
+		ImageURL:        img,
+		Brand:           brand,
+		CategoryPath:    catPath,
+		IsInStock:       inferInStock(m),
+		FeedDescription: feedDesc,
+		// Group key and Size/Color are filled in applyCCVariantGroups once siblings are known.
 		ImpactCatalogOutboundURL: outbound,
 	}, true
 }
