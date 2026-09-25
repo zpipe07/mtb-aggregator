@@ -156,13 +156,18 @@ export function effectiveVariantOptions(
   return out;
 }
 
+/** Immutable sort. Next.js does not polyfill `Array.prototype.toSorted`. */
+function sortedCopy<T>(items: readonly T[], compareFn: (a: T, b: T) => number): T[] {
+  return items.slice().sort(compareFn);
+}
+
 /** Size first, then color, then remaining keys — for the deal PDP table. */
 export function orderedVariantOptionEntries(
   options: Record<string, string> | null | undefined,
   storeSku?: string | null,
 ): [string, string][] {
   const effective = effectiveVariantOptions(options, storeSku);
-  return Object.entries(effective).toSorted(([a], [b]) => {
+  return sortedCopy(Object.entries(effective), ([a], [b]) => {
     const rank = (k: string) => {
       const kind = optionKind(k);
       if (kind === "size") return 0;
@@ -285,9 +290,10 @@ function collectRows(deal: Deal): DealVariantRow[] {
 
 /** In-stock sibling rows for the deal PDP table, smallest size first. */
 export function inStockDealVariants(deal: Deal): DealVariantRow[] {
-  return collectRows(deal)
-    .filter((row) => row.is_in_stock)
-    .toSorted(compareDealVariantRows);
+  return sortedCopy(
+    collectRows(deal).filter((row) => row.is_in_stock),
+    compareDealVariantRows,
+  );
 }
 
 /** Min/max current price among in-stock variants (ignores sold-out SKUs). */
@@ -339,7 +345,7 @@ function addChip(
 }
 
 function sortedChips(byLabel: Map<string, VariantChip>): VariantChip[] {
-  return [...byLabel.values()].toSorted((a, b) =>
+  return sortedCopy([...byLabel.values()], (a, b) =>
     compareVariantChipLabels(a.label, b.label),
   );
 }
