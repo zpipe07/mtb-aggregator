@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { Deal, DealVariantRow } from "@/api";
 import {
   compactChipGroup,
@@ -41,7 +41,7 @@ function row(
 describe("compareVariantChipLabels", () => {
   it("orders clothing/bike letter sizes", () => {
     const labels = ["XL", "S", "XXL", "M", "XS", "L"];
-    expect(labels.toSorted(compareVariantChipLabels)).toEqual([
+    expect(labels.slice().sort(compareVariantChipLabels)).toEqual([
       "XS",
       "S",
       "M",
@@ -52,12 +52,12 @@ describe("compareVariantChipLabels", () => {
   });
 
   it("orders word sizes and numeric frame sizes", () => {
-    expect(["Large", "Small", "Medium"].toSorted(compareVariantChipLabels)).toEqual([
+    expect(["Large", "Small", "Medium"].slice().sort(compareVariantChipLabels)).toEqual([
       "Small",
       "Medium",
       "Large",
     ]);
-    expect(["17.5", "15", "19"].toSorted(compareVariantChipLabels)).toEqual([
+    expect(["17.5", "15", "19"].slice().sort(compareVariantChipLabels)).toEqual([
       "15",
       "17.5",
       "19",
@@ -632,5 +632,44 @@ describe("extracted bike_size", () => {
       metadata: { llm_specs: { bike_size: "L" } },
     };
     expect(summarizeDealSizeChips(deal)).toBeNull();
+  });
+});
+
+describe("Array.prototype.toSorted fallback (MTB-AGGREGATOR-WEB-Z)", () => {
+  const proto = Array.prototype as unknown as {
+    toSorted?: typeof Array.prototype.toSorted;
+  };
+  let original: typeof Array.prototype.toSorted | undefined;
+
+  beforeEach(() => {
+    original = proto.toSorted;
+    delete proto.toSorted;
+  });
+
+  afterEach(() => {
+    if (original) proto.toSorted = original;
+    else delete proto.toSorted;
+  });
+
+  it("still sorts chips, PDP rows, and option keys when toSorted is missing", () => {
+    const deal: Deal = {
+      ...baseDeal,
+      variants: [
+        row({ id: 1, store_sku: "xl", variant_options: { Color: "Green", Size: "XL" } }),
+        row({ id: 2, store_sku: "s", variant_options: { Color: "Green", Size: "S" } }),
+        row({ id: 3, store_sku: "m", variant_options: { Color: "Green", Size: "M" } }),
+      ],
+    };
+
+    expect(summarizeInStockVariantChips(deal)!.sizes.map((c) => c.label)).toEqual([
+      "S",
+      "M",
+      "XL",
+    ]);
+    expect(inStockDealVariants(deal).map((v) => v.store_sku)).toEqual(["s", "m", "xl"]);
+    expect(orderedVariantOptionEntries({ Color: "Green", Size: "M" }).map(([k]) => k)).toEqual([
+      "Size",
+      "Color",
+    ]);
   });
 });
