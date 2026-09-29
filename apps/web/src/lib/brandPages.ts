@@ -35,3 +35,25 @@ export function buildBrandCategoryDealsPath(
 export function brandMeetsIndexThreshold(totalCount: number): boolean {
   return totalCount >= SEO_BRAND_MIN_INDEXABLE_DEALS;
 }
+
+export type BrandFacetCount = { value: string; count: number };
+
+/**
+ * Brand sitemap candidates: facet count meets the index threshold, one URL per
+ * slug (duplicate labels like SRAM/Sram collapse), first-seen wins.
+ * Callers still probe grouped `GET /deals` counts before emitting a loc.
+ */
+export function uniqueBrandSitemapCandidates(
+  facets: BrandFacetCount[],
+): { value: string; slug: string; count: number }[] {
+  const seen = new Set<string>();
+  const out: { value: string; slug: string; count: number }[] = [];
+  for (const b of facets) {
+    if (!brandMeetsIndexThreshold(b.count)) continue;
+    const slug = brandToSlug(b.value);
+    if (!slug || seen.has(slug)) continue;
+    seen.add(slug);
+    out.push({ value: b.value, slug, count: b.count });
+  }
+  return out;
+}

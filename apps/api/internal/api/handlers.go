@@ -231,6 +231,35 @@ func (h *Handlers) GetStores(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(stores)
 }
 
+func (h *Handlers) GetSitemapListings(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	limit := db.MaxSitemapListings
+	if s := strings.TrimSpace(r.URL.Query().Get("limit")); s != "" {
+		if n, err := strconv.Atoi(s); err == nil {
+			limit = n
+		}
+	}
+
+	listings, err := h.DB.ListSitemapListings(r.Context(), limit)
+	if err != nil {
+		log.Printf("[api] GetSitemapListings error: %v", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if listings == nil {
+		listings = []db.SitemapListing{}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"listings": listings,
+	})
+}
+
 func (h *Handlers) GetBrands(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)

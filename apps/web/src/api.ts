@@ -293,6 +293,28 @@ export async function fetchDeal(id: number): Promise<Deal> {
   return res.json();
 }
 
+export type SitemapListing = {
+  id: number;
+  last_scraped?: string;
+};
+
+export type SitemapListingsResponse = {
+  listings: SitemapListing[];
+};
+
+/** Compact indexable deal IDs for /sitemap.xml (in-stock, not hidden, grouped). */
+export async function fetchSitemapListings(
+  limit: number,
+): Promise<SitemapListing[]> {
+  const search = new URLSearchParams();
+  search.set("limit", String(limit));
+  const url = `${getApiBase()}/sitemap-listings?${search}`;
+  const res = await fetchWithRetry(url, { cache: "no-store" });
+  if (!res.ok) throw new Error("Failed to fetch sitemap listings");
+  const data = (await res.json()) as SitemapListingsResponse;
+  return Array.isArray(data?.listings) ? data.listings : [];
+}
+
 export interface PriceHistoryPoint {
   price: number;
   recorded_at: string;

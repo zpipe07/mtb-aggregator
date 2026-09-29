@@ -1,9 +1,16 @@
+function stripWwwHost(url: URL): URL {
+  if (url.hostname.startsWith("www.")) {
+    url.hostname = url.hostname.slice(4);
+  }
+  return url;
+}
+
 /**
  * Canonical site origin for metadata (`metadataBase`, Open Graph, canonical URLs).
  *
  * - **Production (Vercel):** `NEXT_PUBLIC_SITE_URL` must be set (e.g. `https://thedropper.shop`). We intentionally
  *   do not fall back to `VERCEL_URL` in production — that value is the deployment hostname and poisons canonicals
- *   and sitemap `<loc>` URLs if unset.
+ *   and sitemap `<loc>` URLs if unset. A leading `www.` host is stripped so locs stay on the apex.
  * - **Preview (Vercel):** when `NEXT_PUBLIC_SITE_URL` is unset, falls back to `https://${VERCEL_URL}`.
  * - **Local dev:** `http://localhost:3000` when unset (override with `NEXT_PUBLIC_SITE_URL` if your port differs).
  */
@@ -12,7 +19,7 @@ export function getSiteUrl(): URL {
   if (explicit) {
     try {
       const u = explicit.replace(/\/$/, "");
-      return new URL(u);
+      return stripWwwHost(new URL(u));
     } catch {
       // fall through
     }
@@ -26,7 +33,7 @@ export function getSiteUrl(): URL {
   const vercel = process.env.VERCEL_URL?.trim();
   if (vercel) {
     const host = vercel.replace(/^https?:\/\//, "");
-    return new URL(`https://${host}`);
+    return stripWwwHost(new URL(`https://${host}`));
   }
   return new URL("http://localhost:3000");
 }

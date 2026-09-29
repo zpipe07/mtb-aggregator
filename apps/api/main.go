@@ -506,6 +506,7 @@ func main() {
 	// REST API
 	http.HandleFunc("/deals", handlers.DealsHandler)
 	http.HandleFunc("/deals/", handlers.DealsHandler)
+	http.HandleFunc("/sitemap-listings", handlers.GetSitemapListings)
 	http.HandleFunc("/stores", handlers.GetStores)
 	http.HandleFunc("/brands", handlers.GetBrands)
 	http.HandleFunc("/categories", handlers.GetCategories)
