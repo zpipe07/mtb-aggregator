@@ -9,7 +9,15 @@ import {
   normalizeFacetsResponse,
   type FacetsResponse,
 } from "@/api";
-import { parseFilterParamsFromSearch, parsePriceParam } from "../../../lib/filterParams";
+import {
+  listingHasExtraFilters,
+  parseFilterParamsFromSearch,
+  parsePriceParam,
+} from "../../../lib/filterParams";
+import {
+  findCategoryBySlug,
+  shopperListingTotalCount,
+} from "@/lib/categoryTree";
 import { searchParamsRecordToDealsListPath } from "@/lib/dealsBackHref";
 import { JsonLd } from "@/components/JsonLd";
 import { buildBreadcrumbJsonLd, buildItemListJsonLd } from "@/lib/jsonLd";
@@ -49,6 +57,7 @@ type Props = {
 export default async function DealsPage({ searchParams }: Props) {
   const params = await searchParams;
   const filterParams = parseFilterParamsFromSearch(params);
+  const extraFilters = listingHasExtraFilters(filterParams);
 
   const dealsParams = {
     limit: DEFAULT_PAGE_SIZE,
@@ -72,7 +81,7 @@ export default async function DealsPage({ searchParams }: Props) {
     q: filterParams.searchQuery.trim() || undefined,
     sort: filterParams.sort,
     group_variants: true,
-    stableTotalCount: true,
+    stableTotalCount: extraFilters || !filterParams.categoryFilter,
   };
 
   const facetsParams = {
@@ -87,6 +96,7 @@ export default async function DealsPage({ searchParams }: Props) {
       : undefined,
     min_price: parsePriceParam(filterParams.minPrice),
     max_price: parsePriceParam(filterParams.maxPrice),
+    exclude_category_slug: filterParams.excludeCategorySlug || undefined,
     specFilters:
       Object.keys(filterParams.specFilters).length > 0
         ? filterParams.specFilters
@@ -110,7 +120,14 @@ export default async function DealsPage({ searchParams }: Props) {
     ]);
 
   const deals = dealsResponse.deals ?? [];
-  const totalCount = dealsResponse.total_count ?? 0;
+  const categoryNode = filterParams.categoryFilter
+    ? findCategoryBySlug(categoryTree, filterParams.categoryFilter)
+    : null;
+  const totalCount = shopperListingTotalCount(
+    dealsResponse.total_count ?? 0,
+    categoryNode,
+    extraFilters,
+  );
   const facets = normalizeFacetsResponse(
     facetsResponse,
     facetsForBrandOptions?.brand_facets,

@@ -11,4 +11,7 @@ func TestStoreVisibleProductGroupKey(t *testing.T) {
 	if listingVisibilityGate != " AND l.is_in_stock = true AND l.hidden = false" {
 		t.Fatalf("listingVisibilityGate changed: %q", listingVisibilityGate)
 	}
+	if productGroupKeyExpr("l") != `COALESCE(l.product_group_key, 'single:' || l.id::text)` {
+		t.Fatalf("productGroupKeyExpr(l) drifted from storeVisibleProductGroupKey")
+	}
 }

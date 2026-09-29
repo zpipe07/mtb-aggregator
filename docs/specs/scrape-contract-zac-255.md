@@ -69,7 +69,7 @@ Correct these before implementation PRs treat them as optional.
 1. **One row per purchasable SKU when the sale source already enumerates SKUs.** Shopify `products.json`, Jenson clearance `variants[]`, Impact catalog items, N+1 catalog variants, ION article variants. Do not collapse to a parent “from $X” tile if the PLP/catalog already has per-SKU prices.
 2. **Parent-then-fan-out is allowed only when the PLP cannot enumerate SKUs.** Universal Cycles (`specials.php` parent id), Trek OCC product code, Specialized / Demandware color tiles. Document the fan-out owner (PDP enricher + API `Apply*VariantFanout`). Scrape still emits a stable `store_sku` for the tile that exists.
 3. **`store_sku` is unique per `(store_id, store_sku)`.** Dedup inside the parser. Prefer the retailer’s SKU; fall back to a stable synthetic (`v{shopifyVariantId}`, `{masterId}-{colorCode}`). Never reuse a parent SKU for a child after fan-out (Jenson / UC hide superseded parents).
-4. **`product_group_key` is the store-local family id.** Parser sends handle / parent code / master id / article number. API stores `{store_id}:{key}`. Omit only when there is no family (single SKU, or CC until PDP `hasVariant`).
+4. **`product_group_key` is the store-local family id.** Parser sends handle / parent code / master id / article number. API stores `{store_id}:{key}`. Competitive Cyclist sends the PDP slug. Omit only when there is no family (a true single SKU).
 5. **Sale-page presence ≠ stock.** `HideStaleListings` means “left this scrape’s sale set.” Stock is `is_in_stock` + (planned) `stock_from_plp` per ZAC-256.
 6. **A scrape that did not finish the catalog must not look complete.** Set `X-Scrape-Truncated: 1` so the API skips stale-hide. Thin vs the store’s 14-day max upserted (ZAC-270) is a second, ingest-side guard — parsers must not rely on it.
 7. **Fail the job on transport / parse collapse; drop only per-row contract violations.** HTTP 4xx/5xx from the store, WAF challenge with no products, empty JSON after a successful status — throw. A bad `current_price` on one tile — skip that row, return 200 with the rest.
@@ -169,7 +169,7 @@ Scrape-time job: emit rows the deals UI can group (`GET /deals?group_variants=tr
 | **PLP-complete** | Catalog lists every buyable SKU | Variant SKU | Product handle / parent id | All option axes from the same payload | PDP only for specs / breadcrumbs |
 | **PLP-partial** | Card has variants but incomplete axes (Jenson Color-only) | Variant code | Parent code | Card facets, plus Size inferred from the code suffix when missing | PDP `variants[]` + API fan-out (stock + missing Size). Scrape upsert merges option maps so Color-only PLP cannot wipe Size |
 | **Tile-then-fan-out** | Grid is color (or parent) only | Tile pid / `{master}-{color}` / parent id | Master / style / product id | Color if known | PDP `variants[]` + `Apply*VariantFanout`; hide superseded parent if children appear |
-| **Catalog-flat** | Impact SKUs, no family | Catalog item id | Unset until PDP `hasVariant` | Unset until PDP | Admin / `backfill-cc-variants` (WAF) |
+| **Catalog-flat** | Impact SKUs | Catalog item id | PDP slug from the shared `product_url` (CC, ZAC-294) | `Size` / `Color` parsed from the catalog title; PDP `hasVariant` can still refine | Next CC scrape keeps the group. `backfill-cc-variants` remains the WAF path |
 
 **Do:**
 
@@ -291,7 +291,7 @@ Honest delta against the contract above. Implementation is **not** this ticket u
 | Dual validation (Zod vs `ValidateResult`) | `server.ts` vs `validate.go` | Node allows `current_price` > 50k; Go drops it. Node requires `url()`; Go only `url.Parse` | Follow-up (align messages; keep both layers) |
 | Shopify parsers copy-pasted (~20 files) | `parsers/*.ts` | Drift (UA, retry, OOS skip, sale %) | Follow-up / ZAC-161 normalize — optional shared `scrapeShopifyCollection` |
 | Cursor rule still says “Use Playwright” | `.cursor/rules/scraper-parsers.mdc` | Agents launch Chromium for JSON stores | This PR (doc) |
-| CC scrape: no `product_group_key` | `map_catalog_item.go` | Flat cards until manual PDP | ZAC-254 + existing CC backfill |
+| CC scrape groups on PDP slug | `impact/cc_variants.go` | Title parse can miss a creative color until siblings share a prefix | ZAC-294 |
 | Description / specs not on Node scrape | All `PARSERS` | ZAC-211; scrape stays listing-only | [ZAC-253](enrichment-normalization-zac-253.md) / ZAC-211 |
 | Specialized / Trek / Fox / Bell / Giro / Canyon: color or product grain, not size | `*-plp.ts` | Size chips wait on PDP or never appear | ZAC-254 |
 | Worldwide Cyclery emits variants with **null** `original_price` | `worldwidecyclery.ts` | Fine if the deals collection is already sale-only; batch warning if not | Store-specific; no change required |

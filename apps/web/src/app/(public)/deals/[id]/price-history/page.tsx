@@ -19,6 +19,11 @@ import { buildDealPriceHistoryMetadata, missingDealMetadata } from "@/lib/dealPa
 /** 4h — must match {@link PUBLIC_ISR_REVALIDATE_SECONDS} in @/lib/revalidate. */
 export const revalidate = 14400;
 
+/** See deal detail `generateStaticParams` — required for on-demand ISR. */
+export function generateStaticParams() {
+  return [];
+}
+
 const MIN_HISTORY_POINTS = 2;
 
 type Props = {

@@ -25,15 +25,20 @@ import {
   buildSeoHubPublicPath,
 } from "@/lib/seoHubs";
 
-/** 4h — must match {@link PUBLIC_ISR_REVALIDATE_SECONDS} in @/lib/revalidate. */
-export const revalidate = 14400;
+/** 4h CDN freshness for `/sitemap.xml`. Must match PUBLIC_ISR_REVALIDATE_SECONDS. */
+export const SITEMAP_CDN_MAX_AGE_SECONDS = 14_400;
 
 /**
- * Generate at request time so production builds do not time out while paginating
- * thousands of deal URLs against the live API.
+ * Browser stays uncached; Vercel CDN holds the XML so crawlers don't rerun
+ * the paginated catalog fetch on every hit. The body can exceed Next's 2MB
+ * data-cache item limit, so this is an HTTP cache, not `unstable_cache`.
  */
-export const dynamic = "force-dynamic";
-export const maxDuration = 60;
+export const SITEMAP_RESPONSE_HEADERS: Record<string, string> = {
+  "Content-Type": "application/xml; charset=utf-8",
+  "Cache-Control": "public, max-age=0, must-revalidate",
+  "CDN-Cache-Control": `public, s-maxage=${SITEMAP_CDN_MAX_AGE_SECONDS}, stale-while-revalidate=86400`,
+  "Vercel-CDN-Cache-Control": `public, s-maxage=${SITEMAP_CDN_MAX_AGE_SECONDS}, stale-while-revalidate=86400`,
+};
 
 /** Keep each deals page under Next.js's ~2MB data-cache limit (~3KB/deal). */
 const DEAL_PAGE_SIZE = 500;
@@ -104,7 +109,7 @@ async function appendDealDetailUrls(
   entries.push(...dealDetailSitemapEntries(deals));
 }
 
-export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+export async function buildSitemapEntries(): Promise<MetadataRoute.Sitemap> {
   const entries: MetadataRoute.Sitemap = [];
   const staticPaths: {
     path: string;
@@ -202,4 +207,30 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }
 
   return entries;
+}
+
+/** Same shape as Next's metadata sitemap XML (loc, lastmod, changefreq, priority). */
+export function sitemapEntriesToXml(entries: MetadataRoute.Sitemap): string {
+  let content = '<?xml version="1.0" encoding="UTF-8"?>\n';
+  content += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
+  for (const item of entries) {
+    content += "<url>\n";
+    content += `<loc>${item.url}</loc>\n`;
+    if (item.lastModified) {
+      const serialized =
+        item.lastModified instanceof Date
+          ? item.lastModified.toISOString()
+          : item.lastModified;
+      content += `<lastmod>${serialized}</lastmod>\n`;
+    }
+    if (item.changeFrequency) {
+      content += `<changefreq>${item.changeFrequency}</changefreq>\n`;
+    }
+    if (typeof item.priority === "number") {
+      content += `<priority>${item.priority}</priority>\n`;
+    }
+    content += "</url>\n";
+  }
+  content += "</urlset>\n";
+  return content;
 }

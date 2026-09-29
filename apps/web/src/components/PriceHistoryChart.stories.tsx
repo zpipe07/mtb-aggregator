@@ -33,3 +33,43 @@ export const Compact: Story = {
     className: "h-48",
   },
 };
+
+/** Daily points like `/deals/1888755`, where every date label used to collide. */
+const denseDaily = Array.from({ length: 42 }, (_, i) => {
+  const d = new Date(Date.UTC(2026, 7, 12 + i, 12));
+  return {
+    price: 4499.94 - (i > 37 ? 450 : 0),
+    recorded_at: d.toISOString(),
+    dateLabel: d.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      timeZone: "UTC",
+    }),
+  };
+});
+
+export const DensePhone: Story = {
+  args: {
+    data: denseDaily,
+  },
+  decorators: [
+    (Story) => (
+      <div className="w-[320px]">
+        <Story />
+      </div>
+    ),
+  ],
+};
+
+export const DenseDesktop: Story = {
+  args: {
+    data: denseDaily,
+  },
+  decorators: [
+    (Story) => (
+      <div className="w-[652px]">
+        <Story />
+      </div>
+    ),
+  ],
+};

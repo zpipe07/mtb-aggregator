@@ -10,13 +10,18 @@ import {
   normalizeFacetsResponse,
   type FacetsResponse,
 } from "@/api";
-import { parseFilterParamsFromSearch, parsePriceParam } from "@/lib/filterParams";
+import {
+  listingHasExtraFilters,
+  parseFilterParamsFromSearch,
+  parsePriceParam,
+} from "@/lib/filterParams";
 import { searchParamsRecordToDealsCategoryListPath } from "@/lib/dealsBackHref";
 import { JsonLd } from "@/components/JsonLd";
 import {
   categoryHasDeals,
   findCategoryBySlug,
   findCategoryWithAncestors,
+  shopperListingTotalCount,
 } from "@/lib/categoryTree";
 import { buildDealsCategoryPath } from "@/lib/dealsCategoryPath";
 import { categoryMetadataForSlug, getCategorySeo } from "@/lib/categorySeo";
@@ -74,10 +79,12 @@ export default async function CategoryDealsPage({ params, searchParams }: Props)
   const categorySlug = slugSegments.join("-");
 
   const categoryTree = await fetchCategoryTree();
-  if (!findCategoryBySlug(categoryTree, categorySlug)) notFound();
+  const categoryNode = findCategoryBySlug(categoryTree, categorySlug);
+  if (!categoryNode) notFound();
   const pathname = buildDealsCategoryPath(categorySlug, categoryTree);
 
   const filterParams = parseFilterParamsFromSearch(paramsRecord);
+  const extraFilters = listingHasExtraFilters(filterParams);
 
   const dealsParams = {
     limit: DEFAULT_PAGE_SIZE,
@@ -101,7 +108,7 @@ export default async function CategoryDealsPage({ params, searchParams }: Props)
     q: filterParams.searchQuery.trim() || undefined,
     sort: filterParams.sort,
     group_variants: true,
-    stableTotalCount: true,
+    stableTotalCount: extraFilters,
   };
 
   const facetsParams = {
@@ -116,6 +123,7 @@ export default async function CategoryDealsPage({ params, searchParams }: Props)
       : undefined,
     min_price: parsePriceParam(filterParams.minPrice),
     max_price: parsePriceParam(filterParams.maxPrice),
+    exclude_category_slug: filterParams.excludeCategorySlug || undefined,
     specFilters:
       Object.keys(filterParams.specFilters).length > 0
         ? filterParams.specFilters
@@ -137,7 +145,11 @@ export default async function CategoryDealsPage({ params, searchParams }: Props)
     ]);
 
   const deals = dealsResponse.deals ?? [];
-  const totalCount = dealsResponse.total_count ?? 0;
+  const totalCount = shopperListingTotalCount(
+    dealsResponse.total_count ?? 0,
+    categoryNode,
+    extraFilters,
+  );
   const facets = normalizeFacetsResponse(
     facetsResponse,
     facetsForBrandOptions?.brand_facets,

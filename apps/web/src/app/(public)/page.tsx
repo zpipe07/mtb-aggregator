@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { fetchCategoryTree, fetchDeals, fetchGiveaways, fetchStatus } from "@/api";
+import { PUBLIC_ISR_REVALIDATE_SECONDS } from "@/lib/revalidate";
 import { JsonLd } from "@/components/JsonLd";
 import { buildItemListJsonLd, buildWebSiteSearchJsonLd } from "@/lib/jsonLd";
 import {
@@ -73,7 +74,8 @@ export default async function Home() {
       offset: 0,
       exclude_home_demoted: true,
     }),
-    fetchGiveaways().catch(() => ({
+    // 4h, not the 60s giveaways page TTL — a shorter fetch would revalidate `/` every minute.
+    fetchGiveaways({ revalidate: PUBLIC_ISR_REVALIDATE_SECONDS }).catch(() => ({
       giveaways: [],
       open_count: 0,
       upcoming_count: 0,

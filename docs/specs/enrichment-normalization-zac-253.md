@@ -274,7 +274,7 @@ store_type → {
 | **UC HTML** | `universalcycles` | Yes | `#attribute_*` blocks | Yes → `ApplyUniversalCyclesVariantFanout` (insert `{id}-{attr}`, hide parent) |
 | **N+1 PDP** | `n1bikes` | Yes | Specs / path | No (catalog variants on scrape) |
 | **ION PDP** | `ion` | Yes | Specs / path | No (article variants on scrape) |
-| **Impact admin** | `competitivecyclist` | **No** | WAF-gated `hasVariant` | Admin / `backfill-cc-variants` only → `ApplyCompetitiveCyclistVariantFanout`. LLM text = catalog `feed_description` |
+| **Impact admin** | `competitivecyclist` | **No** | WAF-gated `hasVariant` | Ingest groups by PDP slug (ZAC-294). Admin / `backfill-cc-variants` can still refine axes via `ApplyCompetitiveCyclistVariantFanout`. LLM text = catalog `feed_description` |
 
 ## Store mismatch inventory
 

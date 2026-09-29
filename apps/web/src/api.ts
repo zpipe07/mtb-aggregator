@@ -92,6 +92,14 @@ function publicFetchInit(options?: FetchCacheOptions): RequestInit {
 const RETRYABLE_STATUS = new Set([408, 429, 500, 502, 503, 504]);
 const DEFAULT_RETRY_DELAYS_MS = [500, 1000];
 
+/**
+ * Deadline for one public catalog attempt (deals, facets, giveaways).
+ * Soft-nav on `/deals` warns at 15s (`usePendingTimeout`). A hung Render
+ * socket must fail into the route error boundary before that watchdog.
+ * Timeouts are not retried — two 10s attempts would blow the client budget.
+ */
+export const PUBLIC_API_TIMEOUT_MS = 10_000;
+
 async function sleep(ms: number): Promise<void> {
   await new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -100,23 +108,48 @@ function isRetryableResponse(res: Response): boolean {
   return RETRYABLE_STATUS.has(res.status);
 }
 
+export function isFetchTimeoutError(err: unknown): boolean {
+  return err instanceof Error && err.name === "TimeoutError";
+}
+
+function isAbortError(err: unknown): boolean {
+  return err instanceof Error && err.name === "AbortError";
+}
+
+function withAttemptTimeout(
+  init: RequestInit | undefined,
+  timeoutMs: number,
+): RequestInit {
+  const timeoutSignal = AbortSignal.timeout(timeoutMs);
+  const signal = init?.signal
+    ? AbortSignal.any([init.signal, timeoutSignal])
+    : timeoutSignal;
+  return { ...init, signal };
+}
+
 export async function fetchWithRetry(
   url: string,
   init?: RequestInit,
-  options?: { retries?: number; delaysMs?: number[] },
+  options?: { retries?: number; delaysMs?: number[]; timeoutMs?: number },
 ): Promise<Response> {
   const retries = options?.retries ?? 2;
   const delaysMs = options?.delaysMs ?? DEFAULT_RETRY_DELAYS_MS;
+  const timeoutMs = options?.timeoutMs ?? PUBLIC_API_TIMEOUT_MS;
   let lastError: unknown;
 
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
-      const res = await fetch(url, init);
+      const res = await fetch(url, withAttemptTimeout(init, timeoutMs));
       if (res.ok || attempt >= retries || !isRetryableResponse(res)) {
         return res;
       }
       lastError = new Error(`HTTP ${res.status} for ${url}`);
     } catch (err) {
+      if (isFetchTimeoutError(err)) {
+        throw new Error("Public API fetch timed out");
+      }
+      // Caller or a newer navigation aborted this attempt. Don't retry.
+      if (isAbortError(err)) throw err;
       lastError = err;
       if (attempt >= retries) throw err;
     }
@@ -133,6 +166,11 @@ export type FetchDealsParams = {
   store?: string;
   /** Repeated `brand` query params (OR). */
   brands?: string[];
+  /**
+   * Page-locked brands (AND with `brands`). SEO hubs and brand pages pass the
+   * route brand here so facet lists stay inside that page.
+   */
+  brand_scope?: string[];
   category?: string;
   category_slug?: string;
   canonical_category?: string;
@@ -194,6 +232,12 @@ async function fetchDealsPage(
     for (const b of params.brands) {
       const t = b.trim();
       if (t) search.append("brand", t);
+    }
+  }
+  if (params?.brand_scope?.length) {
+    for (const b of params.brand_scope) {
+      const t = b.trim();
+      if (t) search.append("brand_scope", t);
     }
   }
   if (params?.category) search.set("category", params.category);
@@ -325,8 +369,9 @@ export interface CategoryTreeNode {
   deal_count: number;
   /**
    * Distinct product groups in this subtree (matches `GET /deals?group_variants=true` totals).
-   * Shopper-facing counts (homepage, mega-menu, chips, categories hub) use this via
-   * `categoryNavDealCount`. When missing (older API), fall back to `deal_count`.
+   * Shopper-facing counts (homepage, mega-menu, chips, categories hub, unfiltered
+   * listing headers) use this via `categoryNavDealCount`. When missing (older API),
+   * fall back to `deal_count`.
    */
   product_count?: number;
   /** When true, omit from the header mega-menu. Still shown on /categories. */
@@ -358,9 +403,20 @@ export interface BrandFacet {
   count: number;
 }
 
+/** Store option scoped to the current deals filters. Same shape as {@link BrandFacet}. */
+export interface StoreFacet {
+  value: string;
+  count: number;
+}
+
 export interface FacetsResponse {
   spec_facets: SpecFacet[];
   brand_facets: BrandFacet[];
+  /**
+   * Present when the API scopes stores to the current filters.
+   * Missing on older responses — callers may fall back to global `GET /stores`.
+   */
+  store_facets?: StoreFacet[];
   price_range: { min: number; max: number };
   total_matching: number;
 }
@@ -381,6 +437,8 @@ export function normalizeFacetsResponse(
   return {
     spec_facets: base.spec_facets ?? [],
     brand_facets: brandFacetsOverride ?? base.brand_facets ?? [],
+    // null/omitted means an older API; [] means no store matches the current filters.
+    store_facets: base.store_facets ?? undefined,
     price_range: base.price_range ?? EMPTY_FACETS.price_range,
     total_matching: base.total_matching ?? 0,
   };
@@ -389,12 +447,15 @@ export function normalizeFacetsResponse(
 export interface FacetsParams {
   store?: string;
   brands?: string[];
+  /** Page-locked brands. Still applied when `brand_facets` omit `brands`. */
+  brand_scope?: string[];
   category?: string;
   category_slug?: string;
   canonical_category?: string;
   min_discount?: number;
   min_price?: number;
   max_price?: number;
+  exclude_category_slug?: string;
   q?: string;
   specFilters?: Record<string, string[]>;
 }
@@ -410,6 +471,12 @@ export async function fetchFacets(
       if (t) search.append("brand", t);
     }
   }
+  if (params?.brand_scope?.length) {
+    for (const b of params.brand_scope) {
+      const t = b.trim();
+      if (t) search.append("brand_scope", t);
+    }
+  }
   if (params?.category) search.set("category", params.category);
   if (params?.category_slug) search.set("category_slug", params.category_slug);
   if (params?.canonical_category)
@@ -420,6 +487,8 @@ export async function fetchFacets(
     search.set("min_price", String(params.min_price));
   if (params?.max_price != null)
     search.set("max_price", String(params.max_price));
+  if (params?.exclude_category_slug)
+    search.set("exclude_category_slug", params.exclude_category_slug);
   if (params?.q) search.set("q", params.q);
   if (params?.specFilters) {
     for (const [key, values] of Object.entries(params.specFilters)) {
@@ -496,21 +565,31 @@ export type GiveawaysResponse = {
   ended_count: number;
 };
 
-const GIVEAWAYS_FETCH_CACHE: RequestInit = {
-  next: {
-    revalidate: GIVEAWAYS_REVALIDATE_SECONDS,
-    tags: [PUBLIC_DATA_CACHE_TAG, GIVEAWAYS_CACHE_TAG],
-  },
-};
-
 export async function fetchGiveaways(options?: {
   kind?: GiveawayKind;
   noStore?: boolean;
+  /**
+   * Override the 60s giveaways TTL. Next hashes the request URL, not
+   * `revalidate`, so a non-default TTL also sets `_isr` (the API ignores it)
+   * and does not share a cache entry with `/giveaways`.
+   */
+  revalidate?: number;
 }): Promise<GiveawaysResponse> {
   const search = new URLSearchParams();
   if (options?.kind) search.set("kind", options.kind);
+  const revalidate = options?.revalidate ?? GIVEAWAYS_REVALIDATE_SECONDS;
+  if (revalidate !== GIVEAWAYS_REVALIDATE_SECONDS) {
+    search.set("_isr", String(revalidate));
+  }
   const qs = search.toString();
-  const init = options?.noStore ? { cache: "no-store" as const } : GIVEAWAYS_FETCH_CACHE;
+  const init = options?.noStore
+    ? { cache: "no-store" as const }
+    : {
+        next: {
+          revalidate,
+          tags: [PUBLIC_DATA_CACHE_TAG, GIVEAWAYS_CACHE_TAG],
+        },
+      };
   const res = await fetchWithRetry(
     `${getApiBase()}/giveaways${qs ? `?${qs}` : ""}`,
     init,

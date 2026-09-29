@@ -68,7 +68,7 @@ filtered AS (
 ` + frag + `
 ),
 fk AS (
-  SELECT f.*, COALESCE(f.product_group_key, 'single:' || f.id::text) AS gk FROM filtered f
+  SELECT f.*, ` + productGroupKeyExpr("f") + ` AS gk FROM filtered f
 )
 `
 

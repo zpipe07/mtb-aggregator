@@ -17,14 +17,19 @@ import {
   fetchFacets,
   fetchSitemapListings,
 } from "@/api";
-import sitemap from "@/app/sitemap";
+import {
+  buildSitemapEntries,
+  SITEMAP_CDN_MAX_AGE_SECONDS,
+  SITEMAP_RESPONSE_HEADERS,
+  sitemapEntriesToXml,
+} from "./sitemapDocument";
 
 const fetchCategoryTreeMock = vi.mocked(fetchCategoryTree);
 const fetchDealsMock = vi.mocked(fetchDeals);
 const fetchFacetsMock = vi.mocked(fetchFacets);
 const fetchSitemapListingsMock = vi.mocked(fetchSitemapListings);
 
-describe("sitemap", () => {
+describe("buildSitemapEntries", () => {
   beforeEach(() => {
     vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://www.thedropper.shop");
     fetchCategoryTreeMock.mockReset();
@@ -103,7 +108,7 @@ describe("sitemap", () => {
   });
 
   it("lists live hubs/categories/brands/deals and omits missing + noindex URLs", async () => {
-    const entries = await sitemap();
+    const entries = await buildSitemapEntries();
     const urls = entries.map((e) => e.url);
 
     expect(urls).toContain("https://thedropper.shop/");
@@ -155,8 +160,39 @@ describe("sitemap", () => {
       return { deals: [], total_count: 10 };
     });
 
-    const urls = (await sitemap()).map((e) => e.url);
+    const urls = (await buildSitemapEntries()).map((e) => e.url);
     expect(urls).toContain("https://thedropper.shop/deals/55");
     expect(urls.some((u) => u.includes("price-history"))).toBe(false);
+  });
+});
+
+describe("sitemapEntriesToXml", () => {
+  it("emits loc, lastmod, changefreq, and priority", () => {
+    const xml = sitemapEntriesToXml([
+      {
+        url: "https://thedropper.shop/deals/12",
+        lastModified: new Date("2026-09-01T00:00:00.000Z"),
+        changeFrequency: "weekly",
+        priority: 0.5,
+      },
+    ]);
+    expect(xml).toContain('<?xml version="1.0" encoding="UTF-8"?>');
+    expect(xml).toContain("<loc>https://thedropper.shop/deals/12</loc>");
+    expect(xml).toContain("<lastmod>2026-09-01T00:00:00.000Z</lastmod>");
+    expect(xml).toContain("<changefreq>weekly</changefreq>");
+    expect(xml).toContain("<priority>0.5</priority>");
+    expect(xml.trimEnd().endsWith("</urlset>")).toBe(true);
+  });
+});
+
+describe("sitemap CDN cache", () => {
+  it("lets the edge hold the document for the public ISR window", () => {
+    expect(SITEMAP_CDN_MAX_AGE_SECONDS).toBe(14_400);
+    expect(SITEMAP_RESPONSE_HEADERS["Cache-Control"]).toBe(
+      "public, max-age=0, must-revalidate",
+    );
+    expect(SITEMAP_RESPONSE_HEADERS["Vercel-CDN-Cache-Control"]).toContain(
+      "s-maxage=14400",
+    );
   });
 });

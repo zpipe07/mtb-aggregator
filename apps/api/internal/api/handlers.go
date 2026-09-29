@@ -60,6 +60,9 @@ func (h *Handlers) GetDeals(w http.ResponseWriter, r *http.Request) {
 	if b := parseNonEmptyQueryMulti(r.URL.Query()["brand"]); len(b) > 0 {
 		params.Brands = b
 	}
+	if b := parseNonEmptyQueryMulti(r.URL.Query()["brand_scope"]); len(b) > 0 {
+		params.BrandScope = b
+	}
 	if s := r.URL.Query().Get("category"); s != "" {
 		params.Category = s
 	}
@@ -334,8 +337,14 @@ func (h *Handlers) GetFacets(w http.ResponseWriter, r *http.Request) {
 	if b := parseNonEmptyQueryMulti(r.URL.Query()["brand"]); len(b) > 0 {
 		params.Brands = b
 	}
+	if b := parseNonEmptyQueryMulti(r.URL.Query()["brand_scope"]); len(b) > 0 {
+		params.BrandScope = b
+	}
 	if s := r.URL.Query().Get("category"); s != "" {
 		params.Category = strings.TrimSpace(s)
+	}
+	if s := r.URL.Query().Get("exclude_category_slug"); s != "" {
+		params.ExcludeCategorySlug = strings.TrimSpace(s)
 	}
 	if s := r.URL.Query().Get("canonical_category"); s != "" {
 		params.CanonicalCategory = strings.TrimSpace(s)
@@ -398,6 +407,9 @@ func (h *Handlers) GetFacets(w http.ResponseWriter, r *http.Request) {
 	}
 	if result.BrandFacets == nil {
 		result.BrandFacets = []db.BrandFacet{}
+	}
+	if result.StoreFacets == nil {
+		result.StoreFacets = []db.StoreFacet{}
 	}
 
 	w.Header().Set("Content-Type", "application/json")

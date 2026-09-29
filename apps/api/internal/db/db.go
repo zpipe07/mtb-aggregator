@@ -785,7 +785,8 @@ func (db *DB) SetListingHidden(ctx context.Context, id int, hidden bool) error {
 type GetDealsParams struct {
 	StoreID           *int
 	StoreName         string
-	Brands            []string // OR within brands (ILIKE ANY)
+	Brands            []string // OR within brands (ILIKE ANY); user selection
+	BrandScope        []string // page-locked brands (AND with Brands); kept when brand facets omit Brands
 	Category          string
 	CanonicalCategory string // legacy: "Bikes > Mountain" (exact path match)
 	CategorySlug          string // preferred: slug for subtree filter (e.g. "bikes" includes all bike subcategories)
@@ -1116,6 +1117,15 @@ type DashboardStats struct {
 // storeVisibleProductGroupKey groups in-stock, visible listings into distinct deals
 // (matches GET /deals?group_variants=true).
 const storeVisibleProductGroupKey = `COALESCE(product_group_key, 'single:' || id::text)`
+
+// productGroupKeyExpr is storeVisibleProductGroupKey qualified with a listings alias
+// (e.g. "l" → COALESCE(l.product_group_key, 'single:' || l.id::text)).
+func productGroupKeyExpr(alias string) string {
+	if alias == "" {
+		return storeVisibleProductGroupKey
+	}
+	return "COALESCE(" + alias + ".product_group_key, 'single:' || " + alias + ".id::text)"
+}
 
 func (db *DB) GetStoresWithCounts(ctx context.Context) ([]StoreWithCount, error) {
 	rows, err := db.pool.Query(ctx, `
