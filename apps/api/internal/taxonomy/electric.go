@@ -65,20 +65,35 @@ func inElectricBikesTree(canonical []string) bool {
 	return leaf == "Electric" || leaf == "Electric Bikes" || strings.HasPrefix(leaf, "Electric ")
 }
 
+// isElectricMountainPath reports Bikes › Electric Mountain Bikes and its children.
+// That shelf is a real eMTB bucket. "Electric Mountain Bikes" also matches
+// inElectricBikesTree via HasPrefix "Electric ", so RefineElectric must exempt
+// it before the ZAC-273 analog-complete demotion (ZAC-296).
+func isElectricMountainPath(canonical []string) bool {
+	return len(canonical) >= 2 && canonical[0] == "Bikes" && canonical[1] == "Electric Mountain Bikes"
+}
+
 // IsElectricBikesPath reports whether canonical is under Bikes › Electric / eMTB.
 func IsElectricBikesPath(canonical []string) bool {
 	return inElectricBikesTree(canonical)
 }
 
-// RefineElectric moves analog complete bikes and non-bike SKUs off the Electric
-// tree using the product title (ZAC-273). Ride Bicycles (and similar) tag
-// thousands of pads, tools, locks, and analog MTBs with product_type
+// RefineElectric moves analog complete bikes and non-bike SKUs off the generic
+// Electric tree using the product title (ZAC-273). Ride Bicycles (and similar)
+// tag thousands of pads, tools, locks, and analog MTBs with product_type
 // "Electric Commuter & Urban Bikes", which substring-matches the
 // "electric commuter" → Electric Bikes mapping. taxonomy.Map only sees
 // category_path. Titles that look like real e-bikes are left unchanged.
 // Non-bike titles return nil so they do not pollute /deals/c/bikes.
+//
+// Bikes › Electric Mountain Bikes (and Full Power / Lightweight) are not that
+// trap. Store paths like "e-Mountain Completes" and "Electric Mountain Bikes"
+// already map there, and the classifier names that shelf on purpose. Titles
+// such as "Santa Cruz Bullit Carbon MX … 2026" match the analog-complete
+// pattern and do not say "e-bike", so demoting them put real eMTBs on Mountain
+// Bikes and rewrote llm_category while leaving the eMTB reasoning (ZAC-296).
 func RefineElectric(canonical []string, productName string) []string {
-	if !inElectricBikesTree(canonical) {
+	if isElectricMountainPath(canonical) || !inElectricBikesTree(canonical) {
 		return canonical
 	}
 	name := strings.TrimSpace(productName)
