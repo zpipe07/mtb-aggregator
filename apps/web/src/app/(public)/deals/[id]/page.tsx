@@ -21,6 +21,15 @@ import DealDetailLoading from "./loading";
 /** 4h — must match PUBLIC_ISR_REVALIDATE_SECONDS in @/lib/revalidate (literal required by Next.js). */
 export const revalidate = 14400;
 
+/**
+ * Empty on purpose: prerendering every deal at build time would time out.
+ * Next.js only ISR-caches dynamic `[id]` routes when this export exists;
+ * `revalidate` alone leaves the page `private, no-store`.
+ */
+export function generateStaticParams() {
+  return [];
+}
+
 type Props = {
   params: Promise<{ id: string }>;
 };
