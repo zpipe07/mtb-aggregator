@@ -225,7 +225,7 @@ In repositories indexed by CodeGraph (a `.codegraph/` directory exists at the re
 - **MCP tool** (when available): `codegraph_explore` answers most code questions in one call — the relevant symbols' verbatim source plus the call paths between them, including dynamic-dispatch hops grep can't follow. Name a file or symbol in the query to read its current line-numbered source. If it's listed but deferred, load it by name via tool search.
 - **Shell** (always works): `codegraph explore "<symbol names or question>"` prints the same output.
 
-This repo adopted CodeGraph (ZAC-290). Cloud agents: the environment Build installs the CLI and index (`bash .cursor/codegraph-setup.sh`); use `codegraph explore` via Shell if the MCP tool is not listed. If `.codegraph/codegraph.db` is missing, run the setup script rather than skipping. Spike notes: [docs/ideas/codegraph-zac-290.md](docs/ideas/codegraph-zac-290.md).
+This repo adopted CodeGraph (ZAC-290). Cloud agents: the environment Build installs the CLI and index (`bash .cursor/codegraph-setup.sh`); use `codegraph explore` via Shell if the MCP tool is not listed. If `codegraph` is missing or `.codegraph/codegraph.db` is empty, run the setup script (it falls back to `~/.local` when `/usr/local` is not writable) rather than skipping. Spike notes: [docs/ideas/codegraph-zac-290.md](docs/ideas/codegraph-zac-290.md).
 <!-- CODEGRAPH_END -->
 
 ### Further Reading

@@ -10,7 +10,7 @@ Cloud agents use [`.cursor/environment.json`](.cursor/environment.json) and [`.c
 codegraph explore "<symbol names or question>"
 ```
 
-If `codegraph` is missing or `codegraph status` is empty, run `bash .cursor/codegraph-setup.sh`. Do not skip CodeGraph and fall back to reading 30–100 KB files first.
+If `codegraph` is missing or `codegraph status` is empty, run `bash .cursor/codegraph-setup.sh` (installs to `~/.local` when `/usr/local` is not writable). Do not skip CodeGraph and fall back to reading 30–100 KB files first.
 
 Sentry → draft PR automation (ZAC-210) is specified in [docs/ideas/sentry-to-pr-automation.md](docs/ideas/sentry-to-pr-automation.md). Create/edit that automation in the Agents Window (`/automate`). For web changes run `pnpm --filter @mtb-aggregator/web exec tsc --noEmit` and `pnpm --filter @mtb-aggregator/web run test`. For API changes run `cd apps/api && go test ./...` (and `go vet ./...` if cheap). If those cannot run, do not open a PR.
 

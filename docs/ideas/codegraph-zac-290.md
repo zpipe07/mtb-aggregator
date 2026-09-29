@@ -93,7 +93,9 @@ Merging the MCP + AGENTS.md wiring is **not** enough. Cloud agents boot from an 
 1. Merge the `environment.json` / Dockerfile change to the default branch so repo-file resolution picks it up.
 2. Create a new environment Build and make it **active** (Cloud Agents dashboard → environment → Builds, or Save a tested proposal). Existing running agents keep their old snapshot; only new runs use the new Build.
 
-Confirm on a fresh agent: `codegraph --version`, `codegraph status` (files/nodes, index up to date), and one `codegraph explore "ingestScrapeResults"` that returns `listings_upsert.go` rather than opening `scheduler.go`.
+Confirm on a fresh agent: hover the repo name at the top of the agent page and check the **Build** id, then `codegraph --version`, `codegraph status` (files/nodes, index up to date), and one `codegraph explore "ingestScrapeResults"` that hits `scheduler.go` / `listings_upsert.go`.
+
+A successful recurring Build after #301 (`bld-20260921-63b66223-…`) already installed the CLI in the image and indexed 503 files. Agents that still boot from an older Build (for example the 19:27 `CONFIG_CHANGE` that used the pre-merge Dockerfile) will not have `/usr/local/bin/codegraph`. On those VMs `start` / `install` runs as `ubuntu` and cannot write `/usr/local`; [`.cursor/codegraph-setup.sh`](../../.cursor/codegraph-setup.sh) falls back to `~/.local`.
 
 ## When not to use it
 
