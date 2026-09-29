@@ -543,21 +543,31 @@ export type GiveawaysResponse = {
   ended_count: number;
 };
 
-const GIVEAWAYS_FETCH_CACHE: RequestInit = {
-  next: {
-    revalidate: GIVEAWAYS_REVALIDATE_SECONDS,
-    tags: [PUBLIC_DATA_CACHE_TAG, GIVEAWAYS_CACHE_TAG],
-  },
-};
-
 export async function fetchGiveaways(options?: {
   kind?: GiveawayKind;
   noStore?: boolean;
+  /**
+   * Override the 60s giveaways TTL. Next hashes the request URL, not
+   * `revalidate`, so a non-default TTL also sets `_isr` (the API ignores it)
+   * and does not share a cache entry with `/giveaways`.
+   */
+  revalidate?: number;
 }): Promise<GiveawaysResponse> {
   const search = new URLSearchParams();
   if (options?.kind) search.set("kind", options.kind);
+  const revalidate = options?.revalidate ?? GIVEAWAYS_REVALIDATE_SECONDS;
+  if (revalidate !== GIVEAWAYS_REVALIDATE_SECONDS) {
+    search.set("_isr", String(revalidate));
+  }
   const qs = search.toString();
-  const init = options?.noStore ? { cache: "no-store" as const } : GIVEAWAYS_FETCH_CACHE;
+  const init = options?.noStore
+    ? { cache: "no-store" as const }
+    : {
+        next: {
+          revalidate,
+          tags: [PUBLIC_DATA_CACHE_TAG, GIVEAWAYS_CACHE_TAG],
+        },
+      };
   const res = await fetchWithRetry(
     `${getApiBase()}/giveaways${qs ? `?${qs}` : ""}`,
     init,

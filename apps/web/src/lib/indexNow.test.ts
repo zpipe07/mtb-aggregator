@@ -36,13 +36,17 @@ describe("middleware / robots do not block the key file", () => {
     expect(middlewareConfig.matcher).toEqual(["/deals", "/deals/:path*"]);
   });
 
-  it("allows the key file and only disallows admin and cron", () => {
+  it("allows the key file and disallows admin, cron, and price history", () => {
     vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://thedropper.shop");
     try {
       const body = robots();
       const rules = Array.isArray(body.rules) ? body.rules[0] : body.rules;
       expect(rules?.allow).toBe("/");
-      expect(rules?.disallow).toEqual(["/admin/", "/cron/"]);
+      expect(rules?.disallow).toEqual([
+        "/admin/",
+        "/cron/",
+        "/deals/*/price-history",
+      ]);
       expect(JSON.stringify(rules?.disallow)).not.toContain(".txt");
     } finally {
       vi.unstubAllEnvs();
