@@ -2,6 +2,8 @@
 
 Parent: [ZAC-79](https://linear.app/zacks-personal-projects/issue/ZAC-79/improve-page-speed-on-deals-page) (improve page speed on deals page).
 
+**Status:** Implemented in three slices (tracked-link leaves + RSC cards, Home RSC shell, deals `results` slot). Follow-ups stay in [Not doing (v1)](#not-doing-v1).
+
 Related: PR [#328](https://github.com/zpipe07/mtb-aggregator/pull/328) (lazy `PriceHistoryChart` / recharts). That PR deferred a **heavy library**. This spec shrinks **page-level client islands** so Home and the deals list stop hydrating markup that is already HTML.
 
 Not in this spec: deal PDP (`DealDetailContent`), admin, `NavHeader` / mega menu, `/giveaways` page shell, `next/dynamic` for `FilterDrawer` / `vaul` (optional follow-up).
@@ -22,7 +24,7 @@ How might we keep Home and `/deals` looking and behaving the same while hydratin
 
 `"use client"` is contagious. One client parent pulls every import into the page’s hydration bundle.
 
-Today:
+Today (before this work):
 
 ```
 page.tsx (RSC)
@@ -89,7 +91,7 @@ export function DealCarousel({ children, ... }: { children: React.ReactNode }) {
 }
 ```
 
-Same slot on `/deals`: `DealsPageContent` keeps filters; the **results** (`DealGrid` / empty state / pagination) are `children` from the RSC page.
+Same slot on `/deals`: `DealsPageContent` keeps filters; `children` stays the SEO hub/brand footer. Listing cards go through a dedicated **`results`** slot (`DealGrid` / empty state) from the RSC page. Pagination stays in the client chrome in v1.
 
 ### 3. Do not wrap cards in `next/dynamic` / `ssr: false`
 
@@ -129,15 +131,15 @@ deals/page.tsx (and c/hub/brand RSC pages)
   └── DealsPageContent ("use client")  // filters + pending overlay only
         ├── FilterSidebar, Toolbar, FilterChips, FilterDrawer
         ├── DealsCategoryNav (can stay client; mostly Links)
-        └── children from RSC:
-              Pagination (still driven by chrome in v1) OR results slot:
+        └── results from RSC:
               DealGrid (RSC) → DealCard (RSC)
               EmptyState (RSC)
+              (Pagination stays in chrome, wrapping the slot)
 ```
 
-**v1 deals split:** the expensive part is `DealCard` × N. Minimum viable change: RSC pages pass `<DealGrid deals={…} />` (or equivalent) as `children`; `DealsPageContent` stops importing `DealCard`. Filter modules stay in the client bundle (they must).
+**v1 deals split:** the expensive part is `DealCard` × N. Minimum viable change: RSC pages pass `<DealsListResults deals={…} dealsListPath={…} />` as `results`; `DealsPageContent` stops importing `DealCard` / `DealGrid`. Filter modules stay in the client bundle (they must). Do **not** reuse `children` for the grid — hub/brand/category pages already use it for SEO footer slots.
 
-Hub / brand / category routes already wrap `DealsPageContent` — they get the same children slot.
+Hub / brand / category routes already wrap `DealsPageContent` — they get the same `results` slot.
 
 ## Tech stack
 
@@ -167,7 +169,8 @@ apps/web/src/components/DealCard.tsx   # drop "use client"; take listSurface
 apps/web/src/components/DealCarousel.tsx  # children slot; stop importing cards
 apps/web/src/views/HomePageContent.tsx # drop "use client"
 apps/web/src/views/HomeSearchForm.tsx  # new client island
-apps/web/src/views/DealsPageContent.tsx    # results via children
+apps/web/src/views/DealsPageContent.tsx    # results slot (not children)
+apps/web/src/components/DealsListResults.tsx
 apps/web/src/app/(public)/page.tsx
 apps/web/src/app/(public)/deals/**/page.tsx
 ```
@@ -234,7 +237,7 @@ If `Button` + radix `Slot` cannot render from an RSC (event-handler / context), 
 - [ ] `HomePageContent` has no `"use client"`.
 - [ ] `DealCard`, `CategoryCard`, `ViewAllDealsCard`, `GiveawayCard` have no `"use client"` (click tracking in leaf modules).
 - [ ] `DealCarousel` does not import `DealCard` or `ViewAllDealsCard`.
-- [ ] `DealsPageContent` does not import `DealCard` / `DealGrid`; list RSC pages pass results as `children`.
+- [ ] `DealsPageContent` does not import `DealCard` / `DealGrid`; list RSC pages pass results as the `results` slot (`children` stays SEO footer).
 - [ ] PostHog: `deal_card_click`, `deal_outbound_click`, `category_clicked`, `home_view_all_clicked`, `home_rail_scrolled`, `search_submitted`, `filter_applied`, `deals_paginated` still emit with current properties (`list_surface`, `home_section`, `cta`, …).
 - [ ] Production First Load JS for `/` and `/deals` is lower than `main` (record both numbers in the PR).
 - [ ] No intentional visual change; Storybook cards still match.
@@ -370,15 +373,15 @@ Prefer optional `persistBackHref?: string` on `TrackedLink` so `DealCard` stays 
 - [ ] PR notes First Load JS for `/` vs `main`
 - [ ] PostHog: `search_submitted`, `home_rail_scrolled`, `home_view_all_clicked`, `deal_card_click`, `category_clicked`
 
-### Phase 3: Deals results as RSC children
+### Phase 3: Deals results as RSC slot
 
 #### Task 6: Results slot on `DealsPageContent`
 
-**Description:** `DealsPageContent` renders filter chrome and `{children}` for the listing. Remove `DealGrid` / `DealCard` imports. RSC pages (`/deals`, `/deals/c/…`, hub, brand, brand+category) pass `<DealGrid … listSurface={…} persistBackHref={dealsListPath} />` and empty state as children. Keep pagination, pending overlay, timeout alert in the client chrome wrapping the slot (grid still updates when the RSC children re-render after `router.replace`).
+**Description:** `DealsPageContent` renders filter chrome and a dedicated `results` slot for the listing (`children` remains SEO hub/brand footer). Remove `DealGrid` / `DealCard` imports. RSC pages (`/deals`, `/deals/c/…`, hub, brand, brand+category) pass `<DealsListResults deals={…} dealsListPath={…} />`. Keep pagination, pending overlay, timeout alert in the client chrome wrapping the slot (grid still updates when the RSC children re-render after `router.replace`).
 
 **Acceptance criteria:**
 - [ ] `DealsPageContent` does not import `DealCard` or `DealGrid`.
-- [ ] All five list page files pass the grid (or empty state) as children.
+- [ ] All five list page files pass the grid (or empty state) as `results`.
 - [ ] Filter pending dimmer still covers the results.
 - [ ] Back-from-PDP sessionStorage still set on View details / image link.
 
@@ -388,6 +391,7 @@ Prefer optional `persistBackHref?: string` on `TrackedLink` so `DealCard` stays 
 
 **Files likely touched:**
 - `apps/web/src/views/DealsPageContent.tsx`
+- `apps/web/src/components/DealsListResults.tsx`
 - `apps/web/src/app/(public)/deals/page.tsx`
 - `apps/web/src/app/(public)/deals/c/[...slug]/page.tsx`
 - `apps/web/src/app/(public)/deals/hub/[slug]/page.tsx`
@@ -426,7 +430,7 @@ Prefer optional `persistBackHref?: string` on `TrackedLink` so `DealCard` stays 
 | `Button` / radix `Slot` in RSC | Build error | Use `Button` only inside tracked client leaves |
 | Hydration mismatch on money / dates | Broken cards | Card math stays deterministic; no `Date.now()` in card render |
 | sessionStorage in RSC module | Server crash | Only in `TrackedLink` (`persistBackHref`) |
-| Filter pending overlay vs RSC children | Overlay doesn’t cover grid | Chrome wraps `{children}` with the same `relative` / `aria-busy` div as today |
+| Filter pending overlay vs RSC `results` | Overlay doesn’t cover grid | Chrome wraps `{results}` with the same `relative` / `aria-busy` div as today |
 | Storybook children API | Broken carousel story | Update story to compose cards as children |
 | Scope creep into pagination Links | Mixes ZAC-218 | Explicitly out of v1 |
 
@@ -447,11 +451,7 @@ Prefer optional `persistBackHref?: string` on `TrackedLink` so `DealCard` stays 
 
 ## Suggested PR sequence
 
-1. **feat(web): tracked link leaves + RSC DealCard** (Tasks 1–3) — safe if carousel still imports the card; hydration of cards may not drop yet.
-2. **feat(web): Home RSC shell** (Tasks 4–5) — First Load JS for `/`.
-3. **feat(web): deals list RSC results slot** (Task 6–7) — First Load JS for `/deals`.
-
-One PR is acceptable if it stays reviewable; three PRs fail-faster.
+Shipped as **one PR** (spec + slices 1–3) so review sees the full island split. Split PRs are still fine if a later change needs to land independently.
 
 ## Assumptions
 

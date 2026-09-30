@@ -28,6 +28,7 @@ import { categoryMetadataForSlug, getCategorySeo } from "@/lib/categorySeo";
 import { buildBreadcrumbJsonLd, buildProductItemListJsonLd, buildAggregateOfferJsonLd } from "@/lib/jsonLd";
 import { absoluteUrl } from "@/lib/siteUrl";
 import { DealsPageContent } from "@/views/DealsPageContent";
+import { DealsListResults } from "@/components/DealsListResults";
 import { SeoHubLinksForCategory } from "@/components/SeoHubLinks";
 import { CategoryBrandLinks } from "@/components/BrandLinks";
 import CategoryDealsLoading from "./loading";
@@ -206,12 +207,13 @@ export default async function CategoryDealsPage({ params, searchParams }: Props)
       ) : null}
       <Suspense fallback={<CategoryDealsLoading />}>
         <DealsPageContent
-          deals={deals}
           totalCount={totalCount}
           facets={facets}
           stores={stores}
           categoryTree={categoryTree}
-          dealsListPath={dealsListPath}
+          results={
+            <DealsListResults deals={deals} dealsListPath={dealsListPath} />
+          }
           categoryIntro={seo.intro}
           belowIntro={
             <SeoHubLinksForCategory categorySlug={categorySlug} />

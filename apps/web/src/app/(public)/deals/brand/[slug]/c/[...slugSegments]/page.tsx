@@ -32,6 +32,7 @@ import { findCategoryBySlug, findCategoryWithAncestors } from "@/lib/categoryTre
 import { buildDealsCategoryPath } from "@/lib/dealsCategoryPath";
 import { absoluteUrl } from "@/lib/siteUrl";
 import { DealsPageContent } from "@/views/DealsPageContent";
+import { DealsListResults } from "@/components/DealsListResults";
 import BrandCategoryDealsLoading from "./loading";
 
 /** 4h — must match {@link PUBLIC_ISR_REVALIDATE_SECONDS} in @/lib/revalidate. */
@@ -218,12 +219,13 @@ export default async function BrandCategoryDealsPage({
       ) : null}
       <Suspense fallback={<BrandCategoryDealsLoading />}>
         <DealsPageContent
-          deals={deals}
           totalCount={totalCount}
           facets={facets}
           stores={stores}
           categoryTree={categoryTree}
-          dealsListPath={dealsListPath}
+          results={
+            <DealsListResults deals={deals} dealsListPath={dealsListPath} />
+          }
           routeCategorySlug={categorySlug}
           categoryIntro={seo.intro}
         />

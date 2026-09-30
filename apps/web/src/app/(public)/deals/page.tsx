@@ -23,6 +23,7 @@ import { JsonLd } from "@/components/JsonLd";
 import { buildBreadcrumbJsonLd, buildItemListJsonLd } from "@/lib/jsonLd";
 import { absoluteUrl } from "@/lib/siteUrl";
 import { DealsPageContent } from "@/views/DealsPageContent";
+import { DealsListResults } from "@/components/DealsListResults";
 import { SeoHubLinksGlobal } from "@/components/SeoHubLinks";
 import { BrandLinksGlobal } from "@/components/BrandLinks";
 import DealsLoading from "./loading";
@@ -158,12 +159,13 @@ export default async function DealsPage({ searchParams }: Props) {
       />
       <Suspense fallback={<DealsLoading />}>
         <DealsPageContent
-          deals={deals}
           totalCount={totalCount}
           facets={facets}
           stores={stores}
           categoryTree={categoryTree}
-          dealsListPath={dealsListPath}
+          results={
+            <DealsListResults deals={deals} dealsListPath={dealsListPath} />
+          }
         >
           <SeoHubLinksGlobal title="Popular deal searches" />
           <BrandLinksGlobal brandFacets={facets.brand_facets} />

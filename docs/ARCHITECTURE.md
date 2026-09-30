@@ -139,7 +139,7 @@ The web app uses a design system built on **shadcn/ui** and **Tailwind v4** for 
 
 Add new primitives via `pnpm dlx shadcn@latest add <component>` in `apps/web`.
 
-**Client islands (planned):** Home and `/deals` still wrap most of the page in `"use client"` (`HomePageContent`, `DealsPageContent`, `DealCard`). The plan to keep filter/search/carousel interactivity client-side and render cards as RSC children is [docs/specs/rsc-client-islands-home-deals.md](specs/rsc-client-islands-home-deals.md) (ZAC-79).
+**Client islands:** Home is an RSC shell (`HomePageContent`) with client islands for search (`HomeSearchForm` / `SearchBar`) and carousel scroll chrome (`DealCarousel`; cards as RSC `children`). Deals list routes keep filter chrome in `DealsPageContent` and pass listing cards as the RSC `results` slot (`DealsListResults` / `DealGrid`). Click analytics live in [`TrackedLink`](apps/web/src/components/analytics/TrackedLink.tsx) / [`TrackedOutboundAnchor`](apps/web/src/components/analytics/TrackedOutboundAnchor.tsx). Spec: [docs/specs/rsc-client-islands-home-deals.md](specs/rsc-client-islands-home-deals.md) (ZAC-79).
 
 ### Theming
 
@@ -157,7 +157,7 @@ Add new primitives via `pnpm dlx shadcn@latest add <component>` in `apps/web`.
 
 ### Composed Components
 
-High-level components (DealCard, DealCarousel, ViewAllDealsCard, VariantChips, CategoryCard, Pagination, SearchBar, FilterSelect) use the primitives. **Home** (`HomePageContent`) is a Server Component: search lives in `HomeSearchForm`, rails are `DealCarousel` (client scroll chrome with RSC card `children`). Deal cards stretch in grids and homepage rails so price + CTAs stay aligned; overflowing rails keep a peek of the next card and reserve left/right gutters (tighter on small screens) for prev/next arrows. Each homepage rail ends with a View all card linking to the matching deals list. When adding or changing UI, prefer primitives over raw HTML and add Storybook stories.
+High-level components (DealCard, DealCarousel, ViewAllDealsCard, VariantChips, CategoryCard, Pagination, SearchBar, FilterSelect) use the primitives. **Home** (`HomePageContent`) is a Server Component: search lives in `HomeSearchForm`, rails are `DealCarousel` (client scroll chrome with RSC card `children`). **Deals list** (`DealsPageContent`) is client filter chrome wrapping an RSC `results` slot (`DealsListResults` / `DealGrid`). Deal cards stretch in grids and homepage rails so price + CTAs stay aligned; overflowing rails keep a peek of the next card and reserve left/right gutters (tighter on small screens) for prev/next arrows. Each homepage rail ends with a View all card linking to the matching deals list. When adding or changing UI, prefer primitives over raw HTML and add Storybook stories.
 
 ### SEO (metadata)
 

@@ -237,7 +237,7 @@ This repo adopted CodeGraph (ZAC-290). Cloud agents: the environment Build insta
 - [docs/SCRAPING.md](docs/SCRAPING.md) — Parser structure, adding stores
 - [docs/specs/variant-identity-zac-254.md](docs/specs/variant-identity-zac-254.md) — Variant identity (SKU, group key, Size/Color, parent–child)
 - [docs/specs/enrichment-normalization-zac-253.md](docs/specs/enrichment-normalization-zac-253.md) — Enrichment contract (PDP / classify / extract, skip, store capabilities)
-- [docs/specs/rsc-client-islands-home-deals.md](docs/specs/rsc-client-islands-home-deals.md) — Plan to shrink `"use client"` on Home and `/deals` (ZAC-79)
+- [docs/specs/rsc-client-islands-home-deals.md](docs/specs/rsc-client-islands-home-deals.md) — RSC client islands on Home and `/deals` (ZAC-79)
 - [docs/TAXONOMY.md](docs/TAXONOMY.md) — Category mappings, LLM classifier
 - [docs/ideas/mtbbot-feedback.md](docs/ideas/mtbbot-feedback.md) — Reddit feedback on MTBbot applied to The Dropper (ZAC-93)
 - [docs/ideas/codegraph-zac-290.md](docs/ideas/codegraph-zac-290.md) — Local CodeGraph index for Cursor agents (token usage)
