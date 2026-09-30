@@ -121,6 +121,7 @@ export function DealCarousel({
             <DealCard
               deal={deal}
               href={getHref(deal)}
+              listSurface="home"
               homeSection={homeSection}
             />
           </div>

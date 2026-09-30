@@ -1,9 +1,6 @@
-"use client";
-
 import { ExternalLink } from "lucide-react";
-import posthog from "posthog-js";
 import type { Giveaway } from "@/api";
-import { Button } from "@/components/ui/button";
+import { TrackedOutboundButton } from "@/components/analytics/TrackedOutboundAnchor";
 import { cn, focusRing } from "@/lib/utils";
 import {
   deriveGiveawayStatus,
@@ -156,32 +153,30 @@ export function GiveawayCard({
 
         <div className="mt-auto space-y-2 pt-1">
           {showPrimaryCta ? (
-            <Button asChild size="lg" className="w-full">
-              <a
-                href={giveaway.entry_url}
-                target="_blank"
-                rel="noopener noreferrer nofollow"
-                onClick={() => {
-                  posthog.capture("giveaway_outbound_click", {
-                    giveaway_id: giveaway.id,
-                    kind: giveaway.kind,
-                    status,
-                    host_name: giveaway.host_name,
-                    surface,
-                  });
-                }}
-              >
-                <span className="relative z-[1] inline-flex items-center gap-1.5">
-                  {ctaLabel}
-                  <ExternalLink
-                    aria-hidden
-                    className="size-3.5 shrink-0"
-                    strokeWidth={2.25}
-                  />
-                  <span className="sr-only"> (opens in new tab)</span>
-                </span>
-              </a>
-            </Button>
+            <TrackedOutboundButton
+              href={giveaway.entry_url}
+              rel="noopener noreferrer nofollow"
+              size="lg"
+              buttonClassName="w-full"
+              event="giveaway_outbound_click"
+              properties={{
+                giveaway_id: giveaway.id,
+                kind: giveaway.kind,
+                status,
+                host_name: giveaway.host_name,
+                surface,
+              }}
+            >
+              <span className="relative z-[1] inline-flex items-center gap-1.5">
+                {ctaLabel}
+                <ExternalLink
+                  aria-hidden
+                  className="size-3.5 shrink-0"
+                  strokeWidth={2.25}
+                />
+                <span className="sr-only"> (opens in new tab)</span>
+              </span>
+            </TrackedOutboundButton>
           ) : null}
           <a
             href={giveaway.official_rules_url}

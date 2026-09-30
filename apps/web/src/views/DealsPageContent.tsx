@@ -17,7 +17,7 @@ import { usePendingTimeout } from "../hooks/usePendingTimeout";
 import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { buildDealDetailHref } from "@/lib/dealsBackHref";
-import { storeDealDetailBackHref } from "@/lib/dealDetailBackStorage";
+import { dealsListSurfaceFromListHref } from "@/lib/dealsListSurface";
 import { Button } from "@/components/ui/button";
 import {
   Toolbar,
@@ -375,7 +375,8 @@ export function DealsPageContent({
                 <DealGrid
                   deals={deals}
                   getHref={(d) => buildDealDetailHref(d.id)}
-                  onDealNavigate={() => storeDealDetailBackHref(dealsListPath)}
+                  listSurface={dealsListSurfaceFromListHref(dealsListPath)}
+                  persistBackHref={dealsListPath}
                 />
               ) : (
                 <EmptyState />

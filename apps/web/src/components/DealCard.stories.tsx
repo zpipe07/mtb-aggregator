@@ -42,8 +42,15 @@ const meta = {
     layout: "centered",
   },
   tags: ["autodocs"],
+  args: {
+    listSurface: "deals_list",
+  },
   argTypes: {
     href: { control: "text" },
+    listSurface: {
+      control: "select",
+      options: ["home", "deals_list", "category", "hub", "other"],
+    },
   },
 } satisfies Meta<typeof DealCard>;
 
@@ -183,6 +190,7 @@ export const CtaAlignment: Story = {
             product_name: "XT cassette",
           }}
           href="/deals/11"
+          listSurface="deals_list"
         />
       </div>
       <div className="flex h-full min-h-0 flex-col">
@@ -194,10 +202,15 @@ export const CtaAlignment: Story = {
               "Shimano XT M8100 12-Speed Groupset with extra long product title",
           }}
           href="/deals/12"
+          listSurface="deals_list"
         />
       </div>
       <div className="flex h-full min-h-0 flex-col">
-        <DealCard deal={mockDealWithSizes} href="/deals/4" />
+        <DealCard
+          deal={mockDealWithSizes}
+          href="/deals/4"
+          listSurface="deals_list"
+        />
       </div>
     </div>
   ),

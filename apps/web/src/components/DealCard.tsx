@@ -1,17 +1,12 @@
-"use client";
-
-import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { ExternalLink } from "lucide-react";
-import posthog from "posthog-js";
-import { track } from "@vercel/analytics";
 import type { Deal } from "../api";
-import { Button } from "./ui/button";
+import { TrackedButtonLink, TrackedLink } from "./analytics/TrackedLink";
+import { TrackedOutboundButton } from "./analytics/TrackedOutboundAnchor";
 import { VariantChips } from "./VariantChips";
 import { cn, focusRingWithin } from "@/lib/utils";
 import { formatMoney } from "@/lib/formatMoney";
 import { computeDealScore } from "@/lib/dealScore";
-import { dealsListSurfaceFromPathname } from "@/lib/dealsListSurface";
+import type { DealsListSurface } from "@/lib/dealsListSurface";
 import { RemoteImg } from "./RemoteImg";
 import { summarizeDealSizeChips, displayPriceRange } from "@/lib/inStockVariantChips";
 
@@ -22,8 +17,10 @@ type DealCardProps = {
   deal: Deal;
   /** When set, the image and product summary navigate to this internal URL (SEO + prefetch). */
   href?: string;
+  /** Analytics `list_surface` — parent already knows the route. */
+  listSurface: DealsListSurface;
   /** Persist list context before internal navigation (back button on detail page). */
-  onInternalNavigate?: () => void;
+  persistBackHref?: string;
   /** Home page row id for PostHog (`home_section`). */
   homeSection?: string;
 };
@@ -60,11 +57,10 @@ function SnagRetailerLabel({ label = "Snag this deal" }: { label?: string }) {
 export function DealCard({
   deal,
   href,
-  onInternalNavigate,
+  listSurface,
+  persistBackHref,
   homeSection,
 }: DealCardProps) {
-  const pathname = usePathname();
-  const listSurface = dealsListSurfaceFromPathname(pathname);
   const viewUrl = deal.affiliate_url || deal.product_url;
 
   const variantChips = summarizeDealSizeChips(deal);
@@ -79,10 +75,6 @@ export function DealCard({
     ...(homeSection ? { home_section: homeSection } : {}),
   };
 
-  const handleInternalNavigate = () => {
-    onInternalNavigate?.();
-    track("deal_card_click", analyticsBase);
-  };
   const discountPct =
     deal.discount_pct != null
       ? Math.round(deal.discount_pct)
@@ -166,69 +158,54 @@ export function DealCard({
     </div>
   );
 
+  const snagButton = (
+    <TrackedOutboundButton
+      href={viewUrl}
+      size="lg"
+      buttonClassName="w-full"
+      stopClickPropagation
+      vercelEvent="view_deal"
+      vercelProperties={analyticsBase}
+      event="deal_outbound_click"
+      properties={{
+        ...analyticsBase,
+        brand: deal.brand ?? "",
+        cta: "snag_retailer",
+      }}
+    >
+      <SnagRetailerLabel />
+    </TrackedOutboundButton>
+  );
+
   const footer = (
     <div className="mt-auto px-4 pb-4 pt-3">
       {href ? (
-        <>
-          <div className="flex flex-col gap-2">
-            <Button asChild size="lg" className="w-full">
-              <a
-                href={viewUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  track("view_deal", analyticsBase);
-                  posthog.capture("deal_outbound_click", {
-                    ...analyticsBase,
-                    brand: deal.brand ?? "",
-                    cta: "snag_retailer",
-                  });
-                }}
-              >
-                <SnagRetailerLabel />
-              </a>
-            </Button>
-            <Button asChild variant="outline" size="lg" className="w-full">
-              <Link
-                href={href}
-                className="inline-flex"
-                aria-label="View details — price history, specs, variants, and retailer link"
-                title="Price history, specs, variants — open the full listing."
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleInternalNavigate();
-                  posthog.capture("deal_card_click", {
-                    ...analyticsBase,
-                    brand: deal.brand ?? "",
-                    cta: "view_details",
-                  });
-                }}
-              >
-                View details
-              </Link>
-            </Button>
-          </div>
-        </>
-      ) : (
-        <Button asChild size="lg" className="w-full">
-          <a
-            href={viewUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={(e) => {
-              e.stopPropagation();
-              track("view_deal", analyticsBase);
-              posthog.capture("deal_outbound_click", {
-                ...analyticsBase,
-                brand: deal.brand ?? "",
-                cta: "snag_retailer",
-              });
+        <div className="flex flex-col gap-2">
+          {snagButton}
+          <TrackedButtonLink
+            href={href}
+            variant="outline"
+            size="lg"
+            buttonClassName="w-full"
+            className="inline-flex"
+            aria-label="View details — price history, specs, variants, and retailer link"
+            title="Price history, specs, variants — open the full listing."
+            stopClickPropagation
+            persistBackHref={persistBackHref}
+            vercelEvent="deal_card_click"
+            vercelProperties={analyticsBase}
+            event="deal_card_click"
+            properties={{
+              ...analyticsBase,
+              brand: deal.brand ?? "",
+              cta: "view_details",
             }}
           >
-            <SnagRetailerLabel />
-          </a>
-        </Button>
+            View details
+          </TrackedButtonLink>
+        </div>
+      ) : (
+        snagButton
       )}
     </div>
   );
@@ -322,14 +299,16 @@ export function DealCard({
         <CardCropMarks />
         {href ? (
           <>
-            <Link
+            <TrackedLink
               href={href}
               className="flex min-h-0 flex-1 flex-col rounded-sm text-left outline-none"
-              onClick={handleInternalNavigate}
+              persistBackHref={persistBackHref}
+              vercelEvent="deal_card_click"
+              properties={analyticsBase}
             >
               {imageBlock}
               {body}
-            </Link>
+            </TrackedLink>
             {footer}
           </>
         ) : (

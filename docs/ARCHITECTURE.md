@@ -179,7 +179,7 @@ The web app uses [Vercel Web Analytics](https://vercel.com/docs/analytics) via `
 
 Weekly unique visitors, outbound clicks, and referring domains: pinned **[Weekly marketing readout](https://us.posthog.com/project/355496/dashboard/2066236)** (checklist + baseline in [docs/MARKETING.md](MARKETING.md#weekly-readout-zac-259)). Product-behavior tiles: [Analytics basics](https://us.posthog.com/project/355496/dashboard/1395138).
 
-**Custom events** (require Vercel Pro or an alternative such as PostHog) are wired via `track()` and/or `posthog.capture()` in [DealCard](apps/web/src/components/DealCard.tsx), [DealDetailModal](apps/web/src/components/DealDetailModal.tsx), [DealFilters](apps/web/src/components/DealFilters.tsx), [SearchBar](apps/web/src/components/SearchBar.tsx), [DealsPageContent](apps/web/src/views/DealsPageContent.tsx), and related components:
+**Custom events** (require Vercel Pro or an alternative such as PostHog) are wired via `track()` and/or `posthog.capture()` in [TrackedLink](apps/web/src/components/analytics/TrackedLink.tsx) / [TrackedOutboundAnchor](apps/web/src/components/analytics/TrackedOutboundAnchor.tsx) (listing cards), [DealDetailModal](apps/web/src/components/DealDetailModal.tsx), [DealFilters](apps/web/src/components/DealFilters.tsx), [SearchBar](apps/web/src/components/SearchBar.tsx), [DealsPageContent](apps/web/src/views/DealsPageContent.tsx), and related components:
 
 - `deal_card_click` — user opens deal detail (`deal_id`, `store`, `brand`, `list_surface`, `in_stock_size_count`, `in_stock_color_count`)
 - `home_rail_scrolled` — homepage carousel arrow (`direction`: `prev` | `next`, `nav_source: "arrow"`, optional `home_section`)
