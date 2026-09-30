@@ -4,13 +4,61 @@ export type DealsRscSample = {
   /** Response body finished (headers-only 200s stay false while the stream is open). */
   responseEnded: boolean;
   durationMs: number | null;
+  /** Epoch ms when the body finished. Null while the stream is open or unmatched. */
+  responseEndedAtMs: number | null;
 };
 
 const EMPTY_SAMPLE: DealsRscSample = {
   matched: false,
   responseEnded: false,
   durationMs: null,
+  responseEndedAtMs: null,
 };
+
+const RETAINED_RSC_ENTRIES = 40;
+const retainedRsc: PerformanceResourceTiming[] = [];
+let rscObserverStarted = false;
+
+/** Keep recent `_rsc` entries even after the Resource Timing buffer drops them. */
+export function rememberObservedRsc(entry: PerformanceResourceTiming): void {
+  if (!entry.name.includes("_rsc=")) return;
+  retainedRsc.push(entry);
+  if (retainedRsc.length > RETAINED_RSC_ENTRIES) retainedRsc.shift();
+}
+
+export function resetObservedRscEntries(): void {
+  retainedRsc.length = 0;
+}
+
+/** Start a buffered PerformanceObserver once. Safe to call on every pending transition. */
+export function observeDealsRscFetches(): void {
+  if (rscObserverStarted || typeof PerformanceObserver === "undefined") return;
+  rscObserverStarted = true;
+  try {
+    const observer = new PerformanceObserver((list) => {
+      for (const entry of list.getEntries()) {
+        rememberObservedRsc(entry as PerformanceResourceTiming);
+      }
+    });
+    observer.observe({ type: "resource", buffered: true });
+  } catch {
+    rscObserverStarted = false;
+  }
+}
+
+function entriesForSample(live: PerformanceEntry[]): PerformanceEntry[] {
+  if (retainedRsc.length === 0) return live;
+  const seen = new Set<string>();
+  const merged: PerformanceEntry[] = [];
+  for (const entry of [...live, ...retainedRsc]) {
+    const key = `${entry.name}\0${entry.startTime}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    merged.push(entry);
+  }
+  merged.sort((a, b) => a.startTime - b.startTime);
+  return merged;
+}
 
 /**
  * Latest soft-nav RSC fetch for `pathname` that started at or after the
@@ -41,10 +89,12 @@ export function latestDealsRscSample(
     // Effect records pending a few ms around the click; allow a small skew.
     if (startedAt + 250 < pendingStartedAtMs) continue;
 
+    const responseEnded = entry.responseEnd > 0;
     return {
       matched: true,
-      responseEnded: entry.responseEnd > 0,
+      responseEnded,
       durationMs: Math.round(entry.duration),
+      responseEndedAtMs: responseEnded ? Math.round(timeOrigin + entry.responseEnd) : null,
     };
   }
 
@@ -62,7 +112,7 @@ export function readLatestDealsRscSample(
     return latestDealsRscSample(
       pathname,
       pendingStartedAtMs,
-      performance.getEntriesByType("resource"),
+      entriesForSample(performance.getEntriesByType("resource")),
       performance.timeOrigin,
     );
   } catch {

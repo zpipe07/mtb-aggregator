@@ -94,6 +94,7 @@ export function DealsPageContent({
     setSort,
     setOffset,
     clearAllFilters,
+    overlappingNavigations,
   } = filterParams;
 
   const categoryFilter = resolveUiCategorySlug(
@@ -113,6 +114,7 @@ export function DealsPageContent({
       sort,
       offset,
       specFilterCount,
+      overlappingNavigations,
     });
 
   const handleRetryResults = () => {
