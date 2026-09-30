@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { ExternalLink } from "lucide-react";
 import { track } from "@vercel/analytics";
@@ -19,8 +20,16 @@ import {
 } from "@/lib/inStockVariantChips";
 import { Button } from "@/components/ui/button";
 import { RemoteImg } from "@/components/RemoteImg";
-import { PriceHistoryChart } from "@/components/PriceHistoryChart";
+import { PriceHistoryChartSkeleton } from "@/components/skeletons";
 import { useDealDetailListContext } from "./DealDetailBackNav";
+
+// recharts is ~100 KB gzipped and the chart sits below the fold, so keep it
+// out of the PDP's initial JS. LOW / HIGH / AVG stay server-rendered.
+const PriceHistoryChart = dynamic(
+  () =>
+    import("@/components/PriceHistoryChart").then((m) => m.PriceHistoryChart),
+  { ssr: false, loading: () => <PriceHistoryChartSkeleton /> },
+);
 
 const monoMicro =
   "font-mono text-[10px] font-semibold uppercase tracking-[0.14em]";
