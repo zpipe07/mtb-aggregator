@@ -3,3 +3,4 @@ export { DealCardSkeleton } from "./deal-card-skeleton";
 export { DealsCategoryNavSkeleton } from "./deals-category-nav-skeleton";
 export { DealsToolbarSkeleton } from "./deals-toolbar-skeleton";
 export { FilterSidebarSkeleton } from "./filter-sidebar-skeleton";
+export { PriceHistoryChartSkeleton } from "./price-history-chart-skeleton";

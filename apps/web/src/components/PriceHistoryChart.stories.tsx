@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { PriceHistoryChart } from "./PriceHistoryChart";
+import { PriceHistoryChartSkeleton } from "./skeletons";
 
 const sampleData = [
   { price: 599.99, recorded_at: "2025-10-01T12:00:00Z", dateLabel: "Oct 1" },
@@ -25,6 +26,14 @@ export const Default: Story = {
   args: {
     data: sampleData,
   },
+};
+
+/** Deal PDP placeholder while the recharts chunk loads; same frame box as Default. */
+export const Loading: Story = {
+  args: {
+    data: sampleData,
+  },
+  render: () => <PriceHistoryChartSkeleton />,
 };
 
 export const Compact: Story = {

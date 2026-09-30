@@ -14,6 +14,7 @@ import {
   type XAxisTickContentProps,
 } from "recharts";
 import { cn } from "@/lib/utils";
+import { PRICE_HISTORY_CHART_FRAME_CLASS } from "./priceHistoryChartFrame";
 import {
   PRICE_HISTORY_CHART_MARGIN,
   PRICE_HISTORY_Y_AXIS_WIDTH,
@@ -109,10 +110,7 @@ export function PriceHistoryChart({ data, className }: PriceHistoryChartProps) {
 
   return (
     <div
-      className={cn(
-        "h-64 w-full rounded-sm border border-foreground/40 bg-card/50 p-2 text-primary",
-        className,
-      )}
+      className={cn(PRICE_HISTORY_CHART_FRAME_CLASS, "text-primary", className)}
     >
       <div ref={frameRef} className="h-full w-full">
         <ResponsiveContainer width="100%" height="100%">
