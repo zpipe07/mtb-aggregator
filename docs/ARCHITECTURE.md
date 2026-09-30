@@ -139,6 +139,8 @@ The web app uses a design system built on **shadcn/ui** and **Tailwind v4** for 
 
 Add new primitives via `pnpm dlx shadcn@latest add <component>` in `apps/web`.
 
+**Client islands (planned):** Home and `/deals` still wrap most of the page in `"use client"` (`HomePageContent`, `DealsPageContent`, `DealCard`). The plan to keep filter/search/carousel interactivity client-side and render cards as RSC children is [docs/specs/rsc-client-islands-home-deals.md](specs/rsc-client-islands-home-deals.md) (ZAC-79).
+
 ### Theming
 
 - **CSS variables** in `src/app/globals.css` (`:root`, `.dark`) — `--app-font-sans`, `--app-font-display`, `--primary`, `--background`, etc. (`@fontsource-variable/plus-jakarta-sans`, `@fontsource-variable/bricolage-grotesque`).
