@@ -1,3 +1,5 @@
+"use client";
+
 import { track } from "@vercel/analytics";
 import { useEffect, useRef, useState } from "react";
 import { cn, focusRingWithin } from "@/lib/utils";

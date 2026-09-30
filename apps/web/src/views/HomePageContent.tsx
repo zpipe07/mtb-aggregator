@@ -1,13 +1,10 @@
-"use client";
-
-import { useState, FormEvent, useTransition, type ReactNode } from "react";
-import { useRouter } from "next/navigation";
-import posthog from "posthog-js";
-import Link from "next/link";
-import { SearchBar, SEARCH_FRAME_MIN_H } from "../components/SearchBar";
+import type { ReactNode } from "react";
 import { DealCarousel } from "../components/DealCarousel";
 import { CategoryCard } from "../components/CategoryCard";
+import { DealCard } from "../components/DealCard";
+import { ViewAllDealsCard } from "../components/ViewAllDealsCard";
 import { StatTicker } from "../components/StatTicker";
+import { TrackedLink } from "../components/analytics/TrackedLink";
 import { CategoryTreeNode } from "../api";
 import { categoryHasDeals, categoryNavDealCount } from "../lib/categoryTree";
 import { CATEGORY_IMAGES } from "../lib/categoryImages";
@@ -19,12 +16,11 @@ import {
   HOME_PRICE_DROPS_VIEW_ALL_HREF,
   HOME_PRICE_DROPS_VIEW_ALL_LABEL,
 } from "../lib/homeDealSections";
-import { captureHomeViewAllClicked } from "../lib/homeViewAllAnalytics";
-import { Button } from "../components/ui/button";
 import { cn, focusRing } from "@/lib/utils";
 import type { Giveaway } from "@/api";
 import { HomeGiveawaysStrip } from "@/components/HomeGiveawaysStrip";
 import { deriveGiveawayStatus } from "@/lib/giveawayStatus";
+import { HomeSearchForm } from "./HomeSearchForm";
 
 function HomeSectionViewAllLink({
   href,
@@ -34,24 +30,24 @@ function HomeSectionViewAllLink({
   homeSection: string;
 }) {
   return (
-    <Link
+    <TrackedLink
       href={href}
       className={cn(
         "rounded-sm font-mono text-xs font-semibold tracking-wide text-muted-foreground hover:text-foreground",
         focusRing,
       )}
-      onClick={() =>
-        captureHomeViewAllClicked({
-          navSource: "section_header",
-          homeSection,
-          href,
-        })
-      }
+      event="home_view_all_clicked"
+      properties={{
+        nav_source: "section_header",
+        href,
+        home_section: homeSection,
+      }}
     >
       View all →
-    </Link>
+    </TrackedLink>
   );
 }
+
 const FALLBACK_CATEGORIES: { path: string; label: string }[] = [
   { path: "bikes-electric", label: "E-Bikes" },
   { path: "bikes-mountain", label: "Mountain Bikes" },
@@ -114,10 +110,6 @@ export function HomePageContent({
   openGiveaways = [],
   hubLinks,
 }: Props) {
-  const router = useRouter();
-  const [searchValue, setSearchValue] = useState("");
-  const [isPending, startTransition] = useTransition();
-
   const categoryCards = buildCategoryCards(categoryTree);
   const visibleDealSections = dealSections.filter(
     (section) => section.deals.length > 0,
@@ -138,21 +130,6 @@ export function HomePageContent({
   const openEntriesNumber = String(
     dealsStartNumber + dealsSectionCount,
   ).padStart(2, "0");
-
-  const handleSearchSubmit = (e: FormEvent) => {
-    e.preventDefault();
-    const q = searchValue.trim();
-    if (q) {
-      posthog.capture("search_submitted", { query: q });
-    }
-    startTransition(() => {
-      if (q) {
-        router.push(`/deals?q=${encodeURIComponent(q)}`);
-      } else {
-        router.push("/deals");
-      }
-    });
-  };
 
   return (
     <>
@@ -182,30 +159,7 @@ export function HomePageContent({
             We scan the sale pages from top MTB retailers so you&apos;re not
             bouncing between sites.
           </p>
-          <form
-            onSubmit={handleSearchSubmit}
-            className="mx-auto mt-8 flex max-w-2xl flex-col gap-3 sm:flex-row sm:items-end"
-          >
-            <div className="min-w-0 flex-1">
-              <SearchBar
-                value={searchValue}
-                onChange={setSearchValue}
-                placeholder="Search deals…"
-              />
-            </div>
-            <div className="flex shrink-0 flex-col gap-2 sm:flex-row sm:items-stretch">
-              <Button
-                type="submit"
-                disabled={isPending}
-                className={cn(SEARCH_FRAME_MIN_H, "sm:min-w-[8rem]")}
-              >
-                {isPending ? "Searching…" : "Search"}
-              </Button>
-              <Button variant="outline" asChild className={cn(SEARCH_FRAME_MIN_H, "sm:min-w-[8rem]")}>
-                <Link href="/deals">View all deals</Link>
-              </Button>
-            </div>
-          </form>
+          <HomeSearchForm />
         </section>
 
       {showPriceDrops ? (
@@ -226,15 +180,24 @@ export function HomePageContent({
             />
           </div>
           <DealCarousel
-            deals={priceDropDeals}
-            getHref={(deal) => dealDetailHref(deal.id)}
-            homeSection={HOME_PRICE_DROPS_SECTION_ID}
-            viewAll={{
-              href: HOME_PRICE_DROPS_VIEW_ALL_HREF,
-              label: HOME_PRICE_DROPS_VIEW_ALL_LABEL,
-            }}
             ariaLabel="Recent price drops"
-          />
+            homeSection={HOME_PRICE_DROPS_SECTION_ID}
+          >
+            {priceDropDeals.map((deal) => (
+              <DealCard
+                key={deal.id}
+                deal={deal}
+                href={dealDetailHref(deal.id)}
+                listSurface="home"
+                homeSection={HOME_PRICE_DROPS_SECTION_ID}
+              />
+            ))}
+            <ViewAllDealsCard
+              href={HOME_PRICE_DROPS_VIEW_ALL_HREF}
+              label={HOME_PRICE_DROPS_VIEW_ALL_LABEL}
+              homeSection={HOME_PRICE_DROPS_SECTION_ID}
+            />
+          </DealCarousel>
         </section>
       ) : null}
 
@@ -287,16 +250,22 @@ export function HomePageContent({
                     homeSection={section.id}
                   />
                 </div>
-                <DealCarousel
-                  deals={section.deals}
-                  getHref={(deal) => dealDetailHref(deal.id)}
-                  homeSection={section.id}
-                  viewAll={{
-                    href: viewAllHref,
-                    label: section.viewAllLabel,
-                  }}
-                  ariaLabel={section.title}
-                />
+                <DealCarousel ariaLabel={section.title} homeSection={section.id}>
+                  {section.deals.map((deal) => (
+                    <DealCard
+                      key={deal.id}
+                      deal={deal}
+                      href={dealDetailHref(deal.id)}
+                      listSurface="home"
+                      homeSection={section.id}
+                    />
+                  ))}
+                  <ViewAllDealsCard
+                    href={viewAllHref}
+                    label={section.viewAllLabel}
+                    homeSection={section.id}
+                  />
+                </DealCarousel>
               </section>
             );
           })}

@@ -1,11 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { Children, isValidElement, useCallback, useEffect, useId, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import posthog from "posthog-js";
-import type { Deal } from "../api";
-import { DealCard } from "./DealCard";
-import { ViewAllDealsCard } from "./ViewAllDealsCard";
 import { Button } from "./ui/button";
 import { cn } from "@/lib/utils";
 import { railOverflowState, railScrollStep } from "@/lib/railScroll";
@@ -13,19 +10,10 @@ import { railOverflowState, railScrollStep } from "@/lib/railScroll";
 const railItemClassName =
   "flex w-[min(20rem,calc(100%-1.75rem))] shrink-0 snap-start self-stretch";
 
-export type DealCarouselViewAll = {
-  href: string;
-  label: string;
-};
-
 type DealCarouselProps = {
-  deals: Deal[];
-  /** Builds internal detail URLs for each card. */
-  getHref: (deal: Deal) => string;
+  children: React.ReactNode;
   /** PostHog `home_section` when rendered on the home page. */
   homeSection?: string;
-  /** Trailing card that continues the row onto the matching deals list. */
-  viewAll?: DealCarouselViewAll;
   /** Accessible label for the scroll region. */
   ariaLabel: string;
   className?: string;
@@ -34,16 +22,15 @@ type DealCarouselProps = {
 const railArrowClassName = "disabled:opacity-25";
 
 export function DealCarousel({
-  deals,
-  getHref,
+  children,
   homeSection,
-  viewAll,
   ariaLabel,
   className,
 }: DealCarouselProps) {
   const listId = useId();
   const scrollerRef = useRef<HTMLDivElement>(null);
-  const itemCount = deals.length + (viewAll ? 1 : 0);
+  const items = Children.toArray(children);
+  const itemCount = items.length;
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(itemCount > 1);
 
@@ -88,7 +75,7 @@ export function DealCarousel({
     });
   };
 
-  if (deals.length === 0) return null;
+  if (itemCount === 0) return null;
 
   const showControls = canScrollLeft || canScrollRight;
 
@@ -111,30 +98,16 @@ export function DealCarousel({
         role="list"
         aria-label={ariaLabel}
       >
-        {deals.map((deal) => (
+        {items.map((child, index) => (
           <div
-            key={deal.id}
+            key={isValidElement(child) && child.key != null ? String(child.key) : index}
             role="listitem"
             data-rail-item
             className={railItemClassName}
           >
-            <DealCard
-              deal={deal}
-              href={getHref(deal)}
-              listSurface="home"
-              homeSection={homeSection}
-            />
+            {child}
           </div>
         ))}
-        {viewAll ? (
-          <div role="listitem" data-rail-item className={railItemClassName}>
-            <ViewAllDealsCard
-              href={viewAll.href}
-              label={viewAll.label}
-              homeSection={homeSection}
-            />
-          </div>
-        ) : null}
       </div>
 
       {showControls ? (
