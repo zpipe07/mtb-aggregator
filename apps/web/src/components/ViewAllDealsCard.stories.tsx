@@ -81,7 +81,12 @@ export const BesideDealCard: Story = {
     (Story) => (
       <div className="flex h-[32rem] items-stretch gap-4">
         <div className="flex w-[min(20rem,calc(100%-1.75rem))] shrink-0">
-          <DealCard deal={mockDeal} href="/deals/1" homeSection="mtb" />
+          <DealCard
+            deal={mockDeal}
+            href="/deals/1"
+            listSurface="home"
+            homeSection="mtb"
+          />
         </div>
         <div className="flex w-[min(20rem,calc(100%-1.75rem))] shrink-0">
           <Story />

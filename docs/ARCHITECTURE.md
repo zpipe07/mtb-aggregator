@@ -139,6 +139,8 @@ The web app uses a design system built on **shadcn/ui** and **Tailwind v4** for 
 
 Add new primitives via `pnpm dlx shadcn@latest add <component>` in `apps/web`.
 
+**Client islands:** Home is an RSC shell (`HomePageContent`) with client islands for search (`HomeSearchForm` / `SearchBar`) and carousel scroll chrome (`DealCarousel`; cards as RSC `children`). Deals list routes keep filter chrome in `DealsPageContent` and pass listing cards as the RSC `results` slot (`DealsListResults` / `DealGrid`). Click analytics live in [`TrackedLink`](apps/web/src/components/analytics/TrackedLink.tsx) / [`TrackedOutboundAnchor`](apps/web/src/components/analytics/TrackedOutboundAnchor.tsx). Spec: [docs/specs/rsc-client-islands-home-deals.md](specs/rsc-client-islands-home-deals.md) (ZAC-79).
+
 ### Theming
 
 - **CSS variables** in `src/app/globals.css` (`:root`, `.dark`) — `--app-font-sans`, `--app-font-display`, `--primary`, `--background`, etc. (`@fontsource-variable/plus-jakarta-sans`, `@fontsource-variable/bricolage-grotesque`).
@@ -155,7 +157,7 @@ Add new primitives via `pnpm dlx shadcn@latest add <component>` in `apps/web`.
 
 ### Composed Components
 
-High-level components (DealCard, DealCarousel, ViewAllDealsCard, VariantChips, CategoryCard, Pagination, SearchBar, FilterSelect) use the primitives. Deal cards stretch in grids and homepage rails so price + CTAs stay aligned; overflowing rails keep a peek of the next card and reserve left/right gutters (tighter on small screens) for prev/next arrows. Each homepage rail ends with a View all card linking to the matching deals list. When adding or changing UI, prefer primitives over raw HTML and add Storybook stories.
+High-level components (DealCard, DealCarousel, ViewAllDealsCard, VariantChips, CategoryCard, Pagination, SearchBar, FilterSelect) use the primitives. **Home** (`HomePageContent`) is a Server Component: search lives in `HomeSearchForm`, rails are `DealCarousel` (client scroll chrome with RSC card `children`). **Deals list** (`DealsPageContent`) is client filter chrome wrapping an RSC `results` slot (`DealsListResults` / `DealGrid`). Deal cards stretch in grids and homepage rails so price + CTAs stay aligned; overflowing rails keep a peek of the next card and reserve left/right gutters (tighter on small screens) for prev/next arrows. Each homepage rail ends with a View all card linking to the matching deals list. When adding or changing UI, prefer primitives over raw HTML and add Storybook stories.
 
 ### SEO (metadata)
 
@@ -179,7 +181,7 @@ The web app uses [Vercel Web Analytics](https://vercel.com/docs/analytics) via `
 
 Weekly unique visitors, outbound clicks, and referring domains: pinned **[Weekly marketing readout](https://us.posthog.com/project/355496/dashboard/2066236)** (checklist + baseline in [docs/MARKETING.md](MARKETING.md#weekly-readout-zac-259)). Product-behavior tiles: [Analytics basics](https://us.posthog.com/project/355496/dashboard/1395138).
 
-**Custom events** (require Vercel Pro or an alternative such as PostHog) are wired via `track()` and/or `posthog.capture()` in [DealCard](apps/web/src/components/DealCard.tsx), [DealDetailModal](apps/web/src/components/DealDetailModal.tsx), [DealFilters](apps/web/src/components/DealFilters.tsx), [SearchBar](apps/web/src/components/SearchBar.tsx), [DealsPageContent](apps/web/src/views/DealsPageContent.tsx), and related components:
+**Custom events** (require Vercel Pro or an alternative such as PostHog) are wired via `track()` and/or `posthog.capture()` in [TrackedLink](apps/web/src/components/analytics/TrackedLink.tsx) / [TrackedOutboundAnchor](apps/web/src/components/analytics/TrackedOutboundAnchor.tsx) (listing cards), [DealDetailModal](apps/web/src/components/DealDetailModal.tsx), [DealFilters](apps/web/src/components/DealFilters.tsx), [SearchBar](apps/web/src/components/SearchBar.tsx), [DealsPageContent](apps/web/src/views/DealsPageContent.tsx), and related components:
 
 - `deal_card_click` — user opens deal detail (`deal_id`, `store`, `brand`, `list_surface`, `in_stock_size_count`, `in_stock_color_count`)
 - `home_rail_scrolled` — homepage carousel arrow (`direction`: `prev` | `next`, `nav_source: "arrow"`, optional `home_section`)

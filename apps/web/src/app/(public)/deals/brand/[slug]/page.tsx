@@ -27,6 +27,7 @@ import {
 import { absoluteUrl } from "@/lib/siteUrl";
 import { BrandCategoryLinks } from "@/components/BrandLinks";
 import { DealsPageContent } from "@/views/DealsPageContent";
+import { DealsListResults } from "@/components/DealsListResults";
 import BrandDealsLoading from "./loading";
 
 /** 4h — must match {@link PUBLIC_ISR_REVALIDATE_SECONDS} in @/lib/revalidate. */
@@ -174,12 +175,13 @@ export default async function BrandDealsPage({ params, searchParams }: Props) {
       ) : null}
       <Suspense fallback={<BrandDealsLoading />}>
         <DealsPageContent
-          deals={deals}
           totalCount={totalCount}
           facets={facets}
           stores={stores}
           categoryTree={categoryTree}
-          dealsListPath={dealsListPath}
+          results={
+            <DealsListResults deals={deals} dealsListPath={dealsListPath} />
+          }
           categoryIntro={seo.intro}
         >
           <BrandCategoryLinks

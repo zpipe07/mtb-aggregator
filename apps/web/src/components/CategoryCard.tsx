@@ -1,8 +1,5 @@
-"use client";
-
 import Image from "next/image";
-import Link from "next/link";
-import posthog from "posthog-js";
+import { TrackedLink } from "./analytics/TrackedLink";
 import { Card } from "./ui/card";
 import { cn, focusRing } from "@/lib/utils";
 
@@ -47,12 +44,11 @@ export function CategoryCard({
     (dealCount != null ? `${dealCount.toLocaleString()} deal${dealCount === 1 ? "" : "s"}` : null);
 
   return (
-    <Link
+    <TrackedLink
       href={to}
       className={cn("group block rounded-[var(--radius)]", focusRing)}
-      onClick={() =>
-        posthog.capture("category_clicked", { category: label, href: to })
-      }
+      event="category_clicked"
+      properties={{ category: label, href: to }}
     >
       <Card
         className={cn(
@@ -124,6 +120,6 @@ export function CategoryCard({
           </>
         )}
       </Card>
-    </Link>
+    </TrackedLink>
   );
 }

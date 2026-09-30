@@ -5,7 +5,6 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import posthog from "posthog-js";
 import { DEFAULT_PAGE_SIZE } from "../api";
 import type {
-  Deal,
   Store,
   FacetsResponse,
   CategoryTreeNode,
@@ -16,28 +15,24 @@ import { resolveUiCategorySlug } from "../lib/filterParams";
 import { usePendingTimeout } from "../hooks/usePendingTimeout";
 import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { buildDealDetailHref } from "@/lib/dealsBackHref";
-import { storeDealDetailBackHref } from "@/lib/dealDetailBackStorage";
 import { Button } from "@/components/ui/button";
-import {
-  Toolbar,
-  FilterSidebar,
-  FilterDrawer,
-  FilterChips,
-  DealGrid,
-  Pagination,
-  EmptyState,
-  DealsCategoryNav,
-} from "../components";
+import { Toolbar } from "../components/Toolbar";
+import { FilterSidebar } from "../components/FilterSidebar";
+import { FilterDrawer } from "../components/FilterDrawer";
+import { FilterChips } from "../components/FilterChips";
+import { Pagination } from "../components/Pagination";
+import { DealsCategoryNav } from "../components/DealsCategoryNav";
 
 type Props = {
-  deals: Deal[];
   totalCount: number;
   facets: FacetsResponse;
   stores: Store[];
   categoryTree: CategoryTreeNode[];
-  /** Current `/deals` URL (path + query) so deal cards preserve filters on detail → back. */
-  dealsListPath: string;
+  /**
+   * RSC listing body (`DealGrid` / empty state). Must be a dedicated slot:
+   * `children` is already the SEO hub/brand footer below the chrome.
+   */
+  results: ReactNode;
   /**
    * Category slug locked by the route (SEO hubs, brand+category pages).
    * Hub paths are `/deals/hub/...`, so URL parsing cannot recover the category
@@ -53,12 +48,11 @@ type Props = {
 };
 
 export function DealsPageContent({
-  deals,
   totalCount,
   facets,
   stores,
   categoryTree,
-  dealsListPath,
+  results,
   routeCategorySlug,
   categoryIntro,
   belowIntro,
@@ -371,15 +365,7 @@ export function DealsPageContent({
                 </div>
               )}
 
-              {deals.length > 0 ? (
-                <DealGrid
-                  deals={deals}
-                  getHref={(d) => buildDealDetailHref(d.id)}
-                  onDealNavigate={() => storeDealDetailBackHref(dealsListPath)}
-                />
-              ) : (
-                <EmptyState />
-              )}
+              {results}
 
               {totalCount > 0 && (
                 <div className="mt-8 border-t border-foreground/15">

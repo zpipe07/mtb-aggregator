@@ -31,6 +31,7 @@ import { absoluteUrl } from "@/lib/siteUrl";
 import { SeoHubFaq } from "@/components/SeoHubFaq";
 import { SeoHubRelatedLinks } from "@/components/SeoHubRelatedLinks";
 import { DealsPageContent } from "@/views/DealsPageContent";
+import { DealsListResults } from "@/components/DealsListResults";
 import HubDealsLoading from "./loading";
 
 /** 4h — must match {@link PUBLIC_ISR_REVALIDATE_SECONDS} in @/lib/revalidate. */
@@ -167,12 +168,13 @@ export default async function SeoHubDealsPage({ params, searchParams }: Props) {
       {faqJsonLd ? <JsonLd data={faqJsonLd} /> : null}
       <Suspense fallback={<HubDealsLoading />}>
         <DealsPageContent
-          deals={deals}
           totalCount={totalCount}
           facets={facets}
           stores={stores}
           categoryTree={categoryTree}
-          dealsListPath={dealsListPath}
+          results={
+            <DealsListResults deals={deals} dealsListPath={dealsListPath} />
+          }
           routeCategorySlug={hub.filters.category_slug}
           categoryIntro={hub.intro}
         >

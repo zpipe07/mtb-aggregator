@@ -1,6 +1,8 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import type { Deal } from "../api";
+import { DealCard } from "./DealCard";
 import { DealCarousel } from "./DealCarousel";
+import { ViewAllDealsCard } from "./ViewAllDealsCard";
 
 const mockDeals: Deal[] = [
   {
@@ -49,31 +51,6 @@ const mockDeals: Deal[] = [
     last_scraped: "2024-01-15T12:00:00Z",
   },
 ];
-
-const meta = {
-  title: "Components/DealCarousel",
-  component: DealCarousel,
-  parameters: {
-    layout: "padded",
-  },
-  tags: ["autodocs"],
-} satisfies Meta<typeof DealCarousel>;
-
-export default meta;
-type Story = StoryObj<typeof meta>;
-
-export const Default: Story = {
-  args: {
-    deals: mockDeals,
-    getHref: (deal) => `/deals/${deal.id}`,
-    homeSection: "mtb",
-    viewAll: {
-      href: "/deals/c/bikes/mountain",
-      label: "View all mountain bikes",
-    },
-    ariaLabel: "Top mountain bike deals",
-  },
-};
 
 const overflowDeals: Deal[] = [
   ...mockDeals,
@@ -125,16 +102,75 @@ const overflowDeals: Deal[] = [
   },
 ];
 
+function CarouselRail({
+  deals,
+  homeSection,
+  viewAll,
+  ariaLabel,
+}: {
+  deals: Deal[];
+  homeSection?: string;
+  viewAll?: { href: string; label: string };
+  ariaLabel: string;
+}) {
+  return (
+    <DealCarousel ariaLabel={ariaLabel} homeSection={homeSection}>
+      {deals.map((deal) => (
+        <DealCard
+          key={deal.id}
+          deal={deal}
+          href={`/deals/${deal.id}`}
+          listSurface="home"
+          homeSection={homeSection}
+        />
+      ))}
+      {viewAll ? (
+        <ViewAllDealsCard
+          href={viewAll.href}
+          label={viewAll.label}
+          homeSection={homeSection}
+        />
+      ) : null}
+    </DealCarousel>
+  );
+}
+
+const meta = {
+  title: "Components/DealCarousel",
+  component: DealCarousel,
+  parameters: {
+    layout: "padded",
+  },
+  tags: ["autodocs"],
+} satisfies Meta<typeof DealCarousel>;
+
+export default meta;
+type Story = StoryObj<typeof meta>;
+
+export const Default: Story = {
+  args: {
+    ariaLabel: "Top mountain bike deals",
+    homeSection: "mtb",
+    children: null,
+  },
+  render: () => (
+    <CarouselRail
+      deals={mockDeals}
+      homeSection="mtb"
+      viewAll={{
+        href: "/deals/c/bikes/mountain",
+        label: "View all mountain bikes",
+      }}
+      ariaLabel="Top mountain bike deals"
+    />
+  ),
+};
+
 export const Overflow: Story = {
   args: {
-    deals: overflowDeals,
-    getHref: (deal) => `/deals/${deal.id}`,
-    homeSection: "gear",
-    viewAll: {
-      href: "/deals/c/gear",
-      label: "View all gear",
-    },
     ariaLabel: "Top gear deals",
+    homeSection: "gear",
+    children: null,
   },
   parameters: {
     docs: {
@@ -151,18 +187,24 @@ export const Overflow: Story = {
       </div>
     ),
   ],
+  render: () => (
+    <CarouselRail
+      deals={overflowDeals}
+      homeSection="gear"
+      viewAll={{
+        href: "/deals/c/gear",
+        label: "View all gear",
+      }}
+      ariaLabel="Top gear deals"
+    />
+  ),
 };
 
 export const NarrowViewport: Story = {
   args: {
-    deals: overflowDeals,
-    getHref: (deal) => `/deals/${deal.id}`,
-    homeSection: "gear",
-    viewAll: {
-      href: "/deals/c/gear",
-      label: "View all gear",
-    },
     ariaLabel: "Top gear deals",
+    homeSection: "gear",
+    children: null,
   },
   parameters: {
     layout: "padded",
@@ -181,34 +223,46 @@ export const NarrowViewport: Story = {
       </div>
     ),
   ],
+  render: () => (
+    <CarouselRail
+      deals={overflowDeals}
+      homeSection="gear"
+      viewAll={{
+        href: "/deals/c/gear",
+        label: "View all gear",
+      }}
+      ariaLabel="Top gear deals"
+    />
+  ),
 };
 
 export const FitsWithoutScroll: Story = {
   args: {
-    deals: mockDeals.slice(0, 1),
-    getHref: (deal) => `/deals/${deal.id}`,
-    homeSection: "mtb",
     ariaLabel: "Single mountain bike deal",
+    homeSection: "mtb",
+    children: null,
   },
   parameters: {
     docs: {
       description: {
-        story: "Scroll controls stay hidden when every card already fits."
+        story: "Scroll controls stay hidden when every card already fits.",
       },
     },
   },
+  render: () => (
+    <CarouselRail
+      deals={mockDeals.slice(0, 1)}
+      homeSection="mtb"
+      ariaLabel="Single mountain bike deal"
+    />
+  ),
 };
 
 export const WithViewAllCard: Story = {
   args: {
-    deals: mockDeals.slice(0, 2),
-    getHref: (deal) => `/deals/${deal.id}`,
-    homeSection: "mtb",
-    viewAll: {
-      href: "/deals/c/bikes/mountain",
-      label: "View all mountain bikes",
-    },
     ariaLabel: "Top mountain bike deals",
+    homeSection: "mtb",
+    children: null,
   },
   parameters: {
     docs: {
@@ -225,4 +279,15 @@ export const WithViewAllCard: Story = {
       </div>
     ),
   ],
+  render: () => (
+    <CarouselRail
+      deals={mockDeals.slice(0, 2)}
+      homeSection="mtb"
+      viewAll={{
+        href: "/deals/c/bikes/mountain",
+        label: "View all mountain bikes",
+      }}
+      ariaLabel="Top mountain bike deals"
+    />
+  ),
 };

@@ -1,8 +1,5 @@
-"use client";
-
-import Link from "next/link";
 import { ArrowRight } from "lucide-react";
-import { captureHomeViewAllClicked } from "@/lib/homeViewAllAnalytics";
+import { TrackedLink } from "./analytics/TrackedLink";
 import { cn, focusRing } from "@/lib/utils";
 
 const monoMicro =
@@ -22,7 +19,7 @@ export function ViewAllDealsCard({
   homeSection,
 }: ViewAllDealsCardProps) {
   return (
-    <Link
+    <TrackedLink
       href={href}
       className={cn(
         "group/card relative flex h-full min-h-full w-full flex-col justify-between self-stretch overflow-hidden rounded-sm border border-dashed border-foreground bg-card p-5",
@@ -30,13 +27,12 @@ export function ViewAllDealsCard({
         "hover:-translate-y-0.5 hover:border-solid hover:bg-primary/30",
         focusRing,
       )}
-      onClick={() =>
-        captureHomeViewAllClicked({
-          navSource: "rail_end_card",
-          homeSection,
-          href,
-        })
-      }
+      event="home_view_all_clicked"
+      properties={{
+        nav_source: "rail_end_card",
+        href,
+        ...(homeSection ? { home_section: homeSection } : {}),
+      }}
     >
       <span
         aria-hidden
@@ -76,6 +72,6 @@ export function ViewAllDealsCard({
           strokeWidth={2.25}
         />
       </span>
-    </Link>
+    </TrackedLink>
   );
 }
