@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { latestDealsRscSample } from "./dealsTransitionDiagnostics";
+import {
+  latestDealsRscSample,
+  readLatestDealsRscSample,
+  rememberObservedRsc,
+  resetObservedRscEntries,
+} from "./dealsTransitionDiagnostics";
 
 const TIME_ORIGIN = 1_000_000;
 
@@ -39,6 +44,7 @@ describe("latestDealsRscSample", () => {
       matched: false,
       responseEnded: false,
       durationMs: null,
+      responseEndedAtMs: null,
     });
   });
 
@@ -67,6 +73,7 @@ describe("latestDealsRscSample", () => {
       matched: true,
       responseEnded: true,
       durationMs: 3300,
+      responseEndedAtMs: TIME_ORIGIN + 8_400,
     });
   });
 
@@ -104,5 +111,23 @@ describe("latestDealsRscSample", () => {
       TIME_ORIGIN,
     );
     expect(sample.matched).toBe(false);
+  });
+
+  it("keeps an RSC entry after it drops out of the resource timing buffer", () => {
+    resetObservedRscEntries();
+    const origin = performance.timeOrigin;
+    rememberObservedRsc(
+      rscEntry({
+        name: "https://thedropper.shop/deals?sort=price_asc&_rsc=kept",
+        startTime: 50,
+        responseEnd: 80,
+        duration: 30,
+      }),
+    );
+    const sample = readLatestDealsRscSample("/deals", origin + 40);
+    expect(sample.matched).toBe(true);
+    expect(sample.responseEnded).toBe(true);
+    expect(sample.durationMs).toBe(30);
+    resetObservedRscEntries();
   });
 });

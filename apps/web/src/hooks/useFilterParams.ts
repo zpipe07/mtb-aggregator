@@ -1,6 +1,7 @@
 import {
   useEffect,
   useCallback,
+  useRef,
   useTransition,
   useOptimistic,
   useMemo,
@@ -107,6 +108,13 @@ export function useFilterParams(options?: {
   const pathname = usePathname();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const pendingRef = useRef(false);
+  const overlappingNavigationsRef = useRef(0);
+
+  useEffect(() => {
+    pendingRef.current = isPending;
+    if (!isPending) overlappingNavigationsRef.current = 0;
+  }, [isPending]);
 
   const searchParamsString = searchParams.toString();
   const canonical = useMemo((): ParsedFilterParams => {
@@ -127,6 +135,7 @@ export function useFilterParams(options?: {
 
   const beginReplace = useCallback(
     (nextParams: URLSearchParams, targetPathname: string) => {
+      if (pendingRef.current) overlappingNavigationsRef.current += 1;
       const merged = mergeCategoryFromPath(
         parseFilterParamsFromURL(nextParams),
         targetPathname,
@@ -274,6 +283,7 @@ export function useFilterParams(options?: {
   return {
     ...display,
     isPending,
+    overlappingNavigations: overlappingNavigationsRef.current,
     setSearchQuery,
     setStoreFilter,
     toggleBrandFilter,
