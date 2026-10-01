@@ -18,6 +18,27 @@ import (
 
 const maxLLMErrorSentryPerJob = 5
 
+// ErrClassifySkipped means classify intentionally did not apply a category and
+// the reason is persisted (manual override, or below-threshold llm_category).
+// Callers may stamp classified_at.
+var ErrClassifySkipped = errors.New("classify skipped")
+
+// ErrClassifyNotReady means classify did not run because the classifier or LLM
+// client is not configured. Callers must not stamp classified_at.
+var ErrClassifyNotReady = errors.New("classify not ready")
+
+// ShouldReportLLMStepError reports whether err is an operational LLM failure.
+// Explicit skips and not-ready results are not Sentry events.
+func ShouldReportLLMStepError(err error) bool {
+	if err == nil {
+		return false
+	}
+	if errors.Is(err, ErrClassifySkipped) || errors.Is(err, ErrClassifyNotReady) {
+		return false
+	}
+	return true
+}
+
 // QuotaJobState tracks quota exhaustion and rate-limits Sentry noise for one background job run.
 type QuotaJobState struct {
 	quotaHalted      bool
@@ -74,24 +95,33 @@ func HandleLLMStepError(err error, state *QuotaJobState, errStrs *[]string, list
 
 // ClassificationStep updates canonical_category / llm_category from the classifier when configured.
 func ClassificationStep(ctx context.Context, pool *db.DB, client *llm.Client, listingID int) error {
-	if client == nil {
-		return nil
+	if client == nil || !client.Configured() {
+		return fmt.Errorf("%w: llm client not configured", ErrClassifyNotReady)
 	}
 	cfg, err := pool.GetCategoryClassifier(ctx)
-	if err != nil || cfg == nil || !cfg.Enabled {
-		return nil
+	if err != nil {
+		return err
+	}
+	if cfg == nil || !cfg.Enabled {
+		return fmt.Errorf("%w: classifier disabled", ErrClassifyNotReady)
 	}
 	pathRows, err := pool.GetAllCategoryPathsWithDescriptions(ctx)
-	if err != nil || len(pathRows) == 0 {
-		return nil
+	if err != nil {
+		return err
+	}
+	if len(pathRows) == 0 {
+		return fmt.Errorf("%w: empty category tree", ErrClassifyNotReady)
 	}
 	validPaths, categoryDesc := db.ClassifierPathsFromTreeRows(pathRows, llm.CategoryPathSeparator)
 	listing, err := pool.GetListingForCategoryClassification(ctx, listingID)
-	if err != nil || listing == nil {
-		return nil
+	if err != nil {
+		return err
+	}
+	if listing == nil {
+		return fmt.Errorf("listing %d not found", listingID)
 	}
 	if metadata.HasManualCategoryOverride(listing.Metadata) {
-		return nil
+		return fmt.Errorf("%w: manual category override", ErrClassifySkipped)
 	}
 	var meta struct {
 		Description string                 `json:"description"`
@@ -116,7 +146,7 @@ func ClassificationStep(ctx context.Context, pool *db.DB, client *llm.Client, li
 		return err
 	}
 	if result == nil {
-		return nil
+		return fmt.Errorf("%w: classifier returned no result", ErrClassifyNotReady)
 	}
 	result.CanonicalCategory = taxonomy.RefineListing(result.CanonicalCategory, listing.ProductName)
 	llmCategory := map[string]interface{}{
@@ -126,14 +156,15 @@ func ClassificationStep(ctx context.Context, pool *db.DB, client *llm.Client, li
 	}
 	if result.Confidence >= config.ConfidenceThreshold {
 		if err := pool.UpdateListingCanonicalCategory(ctx, listingID, result.CanonicalCategory, llmCategory); err != nil {
-			log.Printf("[llmlisting] listing %d: failed to update category: %v", listingID, err)
-			return nil
+			return fmt.Errorf("listing %d: update category: %w", listingID, err)
 		}
 		log.Printf("[llmlisting] listing %d: LLM classified as %v (conf=%.2f)", listingID, result.CanonicalCategory, result.Confidence)
-	} else {
-		_ = pool.UpdateListingLLMCategoryMetadata(ctx, listingID, llmCategory)
+		return nil
 	}
-	return nil
+	if err := pool.UpdateListingLLMCategoryMetadata(ctx, listingID, llmCategory); err != nil {
+		return fmt.Errorf("listing %d: save below-threshold category: %w", listingID, err)
+	}
+	return fmt.Errorf("%w: confidence %.2f below %.2f", ErrClassifySkipped, result.Confidence, config.ConfidenceThreshold)
 }
 
 func specsMapFromMeta(specsRaw map[string]interface{}) map[string]string {
@@ -211,8 +242,13 @@ func RunSpecDetermination(ctx context.Context, pool *db.DB, client *llm.Client, 
 		return
 	}
 	err := ClassificationStep(ctx, pool, client, listingID)
-	HandleLLMStepError(err, state, errStrs, listingID, "classify", "scheduler", "enrich")
+	if ShouldReportLLMStepError(err) {
+		HandleLLMStepError(err, state, errStrs, listingID, "classify", "scheduler", "enrich")
+	}
 	if state != nil && state.QuotaHalted() {
+		return
+	}
+	if errors.Is(err, ErrClassifyNotReady) {
 		return
 	}
 	err = SpecExtractionStep(ctx, pool, client, listingID)
