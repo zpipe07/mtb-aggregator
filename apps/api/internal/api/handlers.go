@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -1259,8 +1260,11 @@ func (h *Handlers) PostAdminListingLLMSpecs(w http.ResponseWriter, r *http.Reque
 // Returns a non-empty warning string on LLM failure (logged and reported to Sentry).
 func (h *Handlers) runLLMCategoryClassification(ctx context.Context, listingID int) string {
 	err := llmlisting.ClassificationStep(ctx, h.DB, h.LLM, listingID)
-	if err == nil {
+	if err == nil || errors.Is(err, llmlisting.ErrClassifySkipped) {
 		return ""
+	}
+	if errors.Is(err, llmlisting.ErrClassifyNotReady) {
+		return fmt.Sprintf("LLM classify skipped: %v", err)
 	}
 	llmlisting.HandleLLMStepError(err, nil, nil, listingID, "classify", "api", "admin_enrich")
 	return fmt.Sprintf("LLM classify failed: %v", err)

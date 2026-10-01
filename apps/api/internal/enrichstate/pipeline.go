@@ -3,6 +3,7 @@ package enrichstate
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"log"
 	"strconv"
 	"time"
@@ -26,20 +27,20 @@ type VariantFanout func(ctx context.Context, item WorkItem, variants []scraper.E
 
 // Pipeline orchestrates three enrichment passes over durable step state.
 type Pipeline struct {
-	State            StateStore
-	Snapshots        SnapshotStore
-	Events           EventRecorder
-	Scraper          ScraperEnricher
-	LLM              LLMRunner
-	Listings         ListingStore
-	Config           Config
-	Fanout           VariantFanout
-	BeforeClaimBatch func(step Step)
-	CircuitBreaker   *CircuitBreaker // deprecated: burst jobs use StorePacer; kept for tests
-	StorePacer       StorePDPPacer
+	State             StateStore
+	Snapshots         SnapshotStore
+	Events            EventRecorder
+	Scraper           ScraperEnricher
+	LLM               LLMRunner
+	Listings          ListingStore
+	Config            Config
+	Fanout            VariantFanout
+	BeforeClaimBatch  func(step Step)
+	CircuitBreaker    *CircuitBreaker // deprecated: burst jobs use StorePacer; kept for tests
+	StorePacer        StorePDPPacer
 	BypassMinInterval bool
 	OnPDPCooldownTrip func(storeType string)
-	CBThreshold      int
+	CBThreshold       int
 }
 
 // DefaultJobSteps is the full enrichment pipeline order (PDP, then LLM passes).
@@ -91,7 +92,8 @@ func (p *Pipeline) RunJobSteps(ctx context.Context, filter ClaimFilter, force bo
 			if len(items) == 0 {
 				break
 			}
-			for _, item := range items {
+			stopStep := false
+			for i, item := range items {
 				if ctx.Err() != nil {
 					return processed, succeeded, errStrs
 				}
@@ -114,6 +116,16 @@ func (p *Pipeline) RunJobSteps(ctx context.Context, filter ClaimFilter, force bo
 				if stepErr != nil {
 					errStrs = append(errStrs, "listing "+strconv.Itoa(item.ListingID)+": "+string(step)+": "+stepErr.Error())
 				}
+				if errors.Is(stepErr, ErrStepDeferred) || errors.Is(stepErr, ErrStepNotReady) {
+					for _, rest := range items[i+1:] {
+						_ = p.State.ReleaseLease(ctx, rest.ListingID, step)
+					}
+					if errors.Is(stepErr, ErrStepDeferred) {
+						return processed, succeeded, errStrs
+					}
+					stopStep = true
+					break
+				}
 				if step == StepPDP {
 					p.recordPDPPacerOutcome(ctx, item.StoreType, ok, stepErr, force, now, cfg)
 				}
@@ -130,7 +142,7 @@ func (p *Pipeline) RunJobSteps(ctx context.Context, filter ClaimFilter, force bo
 					succeeded++
 				}
 			}
-			if len(items) < limit {
+			if stopStep || len(items) < limit {
 				break
 			}
 		}
@@ -308,8 +320,9 @@ func (p *Pipeline) runClassify(ctx context.Context, item WorkItem, snap *Snapsho
 	if p.LLM == nil {
 		return p.failStep(ctx, item.ListingID, StepClassify, errMissingLLM{}, start, jobID, cfg, now)
 	}
-	if err := p.LLM.ClassificationStep(ctx, item.ListingID); err != nil {
-		return p.failStep(ctx, item.ListingID, StepClassify, err, start, jobID, cfg, now)
+	skipReason, stop, stopErr := p.interpretLLMResult(ctx, item.ListingID, StepClassify, p.LLM.ClassificationStep(ctx, item.ListingID), start, jobID, cfg, now)
+	if stop {
+		return false, stopErr
 	}
 	meta := StepSuccessMeta{PDPHash: snap.ContentHash}
 	if p.Listings != nil {
@@ -329,7 +342,11 @@ func (p *Pipeline) runClassify(ctx context.Context, item WorkItem, snap *Snapsho
 	if err := p.State.RecordStepSuccess(ctx, item.ListingID, StepClassify, meta, now); err != nil {
 		return false, err
 	}
-	p.recordEvent(ctx, item.ListingID, StepClassify, StatusSuccess, "", meta.LLMConfidence, jobID, start)
+	if skipReason != "" {
+		p.recordEvent(ctx, item.ListingID, StepClassify, StatusSkipped, skipReason, meta.LLMConfidence, jobID, start)
+	} else {
+		p.recordEvent(ctx, item.ListingID, StepClassify, StatusSuccess, "", meta.LLMConfidence, jobID, start)
+	}
 	return true, nil
 }
 
@@ -340,8 +357,9 @@ func (p *Pipeline) runExtract(ctx context.Context, item WorkItem, snap *Snapshot
 	if p.LLM == nil {
 		return p.failStep(ctx, item.ListingID, StepExtract, errMissingLLM{}, start, jobID, cfg, now)
 	}
-	if err := p.LLM.SpecExtractionStep(ctx, item.ListingID); err != nil {
-		return p.failStep(ctx, item.ListingID, StepExtract, err, start, jobID, cfg, now)
+	skipReason, stop, stopErr := p.interpretLLMResult(ctx, item.ListingID, StepExtract, p.LLM.SpecExtractionStep(ctx, item.ListingID), start, jobID, cfg, now)
+	if stop {
+		return false, stopErr
 	}
 	meta := StepSuccessMeta{PDPHash: snap.ContentHash}
 	if p.Listings != nil {
@@ -355,8 +373,30 @@ func (p *Pipeline) runExtract(ctx context.Context, item WorkItem, snap *Snapshot
 	if err := p.State.RecordStepSuccess(ctx, item.ListingID, StepExtract, meta, now); err != nil {
 		return false, err
 	}
-	p.recordEvent(ctx, item.ListingID, StepExtract, StatusSuccess, "", nil, jobID, start)
+	if skipReason != "" {
+		p.recordEvent(ctx, item.ListingID, StepExtract, StatusSkipped, skipReason, nil, jobID, start)
+	} else {
+		p.recordEvent(ctx, item.ListingID, StepExtract, StatusSuccess, "", nil, jobID, start)
+	}
 	return true, nil
+}
+
+// interpretLLMResult decides whether an LLM runner error may stamp step completion.
+// stop is true when the caller must return without RecordStepSuccess.
+// skipReason is set for an explicit skip that still stamps completion.
+func (p *Pipeline) interpretLLMResult(ctx context.Context, listingID int, step Step, err error, start time.Time, jobID *int, cfg Config, now time.Time) (skipReason string, stop bool, stopErr error) {
+	if err == nil {
+		return "", false, nil
+	}
+	if errors.Is(err, ErrStepSkipped) {
+		return err.Error(), false, nil
+	}
+	if errors.Is(err, ErrStepDeferred) || errors.Is(err, ErrStepNotReady) {
+		p.recordEvent(ctx, listingID, step, StatusSkipped, err.Error(), nil, jobID, start)
+		return "", true, err
+	}
+	_, stopErr = p.failStep(ctx, listingID, step, err, start, jobID, cfg, now)
+	return "", true, stopErr
 }
 
 func (p *Pipeline) failStep(ctx context.Context, listingID int, step Step, cause error, start time.Time, jobID *int, cfg Config, now time.Time) (bool, error) {

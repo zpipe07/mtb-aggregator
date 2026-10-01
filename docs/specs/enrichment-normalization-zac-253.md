@@ -106,7 +106,7 @@ PDP drainer / POST /enrich-now      llm_specs job
 | Step | Orchestrator | External I/O | Writes |
 | --- | --- | --- | --- |
 | **pdp** | `Pipeline.runPDP` → `Scraper.Enrich` | Store PDP | `pdp_snapshots` (payload + `content_hash`); `store_listings` via `UpdateListingEnrichment`; `listing_enrichment.pdp_fetched_at`; optional fan-out; `enrichment_events` |
-| **classify** | `Pipeline.runClassify` → `llmlisting.ClassificationStep` | OpenAI only | `canonical_category` / `category_id` if confidence ≥ threshold; else `metadata.llm_category`; `classified_at`, `pdp_hash`, `llm_confidence`, `prompt_profile_version` |
+| **classify** | `Pipeline.runClassify` → `llmlisting.ClassificationStep` | OpenAI only | `canonical_category` / `category_id` if confidence ≥ threshold and the path resolves; else `metadata.llm_category` on an explicit below-threshold skip. `classified_at` is set only for a resolved category or an explicit skip (manual override, below threshold). Quota and a disabled classifier do not stamp it (ZAC-298) |
 | **extract** | `Pipeline.runExtract` → `llmlisting.SpecExtractionStep` | OpenAI only | `metadata.llm_specs` (gap-fill); `SyncClothingSizeFromVariant` / `SyncBikeSizeFromVariant`; `extracted_at`, `pdp_hash`, `prompt_profile_version` |
 
 **Triggers (do not add a fourth cadence without this spec):**
@@ -225,19 +225,19 @@ Uniform rules. Store-specific “don’t enrich this SKU” is **not** allowed e
 | --- | --- | --- | --- |
 | `hidden = true` | Skip (not claimed) | Skip | Skip |
 | `is_in_stock = false` | Skip scheduled enrich; **ZAC-256** stock-check only | Skip | Skip |
-| Snapshot `unavailable` | Success with stock write; no LLM kick if still OOS | Skip | Skip |
+| Snapshot `unavailable` | Success with stock write; no LLM kick if still OOS | Skip, unless a later scrape set the listing in stock after that snapshot (`last_scraped > snapshot.fetched_at`). Classify then uses the listing title (ZAC-298) | Same rule |
 | Store not in `StoreTypesWithEnrichers` | Skip scheduled; admin/backfill only if in `ENRICHERS` | Scheduled claim uses the same allowlist | Same |
 | No product URL | Skip | Skip | Skip |
 | PDP not stale (and not force) | Skip | — | — |
 | Drainer min-interval / cooldown | Skip (release lease; no success event) | — | — |
 | No snapshot / `pdp_fetched_at` | — | Skip (wait for PDP) | Skip |
 | Manual category override | Still fetch PDP specs | Skip classify | Extract still runs if category + profile exist |
-| Classifier disabled / empty tree | — | Success no-op today (gap) | — |
+| Classifier disabled / empty tree / no API key | — | Do not stamp `classified_at`; stop the classify pass (`ErrStepNotReady`) | — |
 | No `canonical_category` | — | — | Skip |
 | No enabled prompt profile | — | — | Skip |
 | Same hash + same profile version | — | Skip + stamp | Skip + stamp |
 | Step dead / backoff / leased | Skip | Skip | Skip |
-| OpenAI quota exhausted | PDP still persists | Halt further LLM for that job | Same |
+| OpenAI quota exhausted | PDP still persists | Halt further LLM for that job. Do not stamp `classified_at` / `extracted_at` and do not dead-letter (`ErrStepDeferred`) | Same |
 | ZAC-256 OOS stock-check | Stock/fan-out only | Must skip | Must skip |
 
 **Post-scrape LLM kick** is allowed to no-op until the drainer writes a snapshot. That is expected, not a store exception.
@@ -287,7 +287,7 @@ Honest delta vs the locked decisions. Implementation is **not** this ticket.
 | **Competitive Cyclist** | Not in allowlist; scrape does not kick LLM; Impact description on the row | Feed-only: operator LLM OK; scheduled claim should accept “feed snapshot” or an explicit ingest-time snapshot (Task D) | CC never appears on hourly classify due |
 | **Post-scrape `llm_specs`** | Kicks immediately; claims require snapshot | Allowed no-op until PDP | Looks like “LLM after scrape” but new rows wait on drainer |
 | **Hash includes `variants`** | Stock/price change on Jenson/UC/Fox invalidates LLM | Text-only LLM hash (Task C) | Waste OpenAI on restocks |
-| **Classifier no-op** | Disabled classifier / empty tree / manual override → `ClassificationStep` returns nil → pipeline records **success** + hash | Success only when classify ran or was an explicit skip | `classified_at` set without a category |
+| **Classifier no-op** | Disabled / empty tree / no API key → `ErrClassifyNotReady` (no `classified_at`). Manual override and below-threshold confidence → `ErrClassifySkipped` (stamp + reason). Quota halt → `ErrStepDeferred` (no stamp, job stops). Unresolved paths are not written with a null `category_id` (ZAC-298) | Success only when classify ran or was an explicit skip | `classified_at` set without a category |
 | **`ENRICHERS` vs allowlist** | CC in scraper only | Documented superset; keep | Admin PDP button hidden (`StoreTypesWithEnrichers` API) — correct |
 | **Duplicate fan-out lists** | `enrichment_pipeline.go` and `handlers.go` both call every `Apply*` | One `Fanout` callback (Task F) | New store fan-out added in one place only |
 | **Legacy `GetListingsNeedingEnrichment`** | 7-day `last_enriched_at` | Prefer `listing_enrichment` | Agents may wire the wrong helper |
@@ -343,7 +343,7 @@ Affiliate networks, WAF cookie rotation runbooks, prompt-profile field lists, an
 | Snapshot hash includes variant stock | `enrichstate/normalize.go` | Restock → re-LLM | Task C |
 | No Zod `EnrichResultSchema` | `types.ts` | Node/Go drift (same class as scrape dual validation) | Task E |
 | Fan-out call sites duplicated | scheduler + handlers | Missed store on one path | Task F |
-| Classifier nil → classify success | `llmlisting` + `runClassify` | False `classified_at` | Follow-up with Task A |
+| Classifier nil → classify success | `llmlisting` + `runClassify` | False `classified_at` | Fixed in ZAC-298 |
 | `StoreTypesWithEnrichers` hand-copied | `db.go` vs `ENRICHERS` | New store scheduled without enricher (or the reverse) | Task B |
 | Legacy 7-day `last_enriched_at` helpers | `db.go` | Wrong due set | Prefer step tables; delete or wrap |
 | `TWO_PHASE_ENRICHMENT.md` stale | `docs/` | Agents implement nightly batch | This PR (pointer) |

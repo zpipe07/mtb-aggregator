@@ -2,6 +2,8 @@ package scheduler
 
 import (
 	"context"
+	"errors"
+	"fmt"
 
 	"github.com/mtb-aggregator/api/internal/db"
 	"github.com/mtb-aggregator/api/internal/enrichstate"
@@ -31,19 +33,45 @@ type quotaLLMRunner struct {
 
 func (q quotaLLMRunner) ClassificationStep(ctx context.Context, listingID int) error {
 	if q.state != nil && q.state.QuotaHalted() {
-		return nil
+		return llmStepError(nil, true)
 	}
 	err := q.inner.ClassificationStep(ctx, listingID)
-	llmlisting.HandleLLMStepError(err, q.state, q.errStrs, listingID, "classify", "scheduler", "enrich")
-	return err
+	if llmlisting.ShouldReportLLMStepError(err) {
+		llmlisting.HandleLLMStepError(err, q.state, q.errStrs, listingID, "classify", "scheduler", "enrich")
+	}
+	return llmStepError(err, q.state != nil && q.state.QuotaHalted())
 }
 
 func (q quotaLLMRunner) SpecExtractionStep(ctx context.Context, listingID int) error {
 	if q.state != nil && q.state.QuotaHalted() {
-		return nil
+		return llmStepError(nil, true)
 	}
 	err := q.inner.SpecExtractionStep(ctx, listingID)
-	llmlisting.HandleLLMStepError(err, q.state, q.errStrs, listingID, "extract", "scheduler", "enrich")
+	if llmlisting.ShouldReportLLMStepError(err) {
+		llmlisting.HandleLLMStepError(err, q.state, q.errStrs, listingID, "extract", "scheduler", "enrich")
+	}
+	return llmStepError(err, q.state != nil && q.state.QuotaHalted())
+}
+
+// llmStepError maps a classify/extract result onto pipeline completion rules.
+// A nil error is success only when this job has not already halted on quota.
+// Quota used to return nil, and the pipeline stamped classified_at with no category (ZAC-298).
+func llmStepError(err error, halted bool) error {
+	if halted || errors.Is(err, llm.ErrQuotaExhausted) {
+		if err == nil {
+			return enrichstate.ErrStepDeferred
+		}
+		return fmt.Errorf("%w: %v", enrichstate.ErrStepDeferred, err)
+	}
+	if err == nil {
+		return nil
+	}
+	if errors.Is(err, llmlisting.ErrClassifySkipped) {
+		return fmt.Errorf("%w: %v", enrichstate.ErrStepSkipped, err)
+	}
+	if errors.Is(err, llmlisting.ErrClassifyNotReady) {
+		return fmt.Errorf("%w: %v", enrichstate.ErrStepNotReady, err)
+	}
 	return err
 }
 
@@ -91,12 +119,12 @@ func (s *variantFanoutState) reset() {
 func (sch *Scheduler) buildEnrichmentPipeline(llmState *llmlisting.QuotaJobState, errStrs *[]string, fanout *variantFanoutState, bypassMinInterval bool) *enrichstate.Pipeline {
 	cfg := enrichstate.LoadConfigFromEnv()
 	return &enrichstate.Pipeline{
-		State:     db.EnrichmentStateStore{DB: sch.db},
-		Snapshots: db.EnrichmentSnapshotStore{DB: sch.db},
-		Events:    db.EnrichmentEventRecorder{DB: sch.db},
-		Scraper:   sch.scraper,
-		StorePacer: db.StorePDPPacer{DB: sch.db},
-		CBThreshold: enrichstate.CircuitBreakerThreshold(),
+		State:             db.EnrichmentStateStore{DB: sch.db},
+		Snapshots:         db.EnrichmentSnapshotStore{DB: sch.db},
+		Events:            db.EnrichmentEventRecorder{DB: sch.db},
+		Scraper:           sch.scraper,
+		StorePacer:        db.StorePDPPacer{DB: sch.db},
+		CBThreshold:       enrichstate.CircuitBreakerThreshold(),
 		BypassMinInterval: bypassMinInterval,
 		OnPDPCooldownTrip: capturePDPCooldownTrip,
 		LLM: quotaLLMRunner{

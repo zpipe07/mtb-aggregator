@@ -68,6 +68,30 @@ func TestStepDue_classifySkippedWhenUnavailable(t *testing.T) {
 	}
 }
 
+func TestStepDue_classifyRunsWhenScrapeFollowsUnavailablePDP(t *testing.T) {
+	t.Parallel()
+	fetched := time.Now().Add(-48 * time.Hour)
+	scraped := fetched.Add(24 * time.Hour)
+	completed := fetched
+	in := StepDueInput{
+		Now:              time.Now(),
+		Config:           DefaultConfig(),
+		State:            ListingState{PDP: StepState{CompletedAt: &completed}},
+		ListingScrapedAt: scraped,
+		Snapshot: &Snapshot{
+			FetchedAt: fetched,
+			Payload:   SnapshotPayload{Unavailable: true},
+		},
+	}
+	if !StepDue(StepClassify, in) {
+		t.Fatal("classify should run when a later scrape still lists the SKU")
+	}
+	in.ListingScrapedAt = fetched.Add(-time.Hour)
+	if StepDue(StepClassify, in) {
+		t.Fatal("classify should stay skipped when the scrape is older than the unavailable PDP")
+	}
+}
+
 func TestStepDue_extractRequiresCanonicalAndProfile(t *testing.T) {
 	t.Parallel()
 	completed := time.Now()

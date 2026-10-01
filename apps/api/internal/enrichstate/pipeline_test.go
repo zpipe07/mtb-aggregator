@@ -3,7 +3,9 @@ package enrichstate
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strconv"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -12,10 +14,10 @@ import (
 )
 
 type fakeStateStore struct {
-	mu             sync.Mutex
-	states         map[int]*ListingState
-	items          map[Step][]WorkItem
-	releaseCalls   []leaseReleaseCall
+	mu           sync.Mutex
+	states       map[int]*ListingState
+	items        map[Step][]WorkItem
+	releaseCalls []leaseReleaseCall
 }
 
 type leaseReleaseCall struct {
@@ -614,4 +616,140 @@ func TestPipeline_RunJobSteps_LLMOnlySkipsPDP(t *testing.T) {
 	if len(state.items[StepPDP]) != 1 {
 		t.Errorf("PDP queue should be untouched, still has %d items", len(state.items[StepPDP]))
 	}
+}
+
+func classifyPipeline(items map[Step][]WorkItem, llmErr error) (*Pipeline, *fakeStateStore, *fakeEvents) {
+	now := time.Now()
+	completed := now.Add(-time.Hour)
+	state := newFakeStateStore(items)
+	snaps := map[int]*Snapshot{}
+	for _, batch := range items {
+		for _, item := range batch {
+			state.states[item.ListingID] = &ListingState{
+				ListingID: item.ListingID,
+				PDP:       StepState{CompletedAt: &completed},
+			}
+			snaps[item.ListingID] = &Snapshot{ListingID: item.ListingID, ContentHash: "hash"}
+		}
+	}
+	events := &fakeEvents{}
+	p := &Pipeline{
+		State:     state,
+		Snapshots: &fakeSnapshots{snaps: snaps},
+		Events:    events,
+		LLM:       fakeLLM{classifyErr: llmErr},
+		Listings:  fakeListings{canonicalCategory: []string{"Bikes", "Mountain Bikes"}},
+		Config:    DefaultConfig(),
+	}
+	return p, state, events
+}
+
+// ZAC-298: a quota halt used to return nil from ClassificationStep, and
+// runClassify stamped classified_at with no category write.
+func TestPipeline_classifyDeferredDoesNotStampOrContinue(t *testing.T) {
+	t.Parallel()
+	p, state, events := classifyPipeline(map[Step][]WorkItem{
+		StepClassify: {
+			{ListingID: 1, ProductURL: "http://x/1"},
+			{ListingID: 2, ProductURL: "http://x/2"},
+		},
+		StepExtract: {
+			{ListingID: 3, ProductURL: "http://x/3"},
+		},
+	}, ErrStepDeferred)
+	processed, succeeded, errStrs := p.RunJobSteps(context.Background(), ClaimFilter{}, false, 10, 0, nil, LLMJobSteps)
+	if processed != 1 || succeeded != 0 {
+		t.Fatalf("processed=%d succeeded=%d, want 1/0", processed, succeeded)
+	}
+	if len(errStrs) != 1 || !strings.Contains(errStrs[0], ErrStepDeferred.Error()) {
+		t.Fatalf("errStrs = %v, want deferred", errStrs)
+	}
+	st, _ := state.GetState(context.Background(), 1)
+	if st == nil || st.Classify.CompletedAt != nil {
+		t.Fatalf("deferred classify stamped completion: %+v", st)
+	}
+	if got := countEvents(events.events, StepClassify, StatusSuccess); got != 0 {
+		t.Fatalf("classify successes = %d, want 0", got)
+	}
+	if got := countEvents(events.events, StepClassify, StatusSkipped); got != 1 {
+		t.Fatalf("classify skipped events = %d, want 1", got)
+	}
+	if got := countEvents(events.events, StepExtract, StatusSuccess); got != 0 {
+		t.Fatalf("extract ran after quota defer")
+	}
+	if len(state.items[StepExtract]) != 1 {
+		t.Fatalf("extract queue = %d, want 1 (job should stop)", len(state.items[StepExtract]))
+	}
+	if !released(state, 2, StepClassify) {
+		t.Fatalf("expected lease release for unprocessed classify listing, got %+v", state.releaseCalls)
+	}
+}
+
+func TestPipeline_classifyNotReadyStopsStepButExtractContinues(t *testing.T) {
+	t.Parallel()
+	p, state, events := classifyPipeline(map[Step][]WorkItem{
+		StepClassify: {
+			{ListingID: 1, ProductURL: "http://x/1"},
+			{ListingID: 2, ProductURL: "http://x/2"},
+		},
+		StepExtract: {
+			{ListingID: 1, ProductURL: "http://x/1"},
+		},
+	}, ErrStepNotReady)
+	_, succeeded, _ := p.RunJobSteps(context.Background(), ClaimFilter{}, false, 10, 0, nil, LLMJobSteps)
+	st, _ := state.GetState(context.Background(), 1)
+	if st == nil || st.Classify.CompletedAt != nil {
+		t.Fatalf("not-ready classify stamped completion: %+v", st)
+	}
+	if got := countEvents(events.events, StepClassify, StatusSuccess); got != 0 {
+		t.Fatalf("classify successes = %d, want 0", got)
+	}
+	if got := countEvents(events.events, StepClassify, StatusSkipped); got != 1 {
+		t.Fatalf("classify skipped events = %d, want 1 (do not walk the rest of the due set)", got)
+	}
+	if got := countEvents(events.events, StepClassify, StatusFailure); got != 0 {
+		t.Fatalf("classify failures = %d, want 0", got)
+	}
+	if !released(state, 2, StepClassify) {
+		t.Fatalf("expected lease release for remaining classify listing, got %+v", state.releaseCalls)
+	}
+	if got := countEvents(events.events, StepExtract, StatusSuccess); got != 1 {
+		t.Fatalf("extract successes = %d, want 1", got)
+	}
+	if succeeded != 1 {
+		t.Fatalf("succeeded = %d, want 1 (extract only)", succeeded)
+	}
+}
+
+func TestPipeline_classifyExplicitSkipStampsCompletion(t *testing.T) {
+	t.Parallel()
+	p, state, events := classifyPipeline(map[Step][]WorkItem{
+		StepClassify: {{ListingID: 8, ProductURL: "http://x/8"}},
+	}, fmt.Errorf("%w: confidence below threshold", ErrStepSkipped))
+	ok, err := p.runOne(context.Background(), StepClassify, WorkItem{ListingID: 8}, false, nil, time.Now(), DefaultConfig())
+	if err != nil || !ok {
+		t.Fatalf("explicit skip ok=%v err=%v", ok, err)
+	}
+	st, _ := state.GetState(context.Background(), 8)
+	if st == nil || st.Classify.CompletedAt == nil {
+		t.Fatalf("explicit skip should stamp classified_at, got %+v", st)
+	}
+	if got := countEvents(events.events, StepClassify, StatusSuccess); got != 0 {
+		t.Fatalf("explicit skip recorded success")
+	}
+	if got := countEvents(events.events, StepClassify, StatusSkipped); got != 1 {
+		t.Fatalf("explicit skip events = %d, want 1", got)
+	}
+	if events.events[0].Error == "" {
+		t.Fatal("explicit skip event missing reason")
+	}
+}
+
+func released(state *fakeStateStore, listingID int, step Step) bool {
+	for _, call := range state.releaseCalls {
+		if call.ListingID == listingID && call.Step == step {
+			return true
+		}
+	}
+	return false
 }
