@@ -44,6 +44,32 @@
   --font-sans: var(--app-font-sans), ui-sans-serif, system-ui, sans-serif;
   --font-display: var(--app-font-display), var(--app-font-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--app-font-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* ZAC-133 knobby wheel: one turn every 2s, matching the prototype loop. */
+  --animate-knobby-spin: knobby-spin 2s linear infinite;
+
+  @keyframes knobby-spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+}
+
+/* Stop the spin; keep a gentle pulse so loading is still visible. */
+@media (prefers-reduced-motion: reduce) {
+  .animate-knobby-spin {
+    animation: knobby-pulse 1.6s ease-in-out infinite;
+  }
+}
+
+@keyframes knobby-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
 }
 
 @layer base {
