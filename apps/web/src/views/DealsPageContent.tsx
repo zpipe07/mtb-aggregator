@@ -352,18 +352,32 @@ export function DealsPageContent({
                   />
                 </div>
               )}
+            </div>
 
-              <div className="relative">
-                {resultsPending ? (
-                  <div className="pointer-events-none absolute inset-0 z-10" aria-hidden>
-                    <div className="sticky top-[calc(50vh-1.75rem)] flex justify-center">
-                      <KnobbyWheelSpinner />
-                    </div>
-                  </div>
-                ) : null}
+            <div className="relative">
+              <div
+                className={cn(
+                  "transition-opacity duration-150",
+                  resultsPending && "pointer-events-none opacity-50",
+                )}
+              >
                 {results}
               </div>
+              {resultsPending ? (
+                <div className="pointer-events-none absolute inset-0 z-10" aria-hidden>
+                  <div className="sticky top-[calc(50vh-1.75rem)] flex justify-center">
+                    <KnobbyWheelSpinner />
+                  </div>
+                </div>
+              ) : null}
+            </div>
 
+            <div
+              className={cn(
+                "transition-opacity duration-150",
+                resultsPending && "pointer-events-none opacity-50",
+              )}
+            >
               {totalCount > 0 && (
                 <div className="mt-8 border-t border-foreground/15">
                   <Pagination
