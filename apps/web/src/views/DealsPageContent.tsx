@@ -336,14 +336,14 @@ export function DealsPageContent({
           ) : null}
 
           <div className="relative" aria-busy={resultsPending}>
-            {resultsPending && (
+            {resultsPending ? (
               <div
-                className="pointer-events-none absolute inset-0 z-10 flex items-start justify-center pt-24 sm:pt-32"
+                className="pointer-events-none sticky top-[calc(50vh-1.75rem)] z-10 -mb-14 flex h-14 justify-center"
                 aria-hidden
               >
                 <KnobbyWheelSpinner />
               </div>
-            )}
+            ) : null}
 
             <div
               className={cn(

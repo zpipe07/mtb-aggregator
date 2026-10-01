@@ -42,7 +42,7 @@ export function KnobbyWheelSpinner({
       role="img"
       aria-label={label}
       className={cn(
-        "size-12 origin-center animate-knobby-spin text-foreground",
+        "size-14 origin-center animate-knobby-spin text-foreground",
         className,
       )}
     >

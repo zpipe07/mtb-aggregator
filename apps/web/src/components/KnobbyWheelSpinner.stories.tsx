@@ -25,7 +25,7 @@ export const Sizes: Story = {
     <div className="flex items-end gap-6 text-foreground">
       <KnobbyWheelSpinner className="size-4" label="Loading, tiny" />
       <KnobbyWheelSpinner className="size-8" label="Loading, small" />
-      <KnobbyWheelSpinner className="size-12" label="Loading, default" />
+      <KnobbyWheelSpinner className="size-14" label="Loading, default" />
       <KnobbyWheelSpinner className="size-24" label="Loading, large" />
     </div>
   ),
@@ -40,20 +40,26 @@ export const OnDark: Story = {
   ),
 };
 
-export const DealsPending: Story = {
-  name: "Deals results pending",
+export const StaysInView: Story = {
+  name: "Stays in view while scrolling",
+  parameters: { layout: "fullscreen" },
   render: () => (
-    <div className="relative w-80">
-      <div className="grid grid-cols-2 gap-3 opacity-50">
-        {Array.from({ length: 4 }, (_, index) => (
-          <div
-            key={index}
-            className="aspect-[4/5] rounded-sm border border-foreground bg-card"
-          />
-        ))}
-      </div>
-      <div className="pointer-events-none absolute inset-0 flex items-start justify-center pt-10">
-        <KnobbyWheelSpinner />
+    <div className="mx-auto max-w-3xl px-6 py-8">
+      <div className="relative">
+        <div
+          className="pointer-events-none sticky top-[calc(50vh-1.75rem)] z-10 -mb-14 flex h-14 justify-center"
+          aria-hidden
+        >
+          <KnobbyWheelSpinner />
+        </div>
+        <div className="grid grid-cols-2 gap-4 opacity-50 sm:grid-cols-3">
+          {Array.from({ length: 18 }, (_, index) => (
+            <div
+              key={index}
+              className="aspect-[4/5] rounded-sm border border-foreground bg-card"
+            />
+          ))}
+        </div>
       </div>
     </div>
   ),
