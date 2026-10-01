@@ -335,16 +335,7 @@ export function DealsPageContent({
             </div>
           ) : null}
 
-          <div className="relative" aria-busy={resultsPending}>
-            {resultsPending ? (
-              <div
-                className="pointer-events-none sticky top-[calc(50vh-1.75rem)] z-10 -mb-14 flex h-14 justify-center"
-                aria-hidden
-              >
-                <KnobbyWheelSpinner />
-              </div>
-            ) : null}
-
+          <div aria-busy={resultsPending}>
             <div
               className={cn(
                 "transition-opacity duration-150",
@@ -362,7 +353,16 @@ export function DealsPageContent({
                 </div>
               )}
 
-              {results}
+              <div className="relative">
+                {resultsPending ? (
+                  <div className="pointer-events-none absolute inset-0 z-10" aria-hidden>
+                    <div className="sticky top-[calc(50vh-1.75rem)] flex justify-center">
+                      <KnobbyWheelSpinner />
+                    </div>
+                  </div>
+                ) : null}
+                {results}
+              </div>
 
               {totalCount > 0 && (
                 <div className="mt-8 border-t border-foreground/15">
