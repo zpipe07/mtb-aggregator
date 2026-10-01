@@ -225,7 +225,7 @@ Uniform rules. Store-specific “don’t enrich this SKU” is **not** allowed e
 | --- | --- | --- | --- |
 | `hidden = true` | Skip (not claimed) | Skip | Skip |
 | `is_in_stock = false` | Skip scheduled enrich; **ZAC-256** stock-check only | Skip | Skip |
-| Snapshot `unavailable` | Success with stock write; no LLM kick if still OOS | Skip | Skip |
+| Snapshot `unavailable` | Success with stock write; no LLM kick if still OOS | Skip, unless a later scrape set the listing in stock after that snapshot (`last_scraped > snapshot.fetched_at`). Classify then uses the listing title (ZAC-298) | Same rule |
 | Store not in `StoreTypesWithEnrichers` | Skip scheduled; admin/backfill only if in `ENRICHERS` | Scheduled claim uses the same allowlist | Same |
 | No product URL | Skip | Skip | Skip |
 | PDP not stale (and not force) | Skip | — | — |

@@ -12,6 +12,10 @@ type StepDueInput struct {
 	ProfileUpdatedAt     *time.Time
 	HasCanonicalCategory bool
 	HasPromptProfile     bool
+	// ListingScrapedAt is store_listings.last_scraped. A scrape newer than an
+	// unavailable PDP snapshot means the sale page still lists the SKU, so
+	// classify may run from the title (ZAC-298).
+	ListingScrapedAt time.Time
 }
 
 func stepStateFor(s ListingState, step Step) StepState {
@@ -66,7 +70,7 @@ func classifyDue(in StepDueInput) bool {
 	if in.State.PDP.CompletedAt == nil {
 		return false
 	}
-	if in.Snapshot != nil && in.Snapshot.Payload.Unavailable {
+	if snapshotUnavailableBlocksLLM(in) {
 		return false
 	}
 	if in.State.Classify.CompletedAt == nil {
@@ -79,7 +83,7 @@ func extractDue(in StepDueInput) bool {
 	if in.State.PDP.CompletedAt == nil {
 		return false
 	}
-	if in.Snapshot != nil && in.Snapshot.Payload.Unavailable {
+	if snapshotUnavailableBlocksLLM(in) {
 		return false
 	}
 	if !in.HasCanonicalCategory {
@@ -107,6 +111,18 @@ func ShouldSkipLLMStep(step Step, in StepDueInput) bool {
 		return false
 	}
 	return !llmInvalidated(in)
+}
+
+// snapshotUnavailableBlocksLLM is true when the PDP said the product was gone
+// and no later scrape has seen it in stock.
+func snapshotUnavailableBlocksLLM(in StepDueInput) bool {
+	if in.Snapshot == nil || !in.Snapshot.Payload.Unavailable {
+		return false
+	}
+	if in.ListingScrapedAt.IsZero() || in.Snapshot.FetchedAt.IsZero() {
+		return true
+	}
+	return !in.ListingScrapedAt.After(in.Snapshot.FetchedAt)
 }
 
 func llmInvalidated(in StepDueInput) bool {

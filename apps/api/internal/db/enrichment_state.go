@@ -181,6 +181,14 @@ func (s EnrichmentStateStore) ClaimForStep(ctx context.Context, step enrichstate
 	return items, rows.Err()
 }
 
+// llmSnapshotAllowsClassify is true when the PDP snapshot is usable, or a later
+// in-stock scrape contradicted an unavailable PDP. Classify reads the listing
+// title, not the empty unavailable payload (ZAC-298).
+const llmSnapshotAllowsClassify = `(
+	COALESCE((ps.payload->>'unavailable')::boolean, false) = false
+	OR l.last_scraped > ps.fetched_at
+)`
+
 func stepLeaseColumn(step enrichstate.Step) (string, error) {
 	switch step {
 	case enrichstate.StepPDP:
@@ -213,7 +221,7 @@ func stepClaimEligibility(step enrichstate.Step, force bool, now time.Time, pdpS
 			AND COALESCE(le.classify_dead, false) = false
 			AND (le.next_classify_attempt_at IS NULL OR le.next_classify_attempt_at <= $1)
 			AND ps.listing_id IS NOT NULL
-			AND COALESCE((ps.payload->>'unavailable')::boolean, false) = false`
+			AND ` + llmSnapshotAllowsClassify
 		if !force {
 			where += `
 			AND (
@@ -234,7 +242,7 @@ func stepClaimEligibility(step enrichstate.Step, force bool, now time.Time, pdpS
 			AND COALESCE(le.extract_dead, false) = false
 			AND (le.next_extract_attempt_at IS NULL OR le.next_extract_attempt_at <= $1)
 			AND ps.listing_id IS NOT NULL
-			AND COALESCE((ps.payload->>'unavailable')::boolean, false) = false`
+			AND ` + llmSnapshotAllowsClassify
 		if !force {
 			where += `
 			AND (
@@ -504,15 +512,15 @@ type EnrichmentStepMetrics struct {
 }
 
 type EnrichmentStepStat struct {
-	Step                 string  `json:"step"`
-	Due                  int     `json:"due"`
-	InFlight             int     `json:"in_flight"`
-	Dead                 int     `json:"dead"`
-	OldestDueAgeSeconds  *int    `json:"oldest_due_age_seconds"`
-	SuccessCount         int     `json:"success_count"`
-	FailureCount         int     `json:"failure_count"`
-	SkippedCount         int     `json:"skipped_count"`
-	SuccessRatePct       float64 `json:"success_rate_pct"`
+	Step                string  `json:"step"`
+	Due                 int     `json:"due"`
+	InFlight            int     `json:"in_flight"`
+	Dead                int     `json:"dead"`
+	OldestDueAgeSeconds *int    `json:"oldest_due_age_seconds"`
+	SuccessCount        int     `json:"success_count"`
+	FailureCount        int     `json:"failure_count"`
+	SkippedCount        int     `json:"skipped_count"`
+	SuccessRatePct      float64 `json:"success_rate_pct"`
 }
 
 type ConfidenceBucket struct {
@@ -677,7 +685,7 @@ func (db *DB) enrichmentStepFlowStats(ctx context.Context) ([]EnrichmentStepStat
 				LEFT JOIN pdp_snapshots ps ON ps.listing_id = l.id
 				WHERE l.is_in_stock = true AND l.hidden = false
 					AND le.pdp_fetched_at IS NOT NULL
-					AND COALESCE((ps.payload->>'unavailable')::boolean, false) = false
+					AND ` + llmSnapshotAllowsClassify + `
 					AND s.store_type = ANY($1)
 			`,
 		},
@@ -701,7 +709,7 @@ func (db *DB) enrichmentStepFlowStats(ctx context.Context) ([]EnrichmentStepStat
 				WHERE l.is_in_stock = true AND l.hidden = false
 					AND le.pdp_fetched_at IS NOT NULL
 					AND l.canonical_category IS NOT NULL AND cardinality(l.canonical_category) > 0
-					AND COALESCE((ps.payload->>'unavailable')::boolean, false) = false
+					AND ` + llmSnapshotAllowsClassify + `
 					AND s.store_type = ANY($1)
 			`,
 		},
