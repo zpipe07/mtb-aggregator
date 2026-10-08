@@ -31,7 +31,9 @@ func TestIntervalGate_nonPositiveIntervalAllowsEveryCall(t *testing.T) {
 	t.Parallel()
 	now := time.Date(2026, 10, 8, 12, 0, 0, 0, time.UTC)
 	gate := NewIntervalGate(0)
-	if !gate.Allow("quota", now) || !gate.Allow("quota", now) {
+	first := gate.Allow("quota", now)
+	second := gate.Allow("quota", now)
+	if !first || !second {
 		t.Fatal("non-positive interval should allow every call")
 	}
 }
