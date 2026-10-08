@@ -47,6 +47,13 @@ const enrichListingErrorsSentryFailurePct = 50
 
 const enrichListingErrorsSentrySampleMax = 3
 
+// operationalScrapeWarningInterval caps repeat Sentry warnings for known
+// scrape health signals (thin scrapes, page caps, consecutive empty results).
+// Those states stay in logs on every run (ZAC-313).
+const operationalScrapeWarningInterval = 24 * time.Hour
+
+var operationalScrapeWarningGate = sentryutil.NewIntervalGate(operationalScrapeWarningInterval)
+
 func getEnrichBatchSize() int {
 	if s := os.Getenv("ENRICH_BATCH_SIZE"); s != "" {
 		if n, err := strconv.Atoi(s); err == nil && n > 0 {
@@ -139,17 +146,76 @@ func (s *Scheduler) finalizeScrapeJob(jobID int, status string, listingsFound, l
 	}
 }
 
+func allowOperationalScrapeWarning(store, phase string, now time.Time) bool {
+	return operationalScrapeWarningGate.Allow(phase+"/"+store, now)
+}
+
+// captureOperationalScrapeWarning sends a known scrape health signal to Sentry
+// at most once per store and phase per day. The caller already logs every run.
+func captureOperationalScrapeWarning(store, phase, msg string, tags map[string]string) {
+	if !allowOperationalScrapeWarning(store, phase, time.Now()) {
+		return
+	}
+	sentryutil.CaptureWarning(msg, tags)
+}
+
+func isOpenAIQuotaMessage(s string) bool {
+	lower := strings.ToLower(s)
+	return strings.Contains(lower, "openai quota exhausted") ||
+		strings.Contains(lower, "insufficient_quota") ||
+		strings.Contains(lower, "credit_balance_exhausted")
+}
+
+// errorsAreOpenAIQuotaOnly reports whether every job error is the OpenAI
+// billing-exhausted condition. That condition is reported on its own; the job
+// summary must not send a second event for the same outage (ZAC-313).
+func errorsAreOpenAIQuotaOnly(errStrs []string) bool {
+	if len(errStrs) == 0 {
+		return false
+	}
+	for _, s := range errStrs {
+		if !isOpenAIQuotaMessage(s) {
+			return false
+		}
+	}
+	return true
+}
+
+// shouldCaptureEnrichListingErrorsAggregate reports whether a completed job's
+// listing errors should become their own Sentry event.
+func shouldCaptureEnrichListingErrorsAggregate(processed, enriched int, errStrs []string) bool {
+	if processed <= 0 || len(errStrs) == 0 {
+		return false
+	}
+	failures := processed - enriched
+	if failures < 0 {
+		failures = 0
+	}
+	failurePct := failures * 100 / processed
+	if len(errStrs) < enrichListingErrorsSentryMin && failurePct <= enrichListingErrorsSentryFailurePct {
+		return false
+	}
+	if errorsAreOpenAIQuotaOnly(errStrs) {
+		return false
+	}
+	return true
+}
+
 // captureEnrichJobListingErrorsAggregate reports one Sentry event when a completed enrich job
 // accumulated many per-listing failures (stored in enrich_jobs.errors but not sent individually).
+// OpenAI quota exhaustion is omitted: that outage is already reported, at most once per hour.
 func captureEnrichJobListingErrorsAggregate(scope string, processed, enriched int, errStrs []string) {
-	if processed <= 0 || len(errStrs) == 0 {
+	if !shouldCaptureEnrichListingErrorsAggregate(processed, enriched, errStrs) {
+		if errorsAreOpenAIQuotaOnly(errStrs) && processed > 0 {
+			enrichmentLog.Warn("enrich job listing errors are OpenAI quota exhaustion; not reporting a second Sentry event", "scope", scope, "errors", len(errStrs), "processed", processed, "enriched", enriched)
+		}
 		return
 	}
 	failures := processed - enriched
-	failurePct := failures * 100 / processed
-	if len(errStrs) < enrichListingErrorsSentryMin && failurePct <= enrichListingErrorsSentryFailurePct {
-		return
+	if failures < 0 {
+		failures = 0
 	}
+	failurePct := failures * 100 / processed
 	sampleN := enrichListingErrorsSentrySampleMax
 	if sampleN > len(errStrs) {
 		sampleN = len(errStrs)
@@ -316,9 +382,11 @@ func (s *Scheduler) scrapeStore(store db.Store, triggeredBy string) {
 	// Health monitoring: flag if 0 results for 2+ consecutive scrapes (possible selector breakage)
 	if len(results) == 0 && store.LastScrapeResultCount != nil && *store.LastScrapeResultCount == 0 {
 		schedulerLog.Warn("zero scrape results for consecutive runs; check site/selector changes", "store", store.Name)
-		sentryutil.CaptureWarning(
+		captureOperationalScrapeWarning(
+			store.Name,
+			"consecutive_empty",
 			store.Name+": 0 scrape results for 2+ consecutive runs (possible selector/site change)",
-			map[string]string{"component": "scheduler", "job": "scrape", "store": store.Name},
+			map[string]string{"component": "scheduler", "job": "scrape", "store": store.Name, "phase": "consecutive_empty"},
 		)
 	}
 	countCtx, countCancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -391,7 +459,9 @@ func (s *Scheduler) scrapeStore(store db.Store, triggeredBy string) {
 	if truncated {
 		warnStrs = append(warnStrs, "scrape truncated by page cap; skipped stale listing hide")
 		schedulerLog.Warn("scrape truncated by page cap; skipping stale listing hide", "store", store.Name, "found", found, "upserted", validCount)
-		sentryutil.CaptureWarning(
+		captureOperationalScrapeWarning(
+			store.Name,
+			"truncated",
 			store.Name+": scrape truncated by page cap; skipping HideStaleListings so off-page sale SKUs stay visible",
 			map[string]string{"component": "scheduler", "job": "scrape", "store": store.Name, "phase": "truncated"},
 		)
@@ -399,7 +469,9 @@ func (s *Scheduler) scrapeStore(store db.Store, triggeredBy string) {
 		msg := fmt.Sprintf("thin scrape (%d upserted vs recent max %d); skipped stale listing hide", validCount, recentMax)
 		warnStrs = append(warnStrs, msg)
 		schedulerLog.Warn("thin scrape; skipping stale listing hide", "store", store.Name, "upserted", validCount, "recent_max", recentMax)
-		sentryutil.CaptureWarning(
+		captureOperationalScrapeWarning(
+			store.Name,
+			"thin_scrape",
 			store.Name+": "+msg,
 			map[string]string{"component": "scheduler", "job": "scrape", "store": store.Name, "phase": "thin_scrape"},
 		)

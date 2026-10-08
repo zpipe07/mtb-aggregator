@@ -61,6 +61,21 @@ func TestParseOpenAIError_insufficientQuota(t *testing.T) {
 	}
 }
 
+func TestParseOpenAIError_creditBalanceExhausted(t *testing.T) {
+	t.Parallel()
+	body := []byte(`{"error":{"message":"You have no credits remaining.","type":"insufficient_quota","code":"credit_balance_exhausted"}}`)
+	err := parseOpenAIError(429, body)
+	if !errors.Is(err, ErrQuotaExhausted) {
+		t.Fatalf("expected ErrQuotaExhausted, got %v", err)
+	}
+	// Billing codes must stay quota even if the type field is omitted.
+	codeOnly := []byte(`{"error":{"message":"no credits","code":"credit_balance_exhausted"}}`)
+	err = parseOpenAIError(402, codeOnly)
+	if !errors.Is(err, ErrQuotaExhausted) {
+		t.Fatalf("expected ErrQuotaExhausted for code-only body, got %v", err)
+	}
+}
+
 func TestParseOpenAIError_rateLimit429(t *testing.T) {
 	t.Parallel()
 	body := []byte(`{"error":{"message":"Rate limit","type":"rate_limit_exceeded","code":"rate_limit_exceeded"}}`)
@@ -93,8 +108,8 @@ func TestBuildUserMessage(t *testing.T) {
 	client := New("sk-fake", "")
 	input := ExtractInput{
 		ProductName:  "Yeti SB140",
-		Description: "150mm fork, 140mm rear travel",
-		Specs:       map[string]string{"Frame": "Carbon"},
+		Description:  "150mm fork, 140mm rear travel",
+		Specs:        map[string]string{"Frame": "Carbon"},
 		CategoryPath: []string{"Bikes", "Mountain"},
 	}
 	msg := client.buildUserMessage(input)

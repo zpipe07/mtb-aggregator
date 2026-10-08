@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log"
 	"strconv"
+	"time"
 
 	"github.com/mtb-aggregator/api/internal/db"
 	"github.com/mtb-aggregator/api/internal/llm"
@@ -17,6 +18,29 @@ import (
 )
 
 const maxLLMErrorSentryPerJob = 5
+
+// quotaExhaustedSentryInterval is how often a sustained OpenAI billing outage
+// may send another Sentry event. Once per enrich job is not enough: the PDP
+// drainer starts a new LLM job after each successful PDP, and each of those
+// jobs fails on the first listing (ZAC-313).
+const quotaExhaustedSentryInterval = time.Hour
+
+var (
+	quotaSentryGate = sentryutil.NewIntervalGate(quotaExhaustedSentryInterval)
+	quotaSentryNow  = time.Now
+	captureLLMError = sentryutil.CaptureError
+)
+
+// reportQuotaExhausted sends one Sentry event per quotaExhaustedSentryInterval
+// for the whole process. Later calls in the window are logged by the caller
+// and do not capture.
+func reportQuotaExhausted(err error, tags map[string]string) bool {
+	if !quotaSentryGate.Allow("openai_quota_exhausted", quotaSentryNow()) {
+		return false
+	}
+	captureLLMError(err, tags)
+	return true
+}
 
 // ErrClassifySkipped means classify intentionally did not apply a category and
 // the reason is persisted (manual override, or below-threshold llm_category).
@@ -76,17 +100,17 @@ func HandleLLMStepError(err error, state *QuotaJobState, errStrs *[]string, list
 				state.quotaErrRecorded = true
 			}
 			if !state.quotaSentrySent {
-				sentryutil.CaptureError(err, tags)
+				reportQuotaExhausted(err, tags)
 				state.quotaSentrySent = true
 			}
 			return
 		}
-		sentryutil.CaptureError(err, tags)
+		reportQuotaExhausted(err, tags)
 		return
 	}
 	tags["llm_error"] = "other"
 	if state == nil || state.otherSentryN < maxLLMErrorSentryPerJob {
-		sentryutil.CaptureError(err, tags)
+		captureLLMError(err, tags)
 		if state != nil {
 			state.otherSentryN++
 		}
