@@ -18,7 +18,13 @@ const PAGE1_FIXTURE = loadSpecializedRpcFixture("rpc-sale-page-1.json");
 const SAMPLE_RPC_CODE =
   "eyJhbGciOiJIUzI1NiJ9._v39_v39.l8_DRBSB5VoAij-2rD6GtQ46tE19Wwwdgq567avVYfo~";
 
+/** Live sale-page shape after Specialized added an extra `_fN` segment (ZAC-300). */
+const SAMPLE_RPC_CODE_WITH_FEATURE =
+  "eyJhbGciOiJIUzI1NiJ9._v39_v39_f4.42LoKd97CGawOeIjyvqNPlIImpCO-CPlJ1aGzJG7pBk~";
+
 const SALE_HTML_WITH_CODE = `<html><body><script>window.__SBC__={"code":"${SAMPLE_RPC_CODE}"}</script></body></html>`;
+
+const SALE_HTML_WITH_FEATURE_CODE = `<script>self.__next_f.push([1,"{\\"code\\":\\"${SAMPLE_RPC_CODE_WITH_FEATURE}\\"}"])</script>`;
 
 const PDP_HTML = `
 <html><head>
@@ -56,13 +62,27 @@ describe("specialized-plp helpers", () => {
     expect(args.temporaryAddlQueryString).toContain("page=2");
   });
 
-  it("extracts RPC code token from sale HTML", () => {
+  it("extracts the legacy _vN_vN RPC code token from sale HTML", () => {
     expect(extractSpecializedRpcCode(SALE_HTML_WITH_CODE)).toBe(SAMPLE_RPC_CODE);
+  });
+
+  it("extracts the _vN_vN_fN RPC code token from an RSC payload", () => {
+    expect(extractSpecializedRpcCode(SALE_HTML_WITH_FEATURE_CODE)).toBe(
+      SAMPLE_RPC_CODE_WITH_FEATURE,
+    );
   });
 
   it("throws when RPC code token is missing from sale HTML", () => {
     expect(() => extractSpecializedRpcCode("<html><body>no token</body></html>")).toThrow(
-      /code/i,
+      /RPC code token not found.*eyJhbGciOiJIUzI1NiJ9 not present/,
+    );
+  });
+
+  it("includes a short HTML snippet when the JWT header is present but the token does not match", () => {
+    const html =
+      "<html>prefix eyJhbGciOiJIUzI1NiJ9.not-a-valid-middle.sig and trailing noise that should be truncated</html>";
+    expect(() => extractSpecializedRpcCode(html)).toThrow(
+      /near eyJhbGciOiJIUzI1NiJ9\.not-a-valid-middle\.sig/,
     );
   });
 

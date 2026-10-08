@@ -13,9 +13,16 @@ const CATEGORY_LIST_NOISE = new Set([
   "turbo range calculator",
 ]);
 
-/** Matches JWT-like site tokens embedded in sale PLP HTML for RPC coreParams.code. */
-const SPECIALIZED_RPC_CODE_PATTERN =
-  /eyJhbGciOiJIUzI1NiJ9\._v\d+_v\d+\.[A-Za-z0-9_~.-]+/;
+/**
+ * JWT-like site tokens embedded in sale PLP HTML for RPC coreParams.code.
+ * The middle segment is one or more `_<letter><digits>` pieces, so both
+ * `_v39_v39` and `_v39_v39_f4` match (ZAC-300).
+ */
+const SPECIALIZED_RPC_CODE_HEADER = "eyJhbGciOiJIUzI1NiJ9";
+const SPECIALIZED_RPC_CODE_PATTERN = new RegExp(
+  `${SPECIALIZED_RPC_CODE_HEADER}\\.(?:_[a-z]\\d+)+\\.[A-Za-z0-9_~-]+`,
+);
+const SPECIALIZED_RPC_CODE_MISS_SNIPPET_CHARS = 200;
 
 interface ColorPrices {
   minPrice?: number | null;
@@ -69,10 +76,23 @@ export function parseCategoryPathFromList(list: string | undefined): string[] | 
   return parts.length > 0 ? parts : null;
 }
 
+function specializedRpcCodeMissDetail(html: string): string {
+  const idx = html.indexOf(SPECIALIZED_RPC_CODE_HEADER);
+  if (idx < 0) {
+    return `${SPECIALIZED_RPC_CODE_HEADER} not present in HTML`;
+  }
+  const snippet = html
+    .slice(idx, idx + SPECIALIZED_RPC_CODE_MISS_SNIPPET_CHARS)
+    .replace(/\s+/g, " ");
+  return `near ${snippet}`;
+}
+
 export function extractSpecializedRpcCode(html: string): string {
   const match = SPECIALIZED_RPC_CODE_PATTERN.exec(html);
   if (!match?.[0]) {
-    throw new Error("Specialized sale page: RPC code token not found in HTML");
+    throw new Error(
+      `Specialized sale page: RPC code token not found in HTML (${specializedRpcCodeMissDetail(html)})`,
+    );
   }
   return match[0];
 }
