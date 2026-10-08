@@ -2117,7 +2117,8 @@ func (db *DB) RequeueWipedEnrichment(ctx context.Context) (int64, error) {
 // Skips listings with manual_category_override so admin picks stay. Confident metadata.llm_category still skips
 // path remap (ZAC-234), but title refine still runs on the existing path so wheelset/rim titles cannot stay
 // stuck on Tires (ZAC-263), brake cables/olives/adapters cannot stay on Brakesets (ZAC-272),
-// apparel cannot stay on Bikes (ZAC-264), and analog MTBs / parts cannot stay on Electric (ZAC-273).
+// apparel cannot stay on Bikes (ZAC-264), glove titles cannot stay on Clothing (ZAC-311),
+// and analog MTBs / parts cannot stay on Electric (ZAC-273).
 // Returns the number of rows updated.
 func (db *DB) BackfillCanonicalCategories(ctx context.Context, mapFn func([]string) []string) (int, error) {
 	threshold := db.resolveLLMPreserveThreshold(ctx)
