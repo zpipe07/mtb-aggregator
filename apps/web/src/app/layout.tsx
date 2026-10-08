@@ -6,6 +6,9 @@ import "./globals.css";
 const defaultDescription =
   "Find the best mountain bike deals across top retailers. Compare prices on bikes, components, gear, and accessories.";
 
+/** Impact.com site verification. Their crawler reads `value`, not `content`. */
+const IMPACT_SITE_VERIFICATION = "210a2e23-86c5-4cc5-afb8-3290134970a0";
+
 export const metadata: Metadata = {
   metadataBase: getSiteUrl(),
   title: {
@@ -56,6 +59,12 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        {/* ZAC-314: raw tag so Impact sees `value`. Next metadata `other` emits `content`. */}
+        <meta
+          name="impact-site-verification"
+          // @ts-expect-error Impact's verifier requires the non-standard `value` attribute.
+          value={IMPACT_SITE_VERIFICATION}
+        />
         <script
           dangerouslySetInnerHTML={{
             __html: `

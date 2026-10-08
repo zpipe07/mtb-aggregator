@@ -83,6 +83,8 @@ The API must be running for data. Configure `NEXT_PUBLIC_API_URL` (client) or `A
 
 **Avantlink homepage verification (optional):** Set `NEXT_PUBLIC_AVANTLINK_VERIFY_SCRIPT_SRC` in Vercel (Production only, or Preview if you verify there) to the exact script URL Avantlink gives you (`http://` or `https://...affiliate_app_confirm.php?mode=js&authResponse=...`). Do **not** paste that URL into tracked source—it trips secret scanners. The homepage injects that tag via static HTML (not `next/script`), with a **literal** `&` between query parameters in the source—React’s normal `src={url}` escapes `&` as `&amp;`, which some verifiers mistakenly reject. Remove the variable after Avantlink confirms.
 
+**Impact site verification:** The root layout `<head>` includes `<meta name="impact-site-verification" value="…">` (ZAC-314) so Impact can verify the homepage. The tag uses the `value` attribute from Impact’s snippet. The Next.js Metadata API would emit `content` instead, which their crawler does not read.
+
 ### Production checklist (apex canonical: `https://thedropper.shop`)
 
 Do these in order after changing DNS/domains or fixing indexing issues:
