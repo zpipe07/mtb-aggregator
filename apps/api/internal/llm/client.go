@@ -18,7 +18,7 @@ import (
 const defaultModel = "gpt-4o-mini"
 const openAIBaseURL = "https://api.openai.com/v1"
 
-// ErrQuotaExhausted is returned when OpenAI responds with insufficient_quota (billing), not a transient rate limit.
+// ErrQuotaExhausted is returned when OpenAI responds with insufficient_quota or credit_balance_exhausted (billing), not a transient rate limit.
 var ErrQuotaExhausted = errors.New("openai quota exhausted")
 
 // ErrRateLimited is returned for HTTP 429 when the error is not insufficient_quota (retry with backoff).
@@ -94,7 +94,7 @@ func parseOpenAIError(statusCode int, body []byte) error {
 	_ = json.Unmarshal(body, &ob)
 	code := ob.Error.Code
 	typ := ob.Error.Type
-	if code == "insufficient_quota" || typ == "insufficient_quota" {
+	if code == "insufficient_quota" || typ == "insufficient_quota" || code == "credit_balance_exhausted" {
 		return fmt.Errorf("%w: %s", ErrQuotaExhausted, string(body))
 	}
 	if statusCode == http.StatusTooManyRequests {
