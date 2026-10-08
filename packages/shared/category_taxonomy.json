@@ -1,6 +1,10 @@
 {
   "mappings": [
     {
+      "raw": ["glove", "gloves"],
+      "canonical": ["Gear", "Gloves"]
+    },
+    {
       "raw": [
         "emtb",
         "e-mtb",
