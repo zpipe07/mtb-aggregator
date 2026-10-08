@@ -10,7 +10,7 @@ These are the policy calls this spec proceeds with. Correct them before implemen
 
 1. **Waste we are cutting:** Re-PDP after no-signal scrapes (Jenson / Trek / Specialized / Bell / Giro / Fox / UC). That path is both the restock signal *and* the leak: scrape always writes `is_in_stock=true`, so the listing is claimable again. Extra Shopify OOS rows are cheap and useful — keep them. LLM classify/extract already skip OOS / `unavailable`.
 2. **Restock SLA:** The ~4h scrape cadence is enough. No faster stock poll. No-signal stores accept a slower restock (stock-check PDP, default **24h**) because sale-page presence is not a stock signal.
-3. **Keep OOS rows.** Persist them. Public `GET /deals` stays `is_in_stock=true AND hidden=false`. Admin, grouped sibling JSON, and the deal PDP variant table may still see OOS siblings. Do not drop OOS SKUs from scrape (Gravity Cartel / Ride Bicycles should stop skipping `!variant.available`).
+3. **Keep OOS rows.** Persist them. Public `GET /deals` stays `is_in_stock=true AND hidden=false`. Admin, grouped sibling JSON, and the deal PDP variant table may still see OOS siblings. Do not drop OOS SKUs from scrape (Gravity Cartel should stop skipping `!variant.available`). Ride Bicycles left Shopify (ZAC-302); its SmartEtailing sale lists are in-stock only, so they are a no-signal PLP.
 4. **Scrape may overwrite `is_in_stock` only when the PLP (or catalog) has a real stock flag.** No-signal scrapes must not overwrite PDP/fan-out stock. That is the Jenson re-PDP loop — and it can also put a sold-out SKU back on `/deals` until the next PDP (up to 30d).
 5. **This ticket** ships the spec + plan. Implementation is the task list below (same ticket or a child). Sibling specs ([ZAC-255 scrape contract](../specs/scrape-contract-zac-255.md), [ZAC-253 enrichment](../specs/enrichment-normalization-zac-253.md), [ZAC-254 variant identity](../specs/variant-identity-zac-254.md)) stay separate; they should adopt the contract field defined here.
 
@@ -57,11 +57,11 @@ Shopify-style `variant.available` (or equivalent): Worldwide Cyclery, Revel, Thu
 
 Also: Canyon (`!limitedStock`), Backcountry-family PLP (`isInStock`), Competitive Cyclist Impact catalog (`StockAvailability` / similar).
 
-**Align to this group (today they drop OOS SKUs):** Gravity Cartel, Ride Bicycles — emit the variant with `is_in_stock: variant.available` and `stock_from_plp: true` instead of `if (!variant.available) continue`.
+**Align to this group (today they drop OOS SKUs):** Gravity Cartel — emit the variant with `is_in_stock: variant.available` and `stock_from_plp: true` instead of `if (!variant.available) continue`.
 
 ### `stock_from_plp=false` (preserve stock on update)
 
-JensonUSA, Trek, Specialized, Bell, Giro, Fox Racing, Universal Cycles. PLP always sends `is_in_stock: true`. Stock is refined on PDP / fan-out.
+JensonUSA, Trek, Specialized, Bell, Giro, Fox Racing, Universal Cycles, Ride Bicycles (SmartEtailing in-stock sale lists, ZAC-302). PLP always sends `is_in_stock: true`. Stock is refined on PDP / fan-out.
 
 ## Restock matrix
 
@@ -92,7 +92,7 @@ So the bug is **correctness** (false in-stock on `/deals`) as well as **waste** 
 - Add `stock_from_plp` on scrape/Impact results; set it in every parser (true/false as classified above).
 - Upsert ON CONFLICT: apply `is_in_stock` only when `stock_from_plp` is true; otherwise keep `store_listings.is_in_stock`.
 - Tests: no-signal update preserves OOS; PLP update can restock; insert still accepts scrape stock.
-- Gravity Cartel + Ride Bicycles emit OOS rows.
+- Gravity Cartel emits OOS rows. Ride Bicycles is a no-signal in-stock sale list after ZAC-302.
 
 ### Phase 2 — Restock for no-signal stores
 
@@ -119,7 +119,7 @@ So the bug is **correctness** (false in-stock on `/deals`) as well as **waste** 
 
 - [ ] No-signal scrape of an existing OOS row does not set `is_in_stock=true`.
 - [ ] PLP-signal scrape of an OOS row can set `is_in_stock=true` on the next run (restock).
-- [ ] Gravity Cartel / Ride Bicycles persist OOS variants (`is_in_stock=false`) instead of omitting them.
+- [ ] Gravity Cartel persists OOS variants (`is_in_stock=false`) instead of omitting them. Ride Bicycles’ sale lists do not include OOS cards (ZAC-302).
 - [ ] Public `/deals` still requires in-stock + not hidden.
 - [ ] Classify/extract still skip OOS and `unavailable` snapshots.
 - [ ] No-signal OOS rows that stay on /sale get a stock-check PDP on the 24h cadence (not every scrape, not only at 30d).

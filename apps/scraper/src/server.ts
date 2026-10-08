@@ -8,7 +8,7 @@ import { runWithBrowser } from "./browser.js";
 import { ENRICH_TIMEOUT_MS, logScraperStorageStateConfig } from "./config.js";
 import { scraperAccessMiddleware, scraperLogger, securityLogger, startupLogger } from "./logging.js";
 import { getParser, getEnricher, PARSERS, ENRICHERS } from "./parsers/index.js";
-import { isJensonScrapeTruncated } from "./parsers/jensonusa-pagination.js";
+import { isScrapeTruncated } from "./parsers/jensonusa-pagination.js";
 import { captureRouteError } from "./sentry-helpers.js";
 import { ScrapeRequestSchema, ScrapeResultSchema, EnrichRequestSchema } from "./types.js";
 
@@ -59,7 +59,7 @@ app.post("/scrape", scraperServiceAuth, async (req, res) => {
 
   try {
     const rawResults = await parser(url);
-    const truncated = isJensonScrapeTruncated(rawResults);
+    const truncated = isScrapeTruncated(rawResults);
 
     const validated: typeof rawResults = [];
     const errors: string[] = [];
