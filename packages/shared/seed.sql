@@ -12,7 +12,7 @@ SELECT 'Revel Bikes', 'https://revelbikes.com', 'https://revelbikes.com/collecti
 WHERE NOT EXISTS (SELECT 1 FROM stores WHERE name = 'Revel Bikes');
 
 INSERT INTO stores (name, base_url, scrape_url, store_type, affiliate_network)
-SELECT 'Ride Bicycles', 'https://ridebicycles.com', 'https://ridebicycles.com/collections/all-products?page=1&rb_stock_status=In%20Stock&rb_discount_relative=40%25%7C50%25&tab=products&sort_by=sales_amount', 'ridebicycles', NULL
+SELECT 'Ride Bicycles', 'https://www.ridebicycles.com', 'https://www.ridebicycles.com/product-list/in-stock-bikes-wg139/?rb_onSale=1&maxItems=60', 'ridebicycles', NULL
 WHERE NOT EXISTS (SELECT 1 FROM stores WHERE name = 'Ride Bicycles');
 
 INSERT INTO stores (name, base_url, scrape_url, store_type, affiliate_network)

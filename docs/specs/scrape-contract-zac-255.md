@@ -81,7 +81,8 @@ Every store maps to one family. New stores should pick a family and reuse its he
 
 | Family | How scrape runs | Typical stores | Variant grain at scrape | Stock signal on PLP |
 | --- | --- | --- | --- | --- |
-| **Shopify collection JSON** | `GET {collection}/products.json?limit=250&page=N` | Worldwide Cyclery, Revel, Thunder Mountain, Mack, Ride Concepts, Leatt, Chromag, Bikes Online, Evo, Cambria, 365, Lost Co, Hayes, Race Face, Colorado Cyclist, Canfield, Cased, Gravity Cartel, Ride Bicycles | One row per `variant` | `variant.available` (ZAC-256: `stock_from_plp=true`) |
+| **Shopify collection JSON** | `GET {collection}/products.json?limit=250&page=N` | Worldwide Cyclery, Revel, Thunder Mountain, Mack, Ride Concepts, Leatt, Chromag, Bikes Online, Evo, Cambria, 365, Lost Co, Hayes, Race Face, Colorado Cyclist, Canfield, Cased, Gravity Cartel | One row per `variant` | `variant.available` (ZAC-256: `stock_from_plp=true`) |
+| **SmartEtailing HTML** | `GET /product-list/…/?rb_onSale=1&maxItems=60`, follow Next page | Ride Bicycles (in-stock bikes + in-stock cycling equipment) | One row per product card (`se{id}`) | None — in-stock sale lists only (`true`) |
 | **JensonUSA DTO** | Playwright `/sale`, `data-product-result-dto` | `jensonusa` | One row per DTO `variants[]` | None — always `true` today |
 | **Backcountry-family PLP** | Playwright + embedded / captured JSON | `backcountry` | One row per extracted SKU | `isInStock` when present |
 | **Demandware ajax grid** | `Search-UpdateGrid` / `Search-IncludeProductGrid` | Canyon, Fox Racing, Bell, Giro | One row per **color tile** (`data-pid`) | Canyon: `!limitedStock` (“Only available in”). Fox/Bell/Giro: none (`true`) |
@@ -92,7 +93,7 @@ Every store maps to one family. New stores should pick a family and reuse its he
 | **ION hybrid** | Nuxt article API + Shopify Storefront GraphQL | `ion` | Discounted variants; group = article number | Regional / GraphQL availability |
 | **Impact catalog** | Go `internal/impact` (not Node `/scrape`) | `competitivecyclist` | One row per catalog item | `StockAvailability` / similar (empty → in-stock today) |
 
-**Shopify transport extras (not a different contract):** browser-like UA + Referer + page delay + retry 403/429/503 (Ride Bicycles, Cambria, 365, Lost Co, Hayes, Race Face, Colorado, Canfield, Cased). Evo uses Playwright to establish a session before `products.json`. Ride Bicycles also requires compare-at and **15–75%** off (bulk/case `compare_at_price` artifacts). Those filters are **sale predicates**, not schema exceptions.
+**Shopify transport extras (not a different contract):** browser-like UA + Referer + page delay + retry 403/429/503 (Cambria, 365, Lost Co, Hayes, Race Face, Colorado, Canfield, Cased). Evo uses Playwright to establish a session before `products.json`. Ride Bicycles uses the same fetch pacing on SmartEtailing HTML and keeps cards at **15–75%** off (range prices must match the card’s “N% Off” badge). Those filters are **sale predicates**, not schema exceptions.
 
 ## Field contract (`ScrapeResult`)
 
@@ -146,6 +147,7 @@ A scrape is **complete** when the parser walked the sale source to a natural end
 | --- | --- | --- | --- |
 | Shopify | Empty page or `products.length < 250` | None (page loop) | **None** |
 | Jenson | Last page `< 48` listings or no next URL | `JENSON_MAX_PAGES` (default 50; ignores a lower `SCRAPER_MAX_PAGES`) | **Yes** — `markJensonScrapeTruncated` → `X-Scrape-Truncated: 1` (cap on a full page, or empty page after a full page / WAF miss) |
+| SmartEtailing (Ride Bicycles) | No “Next page” link | `RIDEBICYCLES_MAX_PAGES` (default 20) | **Yes** — same truncated stamp when the cap or `SCRAPER_MAX_PRODUCTS` stops the walk |
 | Backcountry | Empty extract | `SCRAPER_MAX_PAGES` default **5** | **None** (cap can silently look complete) |
 | Demandware / Canyon | Empty grid page | None | **None** |
 | Specialized / Trek | `page > totalPages` or empty add | None | **None** |
@@ -173,7 +175,7 @@ Scrape-time job: emit rows the deals UI can group (`GET /deals?group_variants=tr
 
 **Do:**
 
-- Emit OOS variants when the source has a real availability flag (ZAC-256). Gravity Cartel and Ride Bicycles must stop `if (!variant.available) continue`.
+- Emit OOS variants when the source has a real availability flag (ZAC-256). Gravity Cartel must stop `if (!variant.available) continue`. Ride Bicycles’ SmartEtailing sale lists do not include OOS cards.
 - Keep OOS rows. Public `/deals` already filters `is_in_stock=true AND hidden=false`.
 - Dedup SKUs. Prefer the first complete row.
 
@@ -283,8 +285,8 @@ Honest delta against the contract above. Implementation is **not** this ticket u
 | --- | --- | --- | --- |
 | `stock_from_plp` missing on Zod + Go `ScrapeResult` | `types.ts`, `client.go` | No-signal scrapes overwrite OOS → false `/deals` + re-PDP | ZAC-256 |
 | Upsert always `is_in_stock = EXCLUDED` | `listings_upsert.go` | Same | ZAC-256 |
-| Gravity Cartel / Ride Bicycles `continue` on `!available` | `gravitycartel.ts`, `ridebicycles.ts` | HideStale treats OOS as “left /sale”; restock requires reappear | ZAC-256 |
-| `X-Scrape-Truncated` only if Jenson stamped the array | `server.ts` `isJensonScrapeTruncated` | Other caps look complete | Follow-up (this contract) |
+| Gravity Cartel `continue` on `!available` | `gravitycartel.ts` | HideStale treats OOS as “left /sale”; restock requires reappear | ZAC-256 |
+| `X-Scrape-Truncated` only when a parser stamps the result array | `server.ts` `isScrapeTruncated` (Jenson, Ride Bicycles) | Other caps look complete | Follow-up (this contract) |
 | Backcountry `SCRAPER_MAX_PAGES` default **5**, no truncated | `backcountry-family-plp.ts` | Off-page sale SKUs hidden | Follow-up |
 | N+1 `MAX_CATALOG_PAGES = 100`, no truncated | `n1bikes-plp.ts` | Same if catalog grows | Follow-up |
 | `SCRAPER_MAX_PRODUCTS` early `return` never stamps truncated | Most parsers | Local/prod misconfig can HideStale the catalog | Follow-up |

@@ -265,7 +265,8 @@ store_type → {
 
 | Family | Stores | `scheduled_pdp` | Typical PDP payload | `pdp_variants` / fan-out |
 | --- | --- | --- | --- | --- |
-| **Shopify JSON** | WWC, Revel, Thunder, Mack, Ride Concepts, Leatt, Chromag, Gravity Cartel, Bikes Online, Evo, Cambria, 365, Lost Co, Hayes, Race Face, Colorado, Canfield, Cased, Ride Bicycles | Yes | `category_path`, `raw_specs`, `description` from `/products/{handle}.json` + HTML | No. Variants already scraped. |
+| **Shopify JSON** | WWC, Revel, Thunder, Mack, Ride Concepts, Leatt, Chromag, Gravity Cartel, Bikes Online, Evo, Cambria, 365, Lost Co, Hayes, Race Face, Colorado, Canfield, Cased | Yes | `category_path`, `raw_specs`, `description` from `/products/{handle}.json` + HTML | No. Variants already scraped. |
+| **SmartEtailing HTML** | Ride Bicycles | Yes | Breadcrumbs + `seProductSpecTable` + description from `/product/<slug>-<id>.htm`. 404 → `unavailable` | No. One card per product id at scrape (ZAC-302). |
 | **JensonUSA PDP** | `jensonusa` | Yes | Breadcrumbs + `serverSideViewModel.variants` | Yes → `ApplyJensonPDPVariantFanout` (update existing codes; group parent code) |
 | **Backcountry family** | `backcountry` | Yes | Specs / path | No |
 | **Demandware PDP** | Canyon, Fox, Bell, Giro | Yes | Path + specs; Fox/Bell/Giro color variants | Fox/Bell/Giro → `Apply{Store}PDPVariantFanout` (color pid). Canyon: no API fan-out |

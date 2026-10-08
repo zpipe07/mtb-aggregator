@@ -155,7 +155,8 @@ Honest delta vs the locked decisions. Implementation is **not** this ticket.
 
 | Store / family | Grain today | `store_sku` | `product_group_key` (parser) | `variant_options` | Fragment / collide risk |
 | --- | --- | --- | --- | --- | --- |
-| **Shopify JSON** (~20 stores) | PLP-complete: one row per `variant` | `variant.sku` or `v{id}` | `product.handle` | Retailer option **names as-is** (`Colour`, `Title`, `Option 1`, `Frame Size`) | **Key drift:** `Colour` vs `Color`; `Option 1` is not Size. Empty SKU fallback is OK. Gravity Cartel / Ride Bicycles **omit** OOS SKUs (ZAC-256, not identity) |
+| **Shopify JSON** (~19 stores) | PLP-complete: one row per `variant` | `variant.sku` or `v{id}` | `product.handle` | Retailer option **names as-is** (`Colour`, `Title`, `Option 1`, `Frame Size`) | **Key drift:** `Colour` vs `Color`; `Option 1` is not Size. Empty SKU fallback is OK. Gravity Cartel **omits** OOS SKUs (ZAC-256, not identity) |
+| **Ride Bicycles** (SmartEtailing, ZAC-302) | One row per product card | `se{productId}` | SmartEtailing product id | **Unset** (size/color stay on the retailer PDP) | Old Shopify `variant.sku` / `v{id}` rows do not match. Migration `066` hides non-`/product/…htm` URLs so HideStale is not the only cleanup |
 | **JensonUSA** | PLP-partial + PDP fan-out | Variant `code` (often `… COLOR SIZE`) | Parent `code` | DTO facets + Size inferred from code suffix | Parent/child prefix collision if `025` hide not re-applied after scrape unhide. Color-only PLP vs Size: **merge** already in upsert |
 | **Backcountry family** | One row per extracted SKU | `sku` | **Unset** | **Unset** | **Fragment:** each SKU is `single:{id}` even when they share a style |
 | **Canyon** | Color tile | `{masterId}-{colorCode}` | `masterId` | `Color` (label or code) | Group OK. **No Size rows.** Color code vs name |

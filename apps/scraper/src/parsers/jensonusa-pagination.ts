@@ -4,7 +4,8 @@ export const JENSON_MIN_FULL_PAGE = 48;
 /** Floor when only SCRAPER_MAX_PAGES is set (prod is 10, which truncates /sale). */
 export const DEFAULT_JENSON_MAX_PAGES = 50;
 
-const TRUNCATED = Symbol("jensonScrapeTruncated");
+/** Shared with other parsers. POST /scrape reads this stamp for X-Scrape-Truncated. */
+const TRUNCATED = Symbol.for("mtb.scrapeTruncated");
 
 type TruncatableResults = { [TRUNCATED]?: boolean };
 
@@ -17,6 +18,9 @@ export function markJensonScrapeTruncated<T extends object>(results: T): T {
 export function isJensonScrapeTruncated(results: unknown): boolean {
   return Boolean(results && (results as TruncatableResults)[TRUNCATED]);
 }
+
+export const markScrapeTruncated = markJensonScrapeTruncated;
+export const isScrapeTruncated = isJensonScrapeTruncated;
 
 export function jensonMaxPages(
   env: NodeJS.ProcessEnv = process.env,
