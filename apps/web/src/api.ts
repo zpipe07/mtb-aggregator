@@ -374,7 +374,7 @@ export interface CategoryTreeNode {
    * fall back to `deal_count`.
    */
   product_count?: number;
-  /** When true, omit from the header mega-menu. Still shown on /categories. */
+  /** When true, omit from the header mega-menu and in-category browse chips. Still shown on /categories and the root `/deals` chip row. */
   hide_from_nav?: boolean;
   children: CategoryTreeNode[];
 }

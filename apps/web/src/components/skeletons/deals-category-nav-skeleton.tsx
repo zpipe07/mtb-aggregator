@@ -1,7 +1,7 @@
 import { Skeleton } from "@/components/ui/skeleton";
 
 type DealsCategoryNavSkeletonProps = {
-  /** Category pages use a text trail; `/deals` uses browse chips. */
+  /** Category pages use a breadcrumb plus chips; `/deals` uses browse chips. */
   variant?: "chips" | "breadcrumb";
 };
 
@@ -10,13 +10,20 @@ export function DealsCategoryNavSkeleton({
 }: DealsCategoryNavSkeletonProps) {
   if (variant === "breadcrumb") {
     return (
-      <div className="mb-4 border-b border-foreground/15 pb-3" aria-hidden>
-        <div className="flex flex-wrap items-center gap-2">
+      <div className="mb-4 border-b border-foreground/15 pb-4" aria-hidden>
+        <div className="mb-4 flex flex-wrap items-center gap-2">
           <Skeleton className="h-4 w-16" />
           <Skeleton className="h-4 w-2" />
           <Skeleton className="h-4 w-24" />
           <Skeleton className="h-4 w-2" />
           <Skeleton className="h-4 w-20" />
+        </div>
+        <Skeleton className="mb-3 h-2.5 w-28" />
+        <div className="flex flex-wrap gap-2">
+          <Skeleton className="h-8 w-24 rounded-sm" />
+          <Skeleton className="h-8 w-20 rounded-sm" />
+          <Skeleton className="h-8 w-28 rounded-sm" />
+          <Skeleton className="h-8 w-24 rounded-sm" />
         </div>
       </div>
     );

@@ -114,8 +114,9 @@ export function filterCategoryTreeWithDeals(
 
 /**
  * Drop categories flagged `hide_from_nav` (and their descendants) for the
- * header mega-menu. `/categories`, deals browse chips, and classification
- * still use the full tree (ZAC-251).
+ * header mega-menu. `/categories`, the root `/deals` browse chips, and
+ * classification still use the full tree (ZAC-251). In-category browse chips
+ * omit hidden nodes themselves (ZAC-315); see {@link selectDealsBrowseChips}.
  */
 export function filterCategoryTreeForNav(
   tree: CategoryTreeNode[],
@@ -207,16 +208,22 @@ export function findCategoryWithAncestors(
   return walk(tree, []);
 }
 
-/** Sort siblings by API sort_order. */
+/** Sort siblings by API sort_order, then id. */
 function sortNodes(nodes: CategoryTreeNode[]): CategoryTreeNode[] {
-  return [...nodes].sort((a, b) => a.sort_order - b.sort_order);
+  return [...nodes].sort((a, b) => {
+    if (a.sort_order !== b.sort_order) return a.sort_order - b.sort_order;
+    return a.id - b.id;
+  });
 }
 
 export type CategoryChipMode = "roots" | "children" | "siblings";
 
+/** Root `/deals` chip row stops here; "See all" covers the rest. */
+export const ROOT_BROWSE_CHIP_LIMIT = 8;
+
 /**
  * Chips for the category row:
- * - **roots** — nothing selected: top-level categories.
+ * - **roots** — nothing selected (or an unknown slug): top-level categories.
  * - **children** — current category has subcategories: show them (drill down).
  * - **siblings** — current category is a leaf: show peers under the same parent
  *   so users can switch without going up (highlight matches `categoryFilter`).
@@ -243,5 +250,93 @@ export function getBrowseChipNodes(
   return {
     nodes: sortNodes(parent.children ?? []),
     mode: "siblings",
+  };
+}
+
+export type DealsBrowseChipRow = {
+  mode: CategoryChipMode;
+  /** Mono eyebrow, including the `//` prefix. */
+  label: string;
+  /** Step back to the parent. Set for a leaf that has one (ZAC-315). */
+  parent: CategoryTreeNode | null;
+  nodes: CategoryTreeNode[];
+  /** Slug drawn as the current chip. Empty when none of the chips is current. */
+  currentSlug: string;
+  showSeeAll: boolean;
+};
+
+function shopperChipVisible(
+  node: CategoryTreeNode,
+  currentSlug: string,
+  omitHiddenFromNav: boolean,
+): boolean {
+  if (currentSlug && node.slug === currentSlug) return true;
+  if (omitHiddenFromNav && node.hide_from_nav) return false;
+  return categoryHasDeals(node);
+}
+
+/**
+ * Shopper chip row for `/deals` and category pages (ZAC-315).
+ * Root rows keep the historical cap and still include `hide_from_nav` nodes.
+ * Child and sibling rows drop hidden and empty categories, keep the current
+ * leaf visible, and on a leaf include its parent as a step back.
+ * Returns null when there is nothing to show.
+ */
+export function selectDealsBrowseChips(
+  tree: CategoryTreeNode[],
+  selectedSlug: string,
+): DealsBrowseChipRow | null {
+  if (!tree.length) return null;
+
+  const { nodes, mode } = getBrowseChipNodes(tree, selectedSlug);
+  const found = selectedSlug
+    ? findCategoryWithAncestors(tree, selectedSlug)
+    : null;
+
+  if (mode === "roots") {
+    const visible = nodes
+      .filter((node) => shopperChipVisible(node, "", false))
+      .slice(0, ROOT_BROWSE_CHIP_LIMIT);
+    if (visible.length === 0) return null;
+    return {
+      mode,
+      label: "// browse by category",
+      parent: null,
+      nodes: visible,
+      currentSlug: "",
+      showSeeAll: true,
+    };
+  }
+
+  if (mode === "children") {
+    const visible = nodes.filter((node) =>
+      shopperChipVisible(node, "", true),
+    );
+    if (visible.length === 0 || !found) return null;
+    return {
+      mode,
+      label: `// browse ${found.node.name}`,
+      parent: null,
+      nodes: visible,
+      currentSlug: "",
+      showSeeAll: false,
+    };
+  }
+
+  const parent =
+    found && found.ancestors.length > 0
+      ? found.ancestors[found.ancestors.length - 1]
+      : null;
+  const visible = nodes.filter((node) =>
+    shopperChipVisible(node, selectedSlug, true),
+  );
+  if (visible.length === 0 && !parent) return null;
+  return {
+    mode,
+    label: parent ? `// in ${parent.name}` : "// browse by category",
+    parent,
+    nodes: visible,
+    currentSlug: selectedSlug,
+    showSeeAll: false,
   };
 }
