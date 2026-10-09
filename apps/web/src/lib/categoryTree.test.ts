@@ -4,7 +4,10 @@ import {
   categoryHasDeals,
   categoryNavDealCount,
   filterCategoryTreeForNav,
+  getBrowseChipNodes,
   normalizeCategoryTree,
+  ROOT_BROWSE_CHIP_LIMIT,
+  selectDealsBrowseChips,
   shopperListingTotalCount,
 } from "./categoryTree";
 
@@ -170,6 +173,203 @@ describe("filterCategoryTreeForNav", () => {
     expect(filterCategoryTreeForNav(tree).map((n) => n.slug)).toEqual([
       "components",
     ]);
+  });
+});
+
+function bikeTree(): CategoryTreeNode[] {
+  return [
+    node({
+      id: 1,
+      slug: "bikes",
+      name: "Bikes",
+      sort_order: 0,
+      deal_count: 30,
+      product_count: 30,
+      children: [
+        node({
+          id: 2,
+          slug: "bikes-mountain",
+          name: "Mountain",
+          parent_id: 1,
+          depth: 1,
+          sort_order: 1,
+          deal_count: 20,
+          product_count: 20,
+          children: [
+            node({
+              id: 11,
+              slug: "bikes-mountain-trail",
+              name: "Trail",
+              parent_id: 2,
+              depth: 2,
+              sort_order: 1,
+              deal_count: 8,
+              product_count: 8,
+            }),
+            node({
+              id: 10,
+              slug: "bikes-mountain-xc",
+              name: "XC",
+              parent_id: 2,
+              depth: 2,
+              sort_order: 0,
+              deal_count: 6,
+              product_count: 6,
+            }),
+            node({
+              id: 12,
+              slug: "bikes-mountain-enduro",
+              name: "Enduro",
+              parent_id: 2,
+              depth: 2,
+              sort_order: 2,
+              deal_count: 0,
+              product_count: 0,
+            }),
+            node({
+              id: 13,
+              slug: "bikes-mountain-parts",
+              name: "Mountain parts",
+              parent_id: 2,
+              depth: 2,
+              sort_order: 3,
+              hide_from_nav: true,
+              deal_count: 2,
+              product_count: 2,
+            }),
+          ],
+        }),
+      ],
+    }),
+    node({
+      id: 3,
+      slug: "gear",
+      name: "Gear",
+      sort_order: 1,
+      deal_count: 4,
+      product_count: 4,
+    }),
+  ];
+}
+
+describe("getBrowseChipNodes", () => {
+  const tree = bikeTree();
+
+  it("returns top-level categories when nothing is selected", () => {
+    const row = getBrowseChipNodes(tree, "");
+    expect(row.mode).toBe("roots");
+    expect(row.nodes.map((n) => n.slug)).toEqual(["bikes", "gear"]);
+  });
+
+  it("returns children when the category has subcategories", () => {
+    const row = getBrowseChipNodes(tree, "bikes-mountain");
+    expect(row.mode).toBe("children");
+    expect(row.nodes.map((n) => n.slug)).toEqual([
+      "bikes-mountain-xc",
+      "bikes-mountain-trail",
+      "bikes-mountain-enduro",
+      "bikes-mountain-parts",
+    ]);
+  });
+
+  it("returns peers for a leaf", () => {
+    const row = getBrowseChipNodes(tree, "bikes-mountain-trail");
+    expect(row.mode).toBe("siblings");
+    expect(row.nodes.map((n) => n.name)).toEqual([
+      "XC",
+      "Trail",
+      "Enduro",
+      "Mountain parts",
+    ]);
+  });
+});
+
+describe("selectDealsBrowseChips", () => {
+  const tree = bikeTree();
+
+  it("caps the root row and keeps See all", () => {
+    const roots = Array.from({ length: ROOT_BROWSE_CHIP_LIMIT + 1 }, (_, i) =>
+      node({
+        id: i + 1,
+        slug: `dept-${i}`,
+        name: `Dept ${i}`,
+        sort_order: i,
+        deal_count: 1,
+        product_count: 1,
+      }),
+    );
+    const row = selectDealsBrowseChips(roots, "");
+    expect(row?.nodes).toHaveLength(ROOT_BROWSE_CHIP_LIMIT);
+    expect(row?.showSeeAll).toBe(true);
+    expect(row?.label).toBe("// browse by category");
+    expect(row?.parent).toBeNull();
+  });
+
+  it("shows subcategories and skips empty or hidden ones", () => {
+    const row = selectDealsBrowseChips(tree, "bikes-mountain");
+    expect(row?.mode).toBe("children");
+    expect(row?.label).toBe("// browse Mountain");
+    expect(row?.parent).toBeNull();
+    expect(row?.nodes.map((n) => n.name)).toEqual(["XC", "Trail"]);
+    expect(row?.showSeeAll).toBe(false);
+    expect(row?.currentSlug).toBe("");
+  });
+
+  it("shows the parent plus siblings on a leaf, with the leaf current", () => {
+    const row = selectDealsBrowseChips(tree, "bikes-mountain-trail");
+    expect(row?.mode).toBe("siblings");
+    expect(row?.label).toBe("// in Mountain");
+    expect(row?.parent?.slug).toBe("bikes-mountain");
+    expect(row?.nodes.map((n) => n.name)).toEqual(["XC", "Trail"]);
+    expect(row?.currentSlug).toBe("bikes-mountain-trail");
+  });
+
+  it("keeps a sold-out leaf visible among its siblings", () => {
+    const row = selectDealsBrowseChips(tree, "bikes-mountain-enduro");
+    expect(row?.nodes.map((n) => n.name)).toEqual(["XC", "Trail", "Enduro"]);
+    expect(row?.currentSlug).toBe("bikes-mountain-enduro");
+  });
+
+  it("highlights a top-level leaf among the other departments", () => {
+    const row = selectDealsBrowseChips(tree, "gear");
+    expect(row?.mode).toBe("siblings");
+    expect(row?.parent).toBeNull();
+    expect(row?.label).toBe("// browse by category");
+    expect(row?.nodes.map((n) => n.slug)).toEqual(["bikes", "gear"]);
+    expect(row?.currentSlug).toBe("gear");
+    expect(row?.showSeeAll).toBe(false);
+  });
+
+  it("falls back to root chips for an unknown slug", () => {
+    const row = selectDealsBrowseChips(tree, "not-a-category");
+    expect(row?.mode).toBe("roots");
+    expect(row?.nodes.map((n) => n.slug)).toEqual(["bikes", "gear"]);
+    expect(row?.showSeeAll).toBe(true);
+    expect(row?.currentSlug).toBe("");
+  });
+
+  it("returns null when every subcategory is empty", () => {
+    const emptyParent = [
+      node({
+        id: 1,
+        slug: "bikes",
+        name: "Bikes",
+        deal_count: 0,
+        product_count: 0,
+        children: [
+          node({
+            id: 2,
+            slug: "bikes-mountain",
+            name: "Mountain",
+            parent_id: 1,
+            depth: 1,
+            deal_count: 0,
+            product_count: 0,
+          }),
+        ],
+      }),
+    ];
+    expect(selectDealsBrowseChips(emptyParent, "bikes")).toBeNull();
   });
 });
 
